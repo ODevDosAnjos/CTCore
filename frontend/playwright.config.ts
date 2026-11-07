@@ -11,6 +11,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev -- --port 5173 --strictPort",
     url: "http://localhost:5173",
+    env: { VITE_MSW_CENARIOS: "false" },
     reuseExistingServer: !process.env.CI,
   },
 });

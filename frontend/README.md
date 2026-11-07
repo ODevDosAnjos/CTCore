@@ -24,6 +24,20 @@ Precisa do Node 24 e do npm. Rode os comandos de dentro de `frontend/`.
 
 - **Proxy:** em desenvolvimento, `/api` vai para `http://localhost:8080` (o back-end local).
 - **MSW:** em desenvolvimento o MSW liga sozinho; para desligar, `VITE_USE_MSW=false npm run dev`. Nos testes ele sempre liga e rota sem handler falha o teste. Os handlers ficam em `src/mocks/handlers.ts`, com o caminho como está no OpenAPI; `src/mocks/msw.test.ts` confere cada um contra `docs/openapi.yaml`.
+- **Cenários do MSW (#449):** massa de dados fictícia em `src/mocks/cenarios/`, ligada em `npm run dev` e no teste visual; desligada nos testes unitários (`setup.ts`) e no e2e (`VITE_MSW_CENARIOS=false`). Um teste liga com `setScenarios(true)` (o `resetMockSession()` volta ao cenário; `{ termoFamilia: true }` deixa os dois filhos de `familia@` com o termo pendente, "1 de 2"). Datas sempre relativas (`dayShift`).
+
+  | Perfil | Rota / dado | O que o cenário traz | Arquivo / teste |
+  | --- | --- | --- | --- |
+  | `ana@exemplo.com` | Alunos | 13 alunos em situações variadas (ativo, em atraso, ex-aluno, termo pendente, e-mail com problema) | `alunos.ts` / `cenarios-alunos.msw.test.ts` |
+  | `ana@exemplo.com` | Ficha, Responsáveis; Transferir | menor com 2 responsáveis (um financeiro, um com acesso), adulto sem, limite de 2; unidade de destino com turma | `alunos.ts` |
+  | `ana@exemplo.com` | Turmas e painel | 6 turmas (31/30, desativada, sem limite); painel com 4 ou mais alunos | `alunos.ts` |
+  | `ana@exemplo.com` | Cobranças, Em atraso, Em conferência, Recebimentos do dia, Prévia da geração | 21 cobranças em todos os tipos e situações; 5 em atraso com lembrete e bloqueio; comprovantes; recibos por meio e por quem lançou; prévia com "não será cobrado" | `cobrancas.ts` / `cenarios-cobrancas.msw.test.ts` |
+  | `aluno@exemplo.com` | Portal: financeiro, informação, pedidos | 3 abertas de modalidades diferentes (uma vencida), histórico, chave Pix, uso de imagem concedido, um pedido de cada tipo | `portal.ts` / `cenarios-portal.msw.test.ts` |
+  | `familia@exemplo.com` | Portal: financeiro "Toda a família", termo | abertas de dois filhos em unidades diferentes, comprovante para várias | `portal.ts` |
+  | `termo@exemplo.com` | Portal: termo | adulto com termo pendente | `portal.ts` |
+  | `ana@exemplo.com` | Agenda; professores, benefícios, planos, comunicados, usuários, unidades | aula cancelada, substituição, dia sem aula, avulsa; listas cheias | `listas.ts` / `cenarios-listas.msw.test.ts` |
+
+  Estado forçado (só com o MSW ligado): `?estado=erro|carregando|vazio|semPermissao` e, opcional, `&rota=<prefixo da API>` (ex.: `/students?...` vira `&rota=/students`). Teste: `cenarios-estado.msw.test.ts`.
 - **Tema:** claro e escuro, com os tokens como variáveis CSS em `src/index.css`. Sem escolha salva, segue o aparelho; o botão do cabeçalho troca e guarda a escolha neste navegador. Um script em `index.html` aplica o tema antes da pintura.
 - **Textos:** todo texto de tela está em `src/i18n/pt-BR.json` e entra por `useTranslation`. `npm run lint` falha com texto literal em JSX e em `aria-label`, `title`, `placeholder` e `alt`. Fora de produção, chave de tradução inexistente lança erro.
 - **Mensagens de erro:** ficam em `errors.<nome>` com três partes: `aconteceu`, `alterado` e `fazer`.
