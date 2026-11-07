@@ -111,3 +111,19 @@ Achados:
 - Decisões: D1 a D4 no arquivo (variante `tab` sem `role="tab"`, canal Push com variante `switch`, `link` e `menuitem` sem `href`, tooltip de CSS sem biblioteca).
 - Limitação aceita: CA10 (teste visual via container) não rodou localmente; o CI do PR é a prova.
 - Instabilidade: 79 timeouts de 20 s na construção por carga da máquina; os arquivos repetidos com 2 workers passaram.
+
+### Correção da entrega
+- CI do PR #521, job `visual` vermelho: `moldura-coordenacao` e `moldura-administrador` em 390 (claro e escuro) usam a rota `/alunos`, que ganhou o chip "Bloqueados"; as 4 referências ficaram antigas (≈0,05% de pixels). Regeradas — arquivos: `frontend/visual/referencias/moldura-{coordenacao,administrador}-390-{claro,escuro}.png` — prova: `npm run test:visual:docker -- --update-snapshots=all -g "moldura-(coordenacao|administrador) 390"` → 4 passaram; só essas 4 imagens mudaram.
+Regressão: o resto do CI do PR estava verde (frontend, e2e, security, image-frontend); só `visual` e `ci-gate` falharam.
+
+### Rodada 2 — OK — 2026-11-07, estado e6b5613b82e61c26d84536f23539e8d0a7176643
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA9 | PASSOU (mantido da rodada 1) | vitest dos 4 arquivos do item: 61 passaram com --maxWorkers=2; nada de código mudou desde a rodada 1 |
+| CA10 | NÃO CONFERIDO (limitação aceita) | test:visual:docker não roda aqui (autonomia 2/3); o CI do PR é a prova. Diff desde a rodada 1: só as 4 referências moldura-{coordenacao,administrador}-390-{claro,escuro}.png; abri moldura-coordenacao-390-claro.png e ela mostra "Exportar CSV" e "Bloqueados" com selo, o esperado da mudança |
+
+Comandos: vitest dos 4 arquivos (61 passaram); git diff --stat da rodada 1 ao estado atual (4 PNGs mais arquivo do item e backlog).
+Instáveis: nenhum.
+Achados:
+- Achado da rodada 1 (sugestão, switch com rótulo redundante) segue como sugestão, sem impedir.
