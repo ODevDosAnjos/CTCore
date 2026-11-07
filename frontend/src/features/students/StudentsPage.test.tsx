@@ -213,6 +213,21 @@ describe("StudentsPage", () => {
     await waitFor(() => expect(calls.at(-1)!.get("status")).toBeNull());
   });
 
+  it("CA6 (#450): Exportar CSV e Bloqueados aparecem desabilitados com Em breve e o clique não gera requisição", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByRole("button", { name: "Ativos (3)" });
+    const before = calls.length;
+    for (const name of ["Exportar CSV", "Bloqueados"]) {
+      const el = screen.getByRole("button", { name });
+      expect(el).toHaveAttribute("aria-disabled", "true");
+      expect(el).toHaveAccessibleDescription("Disponível em uma próxima versão");
+      await user.click(el);
+    }
+    expect(screen.getAllByText("Em breve")).toHaveLength(2);
+    expect(calls).toHaveLength(before);
+  });
+
   it("CA9: vazio sem alunos; outro texto com Limpar filtros quando o filtro não acha ninguém", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", () => HttpResponse.json({ items: [], page: 1, size: 25, total: 0 }));

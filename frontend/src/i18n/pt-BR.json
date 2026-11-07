@@ -337,6 +337,7 @@
   "students": {
     "title": "Alunos",
     "intro": "Alunos da organização, com a unidade de cadastro, a idade e a faixa etária de cada um.",
+    "exportCsv": "Exportar CSV",
     "columnsChoose": "Escolher colunas",
     "columns": {
       "name": "Nome",
@@ -630,6 +631,7 @@
       "ACTIVE": "Ativos",
       "FORMER": "Ex-alunos",
       "OVERDUE": "Em atraso",
+      "BLOCKED": "Bloqueados",
       "withCount": "{{label}} ({{count}})"
     },
     "financial": {
@@ -1813,6 +1815,10 @@
     "tagline": "Sua academia, em ordem.",
     "text": "Alunos, turmas e cobranças num só lugar."
   },
+  "comingSoon": {
+    "badge": "Em breve",
+    "hint": "Disponível em uma próxima versão"
+  },
   "layout": {
     "menu": "Menu",
     "openMenu": "Abrir menu",
@@ -2347,6 +2353,8 @@
       "channelPortal": "Portal do aluno (sempre)",
       "channelEmail": "E-mail",
       "channelWhatsapp": "WhatsApp",
+      "channelPush": "Push",
+      "saveDraft": "Salvar rascunho",
       "pinnedUntil": "Fixar até",
       "pinnedHelp": "Opcional. O aviso fica no topo do portal até essa data.",
       "when": "Quando enviar",

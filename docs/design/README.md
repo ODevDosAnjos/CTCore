@@ -71,6 +71,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Campo com rótulo, dica e erro | `Field` + `Input`, `Select`, `Textarea` | contador de caracteres no `Textarea` |
 | Caixa, opção e chave | `Checkbox`, `RadioCard`, `Switch` | `RadioCard` é a opção em cartão das janelas |
 | Tabela | `DataTable` | cabeçalho suave, linhas de 52 px, valores alinhados à direita |
+| Item de sprint futura (botão, aba, chave, link, item de menu) | `ComingSoon` | visível e desabilitado, com selo "Em breve" e dica; sem clique nem `href` |
 | Abas e filtros rápidos | `Tabs`, `QuickFilters` | filtro rápido com contador |
 | Janela | `Modal`, `ConfirmDialog` | resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
@@ -86,7 +87,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 ## Regras
 
 1. Toda tela nova ou alterada segue a tela do canvas citada na issue, nos dois temas e a partir de 360 px.
-2. O que aparece no canvas e é de uma sprint futura fica de fora; não se cria tela, botão ou dado que a issue não pede.
+2. O que aparece no canvas e é de uma sprint futura aparece **visível e desabilitado com "Em breve"** (`ComingSoon`, R3), sem backend; não se cria tela, dado ou regra que a issue não pede.
 3. O canvas mostra o visual; a regra vem da especificação e da issue. Se os dois divergirem, vale a especificação, e a diferença fica registrada no arquivo do item.
 4. Peça que o canvas usa e ainda não existe vira componente novo na pasta `components`, no mesmo PR, e entra na tabela acima.
 5. Texto de tela continua nos arquivos de tradução.

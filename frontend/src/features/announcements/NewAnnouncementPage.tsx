@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { ComingSoon } from "@/components/ui/coming-soon";
 import { CHAR_COUNTER_FIELD, CharCounter } from "@/components/CharCounter";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
@@ -256,6 +257,7 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
             <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} /> {t("announcements.new.channelWhatsapp")}
           </label>
         )}
+        <ComingSoon variant="switch" label={t("announcements.new.channelPush")} />
         {errors.channels && (
           <p id="ann-channels-erro" className="text-sm text-danger-foreground">
             {errors.channels}
@@ -288,10 +290,11 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
           {topError}
         </p>
       )}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" className="min-h-11" disabled={!targetPart || busy || uploading || (mode === "SCHEDULED" && !sendAt)}>
           {busy ? t("announcements.new.sending") : t(mode === "NOW" ? "announcements.new.send" : "announcements.new.scheduleSend")}
         </Button>
+        <ComingSoon variant="button" label={t("announcements.new.saveDraft")} />
       </div>
     </form>
   );
