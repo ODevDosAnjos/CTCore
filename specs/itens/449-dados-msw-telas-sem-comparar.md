@@ -177,3 +177,5 @@ Achados:
 - `CHILD_TWO` entrou em `mockStudents` (13 alunos no total).
 
 **Limitações:** item técnico sem tela própria, portanto sem comparação com o canvas. e2e: `comprovantes`, `configuracao-unidade` e `portal-pedidos` estouraram 30 s sob carga e passaram na repetição (5 de 5); instabilidade de timeout, sem mudança de código.
+
+**Regressão (após trazer `origin/dev` até `7f104a0`, #518, só `frontend/vercel.json`):** `lint`, `typecheck` e `build` limpos. `test:cov` e `e2e` falharam por tempo sob carga da rodada completa, em testes diferentes a cada execução, e passaram isolados: LoginPage "CA4 e CA5" (#445, janela de 1,5 s) e UnitSettingsPage "CA18" em `test:cov` (2 de 3 execuções); `comprovantes`, `configuracao-unidade`, `nova-unidade`, `organizacao` e `portal-pedidos` no `e2e` (10 falhas na 1ª execução, 5 na 2ª; isolados, 7 de 7 passam). Pela política de testes instáveis do `AGENTS.md` (Autonomia 5), falharam de novo após 2 reexecuções: issue #519 (técnica) abre a correção. Esta entrega não altera esses testes nem a regra que eles cobrem. Cobertura de `test:cov` não foi conferida (o comando parou em falha de teste).
