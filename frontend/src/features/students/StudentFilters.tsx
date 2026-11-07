@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { ComingSoon } from "@/components/ui/coming-soon";
 import { Select } from "@/components/ui/field";
 import { useGraduation } from "@/features/modalities/useGraduation";
 import { useStudentFilterOptions } from "./useStudents";
@@ -57,6 +58,7 @@ export function StudentFilters({ get, set, counts }: Props) {
         >
           {counts?.overdue === undefined ? t("students.quick.OVERDUE") : t("students.quick.withCount", { label: t("students.quick.OVERDUE"), count: counts.overdue })}
         </button>
+        <ComingSoon variant="tab" label={t("students.quick.BLOCKED")} />
       </div>
       <Filter label={t("students.filters.unit")} value={get("unitId")} onChange={(v) => set("unitId", v)} all={t("students.filters.allUnits")} options={units} />
       <Filter label={t("students.filters.ageRange")} value={get("ageRangeId")} onChange={(v) => set("ageRangeId", v)} all={t("students.filters.allAgeRanges")} options={ageRanges} />

@@ -90,6 +90,26 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     expect(optionNames()).toEqual(["Escolha o destino", "Jiu-Jitsu Adulto"]);
   });
 
+  it("CA7 (#450): Push e Salvar rascunho aparecem desabilitados com Em breve e o envio não leva PUSH", async () => {
+    const user = userEvent.setup();
+    setup();
+    await ready();
+    await user.selectOptions(await screen.findByLabelText("Destino"), "Jiu-Jitsu Adulto");
+    const push = screen.getByRole("switch", { name: "Push" });
+    const draft = screen.getByRole("button", { name: "Salvar rascunho" });
+    for (const el of [push, draft]) {
+      expect(el).toHaveAttribute("aria-disabled", "true");
+      await user.click(el);
+    }
+    expect(push).toHaveAttribute("aria-checked", "false");
+    expect(screen.getAllByText("Em breve")).toHaveLength(2);
+    await user.type(screen.getByLabelText("Título"), "Aviso");
+    await user.type(screen.getByLabelText("Texto"), "Corpo");
+    await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
+    await waitFor(() => expect(creates).toHaveLength(1));
+    expect(creates[0].channels).not.toContain("PUSH");
+  });
+
   it("CA23: sem destino não há prévia e Enviar fica desabilitado; com destino a prévia conta pessoas e canais e se atualiza com os canais", async () => {
     const user = userEvent.setup();
     setup();
