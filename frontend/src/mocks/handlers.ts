@@ -4,6 +4,11 @@ import { isValidCpf, isValidCpfOrCnpj, onlyDigits } from "@/components/fields/ma
 import { isHexColor, passesContrast } from "@/features/organization/contrastRatio";
 import { nextHolidays, validateDay, type DayBody } from "./noClassDays";
 import { mockPermissions } from "./permissions";
+import { comEstadoForcado } from "./cenarios/estado";
+import { alunosCenario } from "./cenarios/alunos";
+import { cobrancasCenario } from "./cenarios/cobrancas";
+import { portalCenario } from "./cenarios/portal";
+import { listasCenario } from "./cenarios/listas";
 import type { StudentSeal, StudentDetail, StudentGuardianInput, StudentGuardianRow, StudentInput, StudentRow, StudentUpdate } from "@/features/students/types";
 
 export type Method = "get" | "post" | "put" | "patch" | "delete";
@@ -102,6 +107,55 @@ let announcementEmail = true;
 // Sessão simulada: abre com um login bem-sucedido. Senha "errada" dá 401, "limite" dá 429.
 let loggedIn = false;
 let ticketAccount: string | null = null;
+
+// Cenários (#449): massa de dados fictícios para `npm run dev` e o teste visual. Desligado por padrão; os dados entram em `cenarios/`.
+let scenariosOn = false;
+const seedScenarios = () => {
+  if (!scenariosOn) return;
+  const a = alunosCenario({ centro: ADMIN_UNIT, norte: UNIT_NORTE, modalities: modalityCatalog, teachers: { ana: TEACHER_ANA, joao: TEACHER_JOAO, marcos: TEACHER_MARCOS }, dayShift });
+  mockStudents = [...mockStudents, ...a.students];
+  Object.assign(guardianCpfs, a.guardianCpfs);
+  Object.assign(mockEnrollments, a.enrollments);
+  for (const id of a.aceitos) portalAccepted.set(id, `${dayShift(-30)}T12:00:00.000Z`);
+  units = [...units, a.sul];
+  mockPlans = [...mockPlans, a.planSul];
+  const c = cobrancasCenario({ centro: ADMIN_UNIT, dayShift, isoDay, by: { ana: { id: session.account.id, name: session.account.name }, other: { id: "00000000-0000-0000-0000-0000000000f1", name: "Marcos Gestor Fictício" } } }, a);
+  mockCharges = [...mockCharges, ...c.charges];
+  mockReceipts = [...mockReceipts, ...c.receipts];
+  mockReminders = [...mockReminders, ...c.reminders];
+  mockProofsSent = [...mockProofsSent, ...c.proofs];
+  benefitRows = [...benefitRows, ...c.benefits];
+  const minor = mockStudents.find((s) => s.id === STUDENT_MINOR)!;
+  const p = portalCenario({ centro: ADMIN_UNIT, norte: UNIT_NORTE, modalities: modalityCatalog, adult: STUDENT_ADULT, minor: STUDENT_MINOR, childTwo: CHILD_TWO, minorDetail: minor, dayShift });
+  mockStudents = [...mockStudents, p.childTwo];
+  Object.assign(mockEnrollments, p.enrollments);
+  mockCharges = [...mockCharges, ...p.charges];
+  mockPortalRequests = [...mockPortalRequests, ...p.requests];
+  portalImage.set(STUDENT_ADULT, true);
+  if (!familyTermPending) for (const id of [STUDENT_MINOR, CHILD_TWO]) portalAccepted.set(id, `${dayShift(-30)}T12:00:00.000Z`);
+  for (const id of p.pixUnits) {
+    const u = unitDetail(id);
+    unitDetails[id] = { ...u, settings: { ...u.settings, pixKey: "pix@alfa.example" } };
+  }
+  mockClasses = [...mockClasses.map((c) => (c.id === "00000000-0000-0000-0000-000000000601" ? { ...c, scenario: a.classes.jiuAdulto } : c)), ...a.classes.novas];
+  const l = listasCenario({ centro: ADMIN_UNIT, norte: UNIT_NORTE, sul: a.sul.id, modalities: modalityCatalog, teachers: { ana: TEACHER_ANA, joao: TEACHER_JOAO }, accountId: session.account.id, classJudoInfantil: "00000000-0000-0000-0000-000000000602", dayShift });
+  for (const [id, edit] of l.lessonEdits) lessonEdits.set(id, edit);
+  mockAdhoc = [...mockAdhoc, ...l.adhoc];
+  mockTeachers = [...mockTeachers, ...l.teachers];
+  Object.assign(teacherContacts, l.contacts);
+  staff = [...staff, ...l.staff];
+  mockAnnouncements = [...mockAnnouncements, ...l.announcements];
+  // "Vale nas outras unidades" (R16): o Jiu-Jitsu Livre do Centro.
+  mockPlans = mockPlans.map((x) => (x.id === "00000000-0000-0000-0000-000000000602" ? { ...x, validOtherUnits: true } : x));
+};
+export const scenariosEnabled = () => scenariosOn;
+// `termoFamilia`: os dois filhos de `familia@` chegam com o termo pendente ("1 de 2"); por padrão já aceitaram, para o portal abrir cheio.
+let familyTermPending = false;
+export const setScenarios = (on: boolean, opts: { termoFamilia?: boolean } = {}) => {
+  scenariosOn = on;
+  familyTermPending = !!opts.termoFamilia;
+  resetMockSession();
+};
 export const resetMockSession = () => {
   loggedIn = false;
   current = session;
@@ -152,6 +206,7 @@ export const resetMockSession = () => {
   financeReview.clear();
   mockPortalRequests = [];
   mockProofsSent = [];
+  seedScenarios();
 };
 
 // Organização do vínculo ativo (RF-ORG-01), em memória: sem cor, titular nem logo.
@@ -296,7 +351,7 @@ const initialPlans = () => [
   { id: "00000000-0000-0000-0000-000000000604", unitId: ADMIN_UNIT, unitName: "Unidade Centro", modalityIndex: 4, name: "Judô Antigo", valueCents: 12000, weeklyFrequency: 2 as 2 | 3 | null, validOtherUnits: false as boolean, status: "INACTIVE" as "ACTIVE" | "INACTIVE" },
 ];
 let mockPlans = initialPlans();
-type MockPlan = ReturnType<typeof initialPlans>[number];
+export type MockPlan = ReturnType<typeof initialPlans>[number];
 const planRow = ({ modalityIndex, unitName, unitId, ...x }: MockPlan) => ({
   id: x.id,
   unit: { id: unitId, name: unitName },
@@ -336,7 +391,7 @@ const benefitRow = ({ planIndex, student, ...b }: (typeof mockBenefits)[number])
   };
 };
 // RF-BEN-02: em memória; `rowId` liga o benefício concedido à modalidade da matrícula (não sai na resposta).
-type MockBenefit = ReturnType<typeof benefitRow> & { rowId: string | null; teacherId?: string };
+export type MockBenefit = ReturnType<typeof benefitRow> & { rowId: string | null; teacherId?: string };
 const initialBenefits = (): MockBenefit[] => mockBenefits.map((b) => ({ ...benefitRow(b), rowId: null }));
 let benefitRows = initialBenefits();
 const publicBenefit = (b: MockBenefit) => {
@@ -465,7 +520,7 @@ const gone = (code: string) =>
 // Professores (RF-PRO-01), fixos: o Administrador (ADMIN_UNIT) só vê os que têm a unidade dele; telefone e e-mail nunca saem (RN-PRO-04).
 const UNIT_NORTE = "00000000-0000-0000-0000-000000000022";
 type MockModality = { id: string; name: string; levelId: string | null; level: string | null; degree: number | null };
-type MockTeacher = { id: string; name: string; photoUrl: string | null; modalities: MockModality[]; units: { id: string; name: string }[]; classCount: number; status: string; directoryConsent: boolean; access: string };
+export type MockTeacher = { id: string; name: string; photoUrl: string | null; modalities: MockModality[]; units: { id: string; name: string }[]; classCount: number; status: string; directoryConsent: boolean; access: string };
 const initialTeachers = (): MockTeacher[] => [
   { id: "00000000-0000-0000-0000-000000000501", name: "Ana Souza", photoUrl: null as string | null, modalities: [{ id: modalityCatalog[3].id, name: "Jiu-Jitsu", levelId: null as string | null, level: "Roxa", degree: 2 }], units: [{ id: ADMIN_UNIT, name: "Unidade Centro" }], classCount: 0, status: "ACTIVE", directoryConsent: true, access: "ACTIVE" },
   { id: "00000000-0000-0000-0000-000000000502", name: "João Pereira", photoUrl: null, modalities: [{ id: modalityCatalog[3].id, name: "Jiu-Jitsu", levelId: null as string | null, level: "Azul", degree: 0 }, { id: modalityCatalog[4].id, name: "Judô", levelId: null as string | null, level: null, degree: null }], units: [{ id: ADMIN_UNIT, name: "Unidade Centro" }, { id: UNIT_NORTE, name: "Unidade Norte" }], classCount: 0, status: "ACTIVE", directoryConsent: false, access: "NONE" },
@@ -504,7 +559,7 @@ const teacherKey = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLo
 const TEACHER_ANA = "00000000-0000-0000-0000-000000000501";
 const TEACHER_JOAO = "00000000-0000-0000-0000-000000000502";
 const TEACHER_MARCOS = "00000000-0000-0000-0000-000000000503";
-type MockClass = { id: string; name: string; unitId: string; modalityId: string; ageRange: string | null; schedule: [number, string, string][]; head: string; assistants: string[]; capacity: number | null; status: string; groupLink?: string; blocking?: number };
+export type MockClass = { scenario?: { activeStudents: number; roster: { id: string; name: string; primary: boolean }[] }; id: string; name: string; unitId: string; modalityId: string; ageRange: string | null; schedule: [number, string, string][]; head: string; assistants: string[]; capacity: number | null; status: string; groupLink?: string; blocking?: number };
 // groupLink só no detalhe; `blocking` (alunos com a turma como principal) é só do simulado: o servidor só o traz com a matrícula (Sprint 07).
 const initialClasses = (): MockClass[] => [
   { id: "00000000-0000-0000-0000-000000000601", name: "Jiu-Jitsu Adulto", unitId: ADMIN_UNIT, modalityId: modalityCatalog[3].id, ageRange: "Adulto", schedule: [[1, "19:00", "20:00"], [3, "19:00", "20:00"]], head: TEACHER_ANA, assistants: [TEACHER_JOAO], capacity: 30, status: "ACTIVE", groupLink: "https://chat.example.com/jiu-jitsu-adulto" },
@@ -525,9 +580,9 @@ const classRow = (c: MockClass) => {
     schedule: c.schedule.map(([weekday, startsAt, endsAt]) => ({ weekday, startsAt, endsAt })),
     head: person(c.head),
     assistants: c.assistants.map(person),
-    activeStudents: 0,
+    activeStudents: c.scenario?.activeStudents ?? 0,
     capacity: c.capacity,
-    overCapacity: false,
+    overCapacity: c.capacity !== null && (c.scenario?.activeStudents ?? 0) > c.capacity,
     status: c.status,
   };
 };
@@ -536,7 +591,7 @@ const classDetail = (c: MockClass) => ({
   ...classRow(c),
   groupLink: c.groupLink ?? null,
   nextClass: null,
-  students: [],
+  students: c.scenario?.roster ?? [],
   deactivation: { allowed: c.status === "ACTIVE" && !c.blocking, blockingStudents: c.blocking ?? 0 },
 });
 // Quem chama: 401 sem sessão, 403 sem CLASSES_MANAGE, 404 fora do alcance (Administrador) ou inexistente.
@@ -545,7 +600,7 @@ const classDetail = (c: MockClass) => ({
 type LessonEdit = { date?: string; startsAt?: string; endsAt?: string; teacherId?: string; substitute?: boolean; cancelCode?: string; cancelText?: string | null };
 const lessonEdits = new Map<string, LessonEdit>();
 // RF-AGE-04: aulas avulsas criadas no simulado (têm linha própria, ao contrário das aulas de turma).
-type MockAdhoc = { id: string; unitId: string; title: string; modalityId: string; date: string; startsAt: string; endsAt: string; teacherId: string; visibilityClassId: string | null };
+export type MockAdhoc = { id: string; unitId: string; title: string; modalityId: string; date: string; startsAt: string; endsAt: string; teacherId: string; visibilityClassId: string | null };
 let mockAdhoc: MockAdhoc[] = [];
 // RF-AGE-05: dias sem aula lançados no simulado. As aulas deles não têm linha própria: nascem canceladas pelo dia que as cobre (como o gerador do servidor).
 type MockDay = { id: string; unitId: string; startsOn: string; endsOn: string; reason: string; origin: "HOLIDAY" | "COORDINATOR" | "UNIT"; classIds: string[]; noticeMode: string; noticeAt: string | null };
@@ -830,7 +885,7 @@ let mockStudents = initialStudents();
 let guardianResends = 0;
 // RN-MAT-01, 02, 03, 19 (#63): matrícula em memória, com as mesmas recusas do servidor (400, 403 fora do alcance, 404, 409 e 422).
 type MockEnrollmentModality = { id: string; unitId: string; modalityId: string; primaryClassId: string; otherClassIds: string[]; planId: string; nextPlanId: string | null; dueDay: number; status: "ACTIVE" | "ENDED"; startedAt: string; endedAt: string | null };
-type MockEnrollment = { id: string; enrolledAt: string; reopenedAt: string | null; modalities: MockEnrollmentModality[] };
+export type MockEnrollment = { id: string; enrolledAt: string; reopenedAt: string | null; modalities: MockEnrollmentModality[] };
 let mockEnrollments: Record<string, MockEnrollment> = {};
 const MOCK_DUE_DAYS = [1, 5, 10, 15];
 const rule = (field: string, message: string) => error(422, "UNPROCESSABLE", "Regra de negócio recusa o pedido.", [{ field, message }]);
@@ -863,11 +918,12 @@ const mockProofs = new Map<string, string>();
 const mockStartedUnits: { studentId: string; unitId: string; feeCents: number; feeExemptReason: string | null; secondDueOn: string }[] = [];
 // RN-COB-12, RN-MAT-05 (#71): cobranças, pagamentos e recibos em memória (o simulado paga só no balcão, uma cobrança por vez).
 // RF-COB-02 (#73): cancelar e renegociar acrescentam as situações CANCELED e RENEGOTIATED, a parcela (INSTALLMENT) e os campos do painel.
-type MockCharge = { id: string; type: "MONTHLY" | "ENROLLMENT_FEE" | "INSTALLMENT" | "ONE_OFF"; studentId: string; unitId: string; modalityRowId: string | null; referenceMonth: string | null; dueOn: string; toleranceDays: number; amountCents: number; status: "OPEN" | "IN_REVIEW" | "PAID" | "CANCELED" | "RENEGOTIATED"; description: string; reason?: string; canceledAt?: string; originId?: string; renegotiationId?: string };
+export type MockCharge = { id: string; type: "MONTHLY" | "ENROLLMENT_FEE" | "INSTALLMENT" | "ONE_OFF"; studentId: string; unitId: string; modalityRowId: string | null; referenceMonth: string | null; dueOn: string; toleranceDays: number; amountCents: number; status: "OPEN" | "IN_REVIEW" | "PAID" | "CANCELED" | "RENEGOTIATED"; description: string; reason?: string; canceledAt?: string; originId?: string; renegotiationId?: string; daysToBlock?: number; modalityName?: string };
 let mockCharges: MockCharge[] = [];
-let mockReceipts: { code: string; unitId: string; number: number; chargeId: string; amountCents: number; paidAt: string; studentName: string; method?: string; observation?: string | null; by?: { id: string; name: string } }[] = [];
+export type MockReceipt = { code: string; unitId: string; number: number; chargeId: string; amountCents: number; paidAt: string; studentName: string; method?: string; observation?: string | null; by?: { id: string; name: string } };
+let mockReceipts: MockReceipt[] = [];
 // RF-COB-06 (#79): histórico de lembretes por cobrança, em memória; só o envio manual por e-mail existe no simulado.
-type MockReminder = { chargeId: string; kind: "MANUAL"; channel: "EMAIL"; status: "SENT" | "SKIPPED"; reason: "NO_ADDRESS" | "EMAIL_PROBLEM" | null; createdAt: string; sentBy: { id: string; name: string | null } };
+export type MockReminder = { chargeId: string; kind: "MANUAL"; channel: "EMAIL"; status: "SENT" | "SKIPPED"; reason: "NO_ADDRESS" | "EMAIL_PROBLEM" | null; createdAt: string; sentBy: { id: string; name: string | null } };
 let mockReminders: MockReminder[] = [];
 const remindersOf = (id: string) => mockReminders.filter((r) => r.chargeId === id).map((r) => ({ kind: r.kind, channel: r.channel, status: r.status, reason: r.reason, createdAt: r.createdAt, sentBy: r.sentBy })).reverse();
 // Pagador: responsável financeiro do menor, senão o próprio aluno.
@@ -1172,7 +1228,7 @@ const checkClasses = (unitId: string, modalityId: string, primaryId: string, oth
   return null;
 };
 // Pedidos do portal (#86), em memória. Pedido nunca muda a matrícula; só o de encerramento marca a modalidade ("Encerramento solicitado") até encerrar ou recusar.
-type MockPortalRequest = {
+export type MockPortalRequest = {
   id: string; kind: string; status: string; studentId: string; unitId: string; modalityRowId: string | null; targetClassId: string | null; targetPlanId: string | null;
   targetModalityId: string | null; targetUnitId: string | null; reason: string | null; note: string | null; response: string | null; createdAt: string; decidedAt: string | null;
 };
@@ -1215,7 +1271,7 @@ const requestFor = (id: string) => {
   return mockPortalRequests.find((r) => r.id === id && (activeRole() === "COORDINATOR" || r.unitId === ADMIN_UNIT)) ?? error(404, "NOT_FOUND", "Não encontrado.");
 };
 // Comprovantes de Pix na chave (#87), em memória. Enviar põe a cobrança em conferência; recusar a devolve a aberta; confirmar paga no meio PIX_KEY.
-type MockPaymentProof = { id: string; chargeId: string; studentId: string; unitId: string; sentAt: string; status: "PENDING" | "CONFIRMED" | "REFUSED"; contentType: string; refusalReason: string | null; decidedAt: string | null };
+export type MockPaymentProof = { id: string; chargeId: string; studentId: string; unitId: string; sentAt: string; status: "PENDING" | "CONFIRMED" | "REFUSED"; contentType: string; refusalReason: string | null; decidedAt: string | null };
 let mockProofsSent: MockPaymentProof[] = [];
 const PROOF_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const chargeReference = (c: MockCharge) => {
@@ -1251,11 +1307,11 @@ const portalImage = new Map<string, boolean>();
 const portalConfirmed = new Set<string>();
 const TERM_ACCOUNT = "termo@exemplo.com";
 const REDUCED_ACCOUNT = "reduzido@exemplo.com";
-const termEnrolled = (id: string) => current.account.email !== REDUCED_ACCOUNT && (enrollmentStatus(id) !== "NONE" || (id === STUDENT_ADULT && current.account.email === TERM_ACCOUNT));
+const termEnrolled = (id: string) => current.account.email !== REDUCED_ACCOUNT && ((enrollmentStatus(id) !== "NONE" && !(scenariosOn && id === STUDENT_ADULT && current.account.email !== TERM_ACCOUNT)) || (id === STUDENT_ADULT && current.account.email === TERM_ACCOUNT));
 const termPending = (id: string) => termEnrolled(id) && !portalAccepted.has(id);
 // Rotas do portal: só Aluno e Responsável. O Aluno aceita o adulto; o Responsável, o menor (financeiro).
 const portalAccess = () => (!loggedIn ? unauthenticated() : isPortal() ? null : error(403, "FORBIDDEN", "Sem permissão."));
-const portalMine = () => mockStudents.filter((s) => s.id === (activeRole() === "STUDENT" ? STUDENT_ADULT : STUDENT_MINOR));
+const portalMine = () => mockStudents.filter((s) => (activeRole() === "STUDENT" ? s.id === STUDENT_ADULT : s.id === STUDENT_MINOR || s.id === CHILD_TWO)); // CHILD_TWO só está em `mockStudents` no cenário (#449)
 // Início do portal (#89): cartões, cobranças do simulado e conteúdo fixo por aluno. Hoje e prazos pelo relógio do navegador.
 const CHILD_TWO = "00000000-0000-0000-0000-000000000703";
 const REDUCED_CHARGE = "00000000-0000-0000-0000-0000000007c2";
@@ -1358,7 +1414,7 @@ const homeCharges = (studentId: string) => {
   }
   return mockCharges
     .filter((c) => c.studentId === studentId && (c.status === "OPEN" || c.status === "IN_REVIEW"))
-    .map((c) => ({ id: c.id, studentId, description: c.description || null, referenceMonth: c.referenceMonth, dueOn: c.dueOn, amountCents: c.amountCents, status: c.status as string, unitId: c.unitId, modality: null as { id: string; name: string } | null }));
+    .map((c) => ({ id: c.id, studentId, description: c.description || null, referenceMonth: c.referenceMonth, dueOn: c.dueOn, amountCents: c.amountCents, status: c.status as string, unitId: c.unitId, modality: c.modalityName ? homeRef(c.modalityName) : (null as { id: string; name: string } | null) }));
 };
 const portalHome = (studentId: string | null) => {
   const cards = homeCards();
@@ -1669,7 +1725,7 @@ const guardianRow = (g: Partial<StudentGuardianInput> | undefined, financial: bo
 const sortedGuardians = (list: StudentGuardianRow[]) => [...list].sort((a, b) => Number(b.financial) - Number(a.financial) || a.name.localeCompare(b.name));
 
 // RF-COM-01 (#81): comunicados simulados. Autor "Vera" é a conta de `many` (a única que o simulado põe como Professor); `reads` e `recipients` já vêm contados.
-type MockAnnouncement = {
+export type MockAnnouncement = {
   id: string;
   date: string;
   kind: "CLASS" | "MODALITY" | "UNIT" | "ORGANIZATION";
@@ -3900,7 +3956,7 @@ export const routes: Route[] = [
           const last = mockReminders.filter((r) => r.chargeId === c.id && r.status === "SENT").pop();
           return {
             id: c.id, student: v.student, unit: v.unit, type: c.type, referenceMonth: c.referenceMonth, description: c.description, amountCents: c.amountCents, dueOn: c.dueOn,
-            daysLate: days(today, c.dueOn), daysToBlock: null, lastReminder: last ? { at: last.createdAt, channel: last.channel } : null, payer: { name: payer.name, phone: payer.phone },
+            daysLate: days(today, c.dueOn), daysToBlock: c.daysToBlock ?? null, lastReminder: last ? { at: last.createdAt, channel: last.channel } : null, payer: { name: payer.name, phone: payer.phone },
           };
         })
         .filter((r) => teacherKey(r.student.name).includes(q))
@@ -5258,5 +5314,5 @@ export const routes: Route[] = [
 ];
 
 export const handlers = routes.map((r) =>
-  http[r.method](`/api/v1${r.path.replace(/\{(\w+)\}/g, ":$1")}`, r.resolver),
+  http[r.method](`/api/v1${r.path.replace(/\{(\w+)\}/g, ":$1")}`, comEstadoForcado(r.resolver)),
 );

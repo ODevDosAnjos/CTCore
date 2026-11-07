@@ -3,13 +3,14 @@ import { configure } from "@testing-library/react";
 import "@/i18n";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { server } from "@/mocks/server";
-import { resetMockSession } from "@/mocks/handlers";
+import { resetMockSession, setScenarios } from "@/mocks/handlers";
 import { setDevicePrefersDark } from "./device";
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 beforeEach(() => setDevicePrefersDark(false));
 afterEach(() => {
   server.resetHandlers();
+  setScenarios(false);
   resetMockSession();
   window.localStorage.clear();
   document.documentElement.classList.remove("dark");
