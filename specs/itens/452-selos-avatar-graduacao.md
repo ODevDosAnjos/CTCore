@@ -112,7 +112,7 @@ Achados:
 
 Componentes base novos e padronizados: `Avatar` com `size` (`sm` 32 px nas telas-piloto, padrão 36 px), `ModalityDot` (cor estável derivada do nome, rótulo por `label`) e `GraduationBelt` (faixa visual com graus, rótulo `belt.*` em pt-BR). Aplicados em Professores e Turmas; a Vitrine e `docs/design/README.md` documentam os três. Os selos de situação continuam sendo `Badge` e `StatusBadge` (D3).
 
-Verificação: rodada 1 `OK`, estado `80d01169844ae3590405ff933cf09295d370e015`; depois dela só este arquivo e o backlog mudaram. Lint e typecheck limpos; vitest dos diretórios do item passou; `test:visual:docker` 8 de 8 (professores e turmas, 1440 e 390, claro e escuro); `visual:canvas` 96 comparadas, 0 reprovadas (informado pelo construtor). Regressão completa (`test:cov`, `e2e`) não rodada localmente; o CI do PR é a prova (AGENTS, autonomia 2).
+Verificação: rodada 2 `OK`, estado `80150b6df89042f38557c7c5114639daf0692b3e` (a rodada 1 `OK` valeu até a correção da entrega). Lint e typecheck limpos; vitest dos diretórios do item passou (157 na rodada 2); `test:visual:docker` 8 de 8 em professores e turmas e 4 de 4 na vitrine (1440 e 390, claro e escuro); `visual:canvas` 96 comparadas, 0 reprovadas (informado pelo construtor). Regressão completa (`test:cov`, `e2e`) não rodada localmente; o CI do PR é a prova (AGENTS, autonomia 2).
 
 Decisões que quem lê precisa saber:
 - D1: a `GraduationBelt` não está ligada à lista de Professores, porque `TeacherRow` não traz cores nem grau máximo. A #470 precisa expor essas cores, usar a faixa na coluna Graduação e remover o `limiteCanvas` correspondente. Pendente: acrescentar isso no "Pronto quando" da #470 (a issue ainda não traz).
@@ -120,3 +120,23 @@ Decisões que quem lê precisa saber:
 - Desvios: `ModalityDot` ganhou `label`; `Person` ganhou `size` para repassar `sm`.
 
 Limitações: a largura de 360 px sem rolagem lateral da faixa não tem teste automatizado (jsdom não mede layout); conferido só visualmente, com `w-11 shrink-0`. Divergência de Professores na faixa segue como `limiteCanvas` até a #470.
+
+CI do PR #525 no primeiro commit (SHA 33bd009, run 42495915448): job `visual` e `ci-gate` reprovados por `vitrine 390 claro/escuro` (altura 7269 px contra 7121 px de referência; a Vitrine mudou neste item e as referências da vitrine ficaram para trás). Corrigido no segundo commit: os 4 PNGs da vitrine foram regerados no container do teste visual e a rodada 2 confirmou. Os demais casos visuais passaram (355).
+
+## Construção — correção da entrega
+
+### Correção da entrega
+- CI `visual` reprovado em `vitrine 390 claro/escuro` (referências desatualizadas após mudar a Vitrine) — arquivos: 4 PNGs `frontend/visual/referencias/vitrine-{1440,390}-{claro,escuro}.png` regerados — prova: `npm run test:visual:docker -- --update-snapshots=all -g "vitrine"` → 4 passaram; nova rodada sem atualizar → 4 passaram; imagens Docker sem sobra (antes/depois iguais)
+
+### Rodada 2 — OK — 2026-11-08, estado 80150b6df89042f38557c7c5114639daf0692b3e
+
+| Critério | Status | Evidência |
+|---|---|---|
+| Achado da entrega (vitrine 390 reprovada no CI) | PASSOU | `npm run test:visual:docker -- -g vitrine` sem atualizar: 4 passaram; só os 4 PNGs de vitrine mudaram desde a rodada 1 (`git diff --stat`) |
+| CA1 a CA10 | PASSOU (mantido da rodada 1) | código não mudou; vitest de ui, teachers e classes: 20 arquivos, 157 testes passaram; CI do PR #525: `frontend` (test:cov) e `e2e` passaram |
+| CA11 | PASSOU | referências de professores e turmas intactas; vitrine regerada e estável |
+
+Comandos: teste visual docker (vitrine) 4 de 4; vitest dos diretórios do item 157 passaram; imagens Docker antes e depois iguais. Só o job `visual` do CI estava vermelho (vitrine), causa tratada.
+Instáveis: nenhum.
+Achados:
+- sugestão, código — as sugestões da rodada 1 seguem (teste de 360 px da faixa; #470 sem o "Pronto quando" de D1).
