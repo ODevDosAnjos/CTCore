@@ -5,6 +5,10 @@ import { ComingSoon } from "@/components/ui/coming-soon";
 import { CHAR_COUNTER_FIELD, CharCounter } from "@/components/CharCounter";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DateField } from "@/components/ui/date-field";
+import { FileField } from "@/components/ui/file-field";
+import { RadioCard } from "@/components/ui/radio-card";
 import { Input, Select } from "@/components/ui/field";
 import { br, todayIso } from "@/features/agenda/agendaDates";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
@@ -232,7 +236,7 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
       </Field>
 
       <Field id="ann-file" label={t("announcements.new.image")} error={errors.file}>
-        <input id="ann-file" type="file" accept="image/*" className="block min-h-11 w-full" aria-describedby={describe("ann-file", "file")} onChange={(e) => void chooseImage(e.target.files?.[0])} />
+        <FileField id="ann-file" accept="image/*" aria-describedby={describe("ann-file", "file")} onChange={(e) => void chooseImage(e.target.files?.[0])} />
         {uploading && <p role="status">{t("announcements.new.imageUploading")}</p>}
         {image && (
           <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -246,16 +250,10 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
 
       <fieldset id="ann-channels" tabIndex={-1} className="flex flex-col gap-1" aria-describedby={describe("ann-channels", "channels")}>
         <legend className="text-sm font-medium">{t("announcements.new.channels")}</legend>
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" checked disabled /> {t("announcements.new.channelPortal")}
-        </label>
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" checked={email} onChange={(e) => setEmail(e.target.checked)} /> {t("announcements.new.channelEmail")}
-        </label>
+        <Checkbox checked disabled label={t("announcements.new.channelPortal")} />
+        <Checkbox checked={email} onChange={(e) => setEmail(e.target.checked)} label={t("announcements.new.channelEmail")} />
         {showWhatsapp && (
-          <label className="flex min-h-11 items-center gap-2">
-            <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} /> {t("announcements.new.channelWhatsapp")}
-          </label>
+          <Checkbox checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} label={t("announcements.new.channelWhatsapp")} />
         )}
         <ComingSoon variant="switch" label={t("announcements.new.channelPush")} />
         {errors.channels && (
@@ -266,20 +264,16 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
       </fieldset>
 
       <Field id="ann-pinnedUntil" label={t("announcements.new.pinnedUntil")} error={errors.pinnedUntil} help={t("announcements.new.pinnedHelp")}>
-        <Input id="ann-pinnedUntil" type="date" min={todayIso()} value={pinnedUntil} aria-invalid={errors.pinnedUntil ? true : undefined} aria-describedby={describe("ann-pinnedUntil", "pinnedUntil", true)} onChange={(e) => setPinnedUntil(e.target.value)} />
+        <DateField id="ann-pinnedUntil" min={todayIso()} value={pinnedUntil} aria-invalid={errors.pinnedUntil ? true : undefined} aria-describedby={describe("ann-pinnedUntil", "pinnedUntil", true)} onChange={(e) => setPinnedUntil(e.target.value)} />
       </Field>
 
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm font-medium">{t("announcements.new.when")}</legend>
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="radio" name="ann-mode" checked={mode === "NOW"} onChange={() => setMode("NOW")} /> {t("announcements.new.now")}
-        </label>
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="radio" name="ann-mode" checked={mode === "SCHEDULED"} onChange={() => setMode("SCHEDULED")} /> {t("announcements.new.schedule")}
-        </label>
+        <RadioCard name="ann-mode" checked={mode === "NOW"} onChange={() => setMode("NOW")} label={t("announcements.new.now")} />
+        <RadioCard name="ann-mode" checked={mode === "SCHEDULED"} onChange={() => setMode("SCHEDULED")} label={t("announcements.new.schedule")} />
         {mode === "SCHEDULED" && (
           <Field id="ann-sendAt" label={t("announcements.new.sendAt")} error={errors.sendAt}>
-            <Input id="ann-sendAt" type="datetime-local" value={sendAt} aria-invalid={errors.sendAt ? true : undefined} aria-describedby={describe("ann-sendAt", "sendAt")} onChange={(e) => setSendAt(e.target.value)} />
+            <DateField id="ann-sendAt" type="datetime-local" value={sendAt} aria-invalid={errors.sendAt ? true : undefined} aria-describedby={describe("ann-sendAt", "sendAt")} onChange={(e) => setSendAt(e.target.value)} />
           </Field>
         )}
       </fieldset>
