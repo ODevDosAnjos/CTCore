@@ -69,7 +69,10 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Cartão e seção com título | `Card`, `Section` | |
 | Número de destaque | `Stat` | rótulo, valor, nota com tom |
 | Campo com rótulo, dica e erro | `Field` + `Input`, `Select`, `Textarea` | contador de caracteres no `Textarea` |
-| Caixa, opção e chave | `Checkbox`, `RadioCard`, `Switch` | `RadioCard` é a opção em cartão das janelas |
+| Caixa, opção e chave | `Checkbox`, `RadioCard`, `Switch` | `RadioCard` é a opção em cartão das janelas; `Switch` aceita `description` |
+| Data | `DateField` | sobre o campo nativo (`date` ou `datetime-local`); o "dd/mm/aaaa" vem do navegador e o ícone acompanha o tema |
+| Arquivo | `FileField` | botão "Escolher arquivo" e nome do arquivo (texto do pt-BR.json); o `input` real fica no DOM |
+| Código em 6 caixas | `CodeInput` | um campo real (`one-time-code`, numérico) com 6 caixas desenhadas; colar preenche tudo; usado por `CodeField` |
 | Tabela | `DataTable` | cabeçalho suave, linhas de 52 px, valores alinhados à direita |
 | Item de sprint futura (botão, aba, chave, link, item de menu) | `ComingSoon` | visível e desabilitado, com selo "Em breve" e dica; sem clique nem `href` |
 | Abas e filtros rápidos | `Tabs`, `QuickFilters` | filtro rápido com contador |
@@ -77,7 +80,10 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |
 | Resumo do que vai acontecer | `SummaryBox` | lista com setas, usado nas janelas |
-| Pessoa com avatar | `Person`, `Avatar` | iniciais com cor estável pelo nome |
+| Pessoa com avatar | `Person`, `Avatar` | iniciais com cor estável pelo nome; `size="sm"` (32 px) nas listas, padrão 36 px |
+| Faixa de graduação | `GraduationBelt` | 44x10 px, cor, ponta secundária e um risco por grau; cores vêm dos dados |
+| Ponto de modalidade | `ModalityDot` | ponto de 8 px com o nome; cor estável pelo nome, só tokens |
+| Selo de situação | `Badge`, `StatusBadge` | tom pelo mapa único de situações |
 | Etapas do assistente | `Stepper` | |
 | Os quatro estados | `components/states` | carregando com esqueleto, vazio, erro com "Tentar de novo", sem acesso |
 | Menu lateral, barra de cima, cabeçalho da página | `AppLayout`, `PageHeader` | menu lateral e barra de cima são partes do `AppLayout`; celular: barra de cima e abas embaixo |

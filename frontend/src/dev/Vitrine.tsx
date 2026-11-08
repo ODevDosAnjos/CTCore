@@ -8,11 +8,16 @@ import { Stepper } from "@/components/Stepper";
 import { DataTable } from "@/components/query/DataTable";
 import { Pagination } from "@/components/query/Pagination";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { GraduationBelt } from "@/components/ui/graduation-belt";
+import { ModalityDot } from "@/components/ui/modality-dot";
 import { Avatar, Person } from "@/components/ui/avatar";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CodeInput } from "@/components/ui/code-input";
+import { DateField } from "@/components/ui/date-field";
+import { FileField } from "@/components/ui/file-field";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { QuickFilters } from "@/components/ui/quick-filters";
@@ -37,6 +42,7 @@ const COLUMNS = [
 
 function Pieces({ theme, first }: { theme: string; first: boolean }) {
   const [on, setOn] = useState(true);
+  const [code, setCode] = useState("48");
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
   const [modal, setModal] = useState(false);
@@ -74,6 +80,9 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
         <div className="flex flex-wrap items-center gap-4">
           <Stat label="Recebido" value="R$ 1.200" note="+10%" tone="ok" />
           <Avatar name="Ana Souza" />
+          <Avatar name="Ana Souza" size="sm" />
+          <ModalityDot name="Jiu-jitsu" />
+          <GraduationBelt name="Preta" color="#111111" secondaryColor="#c00000" degree={2} label="Faixa preta · 2 graus" />
           <Person name="Bruno Lima" secondary="Faixa azul" />
         </div>
         <SummaryBox className="mt-3" items={["Cancela a cobrança", "Avisa o aluno"]} />
@@ -94,7 +103,10 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
           <Field label="Observação">{(c) => <Textarea {...c} maxLength={100} />}</Field>
           <div className="flex flex-col gap-2">
             <Checkbox label="Caixa" />
-            <Switch label="Chave" checked={on} onCheckedChange={setOn} />
+            <Switch label="Chave" description="Explicação da chave" checked={on} onCheckedChange={setOn} />
+            <DateField aria-label="Data" defaultValue="2026-11-09" />
+            <FileField aria-label="Arquivo" />
+            <CodeInput aria-label="Código" value={code} onChange={setCode} />
             <RadioCard name="plano" label="Mensal" description="Renova todo mês" defaultChecked />
             <RadioCard name="plano" label="Anual" />
           </div>

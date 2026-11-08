@@ -57,7 +57,7 @@ class RepricingIT extends OrganizationBase {
     }
 
     private static LocalDate ref(int monthsAhead) {
-        return LocalDate.now().withDayOfMonth(1).plusMonths(monthsAhead);
+        return LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).withDayOfMonth(1).plusMonths(monthsAhead);
     }
 
     private MockHttpServletResponse call(Setup s, String method, String path, Object body) throws Exception {
@@ -101,12 +101,12 @@ class RepricingIT extends OrganizationBase {
     @DisplayName("CA24: impacto e resumo contam alunos ativos no plano, abertas futuras e pagas de mês futuro; vencida e encerrada não contam")
     void counts() throws Exception {
         var s = setup();
-        LocalDate future = LocalDate.now().plusDays(20);
+        LocalDate future = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(20);
         charge(s, s.rows()[0], future, ref(1), 20000, "OPEN", null, 0);
         charge(s, s.rows()[1], future, ref(2), 20000, "OPEN", null, 0);
-        charge(s, s.rows()[1], LocalDate.now().minusDays(40), ref(-1), 20000, "OPEN", null, 0);
+        charge(s, s.rows()[1], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).minusDays(40), ref(-1), 20000, "OPEN", null, 0);
         charge(s, s.rows()[2], future, ref(3), 20000, "PAID", null, 0);
-        charge(s, s.rows()[2], LocalDate.now(), ref(0), 20000, "PAID", null, 0);
+        charge(s, s.rows()[2], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")), ref(0), 20000, "PAID", null, 0);
         UUID ended = BillingFixtures.modality(adminJdbc(), s.t().orgId(), s.t().unitId(), BillingFixtures.student(adminJdbc(), s.t().orgId(), s.t().unitId(), "Ex", "1990-01-01"), 10, 1);
         adminJdbc().update("update enrollment_modality set plan_id = ?, status = 'ENDED', ended_at = now() where id = ?", s.plan(), ended);
 
@@ -123,10 +123,10 @@ class RepricingIT extends OrganizationBase {
     void adjust() throws Exception {
         var s = setup();
         UUID benefit = BillingFixtures.benefit(adminJdbc(), s.t().orgId(), s.t().unitId(), student(s.rows()[1]), s.rows()[1], "PERCENT", 25, null, "ACTIVE");
-        LocalDate future = LocalDate.now().plusDays(20);
+        LocalDate future = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(20);
         UUID plain = charge(s, s.rows()[0], future, ref(1), 20000, "OPEN", null, 0);
         UUID discounted = charge(s, s.rows()[1], future, ref(1), 15000, "OPEN", benefit, 5000);
-        UUID overdue = charge(s, s.rows()[2], LocalDate.now().minusDays(40), ref(-1), 20000, "OPEN", null, 0);
+        UUID overdue = charge(s, s.rows()[2], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).minusDays(40), ref(-1), 20000, "OPEN", null, 0);
         UUID paid = charge(s, s.rows()[2], future, ref(0), 20000, "PAID", null, 0);
 
         assertThat(call(s, "PUT", "/" + s.plan(), reprice(s, 22000, "KEEP", false)).getStatus()).isEqualTo(200);
@@ -155,8 +155,8 @@ class RepricingIT extends OrganizationBase {
     void difference() throws Exception {
         var s = setup();
         LocalDate ref = ref(2);
-        UUID paid = charge(s, s.rows()[0], LocalDate.now().plusDays(20), ref, 20000, "PAID", null, 0);
-        charge(s, s.rows()[1], LocalDate.now().plusDays(20), ref(0), 20000, "PAID", null, 0);
+        UUID paid = charge(s, s.rows()[0], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(20), ref, 20000, "PAID", null, 0);
+        charge(s, s.rows()[1], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(20), ref(0), 20000, "PAID", null, 0);
 
         call(s, "PUT", "/" + s.plan(), reprice(s, 25000, "KEEP", false));
         assertThat(adminJdbc().queryForObject("select count(*) from charge where type = 'READJUSTMENT_DIFF'", Integer.class)).isZero();
@@ -180,8 +180,8 @@ class RepricingIT extends OrganizationBase {
     @DisplayName("CA27: falha na terceira diferença desfaz valor, ajustes e diferenças; auditoria com as escolhas")
     void allOrNothing() throws Exception {
         var s = setup();
-        UUID open = charge(s, s.rows()[0], LocalDate.now().plusDays(20), ref(1), 20000, "OPEN", null, 0);
-        for (int i = 1; i <= 3; i++) charge(s, s.rows()[i - 1], LocalDate.now().plusDays(20), ref(1 + i), 20000, "PAID", null, 0);
+        UUID open = charge(s, s.rows()[0], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(20), ref(1), 20000, "OPEN", null, 0);
+        for (int i = 1; i <= 3; i++) charge(s, s.rows()[i - 1], LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(20), ref(1 + i), 20000, "PAID", null, 0);
         var admin = adminJdbc();
         admin.execute("create or replace function fail_third() returns trigger language plpgsql as $f$ begin if (select count(*) from charge where type = 'READJUSTMENT_DIFF') >= 2 "
                 + "then raise exception 'forced'; end if; return new; end $f$");
