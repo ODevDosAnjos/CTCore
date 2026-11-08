@@ -1,4 +1,7 @@
 {
+  "belt": {
+    "label": "Faixa {{name}}, {{degree}} grau(s)"
+  },
   "app": {
     "name": "ctcore",
     "welcomeTitle": "Bem-vindo ao ctcore",

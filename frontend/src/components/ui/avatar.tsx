@@ -17,24 +17,24 @@ export function avatarTone(name: string): Tone {
   return PALETTE[h % PALETTE.length];
 }
 
-export function Avatar({ name, className, decorative = false }: { name: string; className?: string; decorative?: boolean }) {
+export function Avatar({ name, className, decorative = false, size = "md" }: { name: string; className?: string; decorative?: boolean; size?: "sm" | "md" }) {
   return (
     <span
       role={decorative ? undefined : "img"}
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
       data-tone={avatarTone(name)}
-      className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold", TONE_CLASS[avatarTone(name)], className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold", size === "sm" ? "size-8 text-[11px]" : "size-9 text-xs", TONE_CLASS[avatarTone(name)], className)}
     >
       {initials(name)}
     </span>
   );
 }
 
-export function Person({ name, secondary, className }: { name: string; secondary?: ReactNode; className?: string }) {
+export function Person({ name, secondary, className, size }: { name: string; secondary?: ReactNode; className?: string; size?: "sm" | "md" }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <Avatar name={name} decorative />
+      <Avatar name={name} decorative size={size} />
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{name}</p>
         {secondary && <p className="truncate text-xs text-muted-foreground">{secondary}</p>}

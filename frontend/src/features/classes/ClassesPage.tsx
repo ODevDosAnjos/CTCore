@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router";
 import type { TFunction } from "i18next";
 import { QueryPage } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
+import { Person } from "@/components/ui/avatar";
+import { ModalityDot } from "@/components/ui/modality-dot";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
@@ -27,7 +29,7 @@ const columns = (t: TFunction): Column<TrainingClass>[] => [
       </span>
     ),
   },
-  { key: "modality", label: t("classes.columns.modality"), render: (r) => r.modality.name },
+  { key: "modality", label: t("classes.columns.modality"), render: (r) => <ModalityDot name={r.modality.name} /> },
   { key: "ageRange", label: t("classes.columns.ageRange"), render: (r) => r.ageRange?.name ?? t("classes.none") },
   {
     key: "schedule",
@@ -41,12 +43,11 @@ const columns = (t: TFunction): Column<TrainingClass>[] => [
     key: "head",
     label: t("classes.columns.head"),
     render: (r) => (
-      <span className="flex min-w-0 flex-col break-words">
-        {r.head.name}
-        {r.assistants.length > 0 && (
-          <span className="text-sm text-muted-foreground">{t("classes.assistants", { names: r.assistants.map((a) => a.name).join(", ") })}</span>
-        )}
-      </span>
+      <Person
+        name={r.head.name}
+        size="sm"
+        secondary={r.assistants.length > 0 ? t("classes.assistants", { names: r.assistants.map((a) => a.name).join(", ") }) : undefined}
+      />
     ),
   },
   {
