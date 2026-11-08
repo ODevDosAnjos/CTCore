@@ -202,7 +202,7 @@ class BenefitGrantIT extends OrganizationBase {
         bad.add(shortBy);
         fields.add("decidedBy");
         var yesterday = body(fx, "PERCENT", 10);
-        yesterday.put("validUntil", LocalDate.now().minusDays(2).toString());
+        yesterday.put("validUntil", LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).minusDays(2).toString());
         bad.add(yesterday);
         fields.add("validUntil");
         for (int i = 0; i < bad.size(); i++) {
@@ -213,7 +213,7 @@ class BenefitGrantIT extends OrganizationBase {
         assertThat(count("true")).isZero();
         assertThat(audits(t, "benefit.granted")).isZero();
         var ok = body(fx, "PERCENT", 10);
-        ok.put("validUntil", LocalDate.now().toString());
+        ok.put("validUntil", LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).toString());
         assertThat(post("", ok, c).getStatus()).isEqualTo(201);
     }
 

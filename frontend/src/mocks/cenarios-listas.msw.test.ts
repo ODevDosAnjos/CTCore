@@ -5,7 +5,11 @@ const login = (email: string) => fetch("/api/v1/auth/login", { method: "POST", h
 const get = async (path: string) => (await fetch(`/api/v1${path}`)).json();
 const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
+// Quarta-feira, meio-dia em São Paulo: day() (data UTC) e o dia da unidade coincidem em qualquer hora de quem roda.
+afterEach(() => vi.useRealTimers());
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
   setScenarios(true);
   resetMockSession();
   await login("ana@exemplo.com");

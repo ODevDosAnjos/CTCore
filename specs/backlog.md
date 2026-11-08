@@ -306,6 +306,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 189 | Acompanhamento do primeiro ciclo e correções da piloto | issue #189 | Sprint 24 | — | pessoa (dono) | a fazer |
 | 190 | Ajustes pedidos pela piloto e desconto fixo | issue #190 | Sprint 25 | — | pessoa (dono) | a fazer |
 | 191 | Checklist de lançamento | issue #191 | Sprint 25 | — | pessoa (dono) | a fazer |
+| 523 | Técnica · Testes com relógio real: AgendaPage CA14 e cenarios-cobrancas CA11 falham aos domingos | issue #523 | sem marco | — | agente | feito |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 

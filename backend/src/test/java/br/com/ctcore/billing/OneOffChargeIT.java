@@ -55,7 +55,7 @@ class OneOffChargeIT extends OrganizationBase {
     }
 
     private static String due(int days) {
-        return LocalDate.now().plusDays(days).toString();
+        return LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(days).toString();
     }
 
     private static String body(UUID requestId, UUID unit, String description, Object amount, Object dueOn) {
