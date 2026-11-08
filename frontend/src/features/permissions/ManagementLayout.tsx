@@ -5,6 +5,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AccountLink } from "@/features/account/AccountFrame";
 import { AreaUnavailablePage } from "@/features/auth/AreaUnavailablePage";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
+import { LogoutButton, LogoutError } from "@/features/auth/LogoutButton";
+import { useLogout } from "@/features/auth/useLogout";
 import { useSession } from "@/features/auth/SessionProvider";
 import { BellButton } from "@/features/notifications/BellButton";
 import { UnitScopeProvider } from "@/features/units/UnitScopeProvider";
@@ -18,6 +20,7 @@ import { usePermissions } from "./usePermissions";
 export function ManagementLayout({ activeId = "home", children }: { activeId?: string; children: ReactNode }) {
   const { t } = useTranslation();
   const { state } = useSession();
+  const side = useLogout();
   const { status, permissions, retry } = usePermissions();
   const groups = permissions ? buildMenu(permissions, t) : [];
   const pending = usePendingRequests(groups.some((g) => g.items.some((i) => i.id === "requests")));
@@ -40,17 +43,20 @@ export function ManagementLayout({ activeId = "home", children }: { activeId?: s
         roleLabel={roleLabel}
         badges={{ requests: pending }}
         tabs={buildTabs(permissions, link?.role, t)}
+        onLogout={side.logout}
         headerExtra={
           <>
             <UnitSwitcher />
             <BellButton />
             <AccountLink roleLabel={roleLabel} />
+            <LogoutButton className="hidden md:inline-flex" />
             <ChooseLinkTrigger />
           </>
         }
       >
         {children}
       </AppLayout>
+      {side.failed && <LogoutError onRetry={side.logout} />}
     </UnitScopeProvider>
   );
 }

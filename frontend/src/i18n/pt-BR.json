@@ -8,6 +8,10 @@
     "welcomeText": "Aqui você vai cuidar da sua academia. As telas chegam aos poucos."
   },
   "auth": {
+    "logout": {
+      "label": "Sair da conta",
+      "pending": "Saindo..."
+    },
     "title": "Entrar",
     "email": "E-mail",
     "password": "Senha",
@@ -102,8 +106,7 @@
     "required": {
       "title": "Ative as duas etapas para continuar",
       "text": "O perfil de Coordenador exige a verificação em duas etapas. Ative para usar o sistema.",
-      "activate": "Ativar duas etapas",
-      "logout": "Sair da conta"
+      "activate": "Ativar duas etapas"
     },
     "errors": {
       "tooMany": "Muitas tentativas. Espere alguns minutos e tente de novo.",

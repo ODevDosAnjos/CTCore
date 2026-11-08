@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Avatar } from "@/components/ui/avatar";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
+import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { PortalLayout } from "@/features/portal/PortalLayout";
@@ -55,6 +56,7 @@ export function AccountFrame({ children, plain = false }: { children: ReactNode;
         </Link>
         <div className="flex items-center gap-2">
           <AccountLink />
+          <LogoutButton />
           <ChooseLinkTrigger />
           <ThemeToggle />
         </div>

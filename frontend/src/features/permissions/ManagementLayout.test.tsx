@@ -103,4 +103,16 @@ describe("ManagementLayout", () => {
     await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
     expect(await axeViolations(container)).toEqual([]);
   });
+
+  it("CA1/CA2: 'Sair da conta' na barra e no menu lateral chamam POST /auth/logout", async () => {
+    let n = 0;
+    server.use(http.post("/api/v1/auth/logout", () => ((n += 1), new HttpResponse(null, { status: 204 }))));
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    const buttons = screen.getAllByRole("button", { name: "Sair da conta" });
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
+    await user.click(buttons[0]);
+    await waitFor(() => expect(n).toBe(1));
+  });
 });

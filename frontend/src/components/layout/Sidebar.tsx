@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { ChevronDown, ChevronsLeft, ChevronsRight, CircleHelp, Sparkles } from "lucide-react";
+import { ChevronDown, LogOut, ChevronsLeft, ChevronsRight, CircleHelp, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { NavGroup } from "./AppLayout";
@@ -19,10 +19,11 @@ export interface SidebarProps {
   badges?: Record<string, number>;
   collapsed?: boolean;
   onToggle?: () => void;
+  onLogout?: () => void;
 }
 
 // Menu escuro (tokens sidebar*): grupos que abrem e fecham, item ativo, contadores, rodapé e recolher a 72 px (D3).
-export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collapsed = false, onToggle }: SidebarProps) {
+export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collapsed = false, onToggle, onLogout }: SidebarProps) {
   const { t } = useTranslation();
   const uid = useId();
   const [open, setOpen] = useState<Set<string>>(() => new Set(groups.filter((g) => g.items.some((i) => i.id === activeId)).map((g) => g.id)));
@@ -107,6 +108,18 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
       <div className="flex flex-col gap-1 border-t border-sidebar-accent p-2">
         {footer(t("layout.help"), CircleHelp)}
         {footer(t("layout.news"), Sparkles)}
+        {onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label={collapsed ? t("auth.logout.label") : undefined}
+            title={collapsed ? t("auth.logout.label") : undefined}
+            className={cn(row, live, collapsed && "justify-center px-0")}
+          >
+            <LogOut aria-hidden="true" className="size-5 shrink-0" />
+            {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{t("auth.logout.label")}</span>}
+          </button>
+        )}
         {onToggle && (
           <button
             type="button"
