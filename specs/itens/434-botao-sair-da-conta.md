@@ -129,3 +129,18 @@ Achados:
 - Verificação: rodada 2 OK (estado 474b5ed1). Vitest das áreas tocadas 241 verdes, `tsc`, `lint`, e2e `sair-da-conta` 5/5 na rodada 1. Comparação com o canvas feita (`.capturas/434/`, `npm run visual:canvas -- --exige` sem reprovação; 146 prints de referência regerados por causa da barra).
 - Decisões: D1 (só a ação de sair, sem menu do usuário), D2 (sempre `/entrar` sem `next`), D3, D4, D5. Divergências com o canvas (barra, portal e menu lateral sem "Sair da conta") ficam como decisão D1 do item, sem `limiteCanvas`.
 - Limitações: a regressão completa (`npm run test:cov`) teve 9 falhas em `LoginPage`, `OverduePage`, `TeacherFormDialog` e `UnitSettingsPage`, de outros itens; passaram 75/75 isolados (autonomia 5). O `npm run e2e` completo não rodou (só o spec do item). A barra da gestão a 390 px não tem captura própria (a saída fica no menu do celular).
+
+### Correção da entrega
+- CI do PR #522 reprovou `frontend` (run 42429281671, sha 76e5444) só em `AgendaPage` CA14 e `cenarios-cobrancas` CA11, falhas de domingo do #523, de outro item. A base com o #523 já foi trazida no merge b930f05; nenhum código do item mudou — prova: `npx vitest run` de AgendaPage, cenarios-cobrancas, auth, layout e PortalLayout → 23 arquivos/223 testes verdes; `npm run typecheck` sem erros. O novo CI roda no sha deste commit de entrega (verificações do PR, não rodadas aqui).
+
+### Rodada 3 — OK — 2026-11-08, estado 8cffff1764fd6a6c5de7d14a90e887e0d18b44e2
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA8 | PASSOU | mantidos da rodada 2; o código do item não mudou (diff contra a base só traz os arquivos do item, prints de referência e specs de outros itens trazidos pelo merge b930f05) |
+| CA7 | PASSOU (parcial) | mantido; `label-content-name-mismatch` da Topbar fora do item |
+
+Comandos: vitest (auth, layout, ManagementLayout, PortalLayout, account, msw.test, AgendaPage) 25 arquivos/256 testes verdes, incluindo AgendaPage CA14 que falhou no CI; `npm run typecheck` sem erros; `npm run lint` sem erros. e2e e teste visual em container não repetidos (CI do PR é a prova, autonomia 2); falta novo CI no sha atual.
+Achados:
+- sugestão, processo: há prints de referência alterados e ainda sem commit (`comunicados-novo`, `professores`, `turmas`, 1440 claro/escuro), coerentes com a barra nova (+~3 KB, como os demais); entram no commit da entrega.
+- sugestão, código, `useLogout.ts`: `navigate` antes de `clear()` depende do campo `out`; testado.
