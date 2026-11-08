@@ -176,7 +176,7 @@ Hospedagem, banco, arquivos e monitoramento são infraestrutura, não conexões 
 
 ### Repositórios
 
-Monorepo `DevDosAnjos/ctcore`, com as pastas `backend/`, `frontend/`, `infra/` (docker-compose, scripts, publicação) e `docs/` (esta especificação e o OpenAPI), o `AGENTS.md` geral na raiz e as issues. Decisão do dono em 13/10/2026, no lugar do repositório compose com submódulos da versão 1.2.
+Monorepo `ODevDosAnjos/ctcore`, com as pastas `backend/`, `frontend/`, `infra/` (docker-compose, scripts, publicação) e `docs/` (esta especificação e o OpenAPI), o `AGENTS.md` geral na raiz e as issues. Decisão do dono em 13/10/2026, no lugar do repositório compose com submódulos da versão 1.2.
 
 ### Ambientes e publicação
 
