@@ -86,6 +86,13 @@ function setup(opts: { role?: string; width?: number; body?: () => Response | Pr
 
 const ready = () => screen.findByRole("heading", { name: "Agenda", level: 1 });
 
+// Quarta-feira, meio-dia em São Paulo: o teste não depende do dia da semana nem da hora de quem roda.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
+
 describe("AgendaPage", () => {
   it("CA13: grade da semana com turma, professor e modalidade; cancelada riscada com o rótulo; Sem aula com motivo; selo Substituição", async () => {
     setup();

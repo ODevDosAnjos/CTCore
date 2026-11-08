@@ -24,7 +24,7 @@ class ChargeCancelIT extends ChargeActionsBase {
         Tenant t = tenant();
         var admin = account(t, Role.ADMINISTRATOR);
         UUID s = student(t);
-        UUID id = charge(t, t.unitId(), s, LocalDate.now().minusDays(90), 200000, "OPEN");
+        UUID id = charge(t, t.unitId(), s, LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).minusDays(90), 200000, "OPEN");
 
         JsonNode d = ok(send(HttpMethod.POST, "/charges/" + id + "/cancel", "{\"reason\":\"  Mudou de cidade  \"}", admin), 200);
         assertThat(d.get("charge").get("status").asText()).isEqualTo("CANCELED");
@@ -70,7 +70,7 @@ class ChargeCancelIT extends ChargeActionsBase {
         var admin = account(t, Role.ADMINISTRATOR);
         UUID s = student(t);
         for (String st : new String[] {"PAID", "REFUNDED", "RENEGOTIATED", "IN_REVIEW"}) {
-            UUID id = charge(t, t.unitId(), s, LocalDate.now(), 1000, st);
+            UUID id = charge(t, t.unitId(), s, LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")), 1000, st);
             assertThat(send(HttpMethod.POST, "/charges/" + id + "/cancel", "{\"reason\":\"x\"}", admin).getStatus()).as(st).isEqualTo(409);
             assertThat(status(id)).isEqualTo(st);
         }
