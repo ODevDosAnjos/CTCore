@@ -308,6 +308,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 191 | Checklist de lançamento | issue #191 | Sprint 25 | — | pessoa (dono) | a fazer |
 | 523 | Técnica · Testes com relógio real: AgendaPage CA14 e cenarios-cobrancas CA11 falham aos domingos | issue #523 | sem marco | — | agente | feito |
 | 527 | Técnica · Conta do dono no AGENTS.md: ODevDosAnjos | issue #527 | Sprint 10.5 | — | agente | feito |
+| 528 | Técnica · Teste visual em paralelo no CI | issue #528 | Sprint 10.5 | — | agente | feito |
 | 530 | Técnica · Teste visual instável em conta-duas-etapas (1440) | issue #530 | Sprint 10.5 | — | agente | feito |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
