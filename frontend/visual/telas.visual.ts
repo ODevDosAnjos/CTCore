@@ -4,7 +4,12 @@ import { casos, larguras, temas, type Passo } from "./casos";
 // R3: relógio fixo em 29/10/2026 12:00 (America/Sao_Paulo, -03:00).
 const AGORA = new Date("2026-10-29T12:00:00-03:00");
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false) {
+async function assentar(page: Page, perfil?: string) {
+  await page.waitForLoadState("networkidle");
+  if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
+}
+
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -43,13 +48,17 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
     await page.goto(rota);
   }
   await expect(page.locator("[data-vitrine], h1").first()).toBeVisible();
+  // assenta antes de clicar: com a página ainda crescendo, a rolagem automática do clique fica menor e o fundo do print oscila (#530)
+  await assentar(page, perfil);
+  if (perfil && rota === "/conta") await expect(page.getByRole("button", { name: /^Encerrar a sessão em/ }).first()).toBeVisible(); // lista de sessões
   for (const p of passos) {
     if ("preencher" in p) await page.getByLabel(p.preencher[0], { exact: true }).fill(p.preencher[1]);
     else await page.getByRole("button", { name: new RegExp(`^${p.clicar}`) }).first().click();
   }
-  await page.waitForLoadState("networkidle");
-  if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
-  await page.waitForTimeout(300); // ponytail: espera fixa p/ o último render; trocar por sinal da tela se oscilar
+  await assentar(page, perfil);
+  if (aguardar) await expect(page.locator(aguardar).first()).toBeVisible();
+  // animação infinita (ex.: o spinner do botão em carregamento) nunca termina: o Playwright já a congela no print, então só as finitas contam
+  await page.waitForFunction(`[...document.images].every((i) => i.complete && i.naturalWidth > 0) && !document.getAnimations().some((a) => a.playState === "running" && a.effect.getComputedTiming().iterations !== Infinity)`);
   await page.evaluate("document.fonts.ready");
 }
 
@@ -60,7 +69,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }
