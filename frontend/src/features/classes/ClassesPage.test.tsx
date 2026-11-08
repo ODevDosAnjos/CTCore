@@ -104,6 +104,15 @@ describe("ClassesPage", () => {
     expect(calls.at(-1)!.get("size")).toBe("25");
   });
 
+  it("CA7: ponto da modalidade e avatar do titular na linha", async () => {
+    setup();
+    await ready();
+    const row = (await screen.findByText("Jiu-Jitsu Adulto")).closest("tr")!;
+    expect(row.querySelector("[data-tone].size-2")).not.toBeNull();
+    expect(within(row).getByText("AS")).toHaveClass("size-8");
+    expect(within(row).getByText("Ana Souza")).toBeInTheDocument();
+  });
+
   it("CA8: o nome da turma leva ao painel", async () => {
     setup();
     const link = await screen.findByRole("link", { name: "Jiu-Jitsu Adulto" });

@@ -90,6 +90,13 @@ describe("TeachersPage", () => {
     expect(calls.at(-1)!.get("size")).toBe("25");
   });
 
+  it("CA6: avatar de 32 px e ponto da modalidade na linha", async () => {
+    setup();
+    const row = (await screen.findByText("Ana Souza")).closest("tr")!;
+    expect(within(row).getByText("AS")).toHaveClass("size-8");
+    expect(row.querySelector("[data-tone].size-2")).not.toBeNull();
+  });
+
   it("RF-PRO-02 CA9: o nome na linha leva ao painel do professor", async () => {
     const user = userEvent.setup();
     setup();

@@ -8,6 +8,8 @@ import { Stepper } from "@/components/Stepper";
 import { DataTable } from "@/components/query/DataTable";
 import { Pagination } from "@/components/query/Pagination";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { GraduationBelt } from "@/components/ui/graduation-belt";
+import { ModalityDot } from "@/components/ui/modality-dot";
 import { Avatar, Person } from "@/components/ui/avatar";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Banner } from "@/components/ui/banner";
@@ -74,6 +76,9 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
         <div className="flex flex-wrap items-center gap-4">
           <Stat label="Recebido" value="R$ 1.200" note="+10%" tone="ok" />
           <Avatar name="Ana Souza" />
+          <Avatar name="Ana Souza" size="sm" />
+          <ModalityDot name="Jiu-jitsu" />
+          <GraduationBelt name="Preta" color="#111111" secondaryColor="#c00000" degree={2} label="Faixa preta · 2 graus" />
           <Person name="Bruno Lima" secondary="Faixa azul" />
         </div>
         <SummaryBox className="mt-3" items={["Cancela a cobrança", "Avisa o aluno"]} />

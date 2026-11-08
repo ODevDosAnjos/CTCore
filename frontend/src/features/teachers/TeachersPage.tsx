@@ -5,6 +5,7 @@ import type { TFunction } from "i18next";
 import { QueryPage } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
 import { Avatar } from "@/components/ui/avatar";
+import { ModalityDot } from "@/components/ui/modality-dot";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
@@ -15,7 +16,7 @@ import { fetchTeachers, type Teacher } from "./useTeachers";
 import { PageHeader } from "@/components/ui/page-header";
 
 function TeacherAvatar({ teacher }: { teacher: Teacher }) {
-  return teacher.photoUrl ? <img src={teacher.photoUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" /> : <Avatar name={teacher.name} decorative className="size-10" />;
+  return teacher.photoUrl ? <img src={teacher.photoUrl} alt="" className="size-8 shrink-0 rounded-full object-cover" /> : <Avatar name={teacher.name} decorative size="sm" />;
 }
 
 const columns = (t: TFunction): Column<Teacher>[] => [
@@ -38,7 +39,9 @@ const columns = (t: TFunction): Column<Teacher>[] => [
     render: (r) => (
       <ul>
         {r.modalities.map((m) => (
-          <li key={m.id}>{m.level === null ? m.name : t("teachers.modality", { name: m.name, level: m.level, degree: m.degree })}</li>
+          <li key={m.id}>
+            <ModalityDot name={m.name} label={m.level === null ? m.name : t("teachers.modality", { name: m.name, level: m.level, degree: m.degree })} />
+          </li>
         ))}
       </ul>
     ),
