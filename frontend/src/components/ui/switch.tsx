@@ -1,22 +1,27 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export function Switch({
   checked,
   onCheckedChange,
   label,
+  description,
   disabled,
 }: {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   label: string;
+  description?: string;
   disabled?: boolean;
 }) {
-  return (
+  const descId = React.useId();
+  const control = (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      aria-describedby={description ? descId : undefined}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
@@ -26,5 +31,14 @@ export function Switch({
     >
       <span aria-hidden className={cn("size-5 rounded-full bg-card shadow transition-transform", checked ? "translate-x-5" : "translate-x-0.5")} />
     </button>
+  );
+  if (!description) return control;
+  return (
+    <div className="flex items-start gap-3">
+      {control}
+      <span id={descId} className="text-xs text-muted-foreground">
+        {description}
+      </span>
+    </div>
   );
 }
