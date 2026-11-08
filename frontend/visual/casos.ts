@@ -14,6 +14,7 @@ export type Caso = {
   fullPage?: boolean;
   matricula?: boolean; // #443: antes do print, matricula o aluno fictício na turma do Professor (o MSW começa sem matrículas)
   passos?: Passo[];
+  aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
 };
 
 const ana = "ana@exemplo.com"; // Coordenador, todas as áreas
@@ -97,8 +98,8 @@ export const casos: Caso[] = [
   { nome: "convite-vencido", rota: "/convite/vencido", canvas: "ConviteVencido" },
   { nome: "sem-acesso", rota: "/configuracoes/usuarios", perfil: prof, canvas: "EstadoSemAcesso", limiteCanvas: { valor: 0.45, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #489 trata a tela e remove esta exceção)" } },
   { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #498 trata a tela e remove esta exceção)" } },
-  { nome: "conta-duas-etapas", rota: "/conta", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
-  { nome: "conta-codigos-reserva", rota: "/conta", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Gerar códigos de reserva novos" }], limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
+  { nome: "conta-duas-etapas", rota: "/conta", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img', limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
+  { nome: "conta-codigos-reserva", rota: "/conta", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Gerar códigos de reserva novos" }], aguardar: '[role="dialog"] ul li:nth-child(10)', limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
   { nome: "configuracoes-organizacao-contraste", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigOrgContraste", passos: [{ preencher: ["Cor principal (#RRGGBB)", "#F5E663"] }] },
   { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "TransferirCoordenacao", passos: [{ clicar: "Transferir coordenação" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #482 trata a tela e remove esta exceção)" } },
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
