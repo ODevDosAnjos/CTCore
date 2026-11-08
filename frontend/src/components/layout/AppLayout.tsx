@@ -20,6 +20,7 @@ export function AppLayout({
   roleLabel,
   badges,
   tabs = [],
+  onLogout,
   children,
 }: {
   groups: NavGroup[];
@@ -29,12 +30,13 @@ export function AppLayout({
   roleLabel?: string;
   badges?: Record<string, number>;
   tabs?: NavTab[];
+  onLogout?: () => void;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
   const [collapsed, toggle] = useSidebarCollapsed();
   const main = useRef<HTMLElement>(null);
-  const side = { groups, activeId, org, roleLabel, badges };
+  const side = { groups, activeId, org, roleLabel, badges, onLogout };
   return (
     <div className="min-h-screen md:flex">
       <a

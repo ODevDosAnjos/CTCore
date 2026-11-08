@@ -171,17 +171,18 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     expect(tabs()).toHaveLength(5);
   });
 
-  it("CA12: Tab percorre logo, abas, sino, conta e tema", async () => {
+  it("CA12: Tab percorre logo, abas, sino, conta, sair e tema", async () => {
     const user = userEvent.setup();
     setup("/");
     await ready();
     const seen: string[] = [];
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < 11; i += 1) {
       await user.tab();
       seen.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? "");
     }
     expect(seen.slice(0, 9)).toEqual(["Ir para o conteúdo", "Academia Alfa", "Início", "Agenda", "Financeiro", "Avisos 22 não lidos", "Minhas informações", "Avisos, 2 não lidos", "Minha conta"]);
-    expect(seen[9]).toMatch(/tema/i);
+    expect(seen[9]).toBe("Sair da conta");
+    expect(seen[10]).toMatch(/tema/i);
   });
 
   it("CA12: passa no axe nos dois temas", async () => {
@@ -211,5 +212,20 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     if (path === "/") await screen.findByText("Tudo em dia"); // deixa a leitura do Início terminar antes de o teste acabar
     expect(screen.getAllByRole("banner").filter((h) => !h.closest("main"))).toHaveLength(1); // o header do PageHeader fica dentro do main
     expect(tabs()).toHaveLength(5);
+  });
+
+});
+
+describe("PortalLayout: sair da conta (#434)", () => {
+  it.each([
+    ["completo", false],
+    ["reduzido", true],
+  ])("CA3: botão 'Sair da conta' visível no portal %s e chama POST /auth/logout", async (_n, reduced) => {
+    let n = 0;
+    server.use(http.post("/api/v1/auth/logout", () => ((n += 1), new HttpResponse(null, { status: 204 }))));
+    setup("/portal/avisos", { data: shell({ reduced }) });
+    await ready();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Sair da conta" }));
+    await waitFor(() => expect(n).toBe(1));
   });
 });

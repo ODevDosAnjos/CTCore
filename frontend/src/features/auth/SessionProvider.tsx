@@ -8,11 +8,12 @@ export interface SessionView {
   twoFactor: { enabled: boolean; required: boolean };
 }
 
-type State = { status: "loading" | "anon" | "error" } | { status: "ready"; session: SessionView };
+type State = { status: "loading" | "anon" | "error"; out?: boolean } | { status: "ready"; session: SessionView };
 interface Ctx {
   state: State;
   refresh: () => Promise<void>;
   setSession: (s: SessionView) => void;
+  clear: () => void;
 }
 
 const SessionCtx = createContext<Ctx | null>(null);
@@ -31,7 +32,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial da sessão
     void refresh();
   }, [refresh]);
-  const value = useMemo(() => ({ state, refresh, setSession: (session: SessionView) => setState({ status: "ready", session }) }), [state, refresh]);
+  const value = useMemo(() => ({ state, refresh, setSession: (session: SessionView) => setState({ status: "ready", session }), clear: () => setState({ status: "anon", out: true }) }), [state, refresh]);
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>;
 }
 

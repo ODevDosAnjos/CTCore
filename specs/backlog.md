@@ -156,7 +156,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 450 | Componente base: Padrão "Em breve" (R3): item visível e desabilitado, sem backend | issue #450 | Sprint 10.5 | #448 | agente | feito |
 | 452 | Componente base: Selos, avatar e graduação (faixa visual) | issue #452 | Sprint 10.5 | #448 | agente | a fazer |
 | 453 | Componente base: Campos: data, arquivo, interruptor, caixa, cartão de escolha e código em 6 caixas | issue #453 | Sprint 10.5 | #448 | agente | a fazer |
-| 434 | Botão de sair da conta na gestão e no portal | issue #434 | Sprint 10.5 | — | agente | a fazer |
+| 434 | Botão de sair da conta na gestão e no portal | issue #434 | Sprint 10.5 | — | agente | feito |
 | 454 | Componente base: Moldura da gestão: menu lateral, barra de cima, cabeçalho, seletor de unidade e menu do celular | issue #454 | Sprint 10.5 | #448 | agente | a fazer |
 | 455 | Componente base: Moldura do portal e shell das telas de acesso | issue #455 | Sprint 10.5 | #448 | agente | a fazer |
 | 456 | Componente base: Busca e filtro em pílula | issue #456 | Sprint 10.5 | #448 | agente | a fazer |

@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { AccountLink } from "@/features/account/AccountFrame";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
+import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 import { OrgMark, orgStyle } from "./OrgMark";
@@ -61,6 +62,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
           )}
           {name && role && <span className="hidden text-sm md:inline">{t("portalShell.person", { name, role: t(`chooseLink.roles.${role}`) })}</span>}
           <AccountLink />
+          <LogoutButton className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" />
           <ChooseLinkTrigger />
           <span className="text-sidebar-foreground [&_button]:text-sidebar-foreground [&_button:hover]:bg-sidebar-accent [&_button:hover]:text-sidebar-foreground">
             <ThemeToggle />

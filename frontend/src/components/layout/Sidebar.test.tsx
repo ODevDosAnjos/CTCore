@@ -90,4 +90,16 @@ describe("useSidebarCollapsed", () => {
     await user.click(screen.getByRole("button"));
     expect(screen.getByRole("button", { name: "fechado" })).toBeInTheDocument();
   });
+
+  it("CA2: com onLogout mostra 'Sair da conta' e aciona; recolhido fica só o nome acessível; sem onLogout não aparece", async () => {
+    const user = userEvent.setup();
+    const onLogout = vi.fn();
+    const { rerender } = render(<Sidebar groups={groups} activeId="home" onLogout={onLogout} />);
+    await user.click(screen.getByRole("button", { name: "Sair da conta" }));
+    expect(onLogout).toHaveBeenCalledTimes(1);
+    rerender(<Sidebar groups={groups} activeId="home" onLogout={onLogout} collapsed />);
+    expect(screen.getByRole("button", { name: "Sair da conta" })).toHaveAttribute("aria-label", "Sair da conta");
+    rerender(<Sidebar groups={groups} activeId="home" />);
+    expect(screen.queryByRole("button", { name: "Sair da conta" })).toBeNull();
+  });
 });
