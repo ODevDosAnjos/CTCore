@@ -57,6 +57,11 @@ Pedido de ajuste: CA3 — a prova local não reproduz a configuração do CI; de
 
 Retomada: T1 e T2 conferidos pelo código (`git diff` só em `frontend/playwright.visual.config.ts`, +3 linhas; nenhum `.png` alterado). Pedido de ajuste do CA3 atendido pela fase 2 (D3). T3 e T4 dependem do CI do PR e são da fase de entrega (D4); ficam por marcar.
 
+### Correção da entrega
+- CI run 42514042113 reprovou `conta-codigos-reserva 1440 claro` (7802 px, 356 de 357 passaram, 6,7 min) com 3 workers; conforme D4/T3, `workers` do CI baixou para 2 — arquivos: `frontend/playwright.visual.config.ts` (valor e comentário) — prova: `tsc --noEmit` e `eslint` sem erro; a prova do CA3 é o CI de novo (T3 e T4 ficam por marcar até o run passar).
+- Não marquei T3: o recuo só vale com o job `visual` verde. Se oscilar com 2 workers, PARAR e mostrar os casos (D4).
+Desvios: CA1 e a seção Entrega ainda dizem 3 workers; passam a 2 (pedido do T3), a fase 2/5 deve atualizar o texto.
+
 ## Verificação
 
 ### Rodada 1 — OK — 2026-11-08, estado db0e540317570239a657b736819016458c5227b6
@@ -75,12 +80,19 @@ Achados:
 
 ## Entrega
 
-**O que muda:** `frontend/playwright.visual.config.ts` liga `fullyParallel: true` e, no CI, `workers: 3` (fora do CI, o padrão do Playwright). Nenhum print de referência, teste, job ou script muda.
+**O que muda:** `frontend/playwright.visual.config.ts` liga `fullyParallel: true` e, no CI, `workers: 2` (fora do CI, o padrão do Playwright). Nenhum print de referência, teste, job ou script muda.
 
-**Como foi verificado:** Rodada 1 da verificação, OK (estado db0e540). A base não avançou desde então, então a regressão não foi rodada de novo. As provas do CA3 e do CA4 são o job `visual` e o `ci-gate` do CI do PR.
+**Como foi verificado:** Rodada 2 da verificação, OK (estado fd5228c6). A base (`dev`) não avançou desde então, então a regressão não foi rodada de novo. As provas do CA3 e do CA4 são o job `visual` e o `ci-gate` do CI deste PR, já com 2 workers.
 
-**Decisões:** workers 3 no CI, com recuo para 2 se o CI oscilar (D1, D4). O CI do PR é a prova do CA3; o `visual-docker.sh` não passa `CI=1` (D3). A espera fixa de 300 ms em `abrir()` fica como está, só se mexe se o CI oscilar (D2).
+**Decisões:**
+- Workers 2 no CI, e não 3: o run 42514042113 (head 3fe0eb2, com 3 workers) reprovou `conta-codigos-reserva 1440 claro` (7802 px, 0,01 da imagem). O recuo é o previsto pelo item (D4); o CI deste push é a prova.
+- O `visual-docker.sh` não passa `CI=1` (D3): a prova local não exercita o número de workers do CI.
+- A espera fixa de 300 ms em `abrir()` fica como está (D2).
 
-**Tempo do `visual`:** antes, 13 a 16 min (runs 42505900681, 42490683846 e 42497574697). Depois: o tempo do run do CI deste PR entra na descrição (CA5).
+**Limitações:**
+- O texto do CA1 e a seção Construção ainda dizem `workers: 3`. Esta fase só altera a seção Entrega do arquivo do item, então o texto fica para a especificação.
+- CA3, CA4 e CA5 dependem do CI deste PR e da descrição final. T3 e T4 ficam por marcar até o run passar.
+- Execução local com o padrão de workers oscilou em `conta-duas-etapas 1440 escuro` (T2): é a #530, fora deste item.
+- Tempo do job `visual` com 2 workers: medir no CI deste PR e registrar na descrição (meta de 7 min).
 
-**Limitações:** a execução local com o padrão de workers oscilou em `conta-duas-etapas 1440 escuro`; é a #530, fora deste item. Se o CI deste PR não chegar a 7 min com 3 workers, o tempo medido vai para a descrição e a meta fica como limite conhecido (D4).
+**Verificações do PR (run 42514042113, head 3fe0eb2):** o job `visual` reprovou 1 de 357 (`conta-codigos-reserva 1440 claro`) e o `ci-gate` ficou vermelho por causa dele. A correção deste commit é `workers` de 3 para 2.
