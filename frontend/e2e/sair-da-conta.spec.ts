@@ -42,6 +42,8 @@ for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.setViewportSize({ width: 360, height: 740 });
     await login(page, "familia@exemplo.com");
+    // #455: no celular a barra não tem o botão; a saída fica no fim de Minha conta.
+    await page.getByRole("link", { name: /Minha conta/ }).click();
     const out = page.getByRole("button", { name: "Sair da conta" });
     await expect(out).toBeVisible();
     expect(await noOverflow(page)).toBe(true);
@@ -77,5 +79,27 @@ for (const scheme of ["light", "dark"] as const) {
         expect(await violations(page)).toEqual([]);
       });
     }
+  }
+}
+
+// #455: moldura do portal e das telas de acesso sem violação do axe nem rolagem horizontal, a 360 e a 1440 px, nos dois temas; no desktop a saída é o ícone da barra.
+for (const scheme of ["light", "dark"] as const) {
+  for (const width of [360, 1440]) {
+    test(`@critical moldura do portal e do acesso: axe e sem rolagem horizontal (${width} px, ${scheme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/entrar");
+      await expect(page.getByRole("heading", { name: "Entrar", level: 1 })).toBeVisible();
+      expect(await noOverflow(page)).toBe(true);
+      expect(await violations(page)).toEqual([]);
+      await login(page, "aluno@exemplo.com");
+      await expect(page.getByRole("link", { name: "Academia Alfa" })).toBeVisible();
+      expect(await noOverflow(page)).toBe(true);
+      expect(await violations(page)).toEqual([]);
+      if (width === 1440) {
+        await expect(page.getByRole("banner").getByRole("button", { name: "Sair da conta" })).toBeVisible();
+        await expect(page.getByRole("banner").getByRole("link", { name: /Minha conta/ })).toContainText("Aluno");
+      }
+    });
   }
 }

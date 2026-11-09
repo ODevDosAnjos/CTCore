@@ -1823,8 +1823,10 @@
     }
   },
   "authShell": {
-    "tagline": "Sua academia, em ordem.",
-    "text": "Alunos, turmas e cobranças num só lugar."
+    "tagline": "A academia em dia, sem planilha.",
+    "text": "Gestão, portal do aluno e cobrança no mesmo lugar.",
+    "help": "Ajuda",
+    "icon": "ct"
   },
   "comingSoon": {
     "badge": "Em breve",
@@ -1839,6 +1841,7 @@
     "skip": "Ir para o conteúdo",
     "soon": "Em breve",
     "help": "Ajuda",
+    "icon": "ct",
     "news": "Novidades",
     "search": "Buscar",
     "searchKey": "Ctrl K",
@@ -2857,7 +2860,7 @@
       "label": "Avisos",
       "withCount": "Avisos, {{count}} não lidos"
     },
-    "person": "{{name}} · {{role}}",
+    "inactive": "{{role}} · Inativo",
     "reduced": "Seu acesso está reduzido: você vê Início, Financeiro e Minhas informações. Fale com a academia para voltar a treinar."
   },
   "portalOwn": {

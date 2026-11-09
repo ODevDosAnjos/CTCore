@@ -26,7 +26,7 @@ const reduzido = "reduzido@exemplo.com"; // Aluno sem modalidade ativa, portal r
 
 export const casos: Caso[] = [
   { nome: "vitrine", rota: "/dev/vitrine", fullPage: true },
-  { nome: "entrar", rota: "/entrar", canvas: "Login" },
+  { nome: "entrar", rota: "/entrar", canvas: "Login", canvasCelular: "LoginM" },
   { nome: "inicio", rota: "/", perfil: ana, canvas: "Main", canvasEscuro: "MainEscuro" },
   // Moldura da gestão (#417): menu, barra de cima, abas e menu de celular por perfil
   { nome: "moldura-coordenacao", rota: "/alunos", perfil: ana, canvas: "Sidebar" },

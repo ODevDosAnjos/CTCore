@@ -21,13 +21,15 @@ function setup() {
 }
 
 describe("AuthShell", () => {
-  it("CA1: um h1, painel da marca só a partir de md, formulário de 420 px e suporte", () => {
+  it("CA11: um h1, painel da marca só a partir de md, ícone ct, formulário de 420 px, suporte e sem botão de tema", () => {
     setup();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByTestId("auth-brand")).toHaveClass("hidden", "md:flex");
     expect(screen.getByRole("main")).toHaveClass("max-w-105");
     expect(screen.getByRole("region", { name: "Precisa de ajuda?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /tema/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /tema/i })).toBeNull();
+    expect(screen.getByTestId("auth-brand")).toHaveTextContent("A academia em dia, sem planilha.");
+    expect(screen.getByRole("region", { name: "Ajuda" })).toBeInTheDocument();
   });
 
   it.each([

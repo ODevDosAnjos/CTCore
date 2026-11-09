@@ -90,8 +90,9 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Marca da gestão | `BrandMark` | logo (quadrado arredondado com a inicial, cor `brand`) e nome da organização em fonte de título maiúscula; `compact` mostra só o logo |
 | Menu da conta | `UserMenu` | avatar, nome, perfil e seta; abre com "Minha conta" e "Sair da conta"; Esc e clique fora fecham |
 | Seletor de unidade | `UnitMenu` | prédio, nome e seta; uma unidade é só rótulo; no desktop abre lista, no celular a folha de baixo com cartões; "Todas as unidades" traz "Só consulta" |
-| Barra e abas do portal | `PortalLayout` | cor principal da organização no topo |
-| Moldura das telas de acesso | `AuthShell` | painel escuro da marca a partir de 768 px e formulário de 420 px; no celular só o formulário |
+| Barra e abas do portal | `PortalLayout`, `PortalTabs`, `PortalAccount`, `PortalFooter` | barra escura de 64 px (56 px no celular) na coluna de 1120 px: marca em fonte de título, abas com sublinhado de 3 px na cor da organização, tema, sino, divisória e avatar com nome e perfil; no celular só marca, sino e avatar (sair fica no fim de Minha conta) e abas de baixo com sino em Avisos; rodapé com endereço à esquerda e "feito com ctcore" à direita |
+| Cabeçalho de tela do portal | `PortalHeading` | rótulo acima, título e subtítulo opcional; o Início usa, as outras telas adotam nas suas issues |
+| Moldura das telas de acesso | `AuthShell` | coluna escura da marca (ícone "ct", slogan e contato de ajuda) a partir de 768 px e formulário de 420 px; no celular marca no topo, formulário logo abaixo e ajuda no fim; sem botão de tema |
 
 ## Regras
 

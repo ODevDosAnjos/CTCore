@@ -3,15 +3,17 @@ import { Bell, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
-import { AccountLink } from "@/features/account/AccountFrame";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 import { OrgMark, orgStyle } from "./OrgMark";
+import { PortalAccount } from "./PortalAccount";
 import { PortalFooter } from "./PortalFooter";
 import { PortalTabs } from "./PortalTabs";
 import { usePortalShell } from "./usePortalShell";
+
+const barButton = "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground";
 
 // RF-POR-01: moldura única do portal (barra escura com a marca, abas e sino; abas embaixo no celular). Agenda e Avisos somem no portal reduzido (RN-POR-08).
 export function PortalLayout({ children }: { children: ReactNode }) {
@@ -26,6 +28,8 @@ export function PortalLayout({ children }: { children: ReactNode }) {
   const count = data?.unreadAnnouncements ?? 0;
   const shown = count > 99 ? "99+" : String(count);
   const name = session?.account.name || session?.account.email;
+  const roleName = role ? t(`chooseLink.roles.${role}`) : "";
+  const roleLabel = reduced ? t("portalShell.inactive", { role: roleName }) : roleName;
   const orgName = data?.organization.name ?? t("app.name");
   return (
     <div className="flex min-h-screen flex-col" style={orgStyle(data?.organization.color)}>
@@ -39,43 +43,46 @@ export function PortalLayout({ children }: { children: ReactNode }) {
       >
         {t("portalShell.skip")}
       </a>
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-sidebar px-4 py-2 text-sidebar-foreground">
-        <Link to="/" className="flex min-h-11 items-center gap-2 rounded-md text-lg font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <OrgMark name={orgName} logoUrl={data?.organization.logoUrl} />
-          <span>{orgName}</span>
-        </Link>
-        <PortalTabs reduced={reduced} count={count} variant="bar" />
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          {!reduced && data && (
-            <Link
-              to="/portal/avisos"
-              aria-label={count > 0 ? t("portalShell.bell.withCount", { count: shown }) : t("portalShell.bell.label")}
-              className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Bell aria-hidden="true" className="size-5" />
-              {count > 0 && (
-                <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-[var(--org,var(--brand))] px-1 text-center text-xs font-semibold text-brand-foreground">
-                  {shown}
-                </span>
-              )}
-            </Link>
-          )}
-          {name && role && <span className="hidden text-sm md:inline">{t("portalShell.person", { name, role: t(`chooseLink.roles.${role}`) })}</span>}
-          <AccountLink />
-          <LogoutButton className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" />
-          <ChooseLinkTrigger />
-          <span className="text-sidebar-foreground [&_button]:text-sidebar-foreground [&_button:hover]:bg-sidebar-accent [&_button:hover]:text-sidebar-foreground">
-            <ThemeToggle />
-          </span>
+      <header className="bg-sidebar text-sidebar-foreground">
+        <div className="mx-auto flex h-14 w-full max-w-280 items-center gap-4 px-4 md:h-16">
+          <Link to="/" className="flex min-h-11 min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <OrgMark name={orgName} logoUrl={data?.organization.logoUrl} />
+            <span className="truncate font-heading text-lg font-semibold uppercase tracking-wide">{orgName}</span>
+          </Link>
+          <PortalTabs reduced={reduced} count={count} variant="bar" />
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <ThemeToggle className={barButton + " hidden md:inline-flex"} />
+            {!reduced && data && (
+              <Link
+                to="/portal/avisos"
+                aria-label={count > 0 ? t("portalShell.bell.withCount", { count: shown }) : t("portalShell.bell.label")}
+                className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Bell aria-hidden="true" className="size-5" />
+                {count > 0 && (
+                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-[var(--org,var(--brand))] px-1 text-center text-xs font-semibold text-brand-foreground">
+                    {shown}
+                  </span>
+                )}
+              </Link>
+            )}
+            <span aria-hidden="true" className="hidden h-6 w-px bg-sidebar-foreground/30 md:block" />
+            {name && role && <PortalAccount name={name} roleLabel={roleLabel} />}
+            <span className="hidden items-center gap-2 md:flex">
+              <LogoutButton iconOnly className={barButton} />
+              <ChooseLinkTrigger />
+            </span>
+          </div>
         </div>
       </header>
+
       {reduced && (
         <p role="status" className="flex items-center gap-2 border-b bg-muted px-4 py-2 text-sm">
           <Lock aria-hidden="true" className="size-4 shrink-0" />
           {t("portalShell.reduced")}
         </p>
       )}
-      <main id="conteudo" ref={main} tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 pb-6 pt-6 focus:outline-none">
+      <main id="conteudo" ref={main} tabIndex={-1} className="mx-auto w-full max-w-280 flex-1 px-4 pb-6 pt-6 focus:outline-none">
         {shell.status === "loading" ? <LoadingState /> : shell.status === "forbidden" ? <ForbiddenState /> : shell.status === "error" ? <ErrorState onRetry={shell.retry} /> : children}
       </main>
       <PortalFooter organization={orgName} unit={data?.unit} />

@@ -47,7 +47,16 @@ export function AccountFrame({ children, plain = false }: { children: ReactNode;
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role ?? "";
   if (MANAGEMENT.includes(role)) return <ManagementLayout activeId="account">{children}</ManagementLayout>;
-  if (!plain) return <PortalLayout>{children}</PortalLayout>;
+  // No celular a barra do portal não tem o botão de sair: ele fica no fim de Minha conta.
+  if (!plain)
+    return (
+      <PortalLayout>
+        {children}
+        <div className="mt-6 md:hidden">
+          <LogoutButton />
+        </div>
+      </PortalLayout>
+    );
   return (
     <div className="min-h-screen">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2">

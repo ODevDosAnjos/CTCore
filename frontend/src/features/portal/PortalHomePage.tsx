@@ -1,9 +1,9 @@
-import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/field";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { PortalHeading } from "./PortalHeading";
 import { PortalBelts } from "./PortalBelts";
 import { PortalChargeCard } from "./PortalChargeCard";
 import { PortalFamilyStrip } from "./PortalFamilyStrip";
@@ -12,6 +12,7 @@ import { PortalNoticesCard } from "./PortalNoticesCard";
 import { usePortalHome, type PortalHomeData } from "./usePortalHome";
 
 const ALL = "all";
+const today = () => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 const key = (modality: string, unit: string) => `${modality}|${unit}`;
 
 // RF-POR-02: Início do portal. Cobrança, próximas aulas, avisos e faixa, nesta ordem; o portal reduzido só tem a cobrança (RN-INA-08).
@@ -32,7 +33,7 @@ export function PortalHomePage() {
 
   return (
     <>
-      <PageHeader title={t("app.welcomeTitle")} />
+      <PortalHeading label={today()} title={t("app.welcomeTitle")} />
       <Link
         to={`/portal/carteirinha${(selected ?? strip?.selectedStudentId) ? `?aluno=${selected ?? strip?.selectedStudentId}` : ""}`}
         className="mt-2 inline-flex min-h-11 items-center underline"
