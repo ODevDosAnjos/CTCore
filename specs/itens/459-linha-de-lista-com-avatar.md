@@ -113,3 +113,18 @@ Achados:
   - `frontend/src/features/charges/DailyReceiptsPage.test.tsx`, "CA10: carregando, erro com tentar de novo e dia sem pagamento": falha de tempo limite na suíte completa; passa em 3 de 3 execuções isoladas. Primeira linha do erro não capturada.
   - Registro: issue #540 (`técnica`), com os dois testes.
 - **Limitação:** no fluxo da lista, o link com `min-h-11` empurra o nome para cima dos selos e do secundário em Alunos (achado da verificação). O ajuste cabe à #465.
+
+### Correção da entrega
+- CI do PR #541: job `visual` reprovou só `notificacoes 1440 claro/escuro` (3041 e 3331 px). O caso abre `/alunos` e ficou fora da lista de casos regerados na construção — arquivos: `frontend/visual/referencias/notificacoes-1440-{claro,escuro}.png` — prova: `npm run test:visual:docker -- --update-snapshots=all -g "notificacoes"` → 4 passaram. Nenhum outro caso falhou no CI.
+Referências visuais: `notificacoes-1440-{claro,escuro}` (abrem `/alunos`; mudaram só pela lista de Alunos).
+
+### Rodada 2 — OK — 2026-11-09, estado 048c4684b9efd611aa1e2eb32745ecc5b176ffd1
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA8 | PASSOU | mantido da rodada 1 (nenhum código mudou: `git diff 6fe8d27f 048c4684` só tem 2 PNG, backlog e este arquivo) |
+| CA9 | PASSOU | `npm run test:visual:docker -- -g "notificacoes"` → 4 passaram com as referências corrigidas de `notificacoes-1440-{claro,escuro}` (motivo da falha do CI) |
+| CA10 | NÃO CONFERIDO (limitação aceita, AGENTS.md Autonomia 2) | mantido da rodada 1; CI do PR prova |
+
+Comandos: `npm run test:visual:docker -- -g "notificacoes"` → 4 passaram. Diff desde a rodada 1 lido: só imagens de referência.
+Achados: nenhum novo. Os da rodada 1 eram sugestões.
