@@ -519,9 +519,8 @@
           "submit": "Trocar plano"
         },
         "end": {
-          "title": "Encerrar modalidade",
-          "effect": "A modalidade para de gerar cobrança, a vaga na turma é liberada e o benefício ativo dela encerra. O histórico fica.",
-          "who": "{{student}} · {{modality}} ({{unit}})",
+          "title": "Encerrar {{modality}}",
+          "effect": "Para de gerar cobrança. As cobranças já geradas continuam devidas; escolha o que fazer com cada uma.",
           "charges": "Cobranças em aberto",
           "noCharges": "Nenhuma cobrança em aberto",
           "afterRequest": "Há um pedido de encerramento do aluno. As cobranças com vencimento depois do pedido são canceladas ao encerrar; as anteriores seguem a sua decisão.",
@@ -529,7 +528,7 @@
           "chargeLine": "{{due}} · {{amount}} · {{status}}",
           "keep": "Manter",
           "cancel": "Cancelar",
-          "cancelReason": "Motivo do cancelamento de {{line}}",
+          "cancelReason": "Motivo do cancelamento",
           "reason": "Motivo",
           "reasons": {
             "CITY_CHANGE": "Mudança de cidade",
@@ -540,7 +539,15 @@
             "OTHER": "Outro"
           },
           "note": "Observação (opcional)",
-          "submit": "Encerrar modalidade"
+          "submit": "Encerrar modalidade",
+          "summary": {
+            "label": "Resumo",
+            "ended": "{{modality}} fica Encerrada hoje, {{date}}.",
+            "kept": "Mantida: {{list}}.",
+            "canceled": "Cancelada: {{list}}.",
+            "other": "{{modality}} continua Ativa: {{student}} segue como aluno Ativo.",
+            "email": "{{student}} recebe um e-mail avisando o encerramento."
+          }
         },
         "transfer": {
           "title": "Transferir {{modality}} para outra unidade",
@@ -2331,8 +2338,9 @@
     },
     "cancel": {
       "title": "Cancelar cobrança",
-      "summary": "{{student}} · {{amount}} · vence em {{due}}",
-      "effect": "A cobrança deixa de valer e não pode ser reaberta. O motivo fica na auditoria.",
+      "block": "Cobrança",
+      "due": "vence {{due}}",
+      "note": "A cobrança sai do portal do aluno. O relatório financeiro mostra o valor em \"cancelado no período\", com o seu nome.",
       "submit": "Cancelar cobrança"
     },
     "renegotiate": {

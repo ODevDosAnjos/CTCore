@@ -139,7 +139,7 @@ export function ModalityDialog({
         size && state === "ready" ? (
           <>
             <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
-              {t("common.cancel")}
+              {t("common.back")}
             </Button>
             <Button type="submit" form={formId} className="min-h-11" disabled={busy || !canSubmit}>
               {submitLabel}

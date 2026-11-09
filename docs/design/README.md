@@ -83,7 +83,8 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Janela | `Modal` (`size="sm"` 540 px ou `"md"` 600 px), `ConfirmDialog` (`tone="danger"`: ação principal em `Button danger` e "Cancelar" fantasma; `subtitle`, `cancelLabel`, `confirmDisabled`, `children`; usado em Inativar professor e Revogar uso de imagem) | com `size`: título em caixa alta, corpo que rola e rodapé fixo "Cancelar (fantasma) | ação (cheia)"; sem `size`, o visual anterior. Resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |
-| Resumo do que vai acontecer | `SummaryBox` | lista com setas, usado nas janelas |
+| Resumo do que vai acontecer | `SummaryBox` | lista com setas, usado nas janelas; com `label="Resumo"` ganha o rótulo em caixa alta do canvas |
+| Blocos das janelas de ação | `ReasonField`, `ChoiceCards`, `SegmentedChoice` | `ReasonField`: "Motivo *" obrigatório com contador "n/200", `note` de apoio e `error` ligado por `aria-describedby`; `ChoiceCards`: grupo (`fieldset`/`legend`) de `RadioCard` em 1 ou 2 colunas, setas trocam; `SegmentedChoice`: alternador de 2 ou 3 opções (Manter / Cancelar), botões de opção nativos de 44 px. Usados em Cancelar cobrança e Encerrar modalidade |
 | Pessoa com avatar | `Person`, `Avatar` | iniciais com cor estável pelo nome; `size="sm"` (32 px) nas listas, padrão 36 px |
 | Linha de lista com pessoa | `PersonRow`, `PersonAvatar` | avatar (foto ou iniciais), nome ou `title` (link), selos ao lado, texto secundário e `action` no fim (ex.: `WhatsAppButton`); bloco de linha, serve à célula da tabela e ao `lead` do `RowCard` |
 | Faixa de graduação | `GraduationBelt` | 44x10 px, cor, ponta secundária e um risco por grau; cores vêm dos dados |

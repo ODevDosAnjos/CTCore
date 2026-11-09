@@ -174,6 +174,34 @@ describe("ChargePanel (RF-COB-02)", () => {
     await waitFor(() => expect(listCalls).toBeGreaterThan(before));
   });
 
+  it("CA5 (#461): a janela mostra o bloco da cobrança, a nota do canvas e Voltar fecha sem cancelar", async () => {
+    const user = userEvent.setup();
+    setup();
+    const panel = await openPanel(user);
+    await user.click(await within(panel).findByRole("button", { name: "Cancelar cobrança" }));
+    const dialog = await screen.findByRole("dialog", { name: "Cancelar cobrança" });
+    expect(within(dialog).getByText("Cobrança")).toHaveClass("uppercase");
+    expect(within(dialog).getByText(/vence \d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/A cobrança sai do portal do aluno/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: "Motivo" })).toHaveAttribute("aria-required", "true");
+    await user.click(within(dialog).getByRole("button", { name: "Voltar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cancelar cobrança" })).toBeNull());
+    expect(posts).toEqual([]);
+  });
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA8 (#461): a janela Cancelar cobrança não tem violações no axe no tema %s", async (_n, dark) => {
+    const user = userEvent.setup();
+    setDevicePrefersDark(dark);
+    setup();
+    const panel = await openPanel(user);
+    await user.click(await within(panel).findByRole("button", { name: "Cancelar cobrança" }));
+    await screen.findByRole("dialog", { name: "Cancelar cobrança" });
+    expect(await axeViolations(document.body)).toEqual([]);
+  });
+
   it("CA16: o 400 aparece junto do campo e o 409 mostra a mensagem de cobrança já alterada; a janela segue aberta", async () => {
     const user = userEvent.setup();
     let status = 400;

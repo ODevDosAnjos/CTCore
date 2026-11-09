@@ -31,6 +31,9 @@ import { SearchBox } from "@/components/ui/search-box";
 import { RadioCard } from "@/components/ui/radio-card";
 import { Stat } from "@/components/ui/stat";
 import { SummaryBox } from "@/components/ui/summary-box";
+import { ChoiceCards } from "@/components/ui/choice-cards";
+import { SegmentedChoice } from "@/components/ui/segmented-choice";
+import { ReasonField } from "@/components/ReasonField";
 import { Switch } from "@/components/ui/switch";
 import { Tabs } from "@/components/ui/tabs";
 
@@ -49,6 +52,8 @@ const COLUMNS = [
 
 function Pieces({ theme, first }: { theme: string; first: boolean }) {
   const [on, setOn] = useState(true);
+  const [choice, setChoice] = useState("a");
+  const [reason, setReason] = useState("");
   const [code, setCode] = useState("48");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -95,7 +100,7 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
           <Person name="Bruno Lima" secondary="Faixa azul" />
           <PersonRow name="Carla Dias" secondary="12 anos · Centro" badges={<span className="rounded-md border px-2 py-0.5 text-sm">Novo</span>} action={<WhatsAppButton phone="11999990000" />} />
         </div>
-        <SummaryBox className="mt-3" items={["Cancela a cobrança", "Avisa o aluno"]} />
+        <SummaryBox className="mt-3" label="Resumo" items={["Cancela a cobrança", "Avisa o aluno"]} />
       </Section>
       <Section heading="h2" title={`Campos (${theme})`}>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -119,6 +124,9 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
             <CodeInput aria-label="Código" value={code} onChange={setCode} />
             <RadioCard name="plano" label="Mensal" description="Renova todo mês" defaultChecked />
             <RadioCard name="plano" label="Anual" />
+            <ChoiceCards legend="Motivo" required columns={2} value={choice} onChange={setChoice} options={[{ value: "a", label: "Horário" }, { value: "b", label: "Lesão" }]} />
+            <SegmentedChoice label="Cobrança" value={choice === "a" ? "keep" : "cancel"} onChange={(v) => setChoice(v === "keep" ? "a" : "b")} options={[{ value: "keep", label: "Manter" }, { value: "cancel", label: "Cancelar" }]} />
+            <ReasonField label="Motivo do cancelamento" value={reason} onChange={setReason} note="Fica na auditoria" />
           </div>
         </div>
       </Section>

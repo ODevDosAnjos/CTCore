@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { CHAR_COUNTER_FIELD, CharCounter } from "@/components/CharCounter";
 import { Modal } from "@/components/Modal";
+import { ReasonField } from "@/components/ReasonField";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
@@ -23,6 +23,7 @@ export function failureOf(err: unknown, t: (k: string) => string): Failure {
 // RN-COB-10: cancela a cobrança em aberto com motivo obrigatório (até 200).
 export function CancelChargeDialog({ charge, onClose, onDone }: { charge: ChargeRow; onClose: () => void; onDone: () => void }) {
   const { t } = useTranslation();
+  const formId = useId();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<Failure>(NO_FAILURE);
@@ -43,27 +44,33 @@ export function CancelChargeDialog({ charge, onClose, onDone }: { charge: Charge
     }
   }
 
+  const what = charge.description ?? [charge.modality?.name, charge.referenceMonth && formatDate(charge.referenceMonth).slice(3)].filter(Boolean).join(" · ");
+  const line = [charge.student.name, what, formatCurrency(charge.amountCents), t("charges.cancel.due", { due: formatDate(charge.dueOn) })].filter(Boolean).join(" · ");
+
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("charges.cancel.title")}>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-3">
-        <p>{t("charges.cancel.summary", { student: charge.student.name, amount: formatCurrency(charge.amountCents), due: formatDate(charge.dueOn) })}</p>
-        <p className="text-sm text-muted-foreground">{t("charges.cancel.effect")}</p>
-        {err.form && (
-          <Banner tone="danger">{err.form}</Banner>
-        )}
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          {t("charges.actions.reason")}
-          <CharCounter value={reason} max={200} onChange={setReason} aria-required="true" aria-invalid={err.fields.reason ? true : undefined} className={CHAR_COUNTER_FIELD} />
-        </label>
-        <FieldError message={err.fields.reason} />
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
-            {t("common.cancel")}
+    <Modal
+      open
+      size="sm"
+      onOpenChange={(o) => !o && !busy && onClose()}
+      title={t("charges.cancel.title")}
+      footer={
+        <>
+          <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
+            {t("common.back")}
           </Button>
-          <Button type="submit" className="min-h-11" disabled={busy || !reason.trim()}>
+          <Button type="submit" form={formId} variant="dangerSolid" className="min-h-11" disabled={busy || !reason.trim()}>
             {t("charges.cancel.submit")}
           </Button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={submit} noValidate className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1 rounded-md bg-surface-soft p-3 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("charges.cancel.block")}</span>
+          <span>{line}</span>
         </div>
+        {err.form && <Banner tone="danger">{err.form}</Banner>}
+        <ReasonField label={t("charges.actions.reason")} value={reason} onChange={setReason} note={t("charges.cancel.note")} error={err.fields.reason} />
       </form>
     </Modal>
   );

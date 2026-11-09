@@ -115,7 +115,7 @@ export function RecordEnrollment({ studentId, studentName, enrollment, canGrant 
         />
       )}
       {action?.kind === "transfer" && <TransferDialog {...props} enrollment={data as Enrollment} row={action.row} />}
-      {action?.kind === "end" && <EndModalityDialog {...props} studentName={studentName} row={action.row} />}
+      {action?.kind === "end" && <EndModalityDialog {...props} studentName={studentName} row={action.row} others={data.modalities.filter((m) => m.status === "ACTIVE" && m.id !== action.row.id).map((m) => m.modality.name)} />}
     </>
   );
 }
