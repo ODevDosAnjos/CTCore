@@ -16,6 +16,19 @@ function setup(fetchPage: (q: Query) => Promise<Page<Row>>, url = "/") {
 const pager = (q: Query) => Promise.resolve({ rows: all.slice((q.pagina - 1) * q.tamanho, q.pagina * q.tamanho), total: 45 });
 
 describe("QueryPage", () => {
+  it("CA6: com searchPlaceholder usa o SearchBox e grava q; sem ele a caixa de sempre", async () => {
+    window.history.replaceState(null, "", "/");
+    const { unmount } = render(<QueryPage columns={columns} fetchPage={pager} rowKey={(r) => r.id} searchPlaceholder="Nome" />);
+    await screen.findByText("Aluno 0");
+    const box = screen.getByRole("searchbox", { name: "Buscar" });
+    expect(box).toHaveAttribute("placeholder", "Nome");
+    await userEvent.type(box, "a");
+    await waitFor(() => expect(window.location.search).toBe("?q=a"));
+    unmount();
+    setup(pager);
+    expect(screen.getByRole("searchbox", { name: "Buscar" })).not.toHaveAttribute("placeholder");
+  });
+
   it("CA5/CA7: lê o endereço, pede só a página atual e atualiza o endereço ao filtrar", async () => {
     const fetchPage = vi.fn(pager);
     setup(fetchPage, "/?q=ana&pagina=2&ordem=nome");

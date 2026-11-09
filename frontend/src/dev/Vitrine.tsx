@@ -22,7 +22,9 @@ import { DateField } from "@/components/ui/date-field";
 import { FileField } from "@/components/ui/file-field";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
+import { PillFilter } from "@/components/ui/pill-filter";
 import { QuickFilters } from "@/components/ui/quick-filters";
+import { SearchBox } from "@/components/ui/search-box";
 import { RadioCard } from "@/components/ui/radio-card";
 import { Stat } from "@/components/ui/stat";
 import { SummaryBox } from "@/components/ui/summary-box";
@@ -46,6 +48,8 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
   const [on, setOn] = useState(true);
   const [code, setCode] = useState("48");
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [pill, setPill] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [modal, setModal] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -115,6 +119,11 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
         </div>
       </Section>
       <Section heading="h2" title={`Tabela, abas e filtros (${theme})`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchBox className="min-w-48 flex-1" aria-label="Busca" placeholder="Nome, CPF, e-mail ou telefone" value={search} onChange={setSearch} />
+          <PillFilter label="Modalidade" value={pill} onChange={setPill} allLabel="Todas" options={[{ id: "bjj", name: "Jiu-Jitsu" }, { id: "judo", name: "Judô" }]} />
+          <PillFilter label="Nível" value="" onChange={noop} allLabel="Todos" options={[]} disabled />
+        </div>
         <QuickFilters
           value={filter}
           onChange={setFilter}

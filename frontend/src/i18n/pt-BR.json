@@ -343,6 +343,7 @@
   "students": {
     "title": "Alunos",
     "intro": "Alunos da organização, com a unidade de cadastro, a idade e a faixa etária de cada um.",
+    "search": "Nome, CPF, e-mail ou telefone",
     "exportCsv": "Exportar CSV",
     "columnsChoose": "Escolher colunas",
     "columns": {
@@ -648,6 +649,7 @@
   "teachers": {
     "title": "Professores",
     "intro": "Professores da organização, com as modalidades, as unidades e a situação de cada um.",
+    "search": "Nome",
     "columns": {
       "name": "Nome",
       "modalities": "Modalidades",
@@ -2601,6 +2603,8 @@
   },
   "query": {
     "search": "Buscar",
+    "allF": "Todas",
+    "allM": "Todos",
     "clear": "Limpar filtros",
     "noResultTitle": "Nenhum resultado",
     "noResultText": "Nenhum item bate com a busca ou com os filtros.",

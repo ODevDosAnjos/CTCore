@@ -75,6 +75,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Código em 6 caixas | `CodeInput` | um campo real (`one-time-code`, numérico) com 6 caixas desenhadas; colar preenche tudo; usado por `CodeField` |
 | Tabela | `DataTable` | cabeçalho suave, linhas de 52 px, valores alinhados à direita |
 | Item de sprint futura (botão, aba, chave, link, item de menu) | `ComingSoon` | visível e desabilitado, com selo "Em breve" e dica; sem clique nem `href` |
+| Busca e filtro em pílula | `SearchBox`, `PillFilter` | busca de 40 px com lupa; filtro de 36 px "Rótulo Valor ⌄" com lista de uma escolha (`usePopover`), opção "todas" primeiro, `disabled`, destaque quando ativo; em `QueryPage`, a busca vira `SearchBox` só com `searchPlaceholder` |
 | Abas e filtros rápidos | `Tabs`, `QuickFilters` | filtro rápido com contador |
 | Janela | `Modal`, `ConfirmDialog` | resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
