@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { expectPillOptions, pickPill } from "@/test/pill";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { App } from "@/App";
@@ -117,13 +118,12 @@ describe("TeachersPage", () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Ana Souza");
-    const modality = screen.getByLabelText("Modalidade");
-    await waitFor(() => expect(within(modality).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todas as modalidades", "Jiu-Jitsu", "Judô"]));
-    await user.selectOptions(modality, "m1");
+    await expectPillOptions(user, "Modalidade", ["Todas", "Jiu-Jitsu", "Judô"]);
+    await user.click(screen.getByRole("option", { name: "Jiu-Jitsu" }));
     await waitFor(() => expect(calls.at(-1)!.get("modalityId")).toBe("m1"));
-    await user.selectOptions(screen.getByLabelText("Unidade"), "u2");
+    await pickPill(user, "Unidade", "Norte");
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u2"));
-    await user.selectOptions(screen.getByLabelText("Situação"), "INACTIVE");
+    await pickPill(user, "Situação", "Inativo");
     await waitFor(() => expect(calls.at(-1)!.get("status")).toBe("INACTIVE"));
     await user.type(screen.getByRole("searchbox", { name: "Buscar" }), "joao");
     await waitFor(() => expect(calls.at(-1)!.get("q")).toBe("joao"));

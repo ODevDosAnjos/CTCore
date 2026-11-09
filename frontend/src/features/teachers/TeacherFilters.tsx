@@ -1,24 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useTeacherFilterOptions } from "./useTeachers";
-import { Select } from "@/components/ui/field";
+import { PillFilter } from "@/components/ui/pill-filter";
 
 type Props = { get: (k: string) => string; set: (k: string, v: string) => void };
 
-function Filter({ label, value, onChange, all, options }: { label: string; value: string; onChange: (v: string) => void; all: string; options: { id: string; name: string }[] }) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1 text-sm">
-      {label}
-      <Select className="min-h-11" value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{all}</option>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </Select>
-    </label>
-  );
-}
 
 // Filtros de Pessoas › Professores (RF-PRO-01): modalidade, unidade e situação; o nome é a busca da própria tela.
 export function TeacherFilters({ get, set }: Props) {
@@ -30,9 +15,9 @@ export function TeacherFilters({ get, set }: Props) {
   ];
   return (
     <>
-      <Filter label={t("teachers.filters.modality")} value={get("modalityId")} onChange={(v) => set("modalityId", v)} all={t("teachers.filters.allModalities")} options={modalities} />
-      <Filter label={t("teachers.filters.unit")} value={get("unitId")} onChange={(v) => set("unitId", v)} all={t("teachers.filters.allUnits")} options={units} />
-      <Filter label={t("teachers.filters.status")} value={get("status")} onChange={(v) => set("status", v)} all={t("teachers.filters.allStatuses")} options={statuses} />
+      <PillFilter label={t("teachers.filters.modality")} value={get("modalityId")} onChange={(v) => set("modalityId", v)} allLabel={t("query.allF")} options={modalities} />
+      <PillFilter label={t("teachers.filters.unit")} value={get("unitId")} onChange={(v) => set("unitId", v)} allLabel={t("query.allF")} options={units} />
+      <PillFilter label={t("teachers.filters.status")} value={get("status")} onChange={(v) => set("status", v)} allLabel={t("query.allF")} options={statuses} />
     </>
   );
 }

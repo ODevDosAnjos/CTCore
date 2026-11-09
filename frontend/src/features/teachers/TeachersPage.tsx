@@ -69,6 +69,7 @@ function Content() {
       />
       <p className="text-muted-foreground">{t("teachers.intro")}</p>
       <QueryPage
+        searchPlaceholder={t("teachers.search")}
         columns={columns(t)}
         fetchPage={fetchTeachers}
         rowKey={(r) => r.id}

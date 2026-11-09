@@ -34,10 +34,11 @@ test("@critical Coordenador filtra alunos por selo", async ({ page }) => {
   await open(page, "/alunos");
   await expect(page.getByText("Aluno Menor Fictício")).toBeVisible();
 
-  await page.getByRole("combobox", { name: "Selo" }).selectOption({ label: "Cadastro incompleto" });
+  await page.getByRole("search").getByRole("button", { name: /^Selo/ }).click();
+  await page.getByRole("listbox", { name: "Selo" }).getByRole("option", { name: "Cadastro incompleto" }).click();
   await expect(page.getByText("Aluno Menor Fictício")).toHaveCount(0);
   await expect(page.getByText("Aluno Adulto Fictício")).toBeVisible();
-  await expect(page.getByText("Cadastro incompleto", { exact: true }).and(page.locator("span"))).toBeVisible();
+  await expect(page.getByRole("table").getByText("Cadastro incompleto", { exact: true })).toBeVisible();
 });
 
 // RF-ALU-03: o Coordenador abre a ficha em painel, vê o cabeçalho e o Resumo, vai para Responsáveis e fecha.

@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { expectPillOptions, pickPill } from "@/test/pill";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { App } from "@/App";
@@ -103,13 +104,11 @@ describe("StudentsPage", () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Ana Souza");
-    const unit = screen.getByRole("combobox", { name: "Unidade" });
-    await waitFor(() => expect(within(unit).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todas as unidades", "Centro", "Norte"]));
-    await user.selectOptions(unit, "u2");
+    await expectPillOptions(user, "Unidade", ["Todas", "Centro", "Norte"]);
+    await user.click(screen.getByRole("option", { name: "Norte" }));
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u2"));
-    const range = screen.getByRole("combobox", { name: "Faixa etária" });
-    await waitFor(() => expect(within(range).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todas as faixas", "Infantil", "Adulto"]));
-    await user.selectOptions(range, "r2");
+    await expectPillOptions(user, "Faixa etária", ["Todas", "Infantil", "Adulto"]);
+    await user.click(screen.getByRole("option", { name: "Adulto" }));
     await waitFor(() => expect(calls.at(-1)!.get("ageRangeId")).toBe("r2"));
     await user.type(screen.getByRole("searchbox", { name: "Buscar" }), "joao");
     await waitFor(() => expect(calls.at(-1)!.get("q")).toBe("joao"));
@@ -122,13 +121,12 @@ describe("StudentsPage", () => {
       HttpResponse.json({ items: calls.at(-1)!.get("seal") ? [] : all, page: 1, size: 25, total: calls.at(-1)!.get("seal") ? 0 : all.length }),
     );
     await screen.findByText("Ana Souza");
-    const badges = (text: string) => screen.queryAllByText(text).filter((e) => e.tagName !== "OPTION");
+    const badges = (text: string) => screen.queryAllByText(text);
     expect(badges("Cadastro incompleto")).toHaveLength(1);
     expect(badges("Aniversário hoje")).toHaveLength(1);
     expect(badges("E-mail com problema")).toHaveLength(0);
-    const seal = screen.getByRole("combobox", { name: "Selo" });
-    expect(within(seal).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todos os selos", "Cadastro incompleto", "E-mail com problema", "Aniversário hoje", "Novo", "Bolsista", "Termo pendente"]);
-    await user.selectOptions(seal, "EMAIL_PROBLEM");
+    await expectPillOptions(user, "Selo", ["Todos", "Cadastro incompleto", "E-mail com problema", "Aniversário hoje", "Novo", "Bolsista", "Termo pendente"]);
+    await user.click(screen.getByRole("option", { name: "E-mail com problema" }));
     await waitFor(() => expect(calls.at(-1)!.get("seal")).toBe("EMAIL_PROBLEM"));
     await user.click(await screen.findByRole("button", { name: "Limpar filtros" }));
     await waitFor(() => expect(calls.at(-1)!.get("seal")).toBeNull());
@@ -138,7 +136,7 @@ describe("StudentsPage", () => {
     setup("COORDINATOR", undefined, "a", "/alunos?classId=k1");
     await screen.findByText("Ana Souza");
     await waitFor(() => expect(calls.at(-1)!.get("classId")).toBe("k1"));
-    await waitFor(() => expect(screen.getByRole("combobox", { name: "Turma" })).toHaveValue("k1"));
+    expect(screen.getByRole("button", { name: /^Turma/ })).toHaveTextContent("Turma Noite");
   });
 
   it("CA27: a linha mostra todas as modalidades ativas com unidade e turma principal e a situação; sem matrícula, traço e Sem matrícula", async () => {
@@ -154,8 +152,8 @@ describe("StudentsPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR", () => HttpResponse.json({ items: [student({ seals: ["NEW"] })], page: 1, size: 25, total: 1, counts: { active: 1, former: 0 } }));
     await screen.findByText("Ana Souza");
-    expect(screen.getAllByText("Novo").some((e) => e.tagName !== "OPTION")).toBe(true);
-    await user.selectOptions(screen.getByRole("combobox", { name: "Selo" }), "NEW");
+    expect(screen.getAllByText("Novo").length).toBeGreaterThan(0);
+    await pickPill(user, "Selo", "Novo");
     await waitFor(() => expect(calls.at(-1)!.get("seal")).toBe("NEW"));
   });
 
@@ -163,24 +161,23 @@ describe("StudentsPage", () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Ana Souza");
-    const modality = screen.getByRole("combobox", { name: "Modalidade" });
-    await waitFor(() => expect(within(modality).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todas as modalidades", "Jiu-Jitsu", "Judô"]));
-    const klass = screen.getByRole("combobox", { name: "Turma" });
-    await waitFor(() => expect(within(klass).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todas as turmas", "Turma Noite", "Turma Manhã"]));
-    const level = screen.getByRole("combobox", { name: "Nível" });
-    expect(level).toBeDisabled();
-    await user.selectOptions(modality, "m1");
+    await expectPillOptions(user, "Modalidade", ["Todas", "Jiu-Jitsu", "Judô"]);
+    await user.keyboard("{Escape}");
+    await expectPillOptions(user, "Turma", ["Todas", "Turma Noite", "Turma Manhã"]);
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: /^Nível/ })).toBeDisabled();
+    await pickPill(user, "Modalidade", "Jiu-Jitsu");
     await waitFor(() => expect(calls.at(-1)!.get("modalityId")).toBe("m1"));
-    await waitFor(() => expect(level).toBeEnabled());
-    await waitFor(() => expect(within(level).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todos os níveis", "Azul"]));
-    await user.selectOptions(level, "l1");
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Nível/ })).toBeEnabled());
+    await expectPillOptions(user, "Nível", ["Todos", "Azul"]);
+    await user.click(screen.getByRole("option", { name: "Azul" }));
     await waitFor(() => expect(calls.at(-1)!.get("levelId")).toBe("l1"));
-    await user.selectOptions(klass, "k1");
+    await pickPill(user, "Turma", "Turma Noite");
     await waitFor(() => expect(calls.at(-1)!.get("classId")).toBe("k1"));
     expect(calls.at(-1)!.get("modalityId")).toBe("m1");
     expect(calls.at(-1)!.get("levelId")).toBe("l1");
     // Trocar a modalidade limpa o nível.
-    await user.selectOptions(modality, "m3");
+    await pickPill(user, "Modalidade", "Judô");
     await waitFor(() => expect(calls.at(-1)!.get("modalityId")).toBe("m3"));
     expect(calls.at(-1)!.get("levelId")).toBeNull();
   });

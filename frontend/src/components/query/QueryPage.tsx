@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { SearchBox } from "@/components/ui/search-box";
 import { DataTable, type Column } from "./DataTable";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, Pagination } from "./Pagination";
 import { useQueryParams } from "./useQueryParams";
@@ -24,6 +25,7 @@ export function QueryPage<T>({
   cards,
   footer,
   search = true,
+  searchPlaceholder,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
@@ -38,6 +40,8 @@ export function QueryPage<T>({
   footer?: (page: Page<T>) => ReactNode;
   /** Falso: sem caixa de busca (a rota não tem `q`). */
   search?: boolean;
+  /** Com texto de ajuda, a busca usa `SearchBox` (canvas) e a barra alinha ao centro; sem ele, a caixa de sempre. */
+  searchPlaceholder?: string;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -131,8 +135,9 @@ export function QueryPage<T>({
 
   return (
     <div className="flex flex-col gap-3">
-      <form role="search" className="flex flex-wrap items-end gap-2" onSubmit={(e) => e.preventDefault()}>
-        {search && (
+      <form role="search" className={searchPlaceholder ? "flex flex-wrap items-center gap-2" : "flex flex-wrap items-end gap-2"} onSubmit={(e) => e.preventDefault()}>
+        {search && searchPlaceholder && <SearchBox className="w-full sm:w-80" aria-label={t("query.search")} placeholder={searchPlaceholder} value={q} onChange={(v) => set({ q: v })} />}
+        {search && !searchPlaceholder && (
           <input
             type="search"
             aria-label={t("query.search")}

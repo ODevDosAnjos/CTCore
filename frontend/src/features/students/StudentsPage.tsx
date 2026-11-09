@@ -104,6 +104,7 @@ function Content({ accountId }: { accountId: string }) {
         </div>
       </details>
       <QueryPage
+        searchPlaceholder={t("students.search")}
         key={version}
         columns={columns}
         fetchPage={fetchStudents}
