@@ -15,6 +15,7 @@ export function Modal({
   dismissible = true,
   returnFocusRef,
   footer,
+  size,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,6 +27,8 @@ export function Modal({
   /** Quem recebe o foco ao fechar, quando a janela abre depois de uma resposta e o foco original se perdeu. */
   returnFocusRef?: RefObject<HTMLElement | null>;
   footer?: ReactNode;
+  /** Janela do canvas: largura (sm 540 px, md 600 px), título em caixa alta e rodapé fixo. Sem ele, o visual de sempre. */
+  size?: "sm" | "md";
 }) {
   const { t } = useTranslation();
   const opener = useRef<HTMLElement | null>(null);
@@ -46,12 +49,13 @@ export function Modal({
             (returnFocusRef?.current ?? opener.current)?.focus();
           }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 max-h-full w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex flex-col overflow-hidden rounded-window border bg-card",
+            "fixed left-1/2 top-1/2 z-50 max-h-full w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex flex-col overflow-hidden rounded-window border bg-card",
+            size === "sm" ? "max-w-[540px]" : size === "md" ? "max-w-[600px]" : "max-w-lg",
             className,
           )}
         >
-          <div className="flex items-center justify-between gap-2 border-b border-divider px-4 py-3">
-            <Dialog.Title className="font-heading text-xl font-semibold">{title}</Dialog.Title>
+          <div className={cn("flex items-center justify-between gap-2 border-b border-divider", size ? "px-6 py-4" : "px-4 py-3")}>
+            <Dialog.Title className={cn("font-heading font-semibold", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
             {dismissible && (
               <Dialog.Close asChild>
                 <Button variant="ghost" size="icon" aria-label={t("common.close")}>
@@ -60,8 +64,8 @@ export function Modal({
               </Dialog.Close>
             )}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
-          {footer && <div className="flex justify-end gap-2 border-t border-divider bg-surface-soft px-4 py-3">{footer}</div>}
+          <div className={cn("min-h-0 flex-1 overflow-y-auto", size ? "p-6" : "p-4")}>{children}</div>
+          {footer && <div className={cn("flex justify-end gap-2 border-t border-divider bg-surface-soft", size ? "px-6 py-4" : "px-4 py-3")}>{footer}</div>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

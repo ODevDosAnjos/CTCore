@@ -65,3 +65,26 @@ test("@critical Coordenador abre a Agenda", async ({ page }) => {
   await expect(page.getByText("Seminário de quedas").first()).toBeVisible();
   await expect(page.getByText("Avulsa").first()).toBeVisible();
 });
+
+// #460 CA3/CA7: a 360 px as janelas de aula avulsa e de cobrança avulsa cabem na tela, sem rolagem lateral.
+test("Janelas avulsas a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/agenda");
+  await page.getByRole("button", { name: "Nova aula avulsa" }).click();
+  const dlg = page.getByRole("dialog", { name: "Nova aula avulsa" });
+  await expect(dlg.getByRole("button", { name: "Criar aula" })).toBeVisible();
+  expect((await dlg.boundingBox())!.width).toBeLessThanOrEqual(360);
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+  await dlg.getByRole("button", { name: "Cancelar" }).click();
+  await open(page, "/cobrancas");
+  await page.getByRole("button", { name: "Nova cobrança avulsa" }).click();
+  const c = page.getByRole("dialog", { name: "Nova cobrança avulsa" });
+  await expect(c.getByRole("button", { name: "Criar cobrança" })).toBeVisible();
+  expect((await c.boundingBox())!.width).toBeLessThanOrEqual(360);
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
