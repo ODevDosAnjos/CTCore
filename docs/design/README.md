@@ -79,6 +79,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Abas e filtros rápidos | `Tabs`, `QuickFilters` | `Tabs` para painéis; `QuickFilters` são as abas em pílula com contagem que filtram a lista (`soon: true` mostra "Em breve") |
 | Paginação | `CanvasPagination` | "1–25 de 131", "Por página" (32 px) e botões de ícone; opt-in na `QueryPage` por `canvasPagination` |
 | Filtros no celular | `FilterSheet` | a partir de 640 px os filtros ficam na linha; abaixo, botão "Filtros" e folha inferior com campos, "Ver N …" e "Limpar filtros"; `PillFilter` vira campo com seletor dentro da folha |
+| Lista em cartões no celular | `RowCard` | substitui a tabela abaixo de 640 px: `lead` (avatar), `title`, `meta`, `badge` (situação) e `action` ("Ver", sempre no fim, 44 px de toque); a `QueryPage` troca por `cardsBelow="sm"` (só uma das duas existe no DOM; o padrão `"md"` não muda); sem ordenação no celular |
 | Janela | `Modal`, `ConfirmDialog` | resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |

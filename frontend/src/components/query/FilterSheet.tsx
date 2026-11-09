@@ -1,27 +1,12 @@
-import { createContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useBelowSm } from "./useBelowSm";
 
 /** Verdadeiro dentro da folha: o `PillFilter` vira campo com rótulo e seletor. */
 export const FilterSheetContext = createContext(false);
-
-const NARROW = "(max-width: 639px)";
-
-// Mesmo padrão do `useWide` do portal; sem matchMedia (jsdom) vale "largo".
-function useBelowSm() {
-  const [narrow, setNarrow] = useState(() => window.matchMedia?.(NARROW).matches ?? false);
-  useEffect(() => {
-    const m = window.matchMedia?.(NARROW);
-    if (!m) return;
-    const on = () => setNarrow(m.matches);
-    on();
-    m.addEventListener("change", on);
-    return () => m.removeEventListener("change", on);
-  }, []);
-  return narrow;
-}
 
 /**
  * Filtros em pílula: a partir de 640 px ficam na linha; abaixo, o botão "Filtros" abre uma folha inferior.

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { setDeviceNarrow } from "@/test/device";
 import { QueryPage, type Page, type Query } from "./QueryPage";
 
 type Row = { id: string; nome: string };
@@ -150,5 +151,35 @@ describe("QueryPage com canvasPagination (CA4, CA5)", () => {
     setup(big);
     expect(await screen.findByText("Página 1 de 6")).toBeInTheDocument();
     expect(screen.queryByText("1–25 de 131")).toBeNull();
+  });
+});
+
+describe("QueryPage · cardsBelow", () => {
+  const cards = (r: Row) => <span>Cartão {r.nome}</span>;
+  const renderSm = (below?: "sm") => {
+    window.history.replaceState(null, "", "/");
+    render(<QueryPage columns={columns} fetchPage={pager} rowKey={(r) => r.id} cards={cards} cardsBelow={below} />);
+  };
+  afterEach(() => setDeviceNarrow(false));
+
+  it("CA2: com \"sm\" abaixo de 640 px há cartões e nenhuma tabela", async () => {
+    setDeviceNarrow(true);
+    renderSm("sm");
+    expect(await screen.findByText("Cartão Aluno 0")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("CA2: com \"sm\" a partir de 640 px há a tabela e nenhum cartão", async () => {
+    setDeviceNarrow(false);
+    renderSm("sm");
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.queryByText("Cartão Aluno 0")).toBeNull();
+  });
+
+  it("CA2: sem cardsBelow vale o padrão atual (as duas no DOM, trocadas por CSS)", async () => {
+    setDeviceNarrow(true);
+    renderSm();
+    expect(await screen.findByText("Cartão Aluno 0")).toBeInTheDocument();
+    expect(screen.getByRole("table")).toBeInTheDocument();
   });
 });

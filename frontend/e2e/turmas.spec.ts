@@ -74,3 +74,17 @@ test("@critical Coordenador cria uma turma", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Muay Thai Noite", level: 1 })).toBeVisible();
   await expect(page.getByText("Sexta-feira, 19:00–20:00")).toBeVisible();
 });
+
+// #458 CA6: a 360 px a lista vira cartões e não há rolagem lateral.
+test("Turmas em cartões a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/turmas");
+  await expect(page.getByText("Jiu-Jitsu Adulto")).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
