@@ -9,7 +9,8 @@ test("@critical troca de senha encerrando as outras sessões", async ({ page }) 
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Minha conta" }).first().click();
+  await page.getByRole("button", { name: /Menu da conta/ }).click();
+  await page.getByRole("menuitem", { name: "Minha conta" }).click();
   await expect(page.getByRole("heading", { name: "Minha conta", level: 1 })).toBeVisible();
   await expect(page.getByText("Safari em iOS")).toBeVisible();
 

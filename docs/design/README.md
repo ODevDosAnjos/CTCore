@@ -86,7 +86,10 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Selo de situação | `Badge`, `StatusBadge` | tom pelo mapa único de situações |
 | Etapas do assistente | `Stepper` | |
 | Os quatro estados | `components/states` | carregando com esqueleto, vazio, erro com "Tentar de novo", sem acesso |
-| Menu lateral, barra de cima, cabeçalho da página | `AppLayout`, `PageHeader` | menu lateral e barra de cima são partes do `AppLayout`; celular: barra de cima e abas embaixo |
+| Menu lateral, barra de cima, cabeçalho da página | `AppLayout`, `PageHeader` | menu lateral (248 px, 72 recolhido; grupos com ícone e seta `>`; itens de sprint futura desabilitados "Em breve") e barra de cima (trilha, unidade, busca, sino, tema, ajuda, divisória e conta, numa linha) são partes do `AppLayout`; celular: barra com marca, título, unidade, lupa e sino, abas embaixo e menu em tela cheia com seletor de unidade, tema, Minha conta e Sair |
+| Marca da gestão | `BrandMark` | logo (quadrado arredondado com a inicial, cor `brand`) e nome da organização em fonte de título maiúscula; `compact` mostra só o logo |
+| Menu da conta | `UserMenu` | avatar, nome, perfil e seta; abre com "Minha conta" e "Sair da conta"; Esc e clique fora fecham |
+| Seletor de unidade | `UnitMenu` | prédio, nome e seta; uma unidade é só rótulo; no desktop abre lista, no celular a folha de baixo com cartões; "Todas as unidades" traz "Só consulta" |
 | Barra e abas do portal | `PortalLayout` | cor principal da organização no topo |
 | Moldura das telas de acesso | `AuthShell` | painel escuro da marca a partir de 768 px e formulário de 420 px; no celular só o formulário |
 

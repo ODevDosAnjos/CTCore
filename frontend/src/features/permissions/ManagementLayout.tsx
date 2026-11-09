@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ErrorState, LoadingState } from "@/components/states";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { AccountLink } from "@/features/account/AccountFrame";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { AreaUnavailablePage } from "@/features/auth/AreaUnavailablePage";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
-import { LogoutButton, LogoutError } from "@/features/auth/LogoutButton";
+import { LogoutError } from "@/features/auth/LogoutButton";
 import { useLogout } from "@/features/auth/useLogout";
 import { useSession } from "@/features/auth/SessionProvider";
 import { BellButton } from "@/features/notifications/BellButton";
@@ -34,6 +34,8 @@ export function ManagementLayout({ activeId = "home", children }: { activeId?: s
   if (groups.length === 0) return <AreaUnavailablePage />;
   const link = state.status === "ready" ? state.session.links.find((l) => l.id === state.session.activeLinkId) : undefined;
   const roleLabel = link && ["ADMINISTRATOR", "COORDINATOR", "TEACHER"].includes(link.role) ? t(`layout.roles.${link.role}`) : undefined;
+  const account = state.status === "ready" ? state.session.account : undefined;
+  const accountName = account?.name || account?.email || "";
   return (
     <UnitScopeProvider>
       <AppLayout
@@ -44,15 +46,10 @@ export function ManagementLayout({ activeId = "home", children }: { activeId?: s
         badges={{ requests: pending }}
         tabs={buildTabs(permissions, link?.role, t)}
         onLogout={side.logout}
-        headerExtra={
-          <>
-            <UnitSwitcher />
-            <BellButton />
-            <AccountLink roleLabel={roleLabel} />
-            <LogoutButton className="hidden md:inline-flex" />
-            <ChooseLinkTrigger />
-          </>
-        }
+        unit={(variant) => <UnitSwitcher variant={variant} />}
+        bell={<BellButton />}
+        userMenu={<UserMenu name={accountName} roleLabel={roleLabel} onLogout={side.logout} />}
+        headerExtra={<ChooseLinkTrigger />}
       >
         {children}
       </AppLayout>

@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 import { MobileTabs } from "./MobileTabs";
 import type { NavGroup } from "./AppLayout";
 
@@ -23,11 +24,18 @@ describe("MobileTabs e MobileMenu", () => {
 
   it("CA10: Menu abre em tela cheia com os itens, Esc fecha e o foco volta à aba", async () => {
     const user = userEvent.setup();
-    render(<MobileTabs tabs={tabs} groups={groups} activeId="home" />);
+    render(
+      <ThemeProvider>
+        <MobileTabs tabs={tabs} groups={groups} activeId="home" onLogout={() => {}} />
+      </ThemeProvider>,
+    );
     const aba = screen.getByRole("button", { name: "Menu" });
     await user.click(aba);
     const menu = screen.getByRole("dialog", { name: "Menu" });
-    expect(menu).toHaveClass("inset-0");
+    expect(menu).toHaveClass("inset-0", "w-full");
+    expect(within(menu).getByRole("switch", { name: "Tema escuro" })).toBeInTheDocument();
+    expect(within(menu).getByRole("link", { name: "Minha conta" })).toBeInTheDocument();
+    expect(within(menu).getByRole("button", { name: "Sair da conta" })).toBeInTheDocument();
     expect(within(menu).getByRole("link", { name: "Início" })).toBeInTheDocument();
     expect(menu).toContainElement(document.activeElement as HTMLElement);
     await user.keyboard("{Escape}");

@@ -57,7 +57,7 @@ test.describe("barra superior a 360 px", () => {
     });
     await page.goto("/entrar");
     await login(page);
-    await expect(page.getByLabel("Unidade ativa")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Unidade ativa/ })).toBeVisible();
     await noOverflow(page);
   });
 

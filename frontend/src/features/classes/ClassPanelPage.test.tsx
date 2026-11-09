@@ -71,7 +71,7 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     setup();
     await ready();
     expect(screen.getByText("Ativa")).toBeInTheDocument();
-    expect(screen.getByText("Centro")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getByText("Centro")).toBeInTheDocument();
     expect(screen.getByText("Jiu-Jitsu")).toBeInTheDocument();
     expect(screen.getByText("Adulto")).toBeInTheDocument();
     expect(screen.getByText("Segunda-feira, 19:00–20:00")).toBeInTheDocument();

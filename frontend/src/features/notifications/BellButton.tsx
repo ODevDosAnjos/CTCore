@@ -26,7 +26,7 @@ export function BellButton() {
       >
         <Bell aria-hidden="true" />
         {count > 0 && (
-          <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-primary px-1 text-center text-xs font-semibold text-primary-foreground">
+          <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-danger px-1 text-center text-xs font-semibold text-danger-foreground">
             {shown}
           </span>
         )}

@@ -12,7 +12,7 @@ const itemIds = (role: string) => buildMenu(mockPermissions(role), t, allAvailab
 
 describe("buildMenu", () => {
   it("CA11: Professor não vê Financeiro nem Configurações; Administrador não vê Unidades; Coordenador vê tudo", () => {
-    expect(groupIds("TEACHER")).toEqual(["home", "operation", "reports"]);
+    expect(groupIds("TEACHER")).toEqual(["home", "operation", "communication", "reports"]);
     expect(groupIds("TEACHER")).not.toContain("finance");
     expect(itemIds("ADMINISTRATOR")).not.toContain("units");
     expect(itemIds("ADMINISTRATOR")).toContain("organizationSettings");
@@ -22,30 +22,42 @@ describe("buildMenu", () => {
 
   it("CA11: nível NONE some, grupo vazio some e a ordem é a do catálogo; portal não tem menu", () => {
     const menu = buildMenu(mockPermissions("TEACHER"), t, allAvailable);
-    expect(menu.find((g) => g.id === "operation")!.items.map((i) => i.id)).toEqual(["agenda", "graduation", "trialClasses", "announcements"]);
+    expect(menu.find((g) => g.id === "operation")!.items.map((i) => i.id)).toEqual(["agenda", "graduation", "trialClasses"]);
     expect(buildMenu(mockPermissions("STUDENT"), t, allAvailable)).toEqual([]);
     expect(buildMenu(mockPermissions(undefined), t, allAvailable)).toEqual([]);
   });
 
   it("CA12 / CA19 / CA16 (#29), CA21 (#31) e #37, #46, #49 e #53: com o catálogo real, o Coordenador vê Unidade, Organização, Usuários e Unidades, o Administrador Unidade, Organização e Usuários e o Professor Início e Agenda", () => {
     const home = { id: "home", label: "menu.groups.home", items: [{ id: "home", label: "menu.items.home", href: "/" }] };
-    const agenda = { id: "agenda", label: "menu.items.agenda", href: "/agenda" };
-    const announcements = { id: "announcements", label: "menu.items.announcements", href: "/comunicados" };
-    expect(bare(buildMenu(mockPermissions("TEACHER"), t))).toEqual([home, { id: "operation", label: "menu.groups.operation", items: [agenda, announcements] }]);
-    const unit = { id: "unitSettings", label: "menu.items.unitSettings", href: "/configuracoes/unidade" };
-    const organization = { id: "organizationSettings", label: "menu.items.organizationSettings", href: "/configuracoes/organizacao" };
-    const users = { id: "staffUsers", label: "menu.items.staffUsers", href: "/configuracoes/usuarios" };
-    const modalities = { id: "modalities", label: "menu.items.modalities", href: "/configuracoes/modalidades" };
-    const ageRanges = { id: "ageRanges", label: "menu.items.ageRanges", href: "/configuracoes/faixas-etarias" };
-    const terms = { id: "terms", label: "menu.items.terms", href: "/configuracoes/termos" };
-    const texts = { id: "texts", label: "menu.items.texts", href: "/configuracoes/textos" };
-    const units = { id: "units", label: "menu.items.units", href: "/configuracoes/unidades" };
-    const operation = { id: "operation", label: "menu.groups.operation", items: [agenda, { id: "classes", label: "menu.items.classes", href: "/turmas" }, { id: "noClassDays", label: "menu.items.noClassDays", href: "/dias-sem-aula" }, announcements] };
-    const people = { id: "people", label: "menu.groups.people", items: [{ id: "students", label: "menu.items.students", href: "/alunos" }, { id: "requests", label: "menu.items.requests", href: "/pedidos" }, { id: "teachers", label: "menu.items.teachers", href: "/professores" }] };
-    const finance = { id: "finance", label: "menu.groups.finance", items: [{ id: "collections", label: "menu.items.collections", href: "/cobrancas" }, { id: "plans", label: "menu.items.plans", href: "/planos" }, { id: "benefits", label: "menu.items.benefits", href: "/beneficios" }] };
-    const settings = (items: object[]) => ({ id: "settings", label: "menu.groups.settings", items });
-    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([home, operation, people, finance, settings([unit, organization, modalities, ageRanges, terms, texts, users, units])]);
-    expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([home, operation, people, finance, settings([unit, organization, modalities, ageRanges, terms, texts, users])]);
+    const it_ = (id: string, href: string, extra: object = {}) => ({ id, label: `menu.items.${id}`, href, ...extra });
+    const grp = (id: string, items: object[]) => ({ id, label: `menu.groups.${id}`, items });
+    const agenda = it_("agenda", "/agenda");
+    const communication = grp("communication", [it_("announcements", "/comunicados")]);
+    const reports = grp("reports", [it_("reports", "/relatorios", { disabled: true })]);
+    expect(bare(buildMenu(mockPermissions("TEACHER"), t))).toEqual([home, grp("operation", [agenda]), communication, reports]);
+    const operation = grp("operation", [agenda, it_("classes", "/turmas"), it_("noClassDays", "/dias-sem-aula")]);
+    const people = grp("people", [it_("students", "/alunos"), it_("requests", "/pedidos"), it_("teachers", "/professores")]);
+    const finance = grp("finance", [it_("collections", "/cobrancas"), it_("plans", "/planos"), it_("benefits", "/beneficios")]);
+    const soon = [it_("subscription", "/configuracoes/assinatura", { disabled: true }), it_("audit", "/configuracoes/auditoria", { disabled: true }), it_("import", "/configuracoes/importar", { disabled: true })];
+    const common = [
+      it_("unitSettings", "/configuracoes/unidade"), it_("modalities", "/configuracoes/modalidades"), it_("ageRanges", "/configuracoes/faixas-etarias"),
+      it_("terms", "/configuracoes/termos"), it_("texts", "/configuracoes/textos"), it_("staffUsers", "/configuracoes/usuarios"),
+    ];
+    const org = it_("organizationSettings", "/configuracoes/organizacao");
+    const units = it_("units", "/configuracoes/unidades");
+    const rest = [home, people, operation, finance, communication, reports];
+    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...rest, grp("settings", [org, units, ...common, ...soon])]);
+    expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([...rest, grp("settings", [org, ...common, ...soon])]);
+  });
+
+  it("T1: item \"Em breve\" só entra se o perfil tem a permissão e traz disabled; grupo traz o ícone", () => {
+    const p = { ...mockPermissions("COORDINATOR"), AUDIT: "NONE" as const };
+    const menu = buildMenu(p, t);
+    const settings = menu.find((g) => g.id === "settings")!;
+    expect(settings.items.map((i) => i.id)).not.toContain("audit");
+    expect(settings.items.find((i) => i.id === "import")).toMatchObject({ disabled: true });
+    expect(settings.items.find((i) => i.id === "units")!.disabled).toBeUndefined();
+    expect(settings.icon).toBe("Settings");
   });
 
   it("#437: sem COLLECTIONS ou ANNOUNCEMENTS o item correspondente não aparece", () => {
@@ -73,4 +85,4 @@ describe("mock de permissões x OpenAPI (CA14)", () => {
 });
 
 // O ícone é só visual: a regra por perfil compara id, nome e endereço.
-const bare = (menu: ReturnType<typeof buildMenu>) => menu.map((g) => ({ ...g, items: g.items.map(({ icon, ...i }) => (void icon, i)) }));
+const bare = (menu: ReturnType<typeof buildMenu>) => menu.map(({ icon: groupIcon, ...g }) => (void groupIcon, { ...g, items: g.items.map(({ icon, ...i }) => (void icon, i)) }));

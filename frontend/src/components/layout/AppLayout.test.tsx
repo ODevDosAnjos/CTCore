@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@/theme/ThemeProvider";
+import { MemoryRouter } from "react-router";
 import { AppLayout, type NavGroup } from "./AppLayout";
 
 const groups: NavGroup[] = [
@@ -8,12 +9,22 @@ const groups: NavGroup[] = [
   { id: "f", label: "Financeiro", items: [{ id: "cob", label: "Cobranças", href: "/cobrancas" }] },
 ];
 
-function setup() {
+function setup(activeId = "cob") {
   return render(
     <ThemeProvider>
-      <AppLayout groups={groups} activeId="cob" org="Alfa" roleLabel="Administrador">
-        <h1>Conteúdo</h1>
-      </AppLayout>
+      <MemoryRouter>
+        <AppLayout
+          groups={groups}
+          activeId={activeId}
+          org="Alfa"
+          roleLabel="Administrador"
+          unit={(v) => <span data-testid={`unit-${v}`}>Tijuca</span>}
+          bell={<button type="button">Sino</button>}
+          userMenu={<button type="button">Conta</button>}
+        >
+          <h1>Conteúdo</h1>
+        </AppLayout>
+      </MemoryRouter>
     </ThemeProvider>,
   );
 }
@@ -60,8 +71,41 @@ describe("AppLayout", () => {
     const trilha = screen.getByRole("navigation", { name: "Você está em" });
     expect(within(trilha).getByText("Financeiro")).toBeInTheDocument();
     expect(within(trilha).getByText("Cobranças")).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "Buscar, Em breve" })).toBeDisabled();
+    const busca = screen.getByRole("button", { name: /^Buscar/ });
+    expect(busca).toBeDisabled();
+    expect(busca).toHaveAttribute("title", "Em breve");
+    expect(busca).not.toHaveAttribute("aria-label");
     expect(screen.getAllByRole("button", { name: /^Ajuda, Em breve/ })[0]).toBeDisabled();
     expect(screen.getByRole("button", { name: /tema/i })).toBeInTheDocument();
+  });
+
+  it("CA6: ordem do desktop: trilha, unidade, busca, sino, tema, ajuda, divisória e conta", () => {
+    setup();
+    const header = screen.getByRole("banner");
+    const ordem = [
+      screen.getByRole("navigation", { name: "Você está em" }),
+      screen.getByTestId("unit-desktop"),
+      screen.getByRole("button", { name: /^Buscar/ }),
+      screen.getByRole("button", { name: "Sino" }),
+      screen.getByRole("button", { name: /tema/i }),
+      screen.getByRole("button", { name: "Ajuda, Em breve" }),
+      screen.getByRole("button", { name: "Conta" }),
+    ];
+    ordem.forEach((el, i) => {
+      if (i > 0) expect(ordem[i - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(header).toContainElement(el);
+    });
+    expect(header).toHaveClass("flex-nowrap");
+  });
+
+  it("CA10: no celular a barra tem marca, título, unidade, lupa e sino; voltar só fora do Início", () => {
+    const fora = setup("lista");
+    const header = screen.getByRole("banner");
+    expect(within(header).getByTestId("unit-compact")).toBeInTheDocument();
+    expect(within(header).getByText("Lista", { selector: "span.truncate" })).toBeInTheDocument();
+    expect(within(header).getByRole("link", { name: "Voltar ao Início" })).toBeInTheDocument();
+    fora.unmount();
+    setup("home");
+    expect(screen.queryByRole("link", { name: "Voltar ao Início" })).toBeNull();
   });
 });
