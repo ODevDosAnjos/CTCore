@@ -14,14 +14,15 @@ export function LogoutError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function LogoutButton({ className }: { className?: string }) {
+/** `iconOnly`: só o ícone (o nome "Sair da conta" fica para leitor de tela). */
+export function LogoutButton({ className, iconOnly = false }: { className?: string; iconOnly?: boolean }) {
   const { t } = useTranslation();
   const { logout, pending, failed } = useLogout();
   return (
     <>
       <Button type="button" variant="ghost" size="sm" className={cn("min-h-11", className)} disabled={pending} onClick={logout}>
         <LogOut aria-hidden="true" />
-        {pending ? t("auth.logout.pending") : t("auth.logout.label")}
+        <span className={iconOnly ? "sr-only" : undefined}>{pending ? t("auth.logout.pending") : t("auth.logout.label")}</span>
       </Button>
       {failed && <LogoutError onRetry={logout} />}
     </>

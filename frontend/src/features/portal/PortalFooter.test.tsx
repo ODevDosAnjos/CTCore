@@ -7,6 +7,12 @@ describe("PortalFooter (CA3)", () => {
     expect(screen.getByRole("contentinfo")).toHaveTextContent("Academia Alfa · Centro · Rua Fictícia, 10 · WhatsApp (21) 90000-0000feito com ctcore");
   });
 
+  it("CA9: o endereço some no celular e o texto final vai à direita", () => {
+    render(<PortalFooter organization="Academia Alfa" unit={null} />);
+    expect(screen.getByText("Academia Alfa")).toHaveClass("hidden", "md:block");
+    expect(screen.getByText("feito com ctcore")).toHaveClass("md:ml-auto");
+  });
+
   it("campo nulo some sem separador sobrando", () => {
     render(<PortalFooter organization="Academia Alfa" unit={{ name: "Centro", address: null, whatsapp: null }} />);
     expect(screen.getByRole("contentinfo")).toHaveTextContent("Academia Alfa · Centrofeito com ctcore");

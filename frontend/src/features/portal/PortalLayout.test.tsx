@@ -55,11 +55,12 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     const { container, unmount } = setup("/", { data: shell({ organization: { name: "Academia Alfa", color: "#1d4ed8", logoUrl: "data:image/png;base64,AAAA" } }) });
     await ready();
     expect(container.querySelector("header img")).toHaveAttribute("src", "data:image/png;base64,AAAA");
-    expect(screen.getByText("Ana Silva · Aluno")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Minha conta/ })).toHaveTextContent("ASAna SilvaAluno");
     unmount();
     const guardian = setup("/", { role: "GUARDIAN" });
     await ready();
-    expect(screen.getByText("Ana Silva · Responsável")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Minha conta/ })).toHaveTextContent("ASAna SilvaResponsável");
+    expect(screen.queryByText("Minha conta", { selector: ".underline" })).toBeNull();
     expect(guardian.container.querySelector("header img")).toBeNull();
   });
 
@@ -180,9 +181,11 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
       await user.tab();
       seen.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? "");
     }
-    expect(seen.slice(0, 9)).toEqual(["Ir para o conteúdo", "Academia Alfa", "Início", "Agenda", "Financeiro", "Avisos 22 não lidos", "Minhas informações", "Avisos, 2 não lidos", "Minha conta"]);
-    expect(seen[9]).toBe("Sair da conta");
-    expect(seen[10]).toMatch(/tema/i);
+    expect(seen.slice(0, 7)).toEqual(["Ir para o conteúdo", "Academia Alfa", "Início", "Agenda", "Financeiro", "Avisos 22 não lidos", "Minhas informações"]);
+    expect(seen[7]).toMatch(/tema/i);
+    expect(seen[8]).toBe("Avisos, 2 não lidos");
+    expect(seen[9]).toMatch(/^Minha conta/);
+    expect(seen[10]).toBe("Sair da conta");
   });
 
   it("CA12: passa no axe nos dois temas", async () => {
@@ -195,13 +198,28 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     }
   });
 
+  it("CA1, CA3, CA6, CA10: barra de 64/56 px na coluna de 1120 px, aba ativa com sublinhado, sair em ícone e abas de baixo sem traço", async () => {
+    const { container } = setup("/");
+    await ready();
+    const header = container.querySelector("header")!;
+    expect(header.firstElementChild).toHaveClass("h-14", "md:h-16", "max-w-280");
+    expect(header.firstElementChild).not.toHaveClass("flex-wrap");
+    expect(screen.getByRole("main")).toHaveClass("max-w-280");
+    const active = tabs().find((a) => a.getAttribute("aria-current") === "page")!;
+    expect(active).toHaveClass("aria-[current=page]:border-[var(--org,var(--brand))]");
+    expect(active.className).not.toContain("aria-[current=page]:bg-");
+    const out = within(header).getByRole("button", { name: "Sair da conta" });
+    expect(out.querySelector("span")).toHaveClass("sr-only");
+    const bottomActive = within(screen.getByRole("navigation", { name: "Portal, abas" })).getAllByRole("link")[0];
+    expect(bottomActive.className).not.toContain("shadow-[inset");
+  });
+
   it("CA1: o botão de tema usa a cor de texto da barra, que vence a do Button, nos dois temas", async () => {
     for (const dark of [false, true]) {
       setDevicePrefersDark(dark);
       const { container, unmount } = setup("/");
       await ready();
-      const wrapper = within(container.querySelector("header")!).getByRole("button", { name: /tema/i }).parentElement!;
-      expect(wrapper).toHaveClass("text-sidebar-foreground", "[&_button]:text-sidebar-foreground");
+      expect(within(container.querySelector("header")!).getByRole("button", { name: /tema/i })).toHaveClass("text-sidebar-foreground");
       unmount();
     }
   });

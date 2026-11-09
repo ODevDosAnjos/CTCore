@@ -1,4 +1,4 @@
-import { CalendarDays, House, Megaphone, User, Wallet, type LucideIcon } from "lucide-react";
+import { CalendarDays, House, Bell, User, Wallet, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,7 @@ const TABS: { id: string; to: string; full: boolean; Icon: LucideIcon }[] = [
   { id: "home", to: "/", full: false, Icon: House },
   { id: "schedule", to: "/portal/agenda", full: true, Icon: CalendarDays },
   { id: "finance", to: "/portal/financeiro", full: false, Icon: Wallet },
-  { id: "notices", to: "/portal/avisos", full: true, Icon: Megaphone },
+  { id: "notices", to: "/portal/avisos", full: true, Icon: Bell },
   { id: "info", to: "/portal/minhas-informacoes", full: false, Icon: User },
 ];
 
@@ -33,7 +33,7 @@ export function PortalTabs({ reduced, count, variant }: { reduced: boolean; coun
   return (
     <nav
       aria-label={t(bar ? "portalShell.nav" : "portalShell.navBottom")}
-      className={bar ? "hidden gap-1 md:flex md:flex-1" : "fixed inset-x-0 bottom-0 z-10 flex border-t bg-background md:hidden"}
+      className={bar ? "hidden h-full gap-1 md:flex md:flex-1" : "fixed inset-x-0 bottom-0 z-10 flex border-t bg-background md:hidden"}
     >
       {TABS.filter((tab) => !(reduced && tab.full)).map(({ id, to, Icon }) => {
         return (
@@ -44,8 +44,8 @@ export function PortalTabs({ reduced, count, variant }: { reduced: boolean; coun
             className={cn(
               ring,
               bar
-                ? "inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm text-sidebar-foreground hover:bg-sidebar-accent aria-[current=page]:bg-[var(--org,var(--brand))] aria-[current=page]:font-semibold aria-[current=page]:text-brand-foreground"
-                : "relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_0_2px_0_var(--org,var(--brand))]",
+                ? "inline-flex h-full items-center gap-2 border-b-[3px] border-transparent px-3 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground aria-[current=page]:border-[var(--org,var(--brand))] aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-foreground"
+                : "relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground",
             )}
           >
             {!bar && <Icon aria-hidden="true" className="size-5" />}
