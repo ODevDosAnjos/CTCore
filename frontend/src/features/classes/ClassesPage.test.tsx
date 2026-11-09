@@ -9,7 +9,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { TrainingClass } from "./useClasses";
 
@@ -211,5 +211,39 @@ describe("ClassesPage", () => {
     const { container } = setup();
     await screen.findByText("Jiu-Jitsu Adulto");
     expect(await axeViolations(container)).toEqual([]);
+  });
+});
+
+describe("ClassesPage · celular", () => {
+  afterEach(() => setDeviceNarrow(false));
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA6: os cartões a 360 px não têm violações no axe no tema %s", async (_n, dark) => {
+    setDeviceNarrow(true, dark);
+    window.innerWidth = 360;
+    const { container } = setup();
+    await screen.findByText("Jiu-Jitsu Adulto");
+    expect(container.querySelector("table")).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it("CA4: a 390 px cada turma é um cartão com todos os campos, aviso de lotação e \"Ver\" para o painel", async () => {
+    setDeviceNarrow(true);
+    setup();
+    await ready();
+    const card = (await screen.findByText("Jiu-Jitsu Adulto")).closest("li")!;
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(within(card).getByText("Unidade: Centro")).toBeInTheDocument();
+    expect(within(card).getByText("Jiu-Jitsu")).toBeInTheDocument();
+    expect(within(card).getByText("Adulto")).toBeInTheDocument();
+    expect(within(card).getByText("Seg 19:00–20:00, Qua 19:00–20:00")).toBeInTheDocument();
+    expect(within(card).getByText("Ana Souza")).toBeInTheDocument();
+    expect(within(card).getByText("12/30")).toBeInTheDocument();
+    expect(within(card).getByText("Ativa")).toBeInTheDocument();
+    expect(within(card).getByRole("link", { name: "Ver Jiu-Jitsu Adulto" }).getAttribute("href")).toBe("/turmas/c1");
+    const full = screen.getByText("Judô Lotada").closest("li")!;
+    expect(within(full).getByText("Acima da capacidade (31/30)")).toBeInTheDocument();
   });
 });

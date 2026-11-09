@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { TFunction } from "i18next";
+import { RowCard } from "@/components/query/RowCard";
 import { QueryPage } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
 import { Avatar } from "@/components/ui/avatar";
@@ -18,6 +19,8 @@ import { PageHeader } from "@/components/ui/page-header";
 function TeacherAvatar({ teacher }: { teacher: Teacher }) {
   return teacher.photoUrl ? <img src={teacher.photoUrl} alt="" className="size-8 shrink-0 rounded-full object-cover" /> : <Avatar name={teacher.name} decorative size="sm" />;
 }
+
+const modalityLabel = (t: TFunction, m: Teacher["modalities"][number]) => (m.level === null ? m.name : t("teachers.modality", { name: m.name, level: m.level, degree: m.degree }));
 
 const columns = (t: TFunction): Column<Teacher>[] => [
   {
@@ -40,7 +43,7 @@ const columns = (t: TFunction): Column<Teacher>[] => [
       <ul>
         {r.modalities.map((m) => (
           <li key={m.id}>
-            <ModalityDot name={m.name} label={m.level === null ? m.name : t("teachers.modality", { name: m.name, level: m.level, degree: m.degree })} />
+            <ModalityDot name={m.name} label={modalityLabel(t, m)} />
           </li>
         ))}
       </ul>
@@ -50,6 +53,34 @@ const columns = (t: TFunction): Column<Teacher>[] => [
   { key: "classes", label: t("teachers.columns.classes"), render: (r) => r.classCount },
   { key: "status", label: t("teachers.columns.status"), render: (r) => <StatusBadge status={r.status} label={t(`teachers.statuses.${r.status}`)} /> },
 ];
+
+const card = (t: TFunction) => (r: Teacher) => (
+  <RowCard
+    lead={<TeacherAvatar teacher={r} />}
+    title={r.name}
+    meta={
+      <>
+        <ul>
+          {r.modalities.map((m) => (
+            <li key={m.id}>
+              <ModalityDot name={m.name} label={modalityLabel(t, m)} />
+            </li>
+          ))}
+        </ul>
+        <span>{r.units.map((u) => u.name).join(", ")}</span>
+        <span>{t("teachers.classCount", { count: r.classCount })}</span>
+      </>
+    }
+    badge={<StatusBadge status={r.status} label={t(`teachers.statuses.${r.status}`)} />}
+    action={
+      <Button asChild variant="secondary">
+        <Link to={`/professores/${r.id}`} aria-label={t("teachers.viewAria", { name: r.name })}>
+          {t("query.viewRow")}
+        </Link>
+      </Button>
+    }
+  />
+);
 
 function Content() {
   const { t } = useTranslation();
@@ -71,6 +102,8 @@ function Content() {
       <QueryPage
         searchPlaceholder={t("teachers.search")}
         columns={columns(t)}
+        cardsBelow="sm"
+        cards={card(t)}
         fetchPage={fetchTeachers}
         rowKey={(r) => r.id}
         filterKeys={["modalityId", "unitId", "status"]}

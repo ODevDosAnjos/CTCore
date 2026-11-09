@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import type { TFunction } from "i18next";
+import { RowCard } from "@/components/query/RowCard";
 import { QueryPage } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
 import { Person } from "@/components/ui/avatar";
@@ -14,6 +15,21 @@ import { ClassFilters } from "./ClassFilters";
 import { ClassFormDialog } from "./ClassFormDialog";
 import { fetchClasses, type TrainingClass } from "./useClasses";
 import { PageHeader } from "@/components/ui/page-header";
+
+const scheduleText = (t: TFunction, r: TrainingClass) =>
+  r.schedule.length === 0 ? t("classes.none") : r.schedule.map((s) => t("classes.slot", { day: t(`classes.weekdays.${s.weekday}`), from: s.startsAt, to: s.endsAt })).join(", ");
+
+function StudentsCell({ r }: { r: TrainingClass }) {
+  const { t } = useTranslation();
+  return r.capacity === null ? (
+    <>{r.activeStudents}</>
+  ) : (
+    <span className="flex flex-col">
+      {t("classes.students", { count: r.activeStudents, capacity: r.capacity })}
+      {r.overCapacity && <span className="font-medium text-danger-foreground">{t("classes.over", { count: r.activeStudents, capacity: r.capacity })}</span>}
+    </span>
+  );
+}
 
 const columns = (t: TFunction): Column<TrainingClass>[] => [
   {
@@ -34,10 +50,7 @@ const columns = (t: TFunction): Column<TrainingClass>[] => [
   {
     key: "schedule",
     label: t("classes.columns.schedule"),
-    render: (r) =>
-      r.schedule.length === 0
-        ? t("classes.none")
-        : r.schedule.map((s) => t("classes.slot", { day: t(`classes.weekdays.${s.weekday}`), from: s.startsAt, to: s.endsAt })).join(", "),
+    render: (r) => scheduleText(t, r),
   },
   {
     key: "head",
@@ -53,18 +66,38 @@ const columns = (t: TFunction): Column<TrainingClass>[] => [
   {
     key: "students",
     label: t("classes.columns.students"),
-    render: (r) =>
-      r.capacity === null ? (
-        r.activeStudents
-      ) : (
-        <span className="flex flex-col">
-          {t("classes.students", { count: r.activeStudents, capacity: r.capacity })}
-          {r.overCapacity && <span className="font-medium text-danger-foreground">{t("classes.over", { count: r.activeStudents, capacity: r.capacity })}</span>}
-        </span>
-      ),
+    render: (r) => <StudentsCell r={r} />,
   },
   { key: "status", label: t("classes.columns.status"), render: (r) => <StatusBadge status={r.status} label={t(`classes.statuses.${r.status}`)} /> },
 ];
+
+const card = (t: TFunction) => (r: TrainingClass) => (
+  <RowCard
+    title={r.name}
+    meta={
+      <>
+        <span>{t("classes.unit", { name: r.unit.name })}</span>
+        <ModalityDot name={r.modality.name} />
+        <span>{r.ageRange?.name ?? t("classes.none")}</span>
+        <span>{scheduleText(t, r)}</span>
+        <Person
+          name={r.head.name}
+          size="sm"
+          secondary={r.assistants.length > 0 ? t("classes.assistants", { names: r.assistants.map((a) => a.name).join(", ") }) : undefined}
+        />
+        <StudentsCell r={r} />
+      </>
+    }
+    badge={<StatusBadge status={r.status} label={t(`classes.statuses.${r.status}`)} />}
+    action={
+      <Button asChild variant="secondary">
+        <Link to={`/turmas/${r.id}`} aria-label={t("classes.viewAria", { name: r.name })}>
+          {t("query.viewRow")}
+        </Link>
+      </Button>
+    }
+  />
+);
 
 function Content() {
   const { t } = useTranslation();
@@ -85,6 +118,8 @@ function Content() {
       <p className="text-muted-foreground">{t("classes.intro")}</p>
       <QueryPage
         columns={columns(t)}
+        cardsBelow="sm"
+        cards={card(t)}
         fetchPage={fetchClasses}
         rowKey={(r) => r.id}
         filterKeys={["modalityId", "teacherId", "ageRangeId", "weekday", "unitId", "status"]}

@@ -8,6 +8,7 @@ import { Stepper } from "@/components/Stepper";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { UnitMenu } from "@/components/layout/UnitMenu";
 import { DataTable } from "@/components/query/DataTable";
+import { RowCard } from "@/components/query/RowCard";
 import { CanvasPagination } from "@/components/query/Pagination";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { GraduationBelt } from "@/components/ui/graduation-belt";
@@ -130,6 +131,17 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
           options={[{ key: "all", label: "Todos", count: 2 }, { key: "late", label: "Em atraso", count: 1 }, { key: "blocked", label: "Bloqueados", soon: true }]}
         />
         <DataTable columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} order="nome" onOrder={noop} selectable selected={selected} onSelectionChange={setSelected} />
+        <ul className="flex max-w-sm flex-col gap-3">
+          <li className="rounded-md border p-3">
+            <RowCard
+              lead={<Avatar name="Ana Souza" decorative size="sm" />}
+              title="Ana Souza"
+              meta={<><ModalityDot name="Jiu-Jitsu" /><span>Centro, Norte</span><span>3 turmas</span></>}
+              badge={<StatusBadge status="ACTIVE" label="Ativo" />}
+              action={<Button variant="secondary">Ver</Button>}
+            />
+          </li>
+        </ul>
         {first && <CanvasPagination page={1} pages={6} total={131} size={25} onPage={noop} onSize={noop} />}
         <Tabs
           label="Exemplo"

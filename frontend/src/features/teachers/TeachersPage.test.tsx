@@ -8,7 +8,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { Teacher } from "./useTeachers";
 
@@ -187,5 +187,39 @@ describe("TeachersPage", () => {
     const { container } = setup();
     await screen.findByText("Ana Souza");
     expect(await axeViolations(container)).toEqual([]);
+  });
+});
+
+describe("TeachersPage · celular", () => {
+  afterEach(() => setDeviceNarrow(false));
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA6: os cartões a 360 px não têm violações no axe no tema %s", async (_n, dark) => {
+    setDeviceNarrow(true, dark);
+    window.innerWidth = 360;
+    const { container } = setup();
+    await screen.findByText("Ana Souza");
+    expect(container.querySelector("table")).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it("CA3: a 390 px cada professor é um cartão com todos os dados e \"Ver\" leva ao painel", async () => {
+    setDeviceNarrow(true);
+    const user = userEvent.setup();
+    setup();
+    server.use(http.get("/api/v1/teachers/t1", () => HttpResponse.json({ ...all[0], bio: null, email: null, phone: null, classes: [], upcomingClasses: [] })));
+    await ready();
+    const card = (await screen.findByText("Ana Souza")).closest("li")!;
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(within(card).getByText("AS")).toBeInTheDocument();
+    expect(within(card).getByText("Jiu-Jitsu · Roxa, grau 2")).toBeInTheDocument();
+    expect(within(card).getByText("Centro")).toBeInTheDocument();
+    expect(within(card).getByText("Turmas: 0")).toBeInTheDocument();
+    expect(within(card).getByText("Ativo")).toBeInTheDocument();
+    expect(within(card).queryByRole("link", { name: "Ana Souza" })).toBeNull();
+    await user.click(within(card).getByRole("link", { name: "Ver Ana Souza" }));
+    expect(await screen.findByRole("heading", { name: "Ana Souza", level: 1 })).toBeInTheDocument();
   });
 });

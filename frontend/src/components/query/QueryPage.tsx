@@ -6,6 +6,7 @@ import { SearchBox } from "@/components/ui/search-box";
 import { DataTable, type Column } from "./DataTable";
 import { CanvasPagination, DEFAULT_PAGE_SIZE, PAGE_SIZES, Pagination } from "./Pagination";
 import { useQueryParams } from "./useQueryParams";
+import { useBelowSm } from "./useBelowSm";
 
 export type Query = { q: string; pagina: number; ordem: string; filtros: Record<string, string>; tamanho: number };
 // `counts` são totais auxiliares da tela (ex.: filtros rápidos), vindos do mesmo pedido.
@@ -23,6 +24,7 @@ export function QueryPage<T>({
   emptyAction,
   texts,
   cards,
+  cardsBelow = "md",
   footer,
   search = true,
   searchPlaceholder,
@@ -39,6 +41,8 @@ export function QueryPage<T>({
   // Opcionais: abaixo de md a lista sai em cartões no lugar da tabela; `footer` recebe a página carregada (ex.: totais).
   cards?: (row: T) => ReactNode;
   footer?: (page: Page<T>) => ReactNode;
+  /** Onde a lista vira cartões: "md" (768 px, por CSS, padrão) ou "sm" (640 px; só uma das duas existe no DOM). */
+  cardsBelow?: "sm" | "md";
   /** Falso: sem caixa de busca (a rota não tem `q`). */
   search?: boolean;
   /** Com texto de ajuda, a busca usa `SearchBox` (canvas) e a barra alinha ao centro; sem ele, a caixa de sempre. */
@@ -48,6 +52,8 @@ export function QueryPage<T>({
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
+  const narrow = useBelowSm();
+  const cardsOnly = cardsBelow === "sm" && !!cards;
 
   const q = get("q");
   const rawPage = Number(get("pagina"));
@@ -113,11 +119,13 @@ export function QueryPage<T>({
     const pages = Math.max(1, Math.ceil(state.data!.total / tamanho));
     body = (
       <>
-        <div className={cards ? "hidden md:block" : undefined}>
-          <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} order={ordem} onOrder={(o) => set({ ordem: o })} />
-        </div>
-        {cards && (
-          <ul className="flex flex-col gap-3 md:hidden">
+        {!(cardsOnly && narrow) && (
+          <div className={cards && !cardsOnly ? "hidden md:block" : undefined}>
+            <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} order={ordem} onOrder={(o) => set({ ordem: o })} />
+          </div>
+        )}
+        {cards && (!cardsOnly || narrow) && (
+          <ul className={cardsOnly ? "flex flex-col gap-3" : "flex flex-col gap-3 md:hidden"}>
             {state.data!.rows.map((r) => (
               <li key={rowKey(r)} className="rounded-md border p-3">
                 {cards(r)}

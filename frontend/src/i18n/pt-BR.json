@@ -648,6 +648,8 @@
     }
   },
   "teachers": {
+    "viewAria": "Ver {{name}}",
+    "classCount": "Turmas: {{count}}",
     "title": "Professores",
     "intro": "Professores da organização, com as modalidades, as unidades e a situação de cada um.",
     "search": "Nome",
@@ -1231,6 +1233,7 @@
     }
   },
   "classes": {
+    "viewAria": "Ver {{name}}",
     "title": "Turmas",
     "intro": "Turmas das suas unidades, com os dias, os horários, o professor e a situação de cada uma.",
     "columns": {
@@ -2621,6 +2624,7 @@
     "range": "{{from}}–{{to}} de {{total}}",
     "filters": "Filtros",
     "filtersCount": "Filtros {{count}}",
+    "viewRow": "Ver",
     "total_one": "{{count, number}} resultado",
     "total_other": "{{count, number}} resultados"
   },
