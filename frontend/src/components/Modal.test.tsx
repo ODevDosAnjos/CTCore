@@ -54,6 +54,32 @@ describe("CA15/CA17: visual", () => {
     expect(screen.getByRole("button", { name: "Salvar" }).parentElement).toHaveClass("bg-surface-soft");
   });
 
+  it("CA1: largura por size; sem size, max-w-lg e cabeçalho de sempre", () => {
+    const { rerender } = render(<Modal open onOpenChange={() => {}} title="Detalhes">x</Modal>);
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-lg");
+    expect(screen.getByText("Detalhes")).not.toHaveClass("uppercase");
+    rerender(<Modal open onOpenChange={() => {}} title="Detalhes" size="sm">x</Modal>);
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-[540px]");
+    rerender(<Modal open onOpenChange={() => {}} title="Detalhes" size="md">x</Modal>);
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-[600px]");
+  });
+
+  it("CA2/CA3: com size, título em caixa alta é o nome, X existe e o rodapé fica fora da rolagem", () => {
+    render(
+      <Modal open onOpenChange={() => {}} title="Detalhes" size="md" footer={<button>Salvar</button>}>
+        <p>Corpo</p>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog", { name: "Detalhes" })).toBeInTheDocument();
+    expect(screen.getByText("Detalhes")).toHaveClass("uppercase", "font-heading");
+    expect(screen.getByRole("button", { name: "Fechar" })).toBeInTheDocument();
+    const corpo = screen.getByText("Corpo").parentElement!;
+    expect(corpo).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
+    const rodape = screen.getByRole("button", { name: "Salvar" }).parentElement!;
+    expect(rodape.parentElement).toBe(corpo.parentElement);
+    expect(corpo).not.toContainElement(rodape);
+  });
+
   it("dismissible=false: sem X", () => {
     render(<Modal open onOpenChange={() => {}} title="Detalhes" dismissible={false}>x</Modal>);
     expect(screen.queryByRole("button", { name: "Fechar" })).not.toBeInTheDocument();

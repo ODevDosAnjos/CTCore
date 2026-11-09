@@ -87,6 +87,7 @@ export function ModalityDialog({
   onDone,
   errorPrefix = "students.record.enrollment.errors.",
   children,
+  size,
 }: {
   title: string;
   effect: string;
@@ -100,8 +101,11 @@ export function ModalityDialog({
   /** Chaves pt-BR dos erros sem campo (por status e `generic`); o padrão é o das trocas de matrícula. */
   errorPrefix?: string;
   children: (errors: Record<string, string>) => ReactNode;
+  /** Janela do canvas: Cancelar e a ação vão para o rodapé fixo da `Modal`. */
+  size?: "sm" | "md";
 }) {
   const { t } = useTranslation();
+  const formId = useId();
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<string>();
@@ -126,12 +130,29 @@ export function ModalityDialog({
   }
 
   return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={title}>
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={title}
+      size={size}
+      footer={
+        size && state === "ready" ? (
+          <>
+            <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form={formId} className="min-h-11" disabled={busy || !canSubmit}>
+              {submitLabel}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
       {state === "loading" && <LoadingState />}
       {state === "forbidden" && <ForbiddenState />}
       {state === "error" && retry && <ErrorState onRetry={retry} />}
       {state === "ready" && (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-3">
+        <form id={formId} onSubmit={submit} noValidate className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">{effect}</p>
           {form && (
             <Banner tone="danger">
@@ -139,14 +160,16 @@ export function ModalityDialog({
             </Banner>
           )}
           {children(errors)}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" className="min-h-11" disabled={busy || !canSubmit}>
-              {submitLabel}
-            </Button>
-          </div>
+          {!size && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" className="min-h-11" disabled={busy || !canSubmit}>
+                {submitLabel}
+              </Button>
+            </div>
+          )}
         </form>
       )}
     </Modal>

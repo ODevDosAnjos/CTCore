@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -31,6 +31,7 @@ export function NewLessonDialog({ unit, modalities, teachers, onClose, onSaved }
   const [classId, setClassId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const formId = useId();
   const empty = modalities.length === 0 || teachers.length === 0;
 
   async function submit() {
@@ -59,12 +60,27 @@ export function NewLessonDialog({ unit, modalities, teachers, onClose, onSaved }
   }
 
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("agenda.new.title")}>
+    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("agenda.new.title")}
+      size="md"
+      footer={
+        !empty && classes.status === "ready" ? (
+          <>
+            <Button type="button" variant="ghost" className="min-h-11" onClick={onClose} disabled={busy}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form={formId} className="min-h-11" disabled={busy}>
+              {busy ? t("agenda.new.saving") : t("agenda.new.save")}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
       {empty && <EmptyState title={t("agenda.new.emptyTitle")} text={t("agenda.new.emptyText")} />}
       {!empty && classes.status === "loading" && <LoadingState />}
       {!empty && classes.status === "error" && <ErrorState onRetry={classes.retry} />}
       {!empty && classes.status === "ready" && (
         <form
+          id={formId}
           noValidate
           className="flex flex-col gap-3"
           aria-busy={busy}
@@ -101,14 +117,6 @@ export function NewLessonDialog({ unit, modalities, teachers, onClose, onSaved }
             {onlyClass && <Pick id="new-class" label={t("agenda.new.class")} value={classId} onChange={setClassId} options={classes.classes} error={errors.visibilityClassId} />}
           </fieldset>
           <Err text={errors.form} />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" className="min-h-11" disabled={busy}>
-              {busy ? t("agenda.new.saving") : t("agenda.new.save")}
-            </Button>
-          </div>
         </form>
       )}
     </Modal>

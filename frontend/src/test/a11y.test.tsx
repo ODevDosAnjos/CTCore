@@ -45,7 +45,7 @@ describe("casca (CA13)", () => {
     const src = join(process.cwd(), "src");
     for (const f of files(src)) {
       const text = readFileSync(f, "utf8");
-      for (const m of text.matchAll(/\b(?:min-w|w)-\[(\d+)px\]/g)) {
+      for (const m of text.matchAll(/(?<!max-)\b(?:min-w|w)-\[(\d+)px\]/g)) {
         expect(Number(m[1]), `${f}: ${m[0]}`).toBeLessThanOrEqual(360);
       }
     }

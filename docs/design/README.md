@@ -53,7 +53,7 @@ Cores de situação (fundo / texto), usadas em etiquetas e avisos:
 
 O mapa completo de situação para tom fica num só lugar no código (ex.: `statusTone.ts`), nunca repetido em cada tela.
 
-**Tipografia.** Títulos (h1 das páginas, títulos de janelas, números grandes): **Barlow Condensed** 600, caixa alta, `letter-spacing: 0.02em`. Página 38 px, janela 22 px, número de destaque 34 px. Texto: **IBM Plex Sans** 400/500/600, base 14 px, secundário 13 px, legendas 12 px. As fontes entram pelo pacote npm (`@fontsource`), não por link externo, para funcionar no app instalável e sem internet.
+**Tipografia.** Títulos (h1 das páginas, títulos de janelas, números grandes): **Barlow Condensed** 600, caixa alta, `letter-spacing: 0.02em`. Página 38 px, janela 28 px (com `size`; sem `size`, 20 px), número de destaque 34 px. Texto: **IBM Plex Sans** 400/500/600, base 14 px, secundário 13 px, legendas 12 px. As fontes entram pelo pacote npm (`@fontsource`), não por link externo, para funcionar no app instalável e sem internet.
 
 **Forma.** Cantos: cartão 12 px, campo e botão 8 px, janela 16 px, etiqueta 999 px. Altura: campo e botão 40 px, botão pequeno 32 px, botão grande 48 px, etiqueta 22 px. Sombra só em janela, painel lateral e menu suspenso. Espaçamento da página: 28 px no topo e 32 px nas laterais; 16 px no celular. Ícones: `lucide-react`, traço 2, 16 a 20 px.
 
@@ -80,7 +80,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Paginação | `CanvasPagination` | "1–25 de 131", "Por página" (32 px) e botões de ícone; opt-in na `QueryPage` por `canvasPagination` |
 | Filtros no celular | `FilterSheet` | a partir de 640 px os filtros ficam na linha; abaixo, botão "Filtros" e folha inferior com campos, "Ver N …" e "Limpar filtros"; `PillFilter` vira campo com seletor dentro da folha |
 | Lista em cartões no celular | `RowCard` | substitui a tabela abaixo de 640 px: `lead` (avatar), `title`, `meta`, `badge` (situação) e `action` ("Ver", sempre no fim, 44 px de toque); a `QueryPage` troca por `cardsBelow="sm"` (só uma das duas existe no DOM; o padrão `"md"` não muda); sem ordenação no celular |
-| Janela | `Modal`, `ConfirmDialog` | resumo do que vai acontecer; confirmação digitada nas ações graves |
+| Janela | `Modal` (`size="sm"` 540 px ou `"md"` 600 px), `ConfirmDialog` | com `size`: título em caixa alta, corpo que rola e rodapé fixo "Cancelar (fantasma) | ação (cheia)"; sem `size`, o visual anterior. Resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |
 | Resumo do que vai acontecer | `SummaryBox` | lista com setas, usado nas janelas |
