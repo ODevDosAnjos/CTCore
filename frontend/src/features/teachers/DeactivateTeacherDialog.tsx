@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "@/components/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ErrorState, LoadingState } from "@/components/states";
-import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { deactivateTeacher, fetchDeactivationPreview, type DeactivationPreview, type TeacherDetail } from "./useTeachers";
 import { Banner } from "@/components/ui/banner";
@@ -20,7 +19,6 @@ function Body({ teacher, onClose, onDone }: { teacher: TeacherDetail; onClose: (
   const [tick, setTick] = useState(0);
   const [loaded, setLoaded] = useState<{ tick: number; preview?: DeactivationPreview }>();
   const [form, setForm] = useState<string>();
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -37,22 +35,28 @@ function Body({ teacher, onClose, onDone }: { teacher: TeacherDetail; onClose: (
 
   async function confirm() {
     setForm(undefined);
-    setBusy(true);
     try {
       await deactivateTeacher(teacher.id);
     } catch (e) {
       setForm(t(`teachers.panel.deactivateDialog.errors.${e instanceof ApiError && KNOWN.includes(e.code) ? e.code : "generic"}`));
-      setBusy(false);
-      return;
+      throw e; // a janela segue aberta
     }
-    setBusy(false);
-    onClose();
     onDone();
   }
 
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("teachers.panel.deactivateDialog.title", { name: teacher.name })}>
-      <div className="flex flex-col gap-3" aria-busy={busy || !current}>
+    <ConfirmDialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      tone="danger"
+      size="sm"
+      title={t("teachers.panel.deactivateDialog.title", { name: teacher.name })}
+      summary={t("teachers.panel.deactivateDialog.accessEnds")}
+      confirmLabel={t("teachers.panel.deactivateDialog.confirm")}
+      confirmDisabled={!preview?.canDeactivate}
+      onConfirm={confirm}
+    >
+      <div className="flex flex-col gap-3" aria-busy={!current}>
         {!current && <LoadingState />}
         {current && !preview && <ErrorState onRetry={() => setTick((n) => n + 1)} />}
         {preview && (
@@ -71,28 +75,11 @@ function Body({ teacher, onClose, onDone }: { teacher: TeacherDetail; onClose: (
             ) : (
               <p className="text-sm">{t("teachers.panel.deactivateDialog.noClasses")}</p>
             )}
-            {teacher.access === "PENDING" || teacher.access === "ACTIVE" ? <p className="text-sm">{t("teachers.panel.deactivateDialog.accessEnds")}</p> : null}
-            {!preview.canDeactivate && (
-              <Banner tone="danger">
-                {t("teachers.panel.deactivateDialog.outOfReach")}
-              </Banner>
-            )}
+            {!preview.canDeactivate && <Banner tone="danger">{t("teachers.panel.deactivateDialog.outOfReach")}</Banner>}
           </>
         )}
-        {form && (
-          <Banner tone="danger">
-            {form}
-          </Banner>
-        )}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
-            {t("common.cancel")}
-          </Button>
-          <Button type="button" className="min-h-11" disabled={busy || !preview?.canDeactivate} onClick={() => void confirm()}>
-            {t("teachers.panel.deactivate")}
-          </Button>
-        </div>
+        {form && <Banner tone="danger">{form}</Banner>}
       </div>
-    </Modal>
+    </ConfirmDialog>
   );
 }

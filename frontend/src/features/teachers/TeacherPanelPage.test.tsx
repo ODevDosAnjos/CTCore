@@ -236,8 +236,8 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     const user = userEvent.setup();
     const dialog = await open(user);
     expect(await within(dialog).findByText("Nenhuma turma ficará sem titular.")).toBeInTheDocument();
-    expect(within(dialog).queryByText(/acesso ao sistema será encerrado/)).toBeNull();
-    await user.click(within(dialog).getByRole("button", { name: "Inativar" }));
+    expect(within(dialog).getByText(/O acesso dele é desligado agora/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Inativar professor" }));
     expect(await screen.findByText("Professor inativado.")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(deactivated).toBe(1);
@@ -255,7 +255,7 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     const again = await screen.findByRole("dialog");
     expect(await within(again).findByText("Estas turmas ficarão sem titular:")).toBeInTheDocument();
     expect(within(again).getByText("Jiu-Jitsu Noite")).toBeInTheDocument();
-    expect(within(again).getByText(/acesso ao sistema será encerrado/)).toBeInTheDocument();
+    expect(within(again).getByText(/O acesso dele é desligado agora/)).toBeInTheDocument();
   });
 
   it("CA9: Administrador fora do alcance vê o aviso e não confirma", async () => {
@@ -266,7 +266,7 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     await user.click(screen.getByRole("button", { name: "Inativar" }));
     const again = await screen.findByRole("dialog");
     expect(await within(again).findByText(/Só o Coordenador inativa este professor/)).toBeInTheDocument();
-    expect(within(again).getByRole("button", { name: "Inativar" })).toBeDisabled();
+    expect(within(again).getByRole("button", { name: "Inativar professor" })).toBeDisabled();
     expect(deactivated).toBe(0);
   });
 
@@ -283,10 +283,10 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     await user.click(within(failed).getByRole("button", { name: "Tentar de novo" }));
     await within(failed).findByText("Nenhuma turma ficará sem titular.");
     server.use(http.post("/api/v1/teachers/t1/deactivate", () => HttpResponse.json({ code: "CONFLICT" }, { status: 409 })));
-    await user.click(within(failed).getByRole("button", { name: "Inativar" }));
+    await user.click(within(failed).getByRole("button", { name: "Inativar professor" }));
     expect(await within(failed).findByText("Este professor já está inativo.")).toBeInTheDocument();
     server.use(http.post("/api/v1/teachers/t1/deactivate", () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 })));
-    await user.click(within(failed).getByRole("button", { name: "Inativar" }));
+    await user.click(within(failed).getByRole("button", { name: "Inativar professor" }));
     expect(await within(failed).findByText(/Você não tem permissão para inativar/)).toBeInTheDocument();
   });
 
