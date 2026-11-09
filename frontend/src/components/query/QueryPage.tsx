@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { SearchBox } from "@/components/ui/search-box";
 import { DataTable, type Column } from "./DataTable";
-import { DEFAULT_PAGE_SIZE, PAGE_SIZES, Pagination } from "./Pagination";
+import { CanvasPagination, DEFAULT_PAGE_SIZE, PAGE_SIZES, Pagination } from "./Pagination";
 import { useQueryParams } from "./useQueryParams";
 
 export type Query = { q: string; pagina: number; ordem: string; filtros: Record<string, string>; tamanho: number };
@@ -26,12 +26,13 @@ export function QueryPage<T>({
   footer,
   search = true,
   searchPlaceholder,
+  canvasPagination,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
   rowKey: (row: T) => string;
   filterKeys?: string[];
-  filters?: (p: { get: (k: string) => string; set: (k: string, v: string) => void; counts?: Record<string, number> }) => ReactNode;
+  filters?: (p: { get: (k: string) => string; set: (k: string, v: string) => void; counts?: Record<string, number>; total?: number; clear: () => void }) => ReactNode;
   emptyAction?: ReactNode;
   // Textos próprios dos dois vazios (sem item / sem item com estes filtros); sem eles valem os padrões.
   texts?: { emptyTitle?: string; emptyText?: string; noResultTitle?: string; noResultText?: string };
@@ -42,6 +43,8 @@ export function QueryPage<T>({
   search?: boolean;
   /** Com texto de ajuda, a busca usa `SearchBox` (canvas) e a barra alinha ao centro; sem ele, a caixa de sempre. */
   searchPlaceholder?: string;
+  /** Paginação do canvas ("1–25 de 131"); sem ela vale a de sempre, até cada tela migrar. */
+  canvasPagination?: boolean;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -64,6 +67,7 @@ export function QueryPage<T>({
   const state = done?.key === key ? done : { s: "loading" as const, data: undefined };
   // Os totais auxiliares ficam à vista enquanto a página seguinte carrega.
   const [lastCounts, setLastCounts] = useState<Record<string, number>>();
+  const [lastTotal, setLastTotal] = useState<number>();
 
   useEffect(() => {
     let alive = true;
@@ -75,6 +79,7 @@ export function QueryPage<T>({
         else {
           setDone({ key, s: "ok", data });
           if (data.counts) setLastCounts(data.counts);
+          setLastTotal(data.total);
         }
       },
       (e: { status?: number }) => {
@@ -104,6 +109,7 @@ export function QueryPage<T>({
     );
   else if (state.data!.total === 0) body = <EmptyState title={texts?.emptyTitle} text={texts?.emptyText} action={emptyAction} />;
   else {
+    const Pager = canvasPagination ? CanvasPagination : Pagination;
     const pages = Math.max(1, Math.ceil(state.data!.total / tamanho));
     body = (
       <>
@@ -119,7 +125,7 @@ export function QueryPage<T>({
             ))}
           </ul>
         )}
-        <Pagination
+        <Pager
           page={pagina}
           pages={pages}
           total={state.data!.total}
@@ -146,7 +152,7 @@ export function QueryPage<T>({
             onChange={(e) => set({ q: e.target.value })}
           />
         )}
-        {filters?.({ get, set: (k, v) => set({ [k]: v }), counts: lastCounts })}
+        {filters?.({ get, set: (k, v) => set({ [k]: v }), counts: lastCounts, total: lastTotal, clear })}
       </form>
       {body}
     </div>

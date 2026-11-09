@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
+import { FilterSheetContext } from "@/components/query/FilterSheet";
+import { Select } from "@/components/ui/field";
 import { usePopover } from "@/components/layout/usePopover";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +13,7 @@ export function PillFilter({ label, value, onChange, allLabel, options, disabled
   const list = useRef<HTMLUListElement>(null);
   const selected = options.find((o) => o.id === value);
   const active = Boolean(selected);
+  const inSheet = useContext(FilterSheetContext);
 
   // Ao abrir, o foco vai para a opção escolhida (ou para "todas").
   useEffect(() => {
@@ -35,6 +38,22 @@ export function PillFilter({ label, value, onChange, allLabel, options, disabled
     else return;
     e.preventDefault();
   };
+
+  // Dentro da folha do celular: campo com rótulo acima e seletor nativo.
+  if (inSheet)
+    return (
+      <label className="flex min-w-0 flex-col gap-1 text-sm font-medium text-muted-foreground">
+        {label}
+        <Select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+          <option value="">{allLabel}</option>
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </Select>
+      </label>
+    );
 
   return (
     <div ref={root} className="relative min-w-0">

@@ -8,7 +8,7 @@ import { Stepper } from "@/components/Stepper";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { UnitMenu } from "@/components/layout/UnitMenu";
 import { DataTable } from "@/components/query/DataTable";
-import { Pagination } from "@/components/query/Pagination";
+import { CanvasPagination } from "@/components/query/Pagination";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { GraduationBelt } from "@/components/ui/graduation-belt";
 import { ModalityDot } from "@/components/ui/modality-dot";
@@ -127,10 +127,10 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
         <QuickFilters
           value={filter}
           onChange={setFilter}
-          options={[{ key: "all", label: "Todos", count: 2 }, { key: "late", label: "Em atraso", count: 1 }]}
+          options={[{ key: "all", label: "Todos", count: 2 }, { key: "late", label: "Em atraso", count: 1 }, { key: "blocked", label: "Bloqueados", soon: true }]}
         />
         <DataTable columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} order="nome" onOrder={noop} selectable selected={selected} onSelectionChange={setSelected} />
-        {first && <Pagination page={1} pages={2} total={2} size={25} onPage={noop} onSize={noop} />}
+        {first && <CanvasPagination page={1} pages={6} total={131} size={25} onPage={noop} onSize={noop} />}
         <Tabs
           label="Exemplo"
           tabs={[

@@ -105,6 +105,7 @@ function Content({ accountId }: { accountId: string }) {
       </details>
       <QueryPage
         searchPlaceholder={t("students.search")}
+        canvasPagination
         key={version}
         columns={columns}
         fetchPage={fetchStudents}

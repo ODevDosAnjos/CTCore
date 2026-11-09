@@ -8,7 +8,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { StudentRow } from "./types";
 
@@ -188,32 +188,32 @@ describe("StudentsPage", () => {
     const row = (await screen.findByText("Ana Souza")).closest("tr")!;
     expect(within(row).getByText("Em atraso")).toBeInTheDocument();
     expect(within(screen.getByText("João Pereira").closest("tr")!).getByText("Em dia")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Em atraso (2)" }));
+    await user.click(screen.getByRole("button", { name: "Em atraso, 2" }));
     await waitFor(() => expect(calls.at(-1)!.get("financial")).toBe("OVERDUE"));
-    expect(screen.getByRole("button", { name: "Em atraso (2)" })).toHaveAttribute("aria-pressed", "true");
-    await user.click(screen.getByRole("button", { name: "Em atraso (2)" }));
+    expect(screen.getByRole("button", { name: "Em atraso, 2" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Em atraso, 2" }));
     await waitFor(() => expect(calls.at(-1)!.get("financial")).toBeNull());
   });
 
   it("CA29: filtros rápidos Ativos e Ex-alunos mostram a contagem do servidor, filtram e se desligam com o segundo clique", async () => {
     const user = userEvent.setup();
     setup();
-    const active = await screen.findByRole("button", { name: "Ativos (3)" });
-    const former = screen.getByRole("button", { name: "Ex-alunos (1)" });
+    const active = await screen.findByRole("button", { name: "Ativos, 3" });
+    const former = screen.getByRole("button", { name: "Ex-alunos, 1" });
     expect(active).toHaveAttribute("aria-pressed", "false");
     await user.click(active);
     await waitFor(() => expect(calls.at(-1)!.get("status")).toBe("ACTIVE"));
-    expect(screen.getByRole("button", { name: "Ativos (3)" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Ativos, 3" })).toHaveAttribute("aria-pressed", "true");
     await user.click(former);
     await waitFor(() => expect(calls.at(-1)!.get("status")).toBe("FORMER"));
-    await user.click(screen.getByRole("button", { name: "Ex-alunos (1)" }));
+    await user.click(screen.getByRole("button", { name: "Ex-alunos, 1" }));
     await waitFor(() => expect(calls.at(-1)!.get("status")).toBeNull());
   });
 
   it("CA6 (#450): Exportar CSV e Bloqueados aparecem desabilitados com Em breve e o clique não gera requisição", async () => {
     const user = userEvent.setup();
     setup();
-    await screen.findByRole("button", { name: "Ativos (3)" });
+    await screen.findByRole("button", { name: "Ativos, 3" });
     const before = calls.length;
     for (const name of ["Exportar CSV", "Bloqueados"]) {
       const el = screen.getByRole("button", { name });
@@ -323,5 +323,37 @@ describe("StudentsPage", () => {
     const { container } = setup();
     await screen.findByText("Ana Souza");
     expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it("D2: as abas são exclusivas e seguem a ordem do canvas", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByRole("button", { name: "Ativos, 3" });
+    expect(screen.getAllByRole("button", { name: /^(Ativos|Em atraso|Bloqueados|Ex-alunos)/ }).map((b) => b.textContent)).toEqual(["Ativos 3", "Em atraso 2", "Bloqueados", "Ex-alunos 1"]);
+    await user.click(screen.getByRole("button", { name: "Ativos, 3" }));
+    await user.click(screen.getByRole("button", { name: "Em atraso, 2" }));
+    await waitFor(() => expect(calls.at(-1)!.get("financial")).toBe("OVERDUE"));
+    expect(calls.at(-1)!.get("status")).toBeNull();
+  });
+
+  it("CA6/CA8: abaixo de 640 px os filtros abrem na folha com campos, Ver N alunos e Limpar filtros", async () => {
+    setDeviceNarrow(true);
+    try {
+      const user = userEvent.setup();
+      setup("COORDINATOR", undefined, "a", "/alunos?modalityId=m1&classId=k1");
+      await screen.findByText("Ana Souza");
+      expect(screen.queryByRole("button", { name: /^Modalidade/ })).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Filtros 2" }));
+      const dialog = screen.getByRole("dialog", { name: "Filtros" });
+      expect(within(dialog).getByRole("button", { name: "Ver 2 alunos" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("combobox", { name: "Nível" })).toBeEnabled();
+      await user.selectOptions(within(dialog).getByRole("combobox", { name: "Modalidade" }), "m3");
+      await waitFor(() => expect(calls.at(-1)!.get("modalityId")).toBe("m3"));
+      await user.click(within(dialog).getByRole("button", { name: "Limpar filtros" }));
+      await waitFor(() => expect(calls.at(-1)!.get("modalityId")).toBeNull());
+      expect(within(dialog).getByRole("combobox", { name: "Nível" })).toBeDisabled();
+    } finally {
+      setDeviceNarrow(false);
+    }
   });
 });

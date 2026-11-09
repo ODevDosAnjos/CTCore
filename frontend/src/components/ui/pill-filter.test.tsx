@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { axeViolations } from "@/test/axe";
+import { FilterSheetContext } from "@/components/query/FilterSheet";
 import { PillFilter } from "./pill-filter";
 
 const OPTIONS = [
@@ -75,5 +76,24 @@ describe("PillFilter", () => {
     expect(await axeViolations(container)).toEqual([]);
     await userEvent.click(screen.getByRole("button", { name: /Modalidade/ }));
     expect(await axeViolations(container)).toEqual([]);
+  });
+});
+
+describe("PillFilter dentro da folha (CA8)", () => {
+  it("vira campo com rótulo e seletor nativo; disabled e onChange valem", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <FilterSheetContext.Provider value>
+        <PillFilter label="Modalidade" value="" onChange={onChange} allLabel="Todas" options={OPTIONS} />
+      </FilterSheetContext.Provider>,
+    );
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Modalidade" }), "m2");
+    expect(onChange).toHaveBeenCalledWith("m2");
+    rerender(
+      <FilterSheetContext.Provider value>
+        <PillFilter label="Nível" value="" onChange={onChange} allLabel="Todos" options={[]} disabled />
+      </FilterSheetContext.Provider>,
+    );
+    expect(screen.getByRole("combobox", { name: "Nível" })).toBeDisabled();
   });
 });
