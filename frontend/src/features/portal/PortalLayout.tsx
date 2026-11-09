@@ -85,6 +85,9 @@ export function PortalLayout({ children }: { children: ReactNode }) {
       <main id="conteudo" ref={main} tabIndex={-1} className="mx-auto w-full max-w-280 flex-1 px-4 pb-6 pt-6 focus:outline-none">
         {shell.status === "loading" ? <LoadingState /> : shell.status === "forbidden" ? <ForbiddenState /> : shell.status === "error" ? <ErrorState onRetry={shell.retry} /> : children}
       </main>
+      <div className="mx-auto w-full max-w-280 px-4 pb-4 empty:hidden md:hidden">
+        <ChooseLinkTrigger />
+      </div>
       <PortalFooter organization={orgName} unit={data?.unit} />
       <PortalTabs reduced={reduced} count={count} variant="bottom" />
     </div>

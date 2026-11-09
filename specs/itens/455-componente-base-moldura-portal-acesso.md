@@ -125,3 +125,25 @@ Achados:
 - Verificado: testes de portal, layout, acesso e conta (410 testes); e2e de sair da conta, axe e rolagem (21 testes); `npm run visual:canvas -- --exige` (97 comparadas, 0 reprovadas); regressão do front (lint, typecheck, build e `test:cov` com 96,87% de linhas).
 - Decisões: D1 a D8 da especificação. Desvio: `AccountFrame` mostra `LogoutButton` no celular, para a D3 valer.
 - Limitações: `ChooseLinkTrigger` só aparece na barra a partir de 768 px (risco 5); no celular não há outro lugar para ele hoje, a avaliar na #498. O e2e completo não rodou localmente (fica para o CI). Achados da verificação não aplicados: caso `portal-celular-topo` sem `canvasCelular`, e tamanhos fixos de título em `PortalHeading`.
+
+### Correção da entrega
+- CI do PR #536 falhou no `e2e` (smoke, comprovantes, portal-pedidos, recuperar-senha). Causas: (1) `ChooseLinkTrigger` sumia da barra no celular (risco 5) e os e2e a 360 px trocam de vínculo pelo botão "Trocar organização ou área"; (2) `smoke` procurava o botão de tema em `/entrar`, que perdeu o tema pela D8.
+- Correção 1 — arquivo: `frontend/src/features/portal/PortalLayout.tsx` (o seletor de vínculo aparece abaixo do conteúdo só no celular e só com 2 vínculos ou mais; `empty:hidden`) — prova: `npx playwright test e2e/comprovantes.spec.ts e2e/portal-pedidos.spec.ts` → passaram (3 rodadas)
+- Correção 2 — arquivo: `frontend/e2e/smoke.spec.ts` (entra como `familia@exemplo.com` e alterna o tema na barra do portal a 1280 px) — prova: passou
+- `recuperar-senha`: passou 3 vezes local; não foi alterado, tratado como instável do CI (anotar no PR).
+- Regressão: `npm run lint`, `typecheck` ok; vitest portal e conta 216 ok; `npm run e2e` 98 passaram; `npm run test:visual:docker` 365 passaram, sem referência alterada (nenhum caso tem 2 vínculos no celular).
+- Desvio: D3/risco 5 resolvido com o seletor no fim do conteúdo no celular, em vez de Minha conta.
+
+### Rodada 2 — OK — 2026-11-09, estado 50e4605391d0c24593b1d714a26dfb3142bef924
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA14 | PASSOU (mantido da rodada 1) | a mudança desde a rodada 1 é só o seletor de vínculo no fim do conteúdo no celular (`PortalLayout.tsx`, `md:hidden`, `empty:hidden`) e o `smoke.spec.ts`; não toca barra, abas, rodapé nem acesso |
+| CA5, CA13 (reconferidos) | PASSOU | playwright: smoke, comprovantes, portal-pedidos, sair-da-conta, portal-barra, recuperar-senha, 26 passaram (axe e rolagem a 360 e 1440 px, dois temas) |
+
+Comandos: `npm run lint` e `npm run typecheck` ok; `npx vitest run src/features/portal src/features/account src/components/layout --maxWorkers=2` ok; playwright dos 6 arquivos acima, 26 ok. Não rodados nesta rodada: `test:cov`, `test:visual:docker` e `e2e` completo (a mudança não altera referência visual; o `ci-gate` do PR é a prova, AGENTS.md autonomia 2).
+Instáveis: `recuperar-senha` passou aqui; sem falha reproduzida.
+Achados:
+- sugestão, código, `frontend/visual/casos.ts` caso `portal-celular-topo` — sem `canvasCelular` (da rodada 1, mantida).
+- sugestão, código, `PortalHeading` — tamanhos fixos de título (da rodada 1, mantida).
+- sugestão, código, `PortalLayout.tsx` — o `ChooseLinkTrigger` fica duplicado no DOM (barra e fim do conteúdo), cada um escondido por breakpoint; funciona, só confirmar que o axe não acusa id repetido (o axe passou).
