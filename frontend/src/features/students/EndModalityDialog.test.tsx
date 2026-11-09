@@ -37,17 +37,29 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
   it("mostra o efeito e o estado vazio das cobranças; confirma só com motivo e envia motivo e observação", async () => {
     const user = userEvent.setup();
     setup();
-    expect(await screen.findByText(/para de gerar cobrança/)).toBeInTheDocument();
-    expect(screen.getByText("Ana Souza · Jiu-Jitsu (Centro)")).toBeInTheDocument();
+    expect(await screen.findByText(/Para de gerar cobrança/)).toBeInTheDocument();
+    expect(screen.getByText("Resumo")).toBeInTheDocument();
+    expect(screen.getByText(/Jiu-Jitsu fica Encerrada hoje, \d{2}\/\d{2}\/\d{4}\./)).toBeInTheDocument();
+    expect(screen.getByText("Ana recebe um e-mail avisando o encerramento.")).toBeInTheDocument();
     expect(screen.getByText("Nenhuma cobrança em aberto")).toBeInTheDocument();
     const submit = screen.getByRole("button", { name: "Encerrar modalidade" });
     expect(submit).toBeDisabled();
-    await user.selectOptions(screen.getByLabelText("Motivo"), "FINANCIAL");
+    await user.click(screen.getByRole("radio", { name: "Motivo financeiro" }));
     await user.type(screen.getByLabelText("Observação (opcional)"), "  Sem tempo  ");
     await user.click(submit);
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([{ reason: "FINANCIAL", note: "Sem tempo" }]);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("CA6: o Resumo diz que a outra modalidade ativa continua Ativa", async () => {
+    server.use(preview());
+    render(
+      <ThemeProvider>
+        <EndModalityDialog studentId="s1" studentName="Ana Souza" row={modalityRow()} others={["Muay Thai"]} onClose={onClose} onDone={onDone} />
+      </ThemeProvider>,
+    );
+    expect(await screen.findByText("Muay Thai continua Ativa: Ana segue como aluno Ativo.")).toBeInTheDocument();
   });
 
   it("lista as cobranças em aberto quando existirem", async () => {
@@ -58,14 +70,17 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
   it("CA19: escolhe Cancelar (com motivo) numa cobrança e Manter na outra; o envio leva charges", async () => {
     const user = userEvent.setup();
     setup(undefined, preview([open("c1", "2026-03-05"), open("c2", "2026-04-05")]));
-    const groups = await screen.findAllByRole("group", { name: /R\$ 150,00/ });
+    const groups = await screen.findAllByRole("radiogroup", { name: /R\$ 150,00/ });
     expect(groups).toHaveLength(2);
     expect(screen.getAllByRole("radio", { name: "Manter", checked: true })).toHaveLength(2);
-    await user.selectOptions(screen.getByLabelText("Motivo"), "FINANCIAL");
-    await user.click(within(groups[0]).getByRole("radio", { name: "Cancelar" }));
+    expect(screen.queryByRole("textbox", { name: /Motivo do cancelamento/ })).toBeNull();
+    await user.click(screen.getByRole("radio", { name: "Motivo financeiro" }));
+    await user.click(within(groups[0]).getByText("Cancelar"));
+    expect(screen.getByText(/Mantida: 05\/04\/2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Cancelada: 05\/03\/2026/)).toBeInTheDocument();
     const submit = screen.getByRole("button", { name: "Encerrar modalidade" });
     expect(submit).toBeDisabled();
-    await user.type(within(groups[0]).getByRole("textbox"), " Mudou de cidade ");
+    await user.type(screen.getByRole("textbox", { name: /Motivo do cancelamento/ }), " Mudou de cidade ");
     expect(submit).toBeEnabled();
     await user.click(submit);
     await waitFor(() => expect(onDone).toHaveBeenCalled());
@@ -77,8 +92,7 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
   it("mostra o 400 do servidor no campo e não fecha", async () => {
     const user = userEvent.setup();
     setup(() => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "note", message: "até 500 caracteres" }] }, { status: 400 }));
-    await screen.findByLabelText("Motivo");
-    await user.selectOptions(screen.getByLabelText("Motivo"), "OTHER");
+    await user.click(await screen.findByRole("radio", { name: "Outro" }));
     await user.click(screen.getByRole("button", { name: "Encerrar modalidade" }));
     expect(await screen.findByText("até 500 caracteres")).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
@@ -87,8 +101,7 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
   it("404 na confirmação avisa que a modalidade não existe mais", async () => {
     const user = userEvent.setup();
     setup(() => HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 }));
-    await screen.findByLabelText("Motivo");
-    await user.selectOptions(screen.getByLabelText("Motivo"), "OTHER");
+    await user.click(await screen.findByRole("radio", { name: "Outro" }));
     await user.click(screen.getByRole("button", { name: "Encerrar modalidade" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("já foi encerrada");
   });
@@ -99,7 +112,7 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
     expect(await screen.findByText(/cobranças com vencimento depois do pedido são canceladas/)).toBeInTheDocument();
     expect(screen.getByText(/será cancelada/)).toBeInTheDocument();
     expect(screen.getAllByRole("radio", { name: "Manter" })).toHaveLength(1);
-    await user.selectOptions(screen.getByLabelText("Motivo"), "OTHER");
+    await user.click(screen.getByRole("radio", { name: "Outro" }));
     await user.click(screen.getByRole("button", { name: "Encerrar modalidade" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([{ reason: "OTHER", charges: [{ chargeId: "c1", action: "KEEP" }] }]);
@@ -109,7 +122,7 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
     const user = userEvent.setup();
     setup(undefined, http.get("/api/v1/students/s1/modalities/m1/end-preview", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }), { once: true }));
     await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
-    expect(await screen.findByLabelText("Motivo")).toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "Outro" })).toBeInTheDocument();
   });
 
   it("sem permissão na consulta mostra o estado próprio", async () => {
@@ -124,7 +137,7 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
     setDevicePrefersDark(dark);
     window.innerWidth = 360;
     setup();
-    await screen.findByLabelText("Motivo");
+    await screen.findByRole("radio", { name: "Outro" });
     expect(await axeViolations(document.body)).toEqual([]);
   });
 });

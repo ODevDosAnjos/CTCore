@@ -54,7 +54,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
   for (const p of passos) {
     if ("preencher" in p) await page.getByLabel(p.preencher[0], { exact: true }).fill(p.preencher[1]);
     else {
-      const botao = page.getByRole("button", { name: new RegExp(`^${p.clicar}`) }).first();
+      const botao = page.getByRole(p.papel ?? "button", { name: new RegExp(`^${p.clicar}`) }).first();
       if (!p.seExistir || (await botao.count()) > 0) await botao.click();
     }
   }

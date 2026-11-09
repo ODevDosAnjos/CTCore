@@ -78,3 +78,54 @@ test("Alunos a 360 px sem rolagem lateral", async ({ page }) => {
   await expect(page.getByText("Aluno Adulto Fictício")).toBeVisible();
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
 });
+
+async function loginAna(page: Page) {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+}
+const ADULTO = "00000000-0000-0000-0000-000000000701";
+// cenário: matrícula concluída pela API simulada, que gera a mensalidade em aberto do aluno adulto
+const matricular = (page: Page) =>
+  page.evaluate(async (id) => {
+    const r = await fetch(`/api/v1/students/${id}/enrollment/conclude`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modalities: [{ unitId: "00000000-0000-0000-0000-000000000021", modalityId: "00000000-0000-0000-0000-000000000103", primaryClassId: "00000000-0000-0000-0000-000000000601", planId: "00000000-0000-0000-0000-000000000602", dueDay: 5 }],
+        units: [],
+      }),
+    });
+    if (!r.ok) throw new Error(String(r.status));
+  }, ADULTO);
+const noOverflow = (page: Page) => page.evaluate("document.documentElement.scrollWidth <= window.innerWidth");
+
+// #461 CA8: a 360 px as janelas Cancelar cobrança e Encerrar modalidade não têm rolagem lateral.
+test("Cancelar cobrança a 360 px sem rolagem lateral", async ({ page }) => {
+  await loginAna(page);
+  await matricular(page);
+  await open(page, "/cobrancas");
+  await page.getByRole("button", { name: /^Abrir cobrança de Aluno Adulto/ }).first().click();
+  await page.getByRole("button", { name: "Cancelar cobrança" }).click();
+  const dialog = page.getByRole("dialog", { name: "Cancelar cobrança" });
+  await expect(dialog.getByLabel("Motivo")).toBeVisible();
+  expect(await noOverflow(page)).toBe(true);
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
+test("Encerrar modalidade a 360 px sem rolagem lateral", async ({ page }) => {
+  await loginAna(page);
+  await matricular(page);
+  await open(page, `/alunos/${ADULTO}`);
+  await page.getByRole("tab", { name: "Matrícula" }).click();
+  await page.getByRole("button", { name: "Encerrar" }).first().click();
+  const dialog = page.getByRole("dialog", { name: /^Encerrar / });
+  await dialog.getByRole("radio", { name: "Horário" }).check({ force: true });
+  await dialog.getByText("Cancelar", { exact: true }).first().click();
+  await expect(dialog.getByLabel("Motivo do cancelamento")).toBeVisible();
+  expect(await noOverflow(page)).toBe(true);
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});

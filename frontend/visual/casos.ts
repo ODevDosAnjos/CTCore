@@ -3,7 +3,7 @@
 // `canvas`: nome da tela em docs/design/canvas (sem .dc.html); `canvasEscuro`: versão escura, quando existe.
 // D4 (#419): passos antes do print, para chegar a janelas e estados. `preencher`: [rótulo exato, valor]; `clicar`: início do nome do botão.
 // seExistir: o botão só aparece em parte das larguras (ex.: "Filtros" abaixo de 640 px)
-export type Passo = { preencher: [string, string] } | { clicar: string, seExistir?: boolean };
+export type Passo = { preencher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" };
 export type Caso = {
   nome: string;
   rota: string;
@@ -135,6 +135,9 @@ export const casos: Caso[] = [
   { nome: "cobranca-avulsa", rota: "/cobrancas", perfil: ana, canvas: "CobrancaAvulsa", passos: [{ clicar: "Nova cobrança avulsa" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #477 trata a tela e remove esta exceção)" } },
   { nome: "cobranca-antecipar", rota: "/cobrancas", perfil: ana, canvas: "GerarProximas", passos: [{ clicar: "Gerar próximas mensalidades" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #477 trata a tela e remove esta exceção)" } },
   { nome: "notificacoes", rota: "/alunos", perfil: ana, canvas: "Notificacoes", passos: [{ clicar: "Notificações" }], limiteCanvas: { valor: 0.50, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #492 trata a tela e remove esta exceção)" } },
+  // Janelas de ação com os blocos Resumo, Motivo e cartões de escolha (#461). Bruno (cenário do MSW) tem cobrança em aberto ligada à modalidade.
+  { nome: "cobranca-cancelar", rota: "/cobrancas", perfil: ana, canvas: "CobrancaCancelar", passos: [{ clicar: "Abrir cobrança de" }, { clicar: "Cancelar cobrança" }], limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: a cobrança aberta é outra e a lista atrás tem outras linhas e filtros (medido a 70,2% na #461; a #477 trata a tela e remove esta exceção)" } },
+  { nome: "aluno-encerrar-modalidade", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "EncerrarModalidade", passos: [{ clicar: "Matrícula", papel: "tab" }, { clicar: "Encerrar" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: o canvas traz a cobrança em tabela e o botão de encerrar em vermelho cheio, e a ficha atrás tem outro conteúdo (medido a 52,7% na #461; a #468 trata a tela e remove esta exceção)" } },
   // Telas do canvas já construídas que o MSW alcança por rota (#435). Fora delas, ver semCaso.
   { nome: "inicio-professor", rota: "/", perfil: prof, canvas: "ProfessorInicio" },
   { nome: "matricula-aluno", rota: "/alunos/nova-matricula", perfil: ana, canvas: "MatriculaAluno" },
@@ -174,13 +177,13 @@ export const semCaso: Record<string, string[]> = {
   "janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)": [
     "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos", "AlunoDetalhes",
     "AlunoMatricula", "AlunoFinanceiro", "AlunoGraduacoes", "AlunoResponsaveis", "AlunoHistorico", "AlunoEditar",
-    "TrocarTurma", "TrocarPlano", "TransferirModalidade", "EncerrarModalidade", "AlunoInativar", "AlunoReativar",
+    "TrocarTurma", "TrocarPlano", "TransferirModalidade", "AlunoInativar", "AlunoReativar",
     "AlunoAnonimizar", "ResponsavelDesligar", "MatriculaModalidades", "MatriculaVencimento", "MatriculaResumo",
     "MatriculaConcluida", "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo", "ProfessorModalidadeRecusa",
     "AgendaPainel", "AulaEditar", "AulaCancelar", "AulaEditarSeguintes", "AulaCorrigir",
     "AulaAvisarTurma", "TurmaTitularInativo", "TurmaDesativar", "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "CobrancaPainel", "SomenteLeitura", "EstadoErro", "PagamentoRegistrar",
-    "Renegociar", "CobrancaCancelar", "Estornar", "ExportarMensalidades", "ComprovanteVarias", "BeneficioEncerrar",
+    "Renegociar", "Estornar", "ExportarMensalidades", "ComprovanteVarias", "BeneficioEncerrar",
     "PlanoDesativar", "BeneficioSubstituir", "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
     "PagamentosDesconectado", "ModalidadeDesativar", "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",

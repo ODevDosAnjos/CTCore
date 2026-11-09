@@ -72,7 +72,7 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
     expect(screen.getByRole("button", { name: "Encerrar" })).toBeEnabled();
     expect(screen.queryByText(/em breve/)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Encerrar" }));
-    expect(await screen.findByRole("dialog", { name: "Encerrar modalidade" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Encerrar Jiu-Jitsu" })).toBeInTheDocument();
   });
 
   it("RN-MAT-18: a modalidade com pedido de encerramento aberto traz o selo Encerramento solicitado e segue ativa", () => {
