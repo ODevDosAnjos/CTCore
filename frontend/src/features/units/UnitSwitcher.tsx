@@ -1,37 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Select } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
-import { ALL, useUnitScope } from "./UnitScopeProvider";
+import { UnitMenu, type UnitMenuProps } from "@/components/layout/UnitMenu";
+import { useUnitScope } from "./UnitScopeProvider";
 
-// RF-ORG-05: seletor da barra superior, só com duas ou mais unidades ao alcance (RN-ORG-04). O servidor segue decidindo cada acesso.
-export function UnitSwitcher() {
-  const { t } = useTranslation();
+// RF-ORG-05: seletor da barra superior (RN-ORG-04), também com uma só unidade (rótulo sem lista). O servidor segue decidindo cada acesso.
+export function UnitSwitcher({ variant }: { variant?: UnitMenuProps["variant"] }) {
   const scope = useUnitScope();
-  if (scope.status === "loading") return <span role="status" className="sr-only">{t("unitScope.loading")}</span>;
-  if (scope.status === "error") {
-    return (
-      <span className="flex min-w-0 items-center gap-2">
-        <span role="alert" className="min-w-0 truncate text-sm">{t("unitScope.error")}</span>
-        <Button variant="secondary" size="sm" onClick={scope.retry}>{t("states.retry")}</Button>
-      </span>
-    );
-  }
-  if (scope.status === "forbidden" || scope.units.length < 2) return null;
-  return (
-    <Select
-      aria-label={t("unitScope.label")}
-      className="max-w-44"
-      value={scope.selected ?? ""}
-      onChange={(e) => scope.select(e.target.value)}
-    >
-      {scope.allUnits && <option value={ALL}>{t("unitScope.all")}</option>}
-      {scope.units.map((u) => (
-        <option key={u.id} value={u.id}>
-          {u.name}
-        </option>
-      ))}
-    </Select>
-  );
+  return <UnitMenu status={scope.status} units={scope.units} allUnits={scope.allUnits} selected={scope.selected} onSelect={scope.select} onRetry={scope.retry} variant={variant} />;
 }
 
 // Abrangência escolhida, em uma linha, para o Início (sem dados somados: esses vêm nas próximas sprints).

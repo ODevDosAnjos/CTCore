@@ -204,7 +204,8 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await ready();
     expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Unidade A");
     expect(screen.queryByRole("option", { name: "Todas as unidades" })).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Unidade ativa"), B);
+    await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
+    await user.click(screen.getByRole("button", { name: "Unidade B" }));
     await waitFor(() => expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Unidade B"));
     expect(screen.queryByLabelText("Unidade")).not.toBeInTheDocument();
   });
@@ -214,7 +215,8 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     setup("COORDINATOR", { units: [detail(A, "Unidade A"), detail(B, "Unidade B")] });
     expect(await screen.findByText(/Escolha uma unidade no topo/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Nome da unidade")).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Unidade ativa"), B);
+    await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
+    await user.click(screen.getByRole("button", { name: "Unidade B" }));
     await waitFor(() => expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Unidade B"));
   });
 

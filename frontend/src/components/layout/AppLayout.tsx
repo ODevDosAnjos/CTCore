@@ -1,14 +1,12 @@
 import { useRef, type ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { MobileTabs, type NavTab } from "./MobileTabs";
 import { Sidebar } from "./Sidebar";
-import { Topbar } from "./Topbar";
+import { Topbar, type TopbarProps } from "./Topbar";
 import { useSidebarCollapsed } from "./useSidebarCollapsed";
 
-export type NavItem = { id: string; label: string; href: string; icon?: string };
-export type NavGroup = { id: string; label: string; items: NavItem[] };
+export type NavItem = { id: string; label: string; href: string; icon?: string; disabled?: boolean };
+export type NavGroup = { id: string; label: string; icon?: string; items: NavItem[] };
 
 // D1: sem roteador; a tela passa os grupos e o id ativo, e os itens são links comuns.
 // Moldura da gestão: menu lateral escuro (desktop); no celular, barra de cima, abas embaixo e menu em tela cheia.
@@ -16,6 +14,9 @@ export function AppLayout({
   groups,
   activeId,
   headerExtra,
+  unit,
+  bell,
+  userMenu,
   org,
   roleLabel,
   badges,
@@ -26,6 +27,9 @@ export function AppLayout({
   groups: NavGroup[];
   activeId: string;
   headerExtra?: ReactNode;
+  unit?: TopbarProps["unit"];
+  bell?: ReactNode;
+  userMenu?: ReactNode;
   org?: string;
   roleLabel?: string;
   badges?: Record<string, number>;
@@ -36,7 +40,7 @@ export function AppLayout({
   const { t } = useTranslation();
   const [collapsed, toggle] = useSidebarCollapsed();
   const main = useRef<HTMLElement>(null);
-  const side = { groups, activeId, org, roleLabel, badges, onLogout };
+  const side = { groups, activeId, org, roleLabel, badges, onLogout, unitSlot: unit?.("mobile") };
   return (
     <div className="min-h-screen md:flex">
       <a
@@ -53,25 +57,7 @@ export function AppLayout({
         <Sidebar {...side} collapsed={collapsed} onToggle={toggle} />
       </aside>
       <div className="min-w-0 flex-1">
-        <Topbar
-          groups={groups}
-          activeId={activeId}
-          leading={
-            <div className="md:hidden">
-              {activeId === "home" ? (
-                <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-md bg-primary font-semibold text-primary-foreground">
-                  {t("app.name").charAt(0).toUpperCase()}
-                </span>
-              ) : (
-                <Button asChild variant="ghost" size="icon">
-                  <a href="/" aria-label={t("layout.back")}>
-                    <ArrowLeft aria-hidden="true" />
-                  </a>
-                </Button>
-              )}
-            </div>
-          }
-        >
+        <Topbar groups={groups} activeId={activeId} org={org} unit={unit} bell={bell} userMenu={userMenu}>
           {headerExtra}
         </Topbar>
         <main id="conteudo" ref={main} tabIndex={-1} className="px-4 py-6 pb-20 focus:outline-none md:pb-6">

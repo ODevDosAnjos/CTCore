@@ -10,8 +10,8 @@ const violations = async (page: Page) => {
 };
 const noOverflow = (page: Page) => page.evaluate("document.documentElement.scrollWidth <= window.innerWidth");
 
-async function login(page: Page, email: string) {
-  await page.goto("/entrar");
+async function login(page: Page, email: string, next?: string) {
+  await page.goto(next ? `/entrar?next=${encodeURIComponent(next)}` : "/entrar");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill("segredo123");
   await page.getByRole("button", { name: "Entrar" }).click();
@@ -23,11 +23,13 @@ for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.setViewportSize({ width: 1280, height: 800 });
     await login(page, "ana@exemplo.com");
-    const out = page.getByRole("banner").getByRole("button", { name: "Sair da conta" });
+    // #454: a saída fica no menu da conta (avatar, nome, perfil e seta), não solta na barra.
+    await expect(page.getByRole("banner").getByRole("button", { name: "Sair da conta" })).toHaveCount(0);
+    await page.getByRole("banner").getByRole("button", { name: /Menu da conta/ }).click();
+    const out = page.getByRole("menuitem", { name: "Sair da conta" });
     await expect(out).toBeVisible();
     expect((await out.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    // "Buscar, Em breve" (Topbar, de antes do item) falha em label-content-name-mismatch; fora do escopo da #434
-    expect((await violations(page) as { id: string }[]).filter((v) => v.id !== "label-content-name-mismatch")).toEqual([]);
+    expect(await violations(page)).toEqual([]);
     await out.click();
     await expect(page).toHaveURL(/\/entrar$/);
     await page.goto("/agenda");
@@ -60,3 +62,20 @@ test("@critical gestão no celular: sair pelo menu em tela cheia", async ({ page
   await page.getByRole("dialog").getByRole("button", { name: "Sair da conta" }).click();
   await expect(page).toHaveURL(/\/entrar$/);
 });
+
+// #454: moldura da gestão sem violação do axe (inclusive o botão "Buscar"), sem rolagem horizontal, a 360 e a 1440 px, nos dois temas.
+for (const scheme of ["light", "dark"] as const) {
+  for (const width of [360, 1440]) {
+    for (const path of ["/alunos", "/agenda"]) {
+      test(`@critical moldura da gestão em ${path}: axe e sem rolagem horizontal (${width} px, ${scheme})`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.setViewportSize({ width, height: 800 });
+        await login(page, "ana@exemplo.com", path);
+        await expect(page.getByRole("main")).toBeVisible();
+        await expect(page.getByRole("button", { name: /^Buscar/ })).toBeDisabled();
+        expect(await noOverflow(page)).toBe(true);
+        expect(await violations(page)).toEqual([]);
+      });
+    }
+  }
+}

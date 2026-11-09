@@ -121,8 +121,9 @@ describe("PaymentProofsPage (RF-COB-05)", () => {
     const user = userEvent.setup();
     let fail = true;
     setup(() => (fail ? HttpResponse.json({ code: "X", message: "m", fields: [], traceId: "t" }, { status: 500 }) : HttpResponse.json({ items: [], page: 1, size: 25, total: 0 })));
+    const retry = await waitFor(() => within(screen.getByRole("main")).getByRole("button", { name: "Tentar de novo" }));
     fail = false;
-    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    await user.click(retry);
     expect(await screen.findByText("Nenhum comprovante em conferência")).toBeInTheDocument();
   });
 

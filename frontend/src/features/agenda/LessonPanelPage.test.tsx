@@ -117,7 +117,7 @@ describe("LessonPanelPage", () => {
     expect(
       screen.getByText("10/03/2026, das 19:00 às 20:00"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Centro")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getByText("Centro")).toBeInTheDocument();
     expect(screen.getByText("Jiu-Jitsu")).toBeInTheDocument();
     expect(screen.getByText("Ana Souza")).toBeInTheDocument();
     expect(

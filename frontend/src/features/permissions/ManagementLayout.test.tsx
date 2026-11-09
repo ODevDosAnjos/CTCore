@@ -67,11 +67,14 @@ describe("ManagementLayout", () => {
     server.use(http.get("/api/v1/portal-requests", () => HttpResponse.json({ items: [], total: 3 })));
     window.innerWidth = 1440;
     setup("COORDINATOR");
-    expect(await screen.findByText("Gestão · Coordenação")).toBeInTheDocument();
+    expect(await screen.findByText("Gestão · Coordenador")).toBeInTheDocument();
     expect(screen.getByText("Alfa")).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Pessoas" }));
     await waitFor(() => expect(screen.getByRole("link", { name: "Pedidos" })).toHaveTextContent("3"));
-    expect(screen.getByRole("link", { name: /^Minha conta/ })).toBeInTheDocument();
+    const conta = screen.getByRole("button", { name: /Menu da conta/ });
+    expect(conta).toHaveTextContent("Coordenador");
+    await userEvent.setup().click(conta);
+    expect(screen.getByRole("menuitem", { name: "Minha conta" })).toHaveAttribute("href", "/conta");
   });
 
   it.each([
@@ -104,15 +107,26 @@ describe("ManagementLayout", () => {
     expect(await axeViolations(container)).toEqual([]);
   });
 
-  it("CA1/CA2: 'Sair da conta' na barra e no menu lateral chamam POST /auth/logout", async () => {
+  it("CA7/CA12: 'Sair da conta' no menu da conta (desktop) e no menu do celular chamam POST /auth/logout", async () => {
     let n = 0;
     server.use(http.post("/api/v1/auth/logout", () => ((n += 1), new HttpResponse(null, { status: 204 }))));
     const user = userEvent.setup();
     setup("COORDINATOR");
     await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
-    const buttons = screen.getAllByRole("button", { name: "Sair da conta" });
-    expect(buttons.length).toBeGreaterThanOrEqual(2);
-    await user.click(buttons[0]);
+    expect(screen.queryByRole("button", { name: "Sair da conta" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /Menu da conta/ }));
+    await user.click(screen.getByRole("menuitem", { name: "Sair da conta" }));
     await waitFor(() => expect(n).toBe(1));
+  });
+
+  it("CA12: o menu do celular tem o seletor de unidade, o tema, Minha conta e Sair", async () => {
+    server.use(http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: false, units: [{ id: "u1", name: "Tijuca", shortName: "t" }] })));
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await user.click(await screen.findByRole("button", { name: "Menu" }));
+    const menu = screen.getByRole("dialog", { name: "Menu" });
+    expect(await within(menu).findByText("Tijuca")).toBeInTheDocument();
+    expect(within(menu).getByRole("link", { name: "Minha conta" })).toBeInTheDocument();
+    expect(within(menu).getByRole("button", { name: "Sair da conta" })).toBeInTheDocument();
   });
 });

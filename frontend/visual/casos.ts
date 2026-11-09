@@ -32,6 +32,9 @@ export const casos: Caso[] = [
   { nome: "moldura-coordenacao", rota: "/alunos", perfil: ana, canvas: "Sidebar" },
   { nome: "moldura-administrador", rota: "/alunos", perfil: admin, canvas: "Topbar" },
   { nome: "moldura-professor", rota: "/agenda", perfil: prof, canvas: "GMMenu" },
+  // #454: no celular o menu em tela cheia e a folha de unidade; a 1440 px o mesmo passo abre o menu da conta e a lista de unidade (o canvas é de 360 px, sem comparação automática)
+  { nome: "moldura-celular-menu", rota: "/alunos", perfil: ana, canvas: "GMMenu", passos: [{ clicar: "Menu" }] },
+  { nome: "moldura-celular-unidade", rota: "/alunos", perfil: ana, canvas: "GMUnidade", passos: [{ clicar: "Unidade ativa" }] },
   // Moldura do portal (#418): barra com a marca, abas, sino, rodapé e faixa de acesso reduzido; a 390 px, barra de cima e abas embaixo
   { nome: "portal-aluno", rota: "/", perfil: aluno, canvas: "PortalInicio", canvasCelular: "PortalMInicio" },
   { nome: "portal-responsavel", rota: "/portal/financeiro", perfil: familia, canvas: "PortalNav" },
@@ -182,7 +185,7 @@ export const semCaso: Record<string, string[]> = {
   ],
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
   "celular a 360 px: o teste visual captura 390 (D5 da #435)": [
-    "GMInicio", "GMBusca", "GMInicioCoord", "GMInicioProfessor", "GMNotificacoes", "GMUnidade",
+    "GMInicio", "GMBusca", "GMInicioCoord", "GMInicioProfessor", "GMNotificacoes",
     "GMConta", "GMAlunos", "GMFicha", "GMAlunosFiltros", "GMFichaMatricula", "GMFichaFinanceiro",
     "GMFichaResponsaveis", "GMAlunoEditar", "GMEncerrar", "GMAgenda", "GMAulaPainel", "GMAulaEditar",
     "GMAulaCancelar", "GMDiasSemAula", "GMAgendaProfessor", "GMAulaProfessor", "GMCobrancas", "GMPagamento",

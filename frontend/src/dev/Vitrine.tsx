@@ -5,6 +5,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Modal } from "@/components/Modal";
 import { SidePanel } from "@/components/SidePanel";
 import { Stepper } from "@/components/Stepper";
+import { BrandMark } from "@/components/layout/BrandMark";
+import { UnitMenu } from "@/components/layout/UnitMenu";
 import { DataTable } from "@/components/query/DataTable";
 import { Pagination } from "@/components/query/Pagination";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
@@ -134,6 +136,12 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
             { id: "2", title: `Dois ${theme}`, valid: true, content: <p>Segunda</p> },
           ]}
         />
+      </Section>
+      <Section heading="h2" title={`Moldura da gestão (${theme})`}>
+        <div className="flex flex-wrap items-center gap-4">
+          <BrandMark org="Academia Leão" />
+          <UnitMenu status="ready" units={[{ id: "a", name: "Tijuca" }, { id: "b", name: "Barra" }]} allUnits selected="a" onSelect={noop} onRetry={noop} />
+        </div>
       </Section>
       <Section heading="h2" title={`Janelas (${theme})`}>
         <div className="flex flex-wrap gap-2">

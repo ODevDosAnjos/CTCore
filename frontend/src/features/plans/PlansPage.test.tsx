@@ -108,7 +108,8 @@ describe("PlansPage (RF-PLA-01)", () => {
     setup({ units: [{ id: "u1", name: "Centro", shortName: "c" }, { id: "u2", name: "Norte", shortName: "n" }] });
     await screen.findByText("R$ 150,00 a R$ 300,00");
     expect(calls.at(-1)!.get("unitId")).toBeNull();
-    await user.selectOptions(await screen.findByLabelText("Unidade ativa"), "u2");
+    await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
+    await user.click(screen.getByRole("button", { name: "Norte" }));
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u2"));
   });
 

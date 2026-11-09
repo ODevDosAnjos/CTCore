@@ -1771,6 +1771,10 @@
   "unitScope": {
     "label": "Unidade ativa",
     "all": "Todas as unidades",
+    "sheetTitle": "Unidade",
+    "readOnly": "Só consulta",
+    "readOnlyCoordinator": "Só consulta · Coordenador",
+    "close": "Fechar",
     "loading": "Carregando unidades...",
     "error": "Não foi possível carregar as unidades.",
     "chooseToEdit": "Escolha uma unidade no topo da tela para ver e alterar as configurações.",
@@ -1783,6 +1787,7 @@
       "operation": "Operação",
       "people": "Pessoas",
       "finance": "Financeiro",
+      "communication": "Comunicação",
       "reports": "Relatórios",
       "settings": "Configurações"
     },
@@ -1802,17 +1807,17 @@
       "benefits": "Benefícios",
       "reports": "Relatórios",
       "allUnits": "Todas as unidades",
-      "unitSettings": "Configurações da unidade",
-      "organizationSettings": "Configurações da organização",
+      "unitSettings": "Unidade",
+      "organizationSettings": "Organização",
       "modalities": "Modalidades",
       "ageRanges": "Faixas etárias",
       "terms": "Termos",
       "texts": "Textos",
-      "staffUsers": "Usuários da gestão",
+      "staffUsers": "Usuários",
       "units": "Unidades",
-      "subscription": "Assinatura e faturas",
+      "subscription": "Assinatura",
       "audit": "Auditoria",
-      "import": "Importar",
+      "import": "Importar e exportar",
       "exportFull": "Exportação completa",
       "support": "Acesso de suporte"
     }
@@ -1842,6 +1847,11 @@
     "madeWith": "feito com ctcore",
     "area": "Gestão · {{role}}",
     "back": "Voltar ao Início",
+    "darkTheme": "Tema escuro",
+    "userMenu": {
+      "label": "Menu da conta"
+    },
+    "myAccount": "Minha conta",
     "tabs": {
       "label": "Abas principais",
       "home": "Início",
@@ -1852,7 +1862,7 @@
     },
     "roles": {
       "ADMINISTRATOR": "Administrador",
-      "COORDINATOR": "Coordenação",
+      "COORDINATOR": "Coordenador",
       "TEACHER": "Professor"
     }
   },
