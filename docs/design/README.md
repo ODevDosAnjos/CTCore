@@ -85,6 +85,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |
 | Resumo do que vai acontecer | `SummaryBox` | lista com setas, usado nas janelas |
 | Pessoa com avatar | `Person`, `Avatar` | iniciais com cor estável pelo nome; `size="sm"` (32 px) nas listas, padrão 36 px |
+| Linha de lista com pessoa | `PersonRow`, `PersonAvatar` | avatar (foto ou iniciais), nome ou `title` (link), selos ao lado, texto secundário e `action` no fim (ex.: `WhatsAppButton`); bloco de linha, serve à célula da tabela e ao `lead` do `RowCard` |
 | Faixa de graduação | `GraduationBelt` | 44x10 px, cor, ponta secundária e um risco por grau; cores vêm dos dados |
 | Ponto de modalidade | `ModalityDot` | ponto de 8 px com o nome; cor estável pelo nome, só tokens |
 | Selo de situação | `Badge`, `StatusBadge` | tom pelo mapa único de situações |

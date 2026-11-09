@@ -14,6 +14,8 @@ import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/componen
 import { GraduationBelt } from "@/components/ui/graduation-belt";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { Avatar, Person } from "@/components/ui/avatar";
+import { PersonRow } from "@/components/ui/person-row";
+import { WhatsAppButton } from "@/components/whatsapp/WhatsAppButton";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
@@ -91,6 +93,7 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
           <ModalityDot name="Jiu-jitsu" />
           <GraduationBelt name="Preta" color="#111111" secondaryColor="#c00000" degree={2} label="Faixa preta · 2 graus" />
           <Person name="Bruno Lima" secondary="Faixa azul" />
+          <PersonRow name="Carla Dias" secondary="12 anos · Centro" badges={<span className="rounded-md border px-2 py-0.5 text-sm">Novo</span>} action={<WhatsAppButton phone="11999990000" />} />
         </div>
         <SummaryBox className="mt-3" items={["Cancela a cobrança", "Avisa o aluno"]} />
       </Section>

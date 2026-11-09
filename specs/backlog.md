@@ -162,7 +162,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 456 | Componente base: Busca e filtro em pílula | issue #456 | Sprint 10.5 | #448 | agente | feito |
 | 457 | Componente base: Abas com contagem, paginação e folha de filtros no celular | issue #457 | Sprint 10.5 | #448, #456 | agente | feito |
 | 458 | Componente base: Tabela em cartões no celular | issue #458 | Sprint 10.5 | #448 | agente | feito |
-| 459 | Componente base: Linha de lista com avatar (usa os blocos da C10) | issue #459 | Sprint 10.5 | #448, #458, #452 | agente | a fazer |
+| 459 | Componente base: Linha de lista com avatar (usa os blocos da C10) | issue #459 | Sprint 10.5 | #448, #458, #452 | agente | feito |
 | 460 | Componente base: Janela base: tamanhos, título em caixa alta e rodapé fixo | issue #460 | Sprint 10.5 | #448 | agente | a fazer |
 | 451 | Componente base: Botão destrutivo e confirmação de ação sensível | issue #451 | Sprint 10.5 | #448, #460 | agente | a fazer |
 | 461 | Componente base: Janela: blocos de resumo, motivo e cartões de escolha | issue #461 | Sprint 10.5 | #448, #460 | agente | a fazer |

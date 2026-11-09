@@ -341,6 +341,7 @@
     "messageGuardian": "Olá, {{contact}}! Hoje é aniversário de {{name}}. A equipe da unidade {{unit}} deseja a ele(a) um feliz aniversário!"
   },
   "students": {
+    "rowSecondary": "{{age}} anos · {{unit}}",
     "showResults": "Ver {{count}} alunos",
     "title": "Alunos",
     "intro": "Alunos da organização, com a unidade de cadastro, a idade e a faixa etária de cada um.",
