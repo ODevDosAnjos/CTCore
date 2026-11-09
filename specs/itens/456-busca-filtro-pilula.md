@@ -116,8 +116,25 @@ Achados:
 
 Componentes base `SearchBox` (busca com ícone e largura padrão) e `PillFilter` (filtro em pílulas com contagem opcional e estado desabilitado), usados em `QueryPage`, na lista de alunos e na de professores. Os textos do `PillFilter` vêm por props; as chaves novas são `query.allF`/`query.allM`, `students.search` e `teachers.search`. Telas de alunos e professores e a vitrine atualizadas; referências visuais regeradas em `frontend/visual/referencias/` (alunos, professores e vitrine, 1440 e 390, claro e escuro).
 
-Verificação: rodada 1 OK (estado `696f1a3a334d5738e8a31198613a46bea83195ca`). CA1 a CA11 passaram com os testes de componente, de tela e de tokens; lint e typecheck sem erro. Comparação com o canvas: `npm run visual:canvas` com 97 comparadas e 0 reprovadas; capturas em `.capturas/456/`.
+Verificação: rodada 2 OK (estado `c2a35ee7343e848495aafd377e8854a4a37fcdd9`; a rodada 1 passou com o estado `696f1a3a334d5738e8a31198613a46bea83195ca`, antes da correção do e2e e das referências do PR #537). CA1 a CA11 passaram com os testes de componente, de tela e de tokens; lint e typecheck sem erro. Comparação com o canvas: `npm run visual:canvas` com 97 comparadas e 0 reprovadas; capturas em `.capturas/456/`.
 
 Decisões: `query.allF`/`query.allM` usados já na construção (o canvas mostra "Todas"/"Todos"); as chaves `students.filters.all*` e `teachers.filters.all*` ficaram sem uso e saem numa limpeza futura. `aria-label` da busca segue "Buscar" (o placeholder é o texto do canvas) para manter os testes. Nenhuma `limiteCanvas` nova.
 
 Limitações: CA12 (`test:visual:docker`) não rodou localmente; é `NAO_CONFERIDO` por falta de ambiente, conforme Autonomia 2, e o CI do PR é a prova. Divergências do canvas em alunos (botão "Colunas", "Financeiro", "Selos" e abas em pílula com contagem) ficam para #457 e #465. Regressão: só o front foi tocado; `test:cov` da construção passou com 2041 testes. Instável registrado: `LoginPage.test.tsx` ("CA4 e CA5") falhou uma vez sob carga e passou isolado e na repetição; não é deste item. Sugestões de código da verificação: linha em branco dupla em `StudentFilters.tsx` e `TeacherFilters.tsx`, chaves sem uso em `pt-BR.json`, e falta de teste automatizado de rolagem lateral a 360 px (CA10 só pela captura).
+
+### Correção da entrega
+- `e2e` do PR #537: `alunos.spec.ts` "filtra alunos por selo" usava `combobox` "Selo" (agora é pílula) e a etiqueta casava com dois `span` (pílula e tabela) — arquivos: `frontend/e2e/alunos.spec.ts` — prova: `npx playwright test e2e/alunos.spec.ts e2e/professores.spec.ts --retries=0` → 7 passam.
+- `visual` do PR #537: 18 reprovações em casos que abrem `/alunos` ou `/professores` e que a construção não regerou (`-g` só pegou alunos|professores|vitrine) — arquivos: `frontend/visual/referencias/{moldura-coordenacao,moldura-administrador,moldura-celular-menu,moldura-celular-unidade,professor-novo,notificacoes}-*.png` — prova: `npm run test:visual:docker -- --update-snapshots=all -g "moldura-coordenacao|moldura-administrador|moldura-celular|professor-novo|notificacoes"` → 24 passam. `--update-snapshots=all` regerou 22 arquivos (4 a mais que as 18 reprovações; só diferem de ruído de renderização).
+Referências visuais: as 22 acima. Imagens do Docker: sem imagem nova.
+
+### Rodada 2 — OK — 2026-11-09, estado c2a35ee7343e848495aafd377e8854a4a37fcdd9
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA11 | PASSOU (mantido da rodada 1) | mudança desde então só toca `e2e/alunos.spec.ts`, referências visuais e specs; `vitest run src/features/students src/features/teachers src/components`: 493 passam; `npm run lint` sem erro |
+| CA12 | NÃO CONFERIDO (limitação aceita, AGENTS.md "Autonomia" 2/3) | referências dos 6 casos extras regeradas no container pela correção; CI do PR é a prova |
+
+Comandos: `npx playwright test e2e/alunos.spec.ts e2e/professores.spec.ts --retries=0` (7 passam); vitest acima; `npm run lint` ok.
+Achados:
+- sugestão, código — `--update-snapshots=all` regerou 4 PNGs além dos 18 reprovados (registrado na Correção da entrega); os 4 não foram vistos um a um.
+- Sugestões da rodada 1 mantidas.
