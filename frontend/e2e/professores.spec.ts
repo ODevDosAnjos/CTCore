@@ -81,7 +81,7 @@ test("@critical Coordenador inativa um professor", async ({ page }) => {
   await page.getByRole("button", { name: "Inativar" }).click();
   const dialog = page.getByRole("dialog", { name: "Inativar João Pereira" });
   await expect(dialog.getByText("Nenhuma turma ficará sem titular.")).toBeVisible();
-  await dialog.getByRole("button", { name: "Inativar" }).click();
+  await dialog.getByRole("button", { name: "Inativar professor" }).click();
   await expect(page.getByText("Inativo", { exact: true })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
@@ -97,5 +97,22 @@ test("Professores em cartões a 360 px sem rolagem lateral", async ({ page }) =>
   await open(page, "/professores");
   await expect(page.getByText("Ana Souza")).toBeVisible();
   await expect(page.getByRole("table")).toHaveCount(0);
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
+
+// #451 CA7: a 360 px a janela de inativar cabe na tela, com a ação no rodapé e sem rolagem lateral.
+test("Inativar professor a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/professores");
+  await page.getByRole("link", { name: "João Pereira" }).click();
+  await page.getByRole("button", { name: "Inativar" }).click();
+  const dialog = page.getByRole("dialog", { name: "Inativar João Pereira" });
+  await expect(dialog.getByRole("button", { name: "Inativar professor" })).toBeVisible();
+  expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(360);
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
 });

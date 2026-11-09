@@ -80,7 +80,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Paginação | `CanvasPagination` | "1–25 de 131", "Por página" (32 px) e botões de ícone; opt-in na `QueryPage` por `canvasPagination` |
 | Filtros no celular | `FilterSheet` | a partir de 640 px os filtros ficam na linha; abaixo, botão "Filtros" e folha inferior com campos, "Ver N …" e "Limpar filtros"; `PillFilter` vira campo com seletor dentro da folha |
 | Lista em cartões no celular | `RowCard` | substitui a tabela abaixo de 640 px: `lead` (avatar), `title`, `meta`, `badge` (situação) e `action` ("Ver", sempre no fim, 44 px de toque); a `QueryPage` troca por `cardsBelow="sm"` (só uma das duas existe no DOM; o padrão `"md"` não muda); sem ordenação no celular |
-| Janela | `Modal` (`size="sm"` 540 px ou `"md"` 600 px), `ConfirmDialog` | com `size`: título em caixa alta, corpo que rola e rodapé fixo "Cancelar (fantasma) | ação (cheia)"; sem `size`, o visual anterior. Resumo do que vai acontecer; confirmação digitada nas ações graves |
+| Janela | `Modal` (`size="sm"` 540 px ou `"md"` 600 px), `ConfirmDialog` (`tone="danger"`: ação principal em `Button danger` e "Cancelar" fantasma; `subtitle`, `cancelLabel`, `confirmDisabled`, `children`; usado em Inativar professor e Revogar uso de imagem) | com `size`: título em caixa alta, corpo que rola e rodapé fixo "Cancelar (fantasma) | ação (cheia)"; sem `size`, o visual anterior. Resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |
 | Resumo do que vai acontecer | `SummaryBox` | lista com setas, usado nas janelas |

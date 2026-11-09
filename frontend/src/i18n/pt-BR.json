@@ -722,7 +722,8 @@
         "title": "Inativar {{name}}",
         "withoutHead": "Estas turmas ficarão sem titular:",
         "noClasses": "Nenhuma turma ficará sem titular.",
-        "accessEnds": "O acesso ao sistema será encerrado e as sessões abertas terminam.",
+        "accessEnds": "O acesso dele é desligado agora. O histórico de aulas e graduações continua.",
+        "confirm": "Inativar professor",
         "outOfReach": "Só o Coordenador inativa este professor; tire as suas unidades em Editar.",
         "done": "Professor inativado.",
         "errors": {

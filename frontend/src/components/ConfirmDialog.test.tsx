@@ -98,4 +98,28 @@ describe("ConfirmDialog", () => {
     setup({ summaryItems: ["Cancela a cobrança", "Avisa o aluno"] });
     expect(screen.getAllByRole("listitem").map((l) => l.textContent)).toEqual(["Cancela a cobrança", "Avisa o aluno"]);
   });
+
+  it("R1/R2: tone danger usa título em caixa alta, subtítulo, filhos e ação vermelha", () => {
+    setup({ tone: "danger", size: "sm", subtitle: "Apoio", cancelLabel: "Voltar", confirmLabel: "Apagar", children: <p>Extra</p> });
+    expect(screen.getByRole("heading", { name: "Cancelar" })).toHaveClass("uppercase");
+    expect(screen.getByText("Apoio")).toBeInTheDocument();
+    expect(screen.getByText("Extra")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Voltar" })).toHaveClass("hover:bg-accent");
+    expect(screen.getByRole("button", { name: "Apagar" })).toHaveClass("text-danger-foreground");
+  });
+
+  it("R3: texto digitado vale também em danger", async () => {
+    const { onConfirm } = setup({ tone: "danger", size: "sm", typedText: "SIM" });
+    const ok = screen.getByRole("button", { name: "Confirmar" });
+    expect(ok).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Digite SIM para confirmar"), "SIM");
+    expect(ok).toBeEnabled();
+    await userEvent.click(ok);
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("R1: confirmDisabled desabilita a ação", () => {
+    setup({ confirmDisabled: true });
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+  });
 });

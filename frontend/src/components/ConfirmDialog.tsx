@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
@@ -18,6 +18,12 @@ export function ConfirmDialog({
   typedText,
   confirmLabel,
   onConfirm,
+  tone,
+  size,
+  subtitle,
+  cancelLabel,
+  confirmDisabled,
+  children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,6 +35,15 @@ export function ConfirmDialog({
   typedText?: string;
   confirmLabel?: string;
   onConfirm: (reason: string) => void | Promise<void>;
+  /** "danger": ação principal em vermelho e "Cancelar" fantasma (canvas). Sem ele, o visual de sempre. */
+  tone?: "danger";
+  /** Repassado à Modal (janela do canvas: título em caixa alta e rodapé fixo). */
+  size?: "sm" | "md";
+  subtitle?: string;
+  cancelLabel?: string;
+  confirmDisabled?: boolean;
+  /** Conteúdo extra do corpo, depois do resumo. */
+  children?: ReactNode;
 }) {
   const { t } = useTranslation();
   const [motivo, setMotivo] = useState("");
@@ -46,7 +61,7 @@ export function ConfirmDialog({
   }
 
   async function confirm() {
-    if (sent.current || !reasonOk || !typedOk) return;
+    if (sent.current || !reasonOk || !typedOk || confirmDisabled) return;
     sent.current = true;
     setBusy(true);
     try {
@@ -72,20 +87,23 @@ export function ConfirmDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title={title}
+      size={size}
       footer={
         <>
-          <Button variant="secondary" onClick={() => handleOpenChange(false)}>
-            {t("common.cancel")}
+          <Button variant={tone === "danger" ? "ghost" : "secondary"} onClick={() => handleOpenChange(false)}>
+            {cancelLabel ?? t("common.cancel")}
           </Button>
-          <Button disabled={!reasonOk || !typedOk || busy} onClick={confirm}>
+          <Button variant={tone === "danger" ? "danger" : undefined} disabled={!reasonOk || !typedOk || confirmDisabled || busy} onClick={confirm}>
             {confirmLabel ?? t("common.confirm")}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
+        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         <p>{summary}</p>
         {summaryItems && <SummaryBox items={summaryItems} label={summaryLabel} />}
+        {children}
         {reason !== "none" && (
           <Field label={t("confirm.reasonLabel")}>
             {(c) => <Textarea {...c} aria-required={reason === "required" || undefined} value={motivo} onChange={(e) => setMotivo(e.target.value)} />}

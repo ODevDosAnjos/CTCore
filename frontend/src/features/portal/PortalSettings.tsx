@@ -90,6 +90,8 @@ export function PortalTermsAccepted({ studentId, terms, onChanged }: { studentId
       )}
       <ConfirmDialog
         open={confirming}
+        tone="danger"
+        size="sm"
         onOpenChange={setConfirming}
         title={t(`${k}revokeTitle`)}
         summary={t(`${k}revokeSummary`)}

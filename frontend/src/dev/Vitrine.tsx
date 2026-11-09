@@ -176,7 +176,7 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
         <Modal open={modal} onOpenChange={setModal} title="Janela" size="sm" footer={<><Button variant="ghost" className="min-h-11" onClick={() => setModal(false)}>Cancelar</Button><Button className="min-h-11" onClick={() => setModal(false)}>Salvar</Button></>}>
           <p>Conteúdo</p>
         </Modal>
-        <ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Desativar" summary="Vai desativar." summaryItems={["Encerra matrículas"]} typedText="DESATIVAR" onConfirm={noop} />
+        <ConfirmDialog open={confirm} onOpenChange={setConfirm} tone="danger" size="sm" subtitle="Ação sensível" title="Desativar" summary="Vai desativar." summaryItems={["Encerra matrículas"]} typedText="DESATIVAR" onConfirm={noop} />
         <SidePanel open={panel} onOpenChange={setPanel} title="Ficha" tabs={[{ id: "a", label: "Dados", content: <p>Dados</p> }]} />
       </Section>
       <Section heading="h2" title={`Quatro estados (${theme})`}>
