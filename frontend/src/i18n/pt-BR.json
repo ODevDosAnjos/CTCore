@@ -341,6 +341,7 @@
     "messageGuardian": "Olá, {{contact}}! Hoje é aniversário de {{name}}. A equipe da unidade {{unit}} deseja a ele(a) um feliz aniversário!"
   },
   "students": {
+    "showResults": "Ver {{count}} alunos",
     "title": "Alunos",
     "intro": "Alunos da organização, com a unidade de cadastro, a idade e a faixa etária de cada um.",
     "search": "Nome, CPF, e-mail ou telefone",
@@ -2026,6 +2027,7 @@
     }
   },
   "charges": {
+    "showResults": "Ver {{count}} cobranças",
     "title": "Cobranças",
     "intro": "Cobranças das unidades ao seu alcance, com a situação calculada pela data da unidade.",
     "creation": {
@@ -2085,6 +2087,7 @@
     },
     "quick": {
       "label": "Atalhos de cobrança",
+      "ALL": "Todas",
       "OVERDUE": "Em atraso",
       "DUE_TODAY": "Vence hoje",
       "IN_REVIEW": "Em conferência",
@@ -2614,6 +2617,10 @@
     "sortBy": "Ordenar por {{column}}",
     "results": "Resultados",
     "pageSize": "Itens por página",
+    "pageSizeShort": "Por página",
+    "range": "{{from}}–{{to}} de {{total}}",
+    "filters": "Filtros",
+    "filtersCount": "Filtros {{count}}",
     "total_one": "{{count, number}} resultado",
     "total_other": "{{count, number}} resultados"
   },

@@ -2,7 +2,8 @@
 // `perfil`: e-mail do login do MSW (senha segredo123); ausente = sem login.
 // `canvas`: nome da tela em docs/design/canvas (sem .dc.html); `canvasEscuro`: versão escura, quando existe.
 // D4 (#419): passos antes do print, para chegar a janelas e estados. `preencher`: [rótulo exato, valor]; `clicar`: início do nome do botão.
-export type Passo = { preencher: [string, string] } | { clicar: string };
+// seExistir: o botão só aparece em parte das larguras (ex.: "Filtros" abaixo de 640 px)
+export type Passo = { preencher: [string, string] } | { clicar: string, seExistir?: boolean };
 export type Caso = {
   nome: string;
   rota: string;
@@ -54,6 +55,7 @@ export const casos: Caso[] = [
   { nome: "portal-carteirinha-filhos", rota: "/portal/carteirinha", perfil: familia, canvas: "PortalCarteirinhaFilhos" },
   { nome: "portal-pedidos", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidos", canvasCelular: "PortalMPedidos" },
   { nome: "alunos", rota: "/alunos", perfil: ana, canvas: "Alunos" },
+  { nome: "alunos-filtros", rota: "/alunos", perfil: ana, canvas: "GMAlunosFiltros", passos: [{ clicar: "Filtros", seExistir: true }] }, // #457: folha de filtros do celular (no 1440 os filtros ficam na linha)
   { nome: "professores", rota: "/professores", perfil: ana, canvas: "Professores" },
   { nome: "agenda", rota: "/agenda", perfil: ana, canvas: "Agenda" },
   { nome: "dias-sem-aula", rota: "/dias-sem-aula", perfil: ana, canvas: "DiasSemAula" },
@@ -186,7 +188,7 @@ export const semCaso: Record<string, string[]> = {
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
   "celular a 360 px: o teste visual captura 390 (D5 da #435)": [
     "GMInicio", "GMBusca", "GMInicioCoord", "GMInicioProfessor", "GMNotificacoes",
-    "GMConta", "GMAlunos", "GMFicha", "GMAlunosFiltros", "GMFichaMatricula", "GMFichaFinanceiro",
+    "GMConta", "GMAlunos", "GMFicha", "GMFichaMatricula", "GMFichaFinanceiro",
     "GMFichaResponsaveis", "GMAlunoEditar", "GMEncerrar", "GMAgenda", "GMAulaPainel", "GMAulaEditar",
     "GMAulaCancelar", "GMDiasSemAula", "GMAgendaProfessor", "GMAulaProfessor", "GMCobrancas", "GMPagamento",
     "GMMatricula1", "GMMatricula2", "GMMatricula4", "GMProfessores", "GMProfessorPainel", "GMPedidos",

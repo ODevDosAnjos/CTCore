@@ -112,15 +112,15 @@ describe("ChargesPage (RF-COB-01)", () => {
     await screen.findAllByText("Ana Souza");
     expect(calls.at(-1)!.get("quick")).toBe("OVERDUE");
     expect(calls.at(-1)!.get("page")).toBe("2");
-    expect(screen.getByRole("button", { name: "Em atraso (4)" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Vence hoje (2)" })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: "Em conferência (1)" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pagas no mês (7)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Em atraso, 4" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Vence hoje, 2" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Em conferência, 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pagas no mês, 7" })).toBeInTheDocument();
     expect(screen.getByText(/30 cobranças somando/)).toHaveTextContent(/3\.600,00/);
-    await user.click(screen.getByRole("button", { name: "Vence hoje (2)" }));
+    await user.click(screen.getByRole("button", { name: "Vence hoje, 2" }));
     await waitFor(() => expect(calls.at(-1)!.get("quick")).toBe("DUE_TODAY"));
     expect(calls.at(-1)!.get("page")).toBe("1");
-    await user.click(screen.getByRole("button", { name: "Vence hoje (2)" }));
+    await user.click(screen.getByRole("button", { name: "Todas" }));
     await waitFor(() => expect(calls.at(-1)!.get("quick")).toBeNull());
   });
 
@@ -160,7 +160,7 @@ describe("ChargesPage (RF-COB-01)", () => {
     const empty = () => HttpResponse.json({ items: [], page: 1, size: 25, total: 0, counts, totals: { count: 0, amountCents: 0 } });
     setup("COORDINATOR", empty);
     expect(await screen.findByText("Nada por aqui ainda")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Em atraso (4)" }));
+    await user.click(screen.getByRole("button", { name: "Em atraso, 4" }));
     expect(await screen.findByRole("button", { name: "Limpar filtros" })).toBeInTheDocument();
   });
 

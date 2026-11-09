@@ -53,7 +53,10 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
   if (perfil && rota === "/conta") await expect(page.getByRole("button", { name: /^Encerrar a sessão em/ }).first()).toBeVisible(); // lista de sessões
   for (const p of passos) {
     if ("preencher" in p) await page.getByLabel(p.preencher[0], { exact: true }).fill(p.preencher[1]);
-    else await page.getByRole("button", { name: new RegExp(`^${p.clicar}`) }).first().click();
+    else {
+      const botao = page.getByRole("button", { name: new RegExp(`^${p.clicar}`) }).first();
+      if (!p.seExistir || (await botao.count()) > 0) await botao.click();
+    }
   }
   await assentar(page, perfil);
   if (aguardar) await expect(page.locator(aguardar).first()).toBeVisible();

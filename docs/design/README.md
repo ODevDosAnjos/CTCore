@@ -76,7 +76,9 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Tabela | `DataTable` | cabeçalho suave, linhas de 52 px, valores alinhados à direita |
 | Item de sprint futura (botão, aba, chave, link, item de menu) | `ComingSoon` | visível e desabilitado, com selo "Em breve" e dica; sem clique nem `href` |
 | Busca e filtro em pílula | `SearchBox`, `PillFilter` | busca de 40 px com lupa; filtro de 36 px "Rótulo Valor ⌄" com lista de uma escolha (`usePopover`), opção "todas" primeiro, `disabled`, destaque quando ativo; em `QueryPage`, a busca vira `SearchBox` só com `searchPlaceholder` |
-| Abas e filtros rápidos | `Tabs`, `QuickFilters` | filtro rápido com contador |
+| Abas e filtros rápidos | `Tabs`, `QuickFilters` | `Tabs` para painéis; `QuickFilters` são as abas em pílula com contagem que filtram a lista (`soon: true` mostra "Em breve") |
+| Paginação | `CanvasPagination` | "1–25 de 131", "Por página" (32 px) e botões de ícone; opt-in na `QueryPage` por `canvasPagination` |
+| Filtros no celular | `FilterSheet` | a partir de 640 px os filtros ficam na linha; abaixo, botão "Filtros" e folha inferior com campos, "Ver N …" e "Limpar filtros"; `PillFilter` vira campo com seletor dentro da folha |
 | Janela | `Modal`, `ConfirmDialog` | resumo do que vai acontecer; confirmação digitada nas ações graves |
 | Painel lateral (ficha) | `SidePanel` | 680 px, abas no topo |
 | Aviso na página | `Banner` | tons `info`, `warn`, `danger`, `ok` |

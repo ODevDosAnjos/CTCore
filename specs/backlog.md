@@ -160,7 +160,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 454 | Componente base: Moldura da gestão: menu lateral, barra de cima, cabeçalho, seletor de unidade e menu do celular | issue #454 | Sprint 10.5 | #448 | agente | feito |
 | 455 | Componente base: Moldura do portal e shell das telas de acesso | issue #455 | Sprint 10.5 | #448 | agente | feito |
 | 456 | Componente base: Busca e filtro em pílula | issue #456 | Sprint 10.5 | #448 | agente | feito |
-| 457 | Componente base: Abas com contagem, paginação e folha de filtros no celular | issue #457 | Sprint 10.5 | #448, #456 | agente | a fazer |
+| 457 | Componente base: Abas com contagem, paginação e folha de filtros no celular | issue #457 | Sprint 10.5 | #448, #456 | agente | feito |
 | 458 | Componente base: Tabela em cartões no celular | issue #458 | Sprint 10.5 | #448 | agente | a fazer |
 | 459 | Componente base: Linha de lista com avatar (usa os blocos da C10) | issue #459 | Sprint 10.5 | #448, #458, #452 | agente | a fazer |
 | 460 | Componente base: Janela base: tamanhos, título em caixa alta e rodapé fixo | issue #460 | Sprint 10.5 | #448 | agente | a fazer |

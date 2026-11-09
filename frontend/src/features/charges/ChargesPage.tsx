@@ -70,6 +70,7 @@ function Content() {
         fetchPage={fetchCharges}
         rowKey={(r) => r.id}
         filterKeys={FILTER_KEYS}
+        canvasPagination
         filters={(p) => <ChargeFilters {...p} />}
         cards={(r) => <ChargeCard row={r} onOpen={open} />}
         footer={(page: Page<ChargeRow>) => (

@@ -126,3 +126,29 @@ describe("QueryPage", () => {
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 });
+
+describe("QueryPage com canvasPagination (CA4, CA5)", () => {
+  const rows131 = Array.from({ length: 131 }, (_, i) => ({ id: String(i), nome: `Aluno ${i}` }));
+  const big = (q: Query) => Promise.resolve({ rows: rows131.slice((q.pagina - 1) * q.tamanho, q.pagina * q.tamanho), total: 131 });
+
+  it("mostra o intervalo, navega e volta à página 1 ao trocar o tamanho", async () => {
+    window.history.replaceState(null, "", "/");
+    render(<QueryPage columns={columns} fetchPage={big} rowKey={(r) => r.id} canvasPagination />);
+    expect(await screen.findByText("1–25 de 131")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Página anterior" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Próxima página" }));
+    expect(await screen.findByText("26–50 de 131")).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByRole("combobox"), "50");
+    expect(await screen.findByText("1–50 de 131")).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByRole("combobox"), "25");
+    window.history.replaceState(null, "", "/?pagina=6");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(await screen.findByText("126–131 de 131")).toBeInTheDocument();
+  });
+
+  it("sem a prop, a paginação atual continua", async () => {
+    setup(big);
+    expect(await screen.findByText("Página 1 de 6")).toBeInTheDocument();
+    expect(screen.queryByText("1–25 de 131")).toBeNull();
+  });
+});
