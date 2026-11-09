@@ -14,25 +14,8 @@ import { StudentRecordPanel } from "./StudentRecordPanel";
 import { OPTIONAL_COLUMNS, useStudentColumns, type OptionalColumn } from "./useStudentColumns";
 import { fetchStudents } from "./useStudents";
 import { ComingSoon } from "@/components/ui/coming-soon";
+import { PersonRow } from "@/components/ui/person-row";
 import { PageHeader } from "@/components/ui/page-header";
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-
-function Avatar({ student }: { student: StudentRow }) {
-  return student.photoUrl ? (
-    <img src={student.photoUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-  ) : (
-    <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-      {initials(student.name)}
-    </span>
-  );
-}
 
 // O nome abre a ficha em painel (RF-ALU-03), mantendo a busca e os filtros da lista na mesma página.
 const allColumns = (t: TFunction, search: string): Record<"name" | OptionalColumn, Column<StudentRow>> => ({
@@ -40,17 +23,21 @@ const allColumns = (t: TFunction, search: string): Record<"name" | OptionalColum
     key: "name",
     label: t("students.columns.name"),
     render: (r) => (
-      <span className="flex flex-wrap items-center gap-2">
-        <Avatar student={r} />
-        <Link to={`/alunos/${r.id}${search}`} aria-label={t("students.record.open", { name: r.name })} className="inline-flex min-h-11 min-w-0 items-center break-words font-medium underline-offset-2 hover:underline">
-          {r.name}
-        </Link>
-        {r.seals.map((seal) => (
+      <PersonRow
+        name={r.name}
+        photoUrl={r.photoUrl}
+        title={
+          <Link to={`/alunos/${r.id}${search}`} aria-label={t("students.record.open", { name: r.name })} className="inline-flex min-h-11 min-w-0 items-center break-words font-medium underline-offset-2 hover:underline">
+            {r.name}
+          </Link>
+        }
+        badges={r.seals.map((seal) => (
           <span key={seal} className="rounded-md border px-2 py-0.5 text-sm">
             {t(`students.seals.${seal}`)}
           </span>
         ))}
-      </span>
+        secondary={t("students.rowSecondary", { age: r.age, unit: r.registeredUnit.name })}
+      />
     ),
   },
   unit: { key: "unit", label: t("students.columns.unit"), render: (r) => r.registeredUnit.name },

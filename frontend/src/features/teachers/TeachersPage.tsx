@@ -5,7 +5,7 @@ import type { TFunction } from "i18next";
 import { RowCard } from "@/components/query/RowCard";
 import { QueryPage } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
-import { Avatar } from "@/components/ui/avatar";
+import { PersonAvatar, PersonRow } from "@/components/ui/person-row";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,6 @@ import { TeacherFormDialog } from "./TeacherFormDialog";
 import { fetchTeachers, type Teacher } from "./useTeachers";
 import { PageHeader } from "@/components/ui/page-header";
 
-function TeacherAvatar({ teacher }: { teacher: Teacher }) {
-  return teacher.photoUrl ? <img src={teacher.photoUrl} alt="" className="size-8 shrink-0 rounded-full object-cover" /> : <Avatar name={teacher.name} decorative size="sm" />;
-}
-
 const modalityLabel = (t: TFunction, m: Teacher["modalities"][number]) => (m.level === null ? m.name : t("teachers.modality", { name: m.name, level: m.level, degree: m.degree }));
 
 const columns = (t: TFunction): Column<Teacher>[] => [
@@ -28,12 +24,16 @@ const columns = (t: TFunction): Column<Teacher>[] => [
     label: t("teachers.columns.name"),
     sortable: true,
     render: (r) => (
-      <span className="flex items-center gap-2">
-        <TeacherAvatar teacher={r} />
-        <Link to={`/professores/${r.id}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-medium underline">
-          {r.name}
-        </Link>
-      </span>
+      <PersonRow
+        name={r.name}
+        photoUrl={r.photoUrl}
+        size="sm"
+        title={
+          <Link to={`/professores/${r.id}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-medium underline">
+            {r.name}
+          </Link>
+        }
+      />
     ),
   },
   {
@@ -56,7 +56,7 @@ const columns = (t: TFunction): Column<Teacher>[] => [
 
 const card = (t: TFunction) => (r: Teacher) => (
   <RowCard
-    lead={<TeacherAvatar teacher={r} />}
+    lead={<PersonAvatar name={r.name} photoUrl={r.photoUrl} size="sm" />}
     title={r.name}
     meta={
       <>

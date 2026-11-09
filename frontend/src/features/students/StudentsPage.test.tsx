@@ -81,6 +81,7 @@ describe("StudentsPage", () => {
     await ready();
     const row = (await screen.findByText("Ana Souza")).closest("tr")!;
     expect(within(row).getByText("AS")).toBeInTheDocument();
+    expect(within(row).getByText("12 anos · Centro")).toBeInTheDocument();
     expect(within(row).getByText("Centro")).toBeInTheDocument();
     expect(within(row).getByText("12 anos")).toBeInTheDocument();
     expect(within(row).getByText("Infantil")).toBeInTheDocument();

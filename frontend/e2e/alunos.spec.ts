@@ -65,3 +65,16 @@ test("@critical Coordenador abre a ficha do aluno", async ({ page }) => {
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/alunos$/);
 });
+
+// #459 CA7: a 360 px a lista de alunos não tem rolagem lateral.
+test("Alunos a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/alunos");
+  await expect(page.getByText("Aluno Adulto Fictício")).toBeVisible();
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
