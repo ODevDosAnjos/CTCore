@@ -485,15 +485,42 @@
       "financial": {
         "emptyTitle": "Sem cobranças",
         "emptyText": "Este aluno ainda não tem cobranças.",
-        "line": "Vence em {{due}} · {{amount}}",
+        "open": "Em aberto",
+        "late": "Em atraso",
+        "paidYear": "Pago em {{year}}",
+        "charges_one": "{{count}} cobrança",
+        "charges_other": "{{count}} cobranças",
+        "payments_one": "{{count}} pagamento",
+        "payments_other": "{{count}} pagamentos",
+        "days_one": "{{count}} dia",
+        "days_other": "{{count}} dias",
+        "note": "As taxas do meio de pagamento são somadas quando o aluno paga online.",
+        "newCharge": "Nova cobrança avulsa",
+        "columns": { "reference": "Referência", "due": "Vencimento", "amount": "Valor", "status": "Situação", "action": "Ação" },
+        "actions": { "pay": "Registrar pagamento", "open": "Abrir", "receipt": "Recibo" },
+        "actionOf": "{{action}}: {{reference}}",
+        "groups": { "open": "Em aberto", "paid": "Pagos", "other": "Outras" },
+        "dueLate": "venceu {{date}} · {{days}}",
+        "dueOn": "vence {{date}}",
+        "paidOn": "{{method}} · {{date}}",
         "overdue": "Em atraso",
         "current": "Em dia"
       },
-      "empty": {
-        "graduations": "A linha do tempo de graduação aparece aqui quando a graduação do aluno estiver disponível.",
-        "title": "Ainda não há o que mostrar"
+      "graduations": {
+        "text": "Da mais recente para a mais antiga. Registros nunca são apagados; um erro vira um novo registro \"Correção\".",
+        "register": "Registrar graduação"
       },
       "enrollment": {
+        "limitLine": "Uma matrícula na organização · até 10 modalidades ativas",
+        "add": "Adicionar modalidade",
+        "primaryClass": "Turma principal",
+        "situation": {
+          "title": "Situação do aluno",
+          "text": "Ativo enquanto houver ao menos uma modalidade Ativa. As ações abaixo valem para as modalidades desta unidade.",
+          "inactivate": "Inativar",
+          "reactivate": "Reativar",
+          "cancelCharges": "Cancelar cobranças acumuladas"
+        },
         "emptyTitle": "Sem matrícula",
         "emptyText": "Este aluno ainda não tem modalidade. A matrícula começa pela tela de nova matrícula.",
         "choose": "Escolha",
@@ -506,7 +533,6 @@
         "nextPlan": "A partir da próxima cobrança: {{plan}}",
         "dueDay": "Vencimento",
         "dueDayValue": "Dia {{day}}",
-        "otherClassesLine": "Outros horários: {{names}}",
         "actions": {
           "class": "Trocar turma",
           "plan": "Trocar plano",
@@ -609,9 +635,12 @@
         "none": "Não informado"
       },
       "guardians": {
-        "financial": "Financeiro",
+        "financial": "Responsável financeiro",
         "accessPending": "Acesso pendente",
-        "accessActive": "Acesso ativo",
+        "accessActive": "Com acesso",
+        "minorNotice": "{{name}} tem {{age}} anos. Só os responsáveis entram no portal dele. Até 2 responsáveis, um deles o financeiro.",
+        "limit": "Limite de 2 responsáveis atingido",
+        "rule": "Até dois responsáveis com acesso. O menor nunca fica sem responsável.",
         "resend": "Reenviar convite",
         "makeFinancial": "Tornar financeiro",
         "unlink": "Desvincular",
@@ -644,7 +673,6 @@
       },
       "history": {
         "empty": "Ainda não há ações registradas para este aluno.",
-        "by": "por {{actor}}",
         "reason": "Motivo: {{reason}}",
         "actions": {
           "student_created": "Cadastro do aluno",
@@ -656,8 +684,24 @@
           "student_guardian_financial_changed": "Responsável financeiro alterado",
           "student_guardian_invite_resent": "Convite de responsável reenviado"
         },
-        "prev": "Anterior",
-        "next": "Próxima"
+        "system": "Sistema",
+        "area": "Área",
+        "period": "Período",
+        "all": "Todas",
+        "last12": "Últimos 12 meses",
+        "allTime": "Todo o período",
+        "audit": "Ver na auditoria",
+        "noResult": "Nenhuma ação neste filtro.",
+        "areas": {
+          "FINANCIAL": "Financeiro",
+          "STUDENTS": "Alunos"
+        },
+        "columns": {
+          "at": "Quando",
+          "who": "Quem",
+          "what": "O que aconteceu",
+          "area": "Área"
+        }
       }
     },
     "simple": {

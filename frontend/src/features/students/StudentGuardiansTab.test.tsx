@@ -80,9 +80,9 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     setup();
     record = baseRecord([guardian(), guardian({ guardianId: "g2", name: "Paulo Souza", financial: false, access: "ACTIVE" })]);
     const { user, dialog } = await open();
-    expect(within(screen.getByRole("tabpanel")).getByText("Financeiro")).toBeInTheDocument();
+    expect(within(screen.getByRole("tabpanel")).getByText("Responsável financeiro")).toBeInTheDocument();
     expect(within(dialog).getByText("Acesso pendente")).toBeInTheDocument();
-    expect(within(dialog).getByText("Acesso ativo")).toBeInTheDocument();
+    expect(within(dialog).getByText("Com acesso")).toBeInTheDocument();
     expect(within(dialog).getAllByRole("button", { name: "Reenviar convite" })).toHaveLength(1);
     await user.click(within(dialog).getByRole("button", { name: "Reenviar convite" }));
     expect(await within(dialog).findByText("Convite reenviado para Marta Souza.")).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     await user.click(within(dialog).getByRole("button", { name: "Tornar financeiro" }));
     expect(await within(dialog).findByText("Paulo Souza agora é o responsável financeiro.")).toBeInTheDocument();
     expect(sent).toEqual({ financial: true });
-    await waitFor(() => expect(within(screen.getByRole("tabpanel")).getAllByText("Financeiro")).toHaveLength(1));
+    await waitFor(() => expect(within(screen.getByRole("tabpanel")).getAllByText("Responsável financeiro")).toHaveLength(1));
   });
 
   it("CA11: Desvincular pede o motivo e a recusa do servidor aparece no painel sem fechar", async () => {
@@ -138,7 +138,7 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     await user.click(within(confirm).getByRole("button", { name: "Desvincular" }));
     expect(await screen.findByText("Marta Souza foi desvinculado.")).toBeInTheDocument();
     expect(sent).toEqual({ reason: "mudou de cidade" });
-    await waitFor(() => expect(screen.queryByText("Marta Souza", { selector: "p" })).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Marta Souza", { selector: "span" })).toBeNull());
   });
 
   it("CA11: reenvio recusado (429) mostra o erro no painel", async () => {
@@ -177,7 +177,7 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     await user.click(screen.getByRole("button", { name: "Vincular" }));
     expect(await screen.findByText("Paulo Souza foi vinculado ao aluno.")).toBeInTheDocument();
     expect(sent).toMatchObject({ name: "Paulo Souza", cpf: "52998224725", email: "paulo@alfa.test", phone: "21987654321", financial: false, reason: "novo responsável" });
-    expect(await screen.findByText("Paulo Souza", { selector: "p" })).toBeInTheDocument();
+    expect(await screen.findByText("Paulo Souza", { selector: "span" })).toBeInTheDocument();
   });
 
   it("CA11: erro do servidor no vínculo (limite e campo) aparece na janela sem fechar", async () => {
@@ -199,5 +199,25 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     await waitFor(() => expect(within(link).getAllByText("Confira os dados informados.").length).toBeGreaterThan(0));
     await user.click(within(link).getByRole("button", { name: "Cancelar" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Vincular responsável" })).toBeNull());
+  });
+
+  it("CA13, CA14: menor com 2 responsáveis tem o aviso, os selos, o limite e a regra; Vincular fica desabilitado", async () => {
+    setup();
+    record = baseRecord([guardian(), guardian({ guardianId: "g2", name: "Paulo Souza", financial: false, access: "ACTIVE" })]);
+    const { dialog } = await open();
+    expect(within(dialog).getByText("Ana tem 12 anos. Só os responsáveis entram no portal dele. Até 2 responsáveis, um deles o financeiro.")).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button", { name: "Desvincular" })).toHaveLength(2);
+    expect(within(dialog).getByRole("button", { name: "Vincular responsável" })).toBeDisabled();
+    expect(within(dialog).getByText("Limite de 2 responsáveis atingido")).toBeInTheDocument();
+    expect(within(dialog).getByText("Até dois responsáveis com acesso. O menor nunca fica sem responsável.")).toBeInTheDocument();
+  });
+
+  it("CA13, CA14: adulto não tem o aviso e com 1 responsável o Vincular está habilitado", async () => {
+    setup();
+    record = { ...baseRecord(), minor: false, age: 30 };
+    const { dialog } = await open();
+    expect(within(dialog).queryByText(/Só os responsáveis entram no portal/)).toBeNull();
+    expect(within(dialog).getByRole("button", { name: "Vincular responsável" })).toBeEnabled();
+    expect(within(dialog).queryByText("Limite de 2 responsáveis atingido")).toBeNull();
   });
 });

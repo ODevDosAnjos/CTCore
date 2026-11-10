@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatPhone } from "@/components/fields/masks";
 import { Button } from "@/components/ui/button";
+import { useBelowSm } from "@/components/query/useBelowSm";
+import { WhatsAppButton } from "@/components/whatsapp";
 import { Banner } from "@/components/ui/banner";
+import { StatusBadge } from "@/components/ui/badge";
+import { PersonRow } from "@/components/ui/person-row";
 import { api, ApiError } from "@/lib/api";
 import { GuardianLinkDialog } from "./GuardianLinkDialog";
 import type { StudentRecord, StudentRecordGuardian } from "./types";
@@ -17,6 +21,8 @@ export function RecordGuardians({ record, onChanged, canManage = false }: { reco
   const [unlinking, setUnlinking] = useState<StudentRecordGuardian | null>(null);
   const [linking, setLinking] = useState(false);
   const base = `/students/${record.id}/guardians`;
+  const narrow = useBelowSm();
+  const full = record.guardians.length >= 2;
 
   async function run(work: () => Promise<unknown>, done: string) {
     setNotice(null);
@@ -43,44 +49,53 @@ export function RecordGuardians({ record, onChanged, canManage = false }: { reco
           {problem}
         </Banner>
       )}
+      {record.minor && record.age != null && <Banner tone="info">{t(`${k}minorNotice`, { name: record.name.split(" ")[0], age: record.age })}</Banner>}
       {record.guardians.length === 0 ? (
         <p className="text-muted-foreground">{t(`${k}empty`)}</p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {record.guardians.map((g) => (
-            <li key={g.guardianId} className="flex flex-col gap-2 rounded-md border p-3">
-              <p className="break-words font-medium">{g.name}</p>
-              <p className="break-words text-sm text-muted-foreground">{[g.phone && formatPhone(g.phone), g.email].filter(Boolean).join(" · ")}</p>
-              <div className="flex flex-wrap gap-1">
-                {g.financial && <span className="rounded-md border px-2 py-0.5 text-sm">{t(`${k}financial`)}</span>}
-                {g.access && <span className="rounded-md border px-2 py-0.5 text-sm">{t(g.access === "ACTIVE" ? `${k}accessActive` : `${k}accessPending`)}</span>}
-              </div>
-              {canManage && (
-              <div className="flex flex-wrap gap-2">
-                {g.access === "PENDING" && (
-                  <Button variant="outline" className="min-h-11" onClick={() => run(() => api(`${base}/${g.guardianId}/invite`, { method: "POST" }), t(`${k}resent`, { name: g.name }))}>
-                    {t(`${k}resend`)}
-                  </Button>
+          {record.guardians.map((g) => {
+            const phone = g.phone && formatPhone(g.phone);
+            const badges = (
+              <>
+                {g.financial && <StatusBadge status="ACTIVE" label={t(`${k}financial`)} />}
+                {g.access && <StatusBadge status={g.access === "ACTIVE" ? "CONFIRMED" : "PENDING"} label={t(g.access === "ACTIVE" ? `${k}accessActive` : `${k}accessPending`)} />}
+              </>
+            );
+            return (
+              <li key={g.guardianId} className="flex flex-col gap-3 rounded-card border bg-card p-3">
+                <PersonRow name={g.name} secondary={[phone, g.email].filter(Boolean).join(" · ")} badges={badges} action={narrow && <WhatsAppButton phone={g.phone} />} />
+                {canManage && (
+                  <div className="flex flex-wrap gap-2">
+                    {g.access === "PENDING" && (
+                      <Button variant="secondary" className="min-h-11" onClick={() => run(() => api(`${base}/${g.guardianId}/invite`, { method: "POST" }), t(`${k}resent`, { name: g.name }))}>
+                        {t(`${k}resend`)}
+                      </Button>
+                    )}
+                    {!g.financial && (
+                      <Button variant="ghost" className="min-h-11" onClick={() => run(() => api(`${base}/${g.guardianId}`, { method: "PUT", body: { financial: true } }), t(`${k}madeFinancial`, { name: g.name }))}>
+                        {t(`${k}makeFinancial`)}
+                      </Button>
+                    )}
+                    <Button variant="danger" className="min-h-11" onClick={() => setUnlinking(g)}>
+                      {t(`${k}unlink`)}
+                    </Button>
+                  </div>
                 )}
-                {!g.financial && (
-                  <Button variant="outline" className="min-h-11" onClick={() => run(() => api(`${base}/${g.guardianId}`, { method: "PUT", body: { financial: true } }), t(`${k}madeFinancial`, { name: g.name }))}>
-                    {t(`${k}makeFinancial`)}
-                  </Button>
-                )}
-                <Button variant="outline" className="min-h-11" onClick={() => setUnlinking(g)}>
-                  {t(`${k}unlink`)}
-                </Button>
-              </div>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
       {canManage && (
-        <div>
-          <Button className="min-h-11" onClick={() => setLinking(true)}>
-            {t(`${k}link`)}
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button className="min-h-11 w-full sm:w-auto" disabled={full} onClick={() => setLinking(true)}>
+              {t(`${k}link`)}
+            </Button>
+            {full && <span className="text-sm text-muted-foreground">{t(`${k}limit`)}</span>}
+          </div>
+          <p className="text-xs text-muted-foreground">{t(`${k}rule`)}</p>
         </div>
       )}
       {unlinking && (

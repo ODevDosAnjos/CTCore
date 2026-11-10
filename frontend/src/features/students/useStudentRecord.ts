@@ -31,8 +31,9 @@ export function useStudentRecord(id: string) {
   return useResource<StudentRecord>(`/students/${id}/record`);
 }
 
-export function useStudentHistory(id: string, page: number) {
-  return useResource<{ items: StudentHistoryEntry[]; page: number; size: number; total: number }>(`/students/${id}/history?page=${page}&size=25`);
+// D5: pede as 100 mais recentes; filtros e paginação ficam na tela.
+export function useStudentHistory(id: string) {
+  return useResource<{ items: StudentHistoryEntry[]; page: number; size: number; total: number }>(`/students/${id}/history?page=1&size=100`);
 }
 
 // Matrícula do aluno (RN-MAT-01); só a gestão a lê, então `enabled` falso não faz pedido.
