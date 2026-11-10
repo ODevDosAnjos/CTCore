@@ -1,7 +1,6 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { SidePanel } from "@/components/SidePanel";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -40,19 +39,10 @@ function Row({ n, onNavigate }: { n: AppNotification; onNavigate: () => void }) 
 }
 
 // RF-NOT-01: painel do sino. A barreira de permissão é do servidor (403 vira o estado sem permissão).
-export function NotificationPanel({
-  open,
-  onOpenChange,
-  returnFocusRef,
-  onUnread,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  returnFocusRef?: RefObject<HTMLElement | null>;
-  onUnread: (count: number) => void;
-}) {
+// Montado só com o popover aberto: abrir busca de novo.
+export function NotificationPanel({ onClose, onUnread }: { onClose: () => void; onUnread: (count: number) => void }) {
   const { t } = useTranslation();
-  const panel = useNotificationPanel(open);
+  const panel = useNotificationPanel(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [failed, setFailed] = useState(false);
   const unreadCount = panel.data?.unreadCount;
@@ -63,7 +53,7 @@ export function NotificationPanel({
   const items = panel.data?.items ?? [];
   const unreadItems = items.filter((n) => n.readAt === null);
   const shown = filter === "unread" ? unreadItems : items;
-  const close = () => onOpenChange(false);
+  const close = onClose;
 
   const markAll = () => panel.readAll().then(() => setFailed(false), () => setFailed(true));
   const toggle = (value: boolean) => panel.setReceiveAll(value).then(() => setFailed(false), () => setFailed(true));
@@ -103,8 +93,8 @@ export function NotificationPanel({
   }
 
   return (
-    <SidePanel open={open} onOpenChange={onOpenChange} title={t("notifications.title")} returnFocusRef={returnFocusRef}>
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+        <h2 className="font-heading text-xl font-semibold">{t("notifications.title")}</h2>
         {panel.prefs?.canReceiveAll && (
           <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
             <span className="flex flex-col">
@@ -137,6 +127,5 @@ export function NotificationPanel({
         {body}
         {panel.status === "ready" && <p className="text-xs text-muted-foreground">{t("notifications.retention")}</p>}
       </div>
-    </SidePanel>
   );
 }

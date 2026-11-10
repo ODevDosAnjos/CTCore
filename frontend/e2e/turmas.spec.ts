@@ -42,13 +42,14 @@ test("@critical Coordenador abre e desativa uma turma", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/turmas");
   await page.getByRole("link", { name: "Jiu-Jitsu Adulto" }).click();
-  await expect(page.getByRole("heading", { name: "Jiu-Jitsu Adulto", level: 1 })).toBeVisible();
+  const drawer = page.getByRole("dialog", { name: "Jiu-Jitsu Adulto" });
+  await expect(drawer).toBeVisible();
   await expect(page.getByRole("link", { name: "Abrir grupo" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Desativar" })).toBeEnabled();
   await page.getByRole("button", { name: "Desativar" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Desativar" }).click();
+  await page.getByRole("dialog", { name: /^Desativar / }).getByRole("button", { name: "Desativar" }).click();
   await expect(page.getByText("Turma desativada.")).toBeVisible();
-  await expect(page.getByText("Desativada", { exact: true })).toBeVisible();
+  await expect(drawer.getByText("Desativada", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Desativar" })).toBeDisabled();
 });
 
@@ -71,7 +72,7 @@ test("@critical Coordenador cria uma turma", async ({ page }) => {
   await dialog.getByRole("checkbox", { name: "Sexta-feira" }).check();
   await dialog.getByRole("button", { name: "Salvar" }).click();
 
-  await expect(page.getByRole("heading", { name: "Muay Thai Noite", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Muay Thai Noite" })).toBeVisible();
   await expect(page.getByText("Sexta-feira, 19:00–20:00")).toBeVisible();
 });
 
@@ -102,5 +103,26 @@ test("Desativar turma com bloqueio a 360 px sem rolagem lateral", async ({ page 
   const dialog = page.getByRole("dialog", { name: "Desativar Judô Infantil" });
   await expect(dialog.getByText("2 alunos com esta turma como principal")).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Ver alunos" })).toBeVisible();
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
+
+// #463 CA6: a gaveta da turma e o popover do sino não rolam para o lado a 360 px.
+test("Gaveta da turma e popover do sino a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/turmas/00000000-0000-0000-0000-000000000602");
+  await expect(page.getByRole("dialog", { name: "Judô Infantil" })).toBeVisible();
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+  await open(page, "/");
+  await page.getByRole("button", { name: /^Notificações/ }).click();
+  const popover = page.getByRole("dialog", { name: "Notificações" });
+  await expect(popover).toBeVisible();
+  const box = await popover.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(360);
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
 });

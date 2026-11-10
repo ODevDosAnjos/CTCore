@@ -90,7 +90,7 @@ const openNew = async (user: ReturnType<typeof userEvent.setup>) => {
   return screen.findByRole("dialog", { name: "Nova turma" });
 };
 const openEdit = async (user: ReturnType<typeof userEvent.setup>) => {
-  await screen.findByRole("heading", { name: current.name, level: 1 });
+  await screen.findByRole("heading", { name: current.name });
   await waitFor(() => expect(screen.getByRole("button", { name: "Editar" })).toBeEnabled());
   await user.click(screen.getByRole("button", { name: "Editar" }));
   return screen.findByRole("dialog", { name: "Editar turma" });
@@ -117,7 +117,7 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     await user.type(within(dialog).getByLabelText("Capacidade"), "25");
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
 
-    expect(await screen.findByRole("heading", { name: "Muay Thai Noite", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Muay Thai Noite" })).toBeInTheDocument();
     expect(sent).toEqual([
       {
         method: "POST",
@@ -218,7 +218,7 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     await user.clear(within(dialog).getByLabelText("Nome da turma"));
     await user.type(within(dialog).getByLabelText("Nome da turma"), "Jiu-Jitsu Noite");
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
-    expect(await screen.findByRole("heading", { name: "Jiu-Jitsu Noite", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Jiu-Jitsu Noite" })).toBeInTheDocument();
     expect(sent[0].body).toMatchObject({ name: "Jiu-Jitsu Noite", notifyClass: false, schedule: [{ weekday: 1, startsAt: "19:00", endsAt: "21:00" }], assistantIds: ["t2"] });
     expect(sent[0].body).not.toHaveProperty("unitId");
   });
@@ -273,7 +273,7 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
 
   it("Editar fica desativado em turma desativada", async () => {
     setup({ path: "/turmas/c1", klass: detail({ status: "INACTIVE" }) });
-    await screen.findByRole("heading", { name: "Jiu-Jitsu Adulto", level: 1 });
+    await screen.findByRole("heading", { name: "Jiu-Jitsu Adulto" });
     expect(screen.getByRole("button", { name: "Editar" })).toBeDisabled();
   });
 
