@@ -37,7 +37,7 @@
   },
   "areaUnavailable": {
     "title": "Esta área não está disponível para o seu perfil",
-    "text": "O seu perfil não permite abrir este endereço. Volte ao Início ou, se precisar, troque de organização ou área.",
+    "text": "Se você acha que deveria ter acesso, fale com o Administrador da sua unidade.",
     "home": "Ir para o Início"
   },
   "chooseLink": {
@@ -185,6 +185,12 @@
   },
   "states": {
     "loading": "Carregando...",
+    "loadingCard": "Carregando…",
+    "errorTitle": "Não foi possível carregar",
+    "errorText": "Nada foi alterado. Confira a sua conexão e tente de novo.",
+    "gotIt": "Entendi",
+    "sendNewLink": "Enviar um link novo",
+    "backToLogin": "Voltar para o login",
     "emptyTitle": "Nada por aqui ainda",
     "emptyText": "Quando houver itens, eles aparecem nesta lista.",
     "retry": "Tentar de novo",

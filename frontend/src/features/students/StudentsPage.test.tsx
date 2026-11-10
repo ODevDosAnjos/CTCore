@@ -251,6 +251,42 @@ describe("StudentsPage", () => {
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
+  it("canvasStates (#464): erro, vazio, 403 e carregando usam o cartão do canvas, com a busca acima; o 403 tem o cadeado em quadro", async () => {
+    // Erro: cartão (section com título em caixa alta) e busca visível.
+    const err = setup("COORDINATOR", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("rounded-card");
+    expect(within(alert).getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Buscar" })).toBeInTheDocument();
+    err.unmount();
+
+    // Vazio.
+    const empty = setup("COORDINATOR", () => HttpResponse.json({ items: [], page: 1, size: 25, total: 0 }));
+    expect((await screen.findByText("Nada por aqui ainda")).closest("section")).toHaveClass("rounded-card");
+    empty.unmount();
+
+    // Carregando: cartão com role status enquanto a consulta não responde.
+    const loading = setup("COORDINATOR", () => new Promise<Response>(() => {}));
+    await waitFor(() => expect(screen.getAllByRole("status").some((e) => e.classList.contains("rounded-card"))).toBe(true));
+    loading.unmount();
+
+    // Sem permissão: cadeado em quadro arredondado acima do título (M4).
+    setup("COORDINATOR", () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }));
+    const title = await screen.findByText("Você não tem acesso");
+    const card = title.closest("section")!;
+    expect(card).toHaveClass("rounded-card");
+    const frame = within(card).getByTestId("state-icon-frame");
+    expect(frame).toHaveClass("rounded-card");
+    expect(frame.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("canvasStates (#464): a 360 px o estado de erro não tem violações no axe", async () => {
+    window.innerWidth = 360;
+    const { container } = setup("COORDINATOR", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }));
+    await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(await axeViolations(container)).toEqual([]);
+  });
+
   it("CA9: trocar de página refaz a consulta", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", () => HttpResponse.json({ items: all, page: 1, size: 25, total: 60 }));

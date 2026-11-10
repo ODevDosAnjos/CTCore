@@ -29,6 +29,7 @@ export function QueryPage<T>({
   search = true,
   searchPlaceholder,
   canvasPagination,
+  canvasStates,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
@@ -49,6 +50,8 @@ export function QueryPage<T>({
   searchPlaceholder?: string;
   /** Paginação do canvas ("1–25 de 131"); sem ela vale a de sempre, até cada tela migrar. */
   canvasPagination?: boolean;
+  /** Os quatro estados no visual do canvas (cartão); sem isso valem os de sempre, até cada tela migrar. */
+  canvasStates?: boolean;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -97,13 +100,15 @@ export function QueryPage<T>({
     };
   }, [key, q, pagina, ordem, filtrosKey, tamanho, fetchPage, set]);
 
+  const variant = canvasStates ? "card" : undefined;
   let body: ReactNode;
-  if (state.s === "loading") body = <LoadingState />;
-  else if (state.s === "error") body = <ErrorState onRetry={() => setTick((n) => n + 1)} />;
-  else if (state.s === "forbidden") body = <ForbiddenState />;
+  if (state.s === "loading") body = <LoadingState variant={variant} />;
+  else if (state.s === "error") body = <ErrorState variant={variant} onRetry={() => setTick((n) => n + 1)} />;
+  else if (state.s === "forbidden") body = <ForbiddenState variant={variant} />;
   else if (state.data!.total === 0 && hasFilter)
     body = (
       <EmptyState
+        variant={variant}
         title={texts?.noResultTitle ?? t("query.noResultTitle")}
         text={texts?.noResultText ?? t("query.noResultText")}
         action={
@@ -113,7 +118,7 @@ export function QueryPage<T>({
         }
       />
     );
-  else if (state.data!.total === 0) body = <EmptyState title={texts?.emptyTitle} text={texts?.emptyText} action={emptyAction} />;
+  else if (state.data!.total === 0) body = <EmptyState variant={variant} title={texts?.emptyTitle} text={texts?.emptyText} action={emptyAction} />;
   else {
     const Pager = canvasPagination ? CanvasPagination : Pagination;
     const pages = Math.max(1, Math.ceil(state.data!.total / tamanho));

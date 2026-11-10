@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { RequireArea } from "./RequireArea";
@@ -16,7 +17,10 @@ function Path() {
   return <span data-testid="path">{useLocation().pathname}</span>;
 }
 function setup(view: SessionView | Response) {
-  server.use(http.get("/api/v1/auth/session", () => (view instanceof Response ? view : HttpResponse.json(view))));
+  server.use(
+    http.get("/api/v1/auth/session", () => (view instanceof Response ? view : HttpResponse.json(view))),
+    http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(view instanceof Response ? undefined : view.links.find((l) => l.id === view.activeLinkId)?.role) })),
+  );
   return render(
     <ThemeProvider>
     <MemoryRouter initialEntries={["/financeiro"]}>

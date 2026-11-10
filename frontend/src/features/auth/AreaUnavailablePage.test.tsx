@@ -43,8 +43,23 @@ describe("AreaUnavailablePage", () => {
     setup(one);
     expect(await screen.findByRole("heading", { level: 1, name: TITLE })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByText(/não permite abrir este endereço/)).toBeInTheDocument();
+    expect(screen.getByText(/fale com o Administrador da sua unidade/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ir para o Início" })).toHaveAttribute("href", "/");
+  });
+
+  it("CA5: Professor vê o estado dentro do menu e da barra do app", async () => {
+    setup(one);
+    await screen.findByRole("heading", { name: TITLE });
+    expect(await screen.findByRole("navigation", { name: "Menu principal" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir para o Início" })).toHaveClass("w-full");
+  });
+
+  it("CA5: Aluno vê o estado na casca do portal, sem o menu da gestão", async () => {
+    server.use(http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: null })));
+    setup({ account, links: [L("l3", "STUDENT")], activeLinkId: "l3", twoFactor: off });
+    await screen.findByRole("heading", { name: TITLE });
+    expect(screen.queryByRole("navigation", { name: "Menu principal" })).not.toBeInTheDocument();
+    expect((await screen.findAllByRole("link", { name: /Financeiro/ })).length).toBeGreaterThan(0);
   });
 
   it("CA5: sem sessão vai ao login com next", async () => {
