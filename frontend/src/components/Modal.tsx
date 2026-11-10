@@ -1,6 +1,6 @@
 import { useRef, type ReactNode, type RefObject } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ export function Modal({
   footer,
   size,
   headless,
+  fullOnMobile,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,6 +33,8 @@ export function Modal({
   size?: "sm" | "md";
   /** Sem faixa de título: o título fica só para leitor de tela e o chamador desenha o cabeçalho e o botão de fechar (ficha do aluno). */
   headless?: boolean;
+  /** Abaixo de 640 px a janela ocupa a tela, com seta de voltar, corpo rolável e rodapé fixo (Encerrar modalidade). */
+  fullOnMobile?: boolean;
 }) {
   const { t } = useTranslation();
   const opener = useRef<HTMLElement | null>(null);
@@ -54,6 +57,7 @@ export function Modal({
           className={cn(
             "fixed left-1/2 top-1/2 z-50 max-h-full w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex flex-col overflow-hidden rounded-window border bg-card",
             size === "sm" ? "max-w-[540px]" : size === "md" ? "max-w-[600px]" : "max-w-lg",
+            fullOnMobile && "max-sm:left-0 max-sm:top-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0",
             className,
           )}
         >
@@ -61,6 +65,13 @@ export function Modal({
             <Dialog.Title className="sr-only">{title}</Dialog.Title>
           ) : (
             <div className={cn("flex items-center justify-between gap-2 border-b border-divider", size ? "px-6 py-4" : "px-4 py-3")}>
+              {fullOnMobile && dismissible && (
+                <Dialog.Close asChild>
+                  <Button variant="ghost" size="icon" className="sm:hidden" aria-label={t("common.back")}>
+                    <ArrowLeft aria-hidden="true" />
+                  </Button>
+                </Dialog.Close>
+              )}
               <Dialog.Title className={cn("font-heading font-semibold", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
               {dismissible && (
                 <Dialog.Close asChild>

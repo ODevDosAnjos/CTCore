@@ -1,13 +1,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Opção em cartão; vários com o mesmo `name` formam o grupo (setas trocam a escolha). */
+/** Opção em cartão (`aside`: texto à direita, ex.: o valor); vários com o mesmo `name` formam o grupo (setas trocam a escolha). */
 export function RadioCard({
   label,
   description,
+  aside,
   className,
   ...rest
-}: Omit<React.ComponentProps<"input">, "type"> & { label: string; description?: string }) {
+}: Omit<React.ComponentProps<"input">, "type"> & { label: string; description?: string; aside?: string }) {
   return (
     <label
       className={cn(
@@ -20,6 +21,7 @@ export function RadioCard({
         <span className="font-medium">{label}</span>
         {description && <span className="text-xs text-muted-foreground">{description}</span>}
       </span>
+      {aside && <span className="ml-auto font-medium">{aside}</span>}
     </label>
   );
 }

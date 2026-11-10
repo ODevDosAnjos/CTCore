@@ -138,7 +138,11 @@ export const casos: Caso[] = [
   { nome: "notificacoes", rota: "/alunos", perfil: ana, canvas: "Notificacoes", passos: [{ clicar: "Notificações" }], limiteCanvas: { valor: 0.10, motivo: "popover: grupos e visual interno das notificações ainda diferem do canvas (medido a 3,7% na #463; a #492 trata a tela e remove esta exceção)" } },
   // Janelas de ação com os blocos Resumo, Motivo e cartões de escolha (#461). Bruno (cenário do MSW) tem cobrança em aberto ligada à modalidade.
   { nome: "cobranca-cancelar", rota: "/cobrancas", perfil: ana, canvas: "CobrancaCancelar", passos: [{ clicar: "Abrir cobrança de" }, { clicar: "Cancelar cobrança" }], limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: a cobrança aberta é outra e a lista atrás tem outras linhas e filtros (medido a 70,2% na #461; a #477 trata a tela e remove esta exceção)" } },
-  { nome: "aluno-encerrar-modalidade", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "EncerrarModalidade", passos: [{ clicar: "Matrícula", papel: "tab" }, { clicar: "Encerrar" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: o canvas traz a cobrança em tabela e o botão de encerrar em vermelho cheio, e a ficha atrás tem outro conteúdo (medido a 52,7% na #461; a #468 trata a tela e remove esta exceção)" } },
+  { nome: "aluno-encerrar-modalidade", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "EncerrarModalidade", passos: [{ clicar: "Matrícula", papel: "tab" }, { clicar: "Encerrar" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: a ficha atrás tem outro conteúdo e dados que a API não traz (D1 da #467) e o canvas traz outras cobranças; medido a 51,2% na #468" } },
+  { nome: "aluno-trocar-turma", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "TrocarTurma", passos: [{ clicar: "Matrícula", papel: "tab" }, { clicar: "Trocar turma" }], limiteCanvas: { valor: 0.60, motivo: "medido a 58,3%: janela ou fundo: a ficha atrás tem outro conteúdo e a ocupação e os horários das turmas vêm do MSW, não do canvas (D7 da #468)" } },
+  { nome: "aluno-trocar-plano", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "TrocarPlano", passos: [{ clicar: "Matrícula", papel: "tab" }, { clicar: "Trocar plano" }], limiteCanvas: { valor: 0.65, motivo: "medido a 62,0%: janela ou fundo: sem a linha de taxa por meio de pagamento no Resumo (D3 da #468) e a ficha atrás tem outro conteúdo" } },
+  { nome: "aluno-transferir-modalidade", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "TransferirModalidade", passos: [{ clicar: "Matrícula", papel: "tab" }, { clicar: "Transferir" }], limiteCanvas: { valor: 0.62, motivo: "medido a 58,3%: janela ou fundo: a unidade de destino ainda não foi escolhida no print e a ficha atrás tem outro conteúdo (D4 da #468)" } },
+  { nome: "aluno-desligar-responsavel", rota: "/alunos/00000000-0000-0000-0000-000000000727", perfil: ana, canvas: "ResponsavelDesligar", passos: [{ clicar: "Responsáveis", papel: "tab" }, { clicar: "Desligar" }], limiteCanvas: { valor: 0.70, motivo: "medido a 65,5%: janela ou fundo: a ficha atrás tem outro conteúdo e o cartão do responsável fica para o item de contrato sugerido na #467" } },
   // Telas do canvas já construídas que o MSW alcança por rota (#435). Fora delas, ver semCaso.
   { nome: "inicio-professor", rota: "/", perfil: prof, canvas: "ProfessorInicio" },
   { nome: "matricula-aluno", rota: "/alunos/nova-matricula", perfil: ana, canvas: "MatriculaAluno" },
@@ -186,8 +190,8 @@ export const semCaso: Record<string, string[]> = {
   // janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)
   "janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)": [
     "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos",
-    "TrocarTurma", "TrocarPlano", "TransferirModalidade", "AlunoInativar", "AlunoReativar",
-    "AlunoAnonimizar", "ResponsavelDesligar", "MatriculaModalidades", "MatriculaVencimento", "MatriculaResumo",
+    "AlunoInativar", "AlunoReativar",
+    "AlunoAnonimizar", "MatriculaModalidades", "MatriculaVencimento", "MatriculaResumo",
     "MatriculaConcluida", "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo", "ProfessorModalidadeRecusa",
     "AgendaPainel", "AulaEditar", "AulaCancelar", "AulaEditarSeguintes", "AulaCorrigir",
     "AulaAvisarTurma", "TurmaTitularInativo", "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",

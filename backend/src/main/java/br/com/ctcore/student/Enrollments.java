@@ -257,11 +257,16 @@ public class Enrollments {
         }
     }
 
-    public record ClassInput(UUID primaryClassId, List<UUID> otherClassIds) {}
+    public record ClassInput(UUID primaryClassId, List<UUID> otherClassIds, String reason) {}
 
-    public record PlanInput(UUID planId) {}
+    public record PlanInput(UUID planId, String reason) {}
 
-    public record TransferInput(UUID unitId, UUID primaryClassId, List<UUID> otherClassIds, UUID planId, Integer dueDay) {}
+    public record TransferInput(UUID unitId, UUID primaryClassId, List<UUID> otherClassIds, UUID planId, Integer dueDay, String reason) {}
+
+    /** D5 (#468): motivo opcional das trocas; vazio vira ausente, senão 3 a 200 caracteres. Vai só para a auditoria. */
+    private static String optionalReason(String raw) {
+        return raw == null || raw.isBlank() ? null : StudentGuardians.reason(raw);
+    }
 
     private record Row(UUID unitId, UUID modalityId, UUID primaryClassId, UUID planId, UUID nextPlanId, int dueDay) {}
 
@@ -303,6 +308,7 @@ public class Enrollments {
     /** RN-MAT-15 (R9): troca a turma principal e os outros horários; vale na hora. */
     public Enrollment changeClass(AccountPrincipal who, UUID studentId, UUID rowId, ClassInput in, String ip) {
         if (in == null || in.primaryClassId() == null) throw new ApiValidationException("primaryClassId", "obrigatório");
+        String reason = optionalReason(in.reason());
         return transactions.execute(() -> {
             Row row = lockRow(who, studentId, rowId);
             UUID org = who.organizationId();
@@ -317,7 +323,7 @@ public class Enrollments {
             jdbc.sql("update enrollment_modality set primary_class_id = :c where organization_id = :org and id = :id").param("c", in.primaryClassId())
                     .param("org", org).param("id", rowId).update();
             replaceOthers(org, rowId, others);
-            audit.record(new AuditEntry(actor(who), "student.class_changed", "student", studentId.toString(), row.unitId(), before, after, null, ip));
+            audit.record(new AuditEntry(actor(who), "student.class_changed", "student", studentId.toString(), row.unitId(), before, after, reason, ip));
             return read(who, studentId);
         });
     }
@@ -325,6 +331,7 @@ public class Enrollments {
     /** RN-MAT-15, D10 (R10): guarda o plano novo em next_plan_id (vale na próxima cobrança); pedir o plano atual limpa o agendamento. */
     public Enrollment changePlan(AccountPrincipal who, UUID studentId, UUID rowId, PlanInput in, String ip) {
         if (in == null || in.planId() == null) throw new ApiValidationException("planId", "obrigatório");
+        String reason = optionalReason(in.reason());
         return transactions.execute(() -> {
             Row row = lockRow(who, studentId, rowId);
             UUID org = who.organizationId();
@@ -341,7 +348,7 @@ public class Enrollments {
             after.put("nextPlanId", next == null ? null : next.toString());
             jdbc.sql("update enrollment_modality set next_plan_id = :n where organization_id = :org and id = :id").param("n", next).param("org", org)
                     .param("id", rowId).update();
-            audit.record(new AuditEntry(actor(who), "student.plan_changed", "student", studentId.toString(), row.unitId(), before, after, null, ip));
+            audit.record(new AuditEntry(actor(who), "student.plan_changed", "student", studentId.toString(), row.unitId(), before, after, reason, ip));
             return read(who, studentId);
         });
     }
@@ -352,6 +359,7 @@ public class Enrollments {
         if (in.primaryClassId() == null) throw new ApiValidationException("primaryClassId", "obrigatório");
         if (in.planId() == null) throw new ApiValidationException("planId", "obrigatório");
         if (in.dueDay() != null && (in.dueDay() < 1 || in.dueDay() > 28)) throw new ApiValidationException("dueDay", "de 1 a 28");
+        String reason = optionalReason(in.reason());
         return transactions.execute(() -> {
             Row row = lockRow(who, studentId, rowId);
             UUID org = who.organizationId();
@@ -379,7 +387,7 @@ public class Enrollments {
                     + "where organization_id = :org and id = :id").param("u", in.unitId()).param("c", in.primaryClassId()).param("p", in.planId())
                     .param("d", r.dueDay).param("org", org).param("id", rowId).update();
             replaceOthers(org, rowId, r.others);
-            audit.record(new AuditEntry(actor(who), "student.modality_transferred", "student", studentId.toString(), in.unitId(), before, after, null, ip));
+            audit.record(new AuditEntry(actor(who), "student.modality_transferred", "student", studentId.toString(), in.unitId(), before, after, reason, ip));
             return read(who, studentId);
         });
     }

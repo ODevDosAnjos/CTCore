@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const CENTRO = "00000000-0000-0000-0000-000000000021";
 const JIU_JITSU = "00000000-0000-0000-0000-000000000103";
@@ -22,6 +22,12 @@ async function call(page: Page, method: string, path: string, body?: unknown, if
   );
   expect(result.status, `${method} ${path}`).toBeLessThan(300);
   return result.body;
+}
+
+// As opções trazem horário e ocupação depois do nome: escolhe pelo começo do texto.
+async function pick(select: Locator, name: string) {
+  const value = await select.locator("option", { hasText: name }).first().getAttribute("value");
+  await select.selectOption(value!);
 }
 
 const schedule = (weekday: number) => [{ weekday, startsAt: "19:00", endsAt: "20:00" }];
@@ -60,19 +66,20 @@ test("@critical Coordenador troca a turma e transfere a modalidade pela ficha", 
 
   await panel.getByRole("tab", { name: "Matrícula" }).click();
   await panel.getByRole("button", { name: "Trocar turma" }).click();
-  const classDialog = page.getByRole("dialog", { name: "Trocar turma de Jiu-Jitsu" });
-  await expect(classDialog.getByText("A troca vale na hora.")).toBeVisible();
-  await classDialog.getByLabel("Turma principal").selectOption({ label: "Jiu-Jitsu Noite" });
+  const classDialog = page.getByRole("dialog", { name: "Trocar turma" });
+  await expect(classDialog.getByText(/A troca vale agora/)).toBeVisible();
+  await pick(classDialog.getByLabel("Nova turma principal"), "Jiu-Jitsu Noite");
   await classDialog.getByRole("button", { name: "Trocar turma" }).click();
   await expect(classDialog).toHaveCount(0);
   await expect(panel.getByText("Jiu-Jitsu Noite")).toBeVisible();
 
   await panel.getByRole("button", { name: "Transferir" }).click();
-  const transfer = page.getByRole("dialog", { name: "Transferir Jiu-Jitsu para outra unidade" });
-  await transfer.getByLabel("Unidade de destino").selectOption({ label: "Unidade Leste" });
-  await transfer.getByLabel("Turma principal").selectOption({ label: "Jiu-Jitsu Leste" });
-  await transfer.getByLabel("Plano na unidade nova").selectOption({ label: "Jiu-Jitsu Leste Mensal" });
-  await transfer.getByLabel("Dia de vencimento (1 a 28)").fill("10");
+  const transfer = page.getByRole("dialog", { name: "Transferir modalidade" });
+  await transfer.getByLabel("Para").selectOption({ label: "Unidade Leste" });
+  await pick(transfer.getByLabel(/^Turma principal na/), "Jiu-Jitsu Leste");
+  await pick(transfer.getByLabel(/^Plano na/), "Jiu-Jitsu Leste Mensal");
+  await transfer.getByText("Dia 10", { exact: true }).click();
+  await transfer.getByLabel(/^Motivo/).fill("Mudou de bairro");
   await transfer.getByRole("button", { name: "Transferir" }).click();
   await expect(transfer).toHaveCount(0);
   await expect(panel.getByText("Unidade Leste")).toBeVisible();

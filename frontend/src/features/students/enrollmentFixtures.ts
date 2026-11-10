@@ -33,12 +33,13 @@ export function choiceRoutes(calls: string[] = []) {
   return [
     http.get("/api/v1/classes", ({ request }) => {
       calls.push(request.url);
-      return HttpResponse.json({ items: [{ id: "k1", name: "Turma Manhã" }, { id: "k2", name: "Turma Noite" }, { id: "k3", name: "Turma Tarde" }], page: 1, size: 100, total: 3 });
+      return HttpResponse.json({ items: [{ id: "k1", name: "Turma Manhã" }, { id: "k2", name: "Turma Noite" }, { id: "k3", name: "Turma Tarde", schedule: [{ weekday: 3, startsAt: "15:00", endsAt: "16:00" }], activeStudents: 18, capacity: 25 }], page: 1, size: 100, total: 3 });
     }),
     http.get("/api/v1/plans", ({ request }) => {
       calls.push(request.url);
-      return HttpResponse.json({ items: [{ id: "p1", name: "Plano Mensal" }, { id: "p2", name: "Plano Trimestral" }], page: 1, size: 100, total: 2 });
+      return HttpResponse.json({ items: [{ id: "p1", name: "Plano Mensal", valueCents: 18000, weeklyFrequency: 3 }, { id: "p2", name: "Plano Trimestral", valueCents: 22000, weeklyFrequency: null }], page: 1, size: 100, total: 2 });
     }),
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: [{ id: "u1", name: "Centro" }, { id: "u2", name: "Norte" }] })),
+    http.get("/api/v1/units/:id", () => HttpResponse.json({ settings: { dueDays: [1, 5, 10, 15] } })),
   ];
 }

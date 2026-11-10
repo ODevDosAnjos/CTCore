@@ -64,6 +64,21 @@ describe("CA15/CA17: visual", () => {
     expect(screen.getByRole("dialog")).toHaveClass("max-w-[600px]");
   });
 
+  it("CA1 (#468): fullOnMobile ocupa a tela abaixo de 640 px, com seta de voltar que fecha e rodapé fora da rolagem; sem ele não há seta", async () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <Modal open onOpenChange={onOpenChange} title="Detalhes" size="md" fullOnMobile footer={<button>Salvar</button>}>
+        <p>Corpo</p>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("max-sm:h-full", "max-sm:w-full", "max-sm:rounded-none", "max-w-[600px]");
+    await userEvent.click(screen.getByRole("button", { name: "Voltar" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    rerender(<Modal open onOpenChange={onOpenChange} title="Detalhes" size="md">x</Modal>);
+    expect(screen.queryByRole("button", { name: "Voltar" })).toBeNull();
+    expect(screen.getByRole("dialog")).not.toHaveClass("max-sm:h-full");
+  });
+
   it("CA2/CA3: com size, título em caixa alta é o nome, X existe e o rodapé fica fora da rolagem", () => {
     render(
       <Modal open onOpenChange={() => {}} title="Detalhes" size="md" footer={<button>Salvar</button>}>

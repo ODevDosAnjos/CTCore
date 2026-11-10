@@ -299,6 +299,50 @@ class EnrollmentChangesIT extends OrganizationBase {
         assertThat(modalityOf(ok(transfer(s, row2, judoThere, null, gestor), 200), row2).get("dueDay").asInt()).isEqualTo(10);
     }
 
+    @Test
+    @DisplayName("CA8, CA9 (#468, D5): o motivo opcional vai para a auditoria nas três trocas; 2 ou 201 caracteres dão 400 sem mudar nada; ausente segue; outra organização 404")
+    void reasonGoesToAudit() throws Exception {
+        Tenant t = tenant(), other = tenant();
+        UUID bjj = modality(t, t.unitId(), 0);
+        UUID b = unit(t, true);
+        Offer here = offerOf(t, t.unitId(), bjj, "R"), there = offerOf(t, b, bjj, "RB");
+        UUID y = klass(t, t.unitId(), bjj, "Turma Y", "ACTIVE"), p2 = plan(t, t.unitId(), bjj, "Plano 2", "ACTIVE");
+        UUID s = student(t, "52998224725");
+        AccountPrincipal gestor = coordinator(t);
+        UUID row = enroll(s, here, 5, gestor);
+        String path = "/" + s + "/modalities/" + row;
+        ObjectNode klassBody = json.createObjectNode().put("primaryClassId", y.toString());
+        ObjectNode planBody = json.createObjectNode().put("planId", p2.toString());
+        ObjectNode moveBody = json.createObjectNode().put("unitId", b.toString()).put("primaryClassId", there.klass().toString()).put("planId", there.plan().toString()).put("dueDay", 10);
+
+        for (String bad : new String[] {"ab", "x".repeat(201)}) {
+            for (Object[] c : new Object[][] {{HttpMethod.PUT, "/class", klassBody}, {HttpMethod.PUT, "/plan", planBody}, {HttpMethod.POST, "/transfer", moveBody}}) {
+                var r = send((HttpMethod) c[0], path + c[1], ((ObjectNode) c[2]).deepCopy().put("reason", bad), gestor);
+                assertThat(r.getStatus()).as(c[1] + " " + bad.length()).isEqualTo(400);
+                assertThat(r.getContentAsString()).contains("reason");
+            }
+        }
+        assertThat(audits(t, "student.class_changed") + audits(t, "student.plan_changed") + audits(t, "student.modality_transferred")).isZero();
+        assertThat(count("select count(*) from enrollment_modality where id = ? and unit_id = ? and primary_class_id = ?", row, t.unitId(), here.klass())).isEqualTo(1);
+
+        // Outra organização: 404 e nenhuma auditoria.
+        AccountPrincipal foreign = coordinator(other);
+        assertThat(send(HttpMethod.PUT, path + "/class", klassBody.deepCopy().put("reason", "Motivo válido"), foreign).getStatus()).isEqualTo(404);
+
+        ok(send(HttpMethod.PUT, path + "/class", klassBody.deepCopy().put("reason", "  Mudou de horário  "), gestor), 200);
+        ok(send(HttpMethod.PUT, path + "/plan", planBody.deepCopy().put("reason", "Pediu o plano livre"), gestor), 200);
+        ok(send(HttpMethod.POST, path + "/transfer", moveBody.deepCopy().put("reason", "Mudou de bairro"), gestor), 200);
+        for (String[] e : new String[][] {{"student.class_changed", "Mudou de horário"}, {"student.plan_changed", "Pediu o plano livre"}, {"student.modality_transferred", "Mudou de bairro"}}) {
+            assertThat(adminJdbc().queryForObject("select reason from audit_log where organization_id = ? and action = ?", String.class, t.orgId(), e[0])).as(e[0]).isEqualTo(e[1]);
+        }
+        assertThat(audits(other, "student.class_changed")).isZero();
+
+        // Sem motivo a ação segue como antes (pedido do portal e chamadas antigas), com reason nulo.
+        UUID z = klass(t, b, bjj, "Turma Z", "ACTIVE");
+        ok(send(HttpMethod.PUT, path + "/class", json.createObjectNode().put("primaryClassId", z.toString()), gestor), 200);
+        assertThat(count("select count(*) from audit_log where organization_id = ? and action = 'student.class_changed' and reason is null", t.orgId())).isEqualTo(1);
+    }
+
     private record OffsetStarted(String startedAt, UUID enrollmentId) {}
 
     @Test

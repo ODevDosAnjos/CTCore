@@ -2,7 +2,7 @@ import { useId } from "react";
 import { cn } from "@/lib/utils";
 import { RadioCard } from "./radio-card";
 
-export type ChoiceOption = { value: string; label: string; description?: string };
+export type ChoiceOption = { value: string; label: string; description?: string; aside?: string };
 
 /** Escolha de uma opção entre várias, em cartões (1 ou 2 colunas); a legenda dá o nome ao grupo. */
 export function ChoiceCards({ legend, options, value, onChange, columns = 1, required, className }: { legend: string; options: ChoiceOption[]; value: string; onChange: (value: string) => void; columns?: 1 | 2; required?: boolean; className?: string }) {
@@ -18,7 +18,7 @@ export function ChoiceCards({ legend, options, value, onChange, columns = 1, req
       </legend>
       <div className={cn("grid gap-2", columns === 2 && "grid-cols-2")}>
         {options.map((o) => (
-          <RadioCard key={o.value} name={name} label={o.label} description={o.description} checked={value === o.value} onChange={() => onChange(o.value)} />
+          <RadioCard key={o.value} name={name} label={o.label} description={o.description} aside={o.aside} checked={value === o.value} onChange={() => onChange(o.value)} />
         ))}
       </div>
     </fieldset>

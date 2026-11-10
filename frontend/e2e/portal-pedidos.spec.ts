@@ -104,7 +104,7 @@ test.describe("pedidos do portal a 360 px", () => {
       await expect(page).toHaveURL(new RegExp(`/alunos/${ALUNO_ADULTO}\\?pedido=`));
       const change = page.getByRole("dialog", { name: /Trocar turma/ });
       await expect(change.getByLabel("Turma principal")).toHaveValue(/.+/);
-      await expect(change.getByLabel("Turma principal").locator("option:checked")).toHaveText("Jiu-Jitsu Noite");
+      await expect(change.getByLabel("Turma principal").locator("option:checked")).toHaveText(/^Jiu-Jitsu Noite/);
     });
   }
 });
