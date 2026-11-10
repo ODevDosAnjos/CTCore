@@ -138,3 +138,23 @@ Achados:
 - Decisões: D1 (tela cheia só no celular de encerrar), D3 (taxa por meio no Resumo de Trocar plano fica de fora), D4 (unidade de destino do Transferir), D7 (`limiteCanvas` com motivo nas cinco janelas, medidas de 51,2% a 65,5%).
 - Limitações: o `limiteCanvas` de Trocar plano, Transferir e Desligar cita D3, D4 e "item de contrato sugerido na #467"; nenhuma issue aberta remove essas exceções, então nenhuma issue foi atualizada. "Motivo" do canvas é lista e aqui são cartões (R2). X ao lado da seta no celular e "Manter" em terracota (ver Achados).
 - Regressão (construção, parte C): `npm run test:cov` com 2164 testes passados; falharam sob carga `OverduePage` CA26 (tempo de 21 s) e `UnitSettingsPage` CA18, ambos passaram isolados. Primeira linha do erro não foi anotada na construção. Registrados como instabilidade nas issues #519 e #540.
+
+### Correção da entrega
+
+- CI do PR #551: `e2e` e `visual` vermelhos. `e2e/portal-pedidos.spec.ts` esperava o texto exato "Jiu-Jitsu Noite" na opção de Trocar turma, que agora traz horário e ocupação — arquivos: `frontend/e2e/portal-pedidos.spec.ts` (`toHaveText(/^Jiu-Jitsu Noite/)`) — prova: `npx playwright test e2e/portal-pedidos.spec.ts` → 2 passaram
+- `visual`: `ficha-aluno-responsaveis` 390 claro e escuro (Desvincular virou Desligar, 454 px de diferença) — arquivos: `frontend/visual/referencias/ficha-aluno-responsaveis-390-{claro,escuro}.png` — prova: `npm run test:visual:docker -- --update-snapshots -g "ficha-aluno-responsaveis"` → 4 passaram
+- `e2e/recuperar-senha.spec.ts` ficou instável no CI (passou no retry, "1 flaky"); não é do item, sem mudança.
+Referências visuais: `visual/referencias/ficha-aluno-responsaveis-390-{claro,escuro}.png`
+
+### Rodada 2 — OK — 2026-11-10, estado b0ffa6f2ab010eb7dcb0150375dfd51c6d5c1da6
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA13 | PASSOU (mantido da rodada 1) | a mudança desde a rodada 1 só toca `e2e/portal-pedidos.spec.ts`, duas referências visuais da ficha e este arquivo; nenhum código de produto mudou |
+| Correção do e2e | PASSOU | `npx playwright test e2e/portal-pedidos.spec.ts` → 2 passaram (claro e escuro) |
+| Correção do visual | PASSOU | `ficha-aluno-responsaveis-390-claro.png` aberta: botões "Desligar", sem "Desvincular"; escuro não aberto, só o claro; regeração no container (`test:visual:docker`) não reexecutada, o CI do PR é a prova (Autonomia 3) |
+
+Comandos: `npx playwright test e2e/portal-pedidos.spec.ts` → 2 passaram. Regressão completa não repetida (sem código novo).
+Instáveis: `e2e/recuperar-senha.spec.ts` (1 flaky no CI, passou no retry), não do item.
+Achados:
+- sugestão, código, `e2e/portal-pedidos.spec.ts` — regex `/^Jiu-Jitsu Noite/` é adequada ao novo texto da opção; nada a corrigir.
