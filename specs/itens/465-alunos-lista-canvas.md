@@ -114,3 +114,20 @@ Achados:
 - Comparação com o canvas: `npm run visual:canvas -- --exige` com 103 comparadas e 0 reprovadas (alunos 1440: 3,3% de diferença). Capturas em `.capturas/465/` (1440 e 390, sistema e canvas, pt-BR). A comparação a 390 px do canvas foi visual, porque o canvas é de 360 px.
 - Regressão: a base `dev` não avançou desde a verificação (`4f09077`), então a regressão não foi rodada de novo. Na rodada da verificação, 5 testes falharam sob carga (`LoginPage`, `OverduePage`, `UnitSettingsPage`) e passaram ao rodar de novo os 3 arquivos isolados (56 passaram); não têm relação com o item. `test:cov`, `e2e` completo, visual docker e back-end ficam para o CI do PR.
 - Limitações: nenhum `limiteCanvas` foi criado nem removido; nenhuma issue foi alterada.
+
+### Correção da entrega
+- CI do PR #548: job `visual` reprovou 6 casos (`moldura-coordenacao` 1440/390 claro e escuro; `moldura-administrador` 1440 claro e escuro), referências não regeradas na construção porque o shell das telas mudou (Alunos usa a moldura) — arquivos: frontend/visual/referencias/moldura-coordenacao-{1440,390}-{claro,escuro}.png, moldura-administrador-{1440,390}-{claro,escuro}.png — prova: `npm run test:visual:docker -- --update-snapshots=all -g "moldura-coordenacao|moldura-administrador"` → 8 passaram; `npm run test:visual:docker -- -g "moldura"` → 20 passaram
+Referências visuais: as 8 acima (regeradas na correção da entrega)
+
+### Rodada 2 — OK — 2026-11-10, estado 0098ede29aece66ab5275c70d10073132c731c19
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA8 | PASSOU (mantido da rodada 1) | diff desde o estado da rodada 1 só traz PNG de `moldura-*`, `specs/backlog.md` e este arquivo; nenhum código mudou |
+| CA9 | PASSOU | `npm run test:visual:docker -- -g "moldura"` → 20 passaram; `-g "alunos\|notificacoes"` → 12 passaram, sem diferença contra as referências; só PNG previstos alterados; capturas em `.capturas/465/` mantidas da rodada 1 |
+
+Comandos: `git diff --stat f9cb0ca... 0098ede...` (8 PNG de moldura, backlog, item); test:visual:docker nos dois filtros acima, ok.
+Achado da rodada 1 (correção da entrega: 6 casos de moldura reprovados no CI): resolvido, referências regeradas e conferidas no container.
+Instáveis: nenhum.
+Achados:
+- nenhum obrigatório; sugestões da rodada 1 mantidas.
