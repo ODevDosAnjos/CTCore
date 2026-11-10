@@ -61,7 +61,7 @@ function setup(get: () => Response | Promise<Response> = () => HttpResponse.json
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Jiu-Jitsu Adulto", level: 1 });
+const ready = () => screen.findByRole("heading", { name: "Jiu-Jitsu Adulto" });
 
 // As permissões chegam depois do painel.
 const enabled = () => waitFor(() => expect(screen.getByRole("button", { name: "Desativar" })).toBeEnabled());
@@ -70,8 +70,8 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
   it("CA8: mostra situação, modalidade, faixa, unidade, horários, titular, auxiliares, capacidade, vazios e grupo", async () => {
     setup();
     await ready();
-    expect(screen.getByText("Ativa")).toBeInTheDocument();
-    expect(within(screen.getByRole("main")).getByText("Centro")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("Ativa")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("Centro")).toBeInTheDocument();
     expect(screen.getByText("Jiu-Jitsu")).toBeInTheDocument();
     expect(screen.getByText("Adulto")).toBeInTheDocument();
     expect(screen.getByText("Segunda-feira, 19:00–20:00")).toBeInTheDocument();
@@ -90,12 +90,12 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
   it("CA8: Ver alunos é link para a lista filtrada, também em turma desativada; Editar e Desativar estão ativos (CA13)", async () => {
     setup();
     await ready();
-    expect(screen.getByRole("link", { name: "Ver alunos" })).toHaveAttribute("href", "/alunos?classId=c1");
+    expect(screen.getByRole("link", { name: "Ver todos os alunos" })).toHaveAttribute("href", "/alunos?classId=c1");
     await enabled();
     cleanup();
     setup(() => HttpResponse.json(detail({ status: "INACTIVE" })));
     await ready();
-    expect(screen.getByRole("link", { name: "Ver alunos" })).toHaveAttribute("href", "/alunos?classId=c1");
+    expect(screen.getByRole("link", { name: "Ver todos os alunos" })).toHaveAttribute("href", "/alunos?classId=c1");
   });
 
   it("CA26 (#82): Avisar turma abre o comunicado já com a turma; sem a permissão ou com a turma desativada fica desativado", async () => {
@@ -150,7 +150,7 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
   it("CA8: turma desativada tem selo e Desativar desativado", async () => {
     setup(() => HttpResponse.json(detail({ status: "INACTIVE", deactivation: { allowed: false, blockingStudents: 0 } })));
     await ready();
-    expect(screen.getByText("Desativada")).toBeInTheDocument();
+    expect(within(screen.getAllByRole("dialog")[0]).getByText("Desativada")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar" })).toBeDisabled();
   });
 
@@ -172,7 +172,7 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     await user.click(within(dialog).getByRole("button", { name: "Desativar turma" }));
     await waitFor(() => expect(deactivated).toBe(1));
     expect(await screen.findByText("Turma desativada.")).toBeInTheDocument();
-    expect(screen.getByText("Desativada")).toBeInTheDocument();
+    expect(within(screen.getAllByRole("dialog")[0]).getByText("Desativada")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar" })).toBeDisabled();
   });
 
@@ -230,7 +230,6 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     second.unmount();
     setup(() => HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 }));
     expect(await screen.findByText("Turma não encontrada")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Voltar às turmas" })).toHaveAttribute("href", "/turmas");
   });
 
   it.each([

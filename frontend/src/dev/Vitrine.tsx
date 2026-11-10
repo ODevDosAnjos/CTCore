@@ -4,6 +4,8 @@ import { Card, Section } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Modal } from "@/components/Modal";
 import { SidePanel } from "@/components/SidePanel";
+import { Drawer } from "@/components/ui/drawer";
+import { Popover } from "@/components/ui/popover";
 import { Stepper } from "@/components/Stepper";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { UnitMenu } from "@/components/layout/UnitMenu";
@@ -65,6 +67,7 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
   const [modal, setModal] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [panel, setPanel] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   const noop = () => {};
   return (
     <div className="flex flex-col gap-4">
@@ -187,11 +190,16 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
           <Button variant="secondary" onClick={() => setModal(true)}>Abrir janela</Button>
           <Button variant="secondary" onClick={() => setConfirm(true)}>Abrir confirmação</Button>
           <Button variant="secondary" onClick={() => setPanel(true)}>Abrir painel</Button>
+          <Button variant="secondary" onClick={() => setDrawer(true)}>Abrir gaveta</Button>
+          <Popover label="Popover" trigger={(p) => <Button variant="secondary" {...p}>Abrir popover</Button>}>{() => <p>Conteúdo do popover</p>}</Popover>
         </div>
         <Modal open={modal} onOpenChange={setModal} title="Janela" size="sm" footer={<><Button variant="ghost" className="min-h-11" onClick={() => setModal(false)}>Cancelar</Button><Button className="min-h-11" onClick={() => setModal(false)}>Salvar</Button></>}>
           <p>Conteúdo</p>
         </Modal>
         <ConfirmDialog open={confirm} onOpenChange={setConfirm} tone="danger" size="sm" subtitle="Ação sensível" title="Desativar" summary="Vai desativar." summaryItems={["Encerra matrículas"]} typedText="DESATIVAR" onConfirm={noop} />
+        <Drawer open={drawer} onOpenChange={setDrawer} title="Gaveta" eyebrow="Turma" footer={<Button className="min-h-11" onClick={() => setDrawer(false)}>Fechar gaveta</Button>}>
+          <p>Conteúdo</p>
+        </Drawer>
         <SidePanel open={panel} onOpenChange={setPanel} title="Ficha" tabs={[{ id: "a", label: "Dados", content: <p>Dados</p> }]} />
       </Section>
       <Section heading="h2" title={`Quatro estados (${theme})`}>

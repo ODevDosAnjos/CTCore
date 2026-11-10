@@ -167,7 +167,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 451 | Componente base: Botão destrutivo e confirmação de ação sensível | issue #451 | Sprint 10.5 | #448, #460 | agente | feito |
 | 461 | Componente base: Janela: blocos de resumo, motivo e cartões de escolha | issue #461 | Sprint 10.5 | #448, #460 | agente | feito |
 | 462 | Componente base: Janela: passos e bloqueio com checklist | issue #462 | Sprint 10.5 | #448, #460 | agente | feito |
-| 463 | Componente base: Gaveta lateral e popover | issue #463 | Sprint 10.5 | #448 | agente | a fazer |
+| 463 | Componente base: Gaveta lateral e popover | issue #463 | Sprint 10.5 | #448 | agente | feito |
 | 464 | Componente base: Estados: carregando, vazio, erro, sem permissão, bloqueio e link vencido | issue #464 | Sprint 10.5 | #448 | agente | a fazer |
 | 465 | Alunos: lista, filtros, estados e celular no visual do canvas | issue #465 | Sprint 10.5 | #454, #456, #457, #458, #459, #464, #452, #450 | agente | a fazer |
 | 466 | Ficha do aluno: cabeçalho, Resumo e celular no visual do canvas | issue #466 | Sprint 10.5 | #460, #461, #463, #452, #450, #449 | agente | a fazer |

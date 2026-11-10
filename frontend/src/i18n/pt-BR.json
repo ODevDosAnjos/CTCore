@@ -1283,9 +1283,9 @@
       "INACTIVE": "Desativada"
     },
     "panel": {
-      "back": "Voltar às turmas",
+      "eyebrow": "Turma",
       "edit": "Editar",
-      "viewStudents": "Ver alunos",
+      "viewAllStudents": "Ver todos os alunos",
       "notify": "Avisar turma",
       "openGroup": "Abrir grupo",
       "deactivate": "Desativar",
