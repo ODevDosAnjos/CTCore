@@ -162,7 +162,7 @@ Achados:
 
 **O que muda:** a ficha do aluno (painel lateral de Alunos e do Professor pela aula) no visual do canvas: cabeçalho (avatar, nome, "idade · aluno desde · unidade", selos, WhatsApp, Cobrar, "⋯" em "Em breve"), abas com "Matrícula" e rolagem lateral no celular, Resumo (Modalidades, Contato em grade, Próximo vencimento, Termo, ações no rodapé); janela "Editar dados pessoais" no layout do canvas (grade 2/3/4/4, asteriscos, "Opcionais", tela cheia abaixo de 640 px); `Input` e `Checkbox` base com esquema claro e escuro (B21; "Isentar taxa" é a caixa do passo de cobrança da matrícula).
 
-**Verificação:** rodada 2 `OK` (estado `bfa7b4def486b4e5748e3b154a7bc316396a6e5c`). `npx vitest run src/features/students src/features/charges src/components visual --maxWorkers=2` passou com 703 testes; lint e typecheck limpos. Comparação com o canvas: `npm run visual:canvas -- --exige` com 105 comparadas e 0 reprovadas; capturas em `.capturas/466/` (1440 e 390 px, pt-BR). Referências regeradas com `test:visual:docker` (12 passaram; um caso deu timeout por carga e passou ao repetir). E2E `alunos.spec.ts` e `matricula.spec.ts` passaram na construção.
+**Verificação:** rodada 3 `OK` (estado `7a56a4c1af121604fd7bf3c1d88961f82fdde562`; rodada 2 no estado `bfa7b4def486b4e5748e3b154a7bc316396a6e5c`, código igual). `npx vitest run src/features/students src/features/charges src/components visual --maxWorkers=2` passou com 703 testes; lint e typecheck limpos. Comparação com o canvas: `npm run visual:canvas -- --exige` com 105 comparadas e 0 reprovadas; capturas em `.capturas/466/` (1440 e 390 px, pt-BR). Referências regeradas com `test:visual:docker` (12 passaram; um caso deu timeout por carga e passou ao repetir). E2E `alunos.spec.ts` e `matricula.spec.ts` passaram na construção.
 
 **Decisões (opção recomendada, autonomia 1):**
 - D8: "Última alteração em ... por ..." e o diálogo de conflito de edição (R10/CA8) ficam fora: a API não traz data, autor nem versão de alteração, e R12 proíbe mudar a API. Nada foi criado para eles.
@@ -177,3 +177,24 @@ Achados:
 **Regressão local:** a suíte completa (`vitest run`) estourou 540 s na construção; `test:cov`, `e2e:full` e `verify` do back-end não foram rodados aqui e ficam para o CI do PR (limitação aceita 2). A base não avançou desde a verificação (`dev` em `35990f2`), então a regressão não foi rodada de novo.
 
 **Limitações:** as divergências acima; `ficha-aluno` e `aluno-editar` ficam com `limiteCanvas` sem issue que o remova (o motivo está no "Desvios" da construção).
+
+### Correção da entrega
+- CI do PR #549 reprovou o job `visual` (4 falhas de 397, de 674 a 4537 px): `configuracoes-usuario-convidar 390 escuro`, `professor-novo 390 escuro`, `aluno-encerrar-modalidade 1440 claro` e `escuro`. Causa: o `Input` base passou a declarar esquema claro e escuro (B21, T6), o que muda o ícone do calendário e controles nativos dessas telas; as referências delas ficaram desatualizadas. Nenhum código mudou — arquivos: os 4 PNG em `frontend/visual/referencias/` regerados — prova: `npm run test:visual:docker -- --update-snapshots=all -g "configuracoes-usuario-convidar 390 escuro|professor-novo 390 escuro|aluno-encerrar-modalidade 1440"` → 4 passaram; imagens Docker antes e depois idênticas (nada a limpar).
+Regressão: só o teste visual dos 4 casos; nenhum código alterado.
+Referências visuais: `frontend/visual/referencias/{aluno-encerrar-modalidade-1440-claro,aluno-encerrar-modalidade-1440-escuro,configuracoes-usuario-convidar-390-escuro,professor-novo-390-escuro}.png` (regeradas; mudança consequência da B21, listar no PR).
+
+### Rodada 3 — OK — 2026-11-10, estado 7a56a4c1af121604fd7bf3c1d88961f82fdde562
+
+Desde o commit `44a9edd` (rodada 2, código igual) mudaram só 4 PNG de referência e este arquivo (`git diff --stat HEAD <estado>`). Escopo: a correção da entrega (CI do PR #549 com o job `visual` vermelho).
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA10 | PASSOU | mantidos da rodada 2 (nenhum código mudou) |
+| CA11 | PASSOU | `visual` do CI falhou só nos 4 casos (`gh run view 42893322866 --log-failed`: 4 failed, 393 passed), todos com referência regerada; casos reexecutados no container: 4 passaram |
+
+Comandos:
+- `npm run test:visual:docker -- -g "configuracoes-usuario-convidar 390 escuro|professor-novo 390 escuro|aluno-encerrar-modalidade 1440"` — 4 passaram (33 s)
+- Imagens Docker antes e depois comparadas: nada novo a limpar
+Achados obrigatórios: nenhum.
+Achados:
+- sugestão — o `ci-gate` só fica verde após novo CI do PR com estas referências (aceito pela autonomia 2); listar no PR que as 4 referências mudaram por consequência da B21.
