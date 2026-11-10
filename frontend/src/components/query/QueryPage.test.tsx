@@ -183,3 +183,28 @@ describe("QueryPage · cardsBelow", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
   });
 });
+
+describe("QueryPage com canvasStates (#464)", () => {
+  const withStates = (fetchPage: (q: Query) => Promise<Page<Row>>, url = "/") => {
+    window.history.replaceState(null, "", url);
+    return render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} canvasStates searchPlaceholder="Buscar" />);
+  };
+
+  it("erro em cartão: Tentar de novo recarrega e a busca segue visível", async () => {
+    const fetchPage = vi.fn().mockRejectedValueOnce(new Error("x")).mockImplementation(pager);
+    withStates(fetchPage);
+    expect(await screen.findByRole("heading", { name: "Não foi possível carregar" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+    expect(await screen.findByText("Aluno 0")).toBeInTheDocument();
+  });
+
+  it("vazio, sem permissão e carregando em cartão", async () => {
+    withStates(() => Promise.resolve({ rows: [], total: 0 }));
+    expect(await screen.findByRole("heading", { name: "Nada por aqui ainda" })).toHaveClass("uppercase");
+    withStates(() => Promise.reject({ status: 403 }));
+    expect(await screen.findAllByRole("heading", { name: "Você não tem acesso" })).not.toHaveLength(0);
+    withStates(() => new Promise(() => {}));
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+  });
+});

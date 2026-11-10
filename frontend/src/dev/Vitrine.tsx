@@ -12,7 +12,7 @@ import { UnitMenu } from "@/components/layout/UnitMenu";
 import { DataTable } from "@/components/query/DataTable";
 import { RowCard } from "@/components/query/RowCard";
 import { CanvasPagination } from "@/components/query/Pagination";
-import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { BlockedState, EmptyState, ErrorState, ForbiddenState, LinkExpiredState, LoadingState } from "@/components/states";
 import { GraduationBelt } from "@/components/ui/graduation-belt";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { Avatar, Person } from "@/components/ui/avatar";
@@ -202,11 +202,21 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
         </Drawer>
         <SidePanel open={panel} onOpenChange={setPanel} title="Ficha" tabs={[{ id: "a", label: "Dados", content: <p>Dados</p> }]} />
       </Section>
-      <Section heading="h2" title={`Quatro estados (${theme})`}>
+      <Section heading="h2" title={`Estados (${theme})`}>
         <LoadingState />
         <EmptyState title="Vazio" text="Nada aqui" action={<Button>Criar</Button>} />
         <ErrorState onRetry={noop} />
         <ForbiddenState />
+        <LoadingState variant="card" />
+        <EmptyState variant="card" title="Vazio" text="Nada aqui" action={<Button>Criar</Button>} />
+        <ErrorState variant="card" onRetry={noop} secondary={<Button variant="secondary">Falar com o suporte</Button>} />
+        <ForbiddenState variant="card" action={<Button variant="secondary">Ir para o Início</Button>} />
+        <BlockedState title="Não dá para desativar" text="Resolva o que impede." actions={<Button>Entendi</Button>}>
+          <BlockerChecklist label="O que impede agora" items={[{ text: "Turma ativa" }, { text: "Cobranças em dia", ok: true }]} />
+        </BlockedState>
+        <LinkExpiredState title="Link vencido" text="Este link valia por 1 hora." actions={<><Button>Enviar um link novo</Button><Button variant="ghost">Voltar para o login</Button></>}>
+          <input aria-label="E-mail" readOnly defaultValue="ana@exemplo.test" className="min-h-11 w-full rounded-md border bg-background px-3" />
+        </LinkExpiredState>
       </Section>
     </div>
   );

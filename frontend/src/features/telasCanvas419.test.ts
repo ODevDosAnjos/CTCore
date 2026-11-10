@@ -24,7 +24,7 @@ describe("telas de acesso, conta, organização, unidades e usuários (#419, CA1
   });
 
   it("o h1 das telas de acesso vem só do AuthShell", () => {
-    const paginas = ["LoginPage", "ForgotPasswordPage", "ResetPasswordPage", "InvitePage", "AreaUnavailablePage", "TwoFactorRequiredPage"];
+    const paginas = ["LoginPage", "ForgotPasswordPage", "ResetPasswordPage", "InvitePage", "TwoFactorRequiredPage"];
     for (const p of paginas) {
       const src = readFileSync(join(__dirname, "auth", `${p}.tsx`), "utf8");
       expect(src).not.toMatch(/<h1/);

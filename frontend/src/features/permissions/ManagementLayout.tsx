@@ -31,7 +31,7 @@ export function ManagementLayout({ activeId = "home", children }: { activeId?: s
       </main>
     );
   }
-  if (groups.length === 0) return <AreaUnavailablePage />;
+  if (groups.length === 0) return <AreaUnavailablePage bare />;
   const link = state.status === "ready" ? state.session.links.find((l) => l.id === state.session.activeLinkId) : undefined;
   const roleLabel = link && ["ADMINISTRATOR", "COORDINATOR", "TEACHER"].includes(link.role) ? t(`layout.roles.${link.role}`) : undefined;
   const account = state.status === "ready" ? state.session.account : undefined;
