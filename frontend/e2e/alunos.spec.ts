@@ -35,8 +35,8 @@ test("@critical Coordenador filtra alunos por selo", async ({ page }) => {
   await open(page, "/alunos");
   await expect(page.getByText("Aluno Menor Fictício")).toBeVisible();
 
-  await page.getByRole("search").getByRole("button", { name: /^Selo/ }).click();
-  await page.getByRole("listbox", { name: "Selo" }).getByRole("option", { name: "Cadastro incompleto" }).click();
+  await page.getByRole("search").getByRole("button", { name: /^Selos/ }).click();
+  await page.getByRole("listbox", { name: "Selos" }).getByRole("option", { name: "Cadastro incompleto" }).click();
   await expect(page.getByText("Aluno Menor Fictício")).toHaveCount(0);
   await expect(page.getByText("Aluno Adulto Fictício")).toBeVisible();
   await expect(page.getByRole("table").getByText("Cadastro incompleto", { exact: true })).toBeVisible();

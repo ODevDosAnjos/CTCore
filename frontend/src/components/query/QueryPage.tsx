@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { SearchBox } from "@/components/ui/search-box";
-import { DataTable, type Column } from "./DataTable";
+import { DataTable, TableSkeleton, type Column } from "./DataTable";
 import { CanvasPagination, DEFAULT_PAGE_SIZE, PAGE_SIZES, Pagination } from "./Pagination";
 import { useQueryParams } from "./useQueryParams";
 import { useBelowSm } from "./useBelowSm";
@@ -30,6 +30,7 @@ export function QueryPage<T>({
   searchPlaceholder,
   canvasPagination,
   canvasStates,
+  header,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
@@ -52,6 +53,8 @@ export function QueryPage<T>({
   canvasPagination?: boolean;
   /** Os quatro estados no visual do canvas (cartão); sem isso valem os de sempre, até cada tela migrar. */
   canvasStates?: boolean;
+  /** Cabeçalho da tela acima da busca; recebe os totais da lista (ex.: subtítulo com a contagem). */
+  header?: (p: { counts?: Record<string, number>; total?: number }) => ReactNode;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -102,7 +105,25 @@ export function QueryPage<T>({
 
   const variant = canvasStates ? "card" : undefined;
   let body: ReactNode;
-  if (state.s === "loading") body = <LoadingState variant={variant} />;
+  if (state.s === "loading" && canvasStates)
+    body =
+      cardsOnly && narrow ? (
+        <ul role="status" className="flex flex-col gap-3">
+          <li className="sr-only">{t("states.loadingCard")}</li>
+          {Array.from({ length: 6 }, (_, i) => (
+            <li key={i} aria-hidden="true" className="flex items-center gap-3 rounded-md border p-3">
+              <div className="size-9 shrink-0 animate-pulse rounded-full bg-neutral" />
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="h-3 w-1/2 animate-pulse rounded-md bg-neutral" />
+                <div className="h-3 w-3/4 animate-pulse rounded-md bg-neutral" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <TableSkeleton columns={columns} />
+      );
+  else if (state.s === "loading") body = <LoadingState variant={variant} />;
   else if (state.s === "error") body = <ErrorState variant={variant} onRetry={() => setTick((n) => n + 1)} />;
   else if (state.s === "forbidden") body = <ForbiddenState variant={variant} />;
   else if (state.data!.total === 0 && hasFilter)
@@ -154,6 +175,7 @@ export function QueryPage<T>({
 
   return (
     <div className="flex flex-col gap-3">
+      {header?.({ counts: lastCounts, total: lastTotal })}
       <form role="search" className={searchPlaceholder ? "flex flex-wrap items-center gap-2" : "flex flex-wrap items-end gap-2"} onSubmit={(e) => e.preventDefault()}>
         {search && searchPlaceholder && <SearchBox className="w-full sm:w-80" aria-label={t("query.search")} placeholder={searchPlaceholder} value={q} onChange={(v) => set({ q: v })} />}
         {search && !searchPlaceholder && (

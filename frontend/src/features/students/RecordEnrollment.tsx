@@ -99,7 +99,7 @@ export function RecordEnrollment({ studentId, studentName, enrollment, canGrant 
   };
   return (
     <>
-      {data.status === "FORMER" && <NewEnrollmentLink studentId={studentId} />}
+      {data.status === "FORMER" && <NewEnrollmentLink studentId={studentId} className="self-start" />}
       <ul className="flex flex-col gap-3">
         {data.modalities.map((row) => (
           <ModalityCard key={row.id} row={row} onAction={setAction} canGrant={canGrant} />
