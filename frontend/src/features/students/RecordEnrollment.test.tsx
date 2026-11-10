@@ -60,9 +60,9 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
   it("modalidade encerrada aparece sem ações", () => {
     show(result("ready", enrollmentOf([modalityRow({ status: "ENDED", endedAt: "2026-03-01T12:00:00Z" })])));
     expect(screen.getByText("Encerrada")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).toBeNull();
+    expect(within(screen.getAllByRole("listitem")[0]).queryByRole("button")).toBeNull();
     // R11: ex-aluno recomeça pelo assistente, já no aluno
-    expect(screen.getByRole("link", { name: "Nova matrícula" })).toHaveAttribute("href", "/alunos/nova-matricula?aluno=s1");
+    expect(screen.getByRole("link", { name: "Adicionar modalidade" })).toHaveAttribute("href", "/alunos/nova-matricula?aluno=s1");
   });
 
   it("RF-MAT-03: Encerrar só aparece na modalidade que a pessoa pode alterar, habilitado e sem aviso de em breve, e abre a janela", async () => {
@@ -73,6 +73,40 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
     expect(screen.queryByText(/em breve/)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Encerrar" }));
     expect(await screen.findByRole("dialog", { name: "Encerrar Jiu-Jitsu" })).toBeInTheDocument();
+  });
+
+  it("CA1, CA3: linha de limite, Adicionar modalidade, grade, ordem dos botões e Encerrar em contorno vermelho", () => {
+    show(result("ready", enrollmentOf([modalityRow(), modalityRow({ id: "m2" }), modalityRow({ id: "m3" })])), true);
+    expect(screen.getByText("Uma matrícula na organização · até 10 modalidades ativas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Adicionar modalidade" })).toHaveAttribute("href", "/alunos/nova-matricula?aluno=s1");
+    const card = screen.getAllByRole("listitem")[0];
+    for (const l of ["Unidade", "Turma principal", "Outros horários", "Plano", "Vencimento"]) expect(within(card).getByText(l)).toBeInTheDocument();
+    expect(within(card).getAllByRole("button").map((b) => b.textContent)).toEqual(["Trocar turma", "Trocar plano", "Conceder benefício", "Transferir", "Encerrar"]);
+    expect(within(card).getByRole("button", { name: "Encerrar" }).className).toMatch(/danger/);
+  });
+
+  it("CA1: com 10 modalidades ativas o botão fica desabilitado", () => {
+    show(result("ready", enrollmentOf(Array.from({ length: 10 }, (_, i) => modalityRow({ id: "m" + i })))));
+    expect(screen.queryByRole("link", { name: "Adicionar modalidade" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Adicionar modalidade" })).toBeDisabled();
+  });
+
+  it("CA2: quem só lê não vê Adicionar modalidade nem botões de troca", () => {
+    show(result("ready", enrollmentOf([modalityRow({ canEdit: false })])));
+    expect(screen.queryByText("Adicionar modalidade")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Trocar turma" })).toBeNull();
+  });
+
+  it("CA5: Situação do aluno traz Inativar, Reativar e Cancelar cobranças acumuladas em breve, sem pedido", async () => {
+    const user = userEvent.setup();
+    show(result("ready", enrollmentOf([modalityRow()])));
+    for (const n of ["Inativar", "Reativar", "Cancelar cobranças acumuladas"]) {
+      const b = screen.getByRole("button", { name: n });
+      expect(b).toHaveAttribute("aria-disabled", "true");
+      await user.click(b);
+    }
+    expect(screen.getByText("Situação do aluno")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("RN-MAT-18: a modalidade com pedido de encerramento aberto traz o selo Encerramento solicitado e segue ativa", () => {

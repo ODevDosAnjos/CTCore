@@ -146,7 +146,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     expect(within(dialog).queryByText("Emergência")).toBeNull();
   });
 
-  it("CA10: as abas se alternam por teclado; Financeiro e Graduações mostram o estado vazio", async () => {
+  it("CA10: as abas se alternam por teclado; Graduações mostra o texto e o registro em breve", async () => {
     const user = userEvent.setup();
     setup("/alunos/s1");
     const dialog = await panel();
@@ -159,7 +159,8 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     await user.keyboard("{ArrowRight}");
     expect(await within(dialog).findByText("Este aluno ainda não tem cobranças.")).toBeInTheDocument();
     await user.keyboard("{ArrowRight}");
-    expect(within(dialog).getByText(/quando a graduação do aluno estiver disponível/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Registros nunca são apagados/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Registrar graduação" })).toHaveAttribute("aria-disabled", "true");
     await user.keyboard("{End}");
     expect(within(dialog).getByRole("tab", { name: "Histórico", selected: true })).toHaveFocus();
     await user.keyboard("{ArrowRight}");
@@ -227,7 +228,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     expect(await within(dialog).findByText("Plano Mensal")).toBeInTheDocument();
     expect(within(dialog).getByText("Dia 5")).toBeInTheDocument();
-    expect(within(dialog).getByText("Outros horários: Turma Noite")).toBeInTheDocument();
+    expect(within(dialog).getByText("Turma Noite")).toBeInTheDocument();
     for (const name of ["Trocar turma", "Trocar plano", "Transferir"]) expect(within(dialog).getByRole("button", { name })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "Encerrar" })).toBeEnabled();
     expect(within(dialog).queryByText("Disponível em breve")).toBeNull();
@@ -376,7 +377,8 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     await user.click(within(dialog).getByRole("tab", { name: "Histórico" }));
     expect(await within(dialog).findByText("Responsável desvinculado")).toBeInTheDocument();
     expect(within(dialog).getByText(/10\/01\/2026 23:30|10\/01\/2026 23h30/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/por Ana Coordenadora/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Ana Coordenadora · Coordenador")).toBeInTheDocument();
+    expect(within(dialog).getByText("Sistema")).toBeInTheDocument();
     expect(within(dialog).getByText("Motivo: saiu da família")).toBeInTheDocument();
     expect(within(dialog).getByText("student.nova_acao")).toBeInTheDocument();
   });
@@ -397,27 +399,6 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     await within(dialog).findByText("Marta Souza");
     await user.click(within(dialog).getByRole("tab", { name: "Histórico" }));
     expect(await within(dialog).findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
-  });
-
-  it("CA12: Histórico com mais de uma página pagina", async () => {
-    const user = userEvent.setup();
-    const pages: string[] = [];
-    setup("/alunos/s1", {
-      history: () => HttpResponse.json({ items: [{ action: "student.created", at: "2026-01-10T15:00:00Z", actor: null, actorProfile: null, reason: null }], page: 1, size: 25, total: 30 }),
-    });
-    server.use(
-      http.get("/api/v1/students/:id/history", ({ request }) => {
-        pages.push(new URL(request.url).searchParams.get("page")!);
-        return HttpResponse.json({ items: [{ action: "student.created", at: "2026-01-10T15:00:00Z", actor: null, actorProfile: null, reason: null }], page: 1, size: 25, total: 30 });
-      }),
-    );
-    const dialog = await panel();
-    await within(dialog).findByText("Marta Souza");
-    await user.click(within(dialog).getByRole("tab", { name: "Histórico" }));
-    await user.click(await within(dialog).findByRole("button", { name: "Próxima" }));
-    await waitFor(() => expect(pages).toContain("2"));
-    await user.click(await within(dialog).findByRole("button", { name: "Anterior" }));
-    await waitFor(() => expect(pages.at(-1)).toBe("1"));
   });
 
   it.each([

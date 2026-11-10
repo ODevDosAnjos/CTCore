@@ -71,19 +71,72 @@ async function openTab(user = userEvent.setup()) {
 }
 
 describe("aba Financeiro da ficha (RF-COB-02, R14)", () => {
-  it("CA18: lista as cobranças com situação em texto, vencimento, valor e meio da paga; o cabeçalho mostra Em atraso; o clique abre o painel", async () => {
-    const user = userEvent.setup();
+  it("CA7, CA9: mostra os cartões, a nota e a tabela com a ação certa por linha; o cabeçalho mostra Em atraso", async () => {
     setup();
-    const dialog = await openTab(user);
-    expect(await within(dialog).findByText("Vence em 05/03/2026 · R$ 120,00")).toBeInTheDocument();
-    expect(within(dialog).getByText("Vence em 05/02/2026 · R$ 120,00 · Pix")).toBeInTheDocument();
+    const dialog = await openTab();
+    expect(await within(dialog).findByText("Jiu-Jitsu · 03/2026")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("R$ 120,00", { selector: "[data-stat-value]" })).toHaveLength(3);
+    expect(within(dialog).getByText("Pago em 2026")).toBeInTheDocument();
+    expect(within(dialog).getByText("1 pagamento")).toBeInTheDocument();
+    expect(within(dialog).getByText("As taxas do meio de pagamento são somadas quando o aluno paga online.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Registrar pagamento: Jiu-Jitsu · 03\/2026/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Recibo: Jiu-Jitsu · 02\/2026/ })).toBeInTheDocument();
     expect(within(dialog).getAllByText("Em atraso").length).toBeGreaterThanOrEqual(2);
     expect(within(dialog).getByText("Paga")).toBeInTheDocument();
     expect(queries).toEqual(["?studentId=s1&size=100"]);
-    await user.click(within(dialog).getByRole("button", { name: /Abrir cobrança de Ana Souza: Jiu-Jitsu · 03\/2026/ }));
-    const charge = await screen.findByRole("dialog", { name: "Cobrança" });
-    expect(await within(charge).findByRole("button", { name: "Renegociar" })).toBeEnabled();
-    expect(within(charge).queryByRole("link", { name: "Ver aluno" })).toBeNull();
+  });
+
+  it("CA9: Registrar pagamento abre o registro da cobrança e, concluído, a lista recarrega", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post("/api/v1/charges/c1/payments", () => HttpResponse.json({ receipt: { number: 7, code: "ABC" }, receiptEmail: "NOT_REQUESTED" }, { status: 201 })),
+    );
+    setup();
+    const dialog = await openTab(user);
+    await user.click(await within(dialog).findByRole("button", { name: /Registrar pagamento: Jiu-Jitsu · 03\/2026/ }));
+    const pay = await screen.findByRole("dialog", { name: "Registrar pagamento" });
+    await user.click(within(pay).getByRole("button", { name: "Confirmar pagamento" }));
+    await within(pay).findByRole("status");
+    await user.click(within(pay).getAllByRole("button", { name: "Fechar" }).at(-1)!);
+    await waitFor(() => expect(queries).toHaveLength(2));
+  });
+
+  it("CA9: cobrança em conferência tem Abrir e abre o painel da cobrança", async () => {
+    const user = userEvent.setup();
+    setup({ charges: () => HttpResponse.json(list([charge({ status: "IN_REVIEW" })])) });
+    const dialog = await openTab(user);
+    await user.click(await within(dialog).findByRole("button", { name: /Abrir: Jiu-Jitsu · 03\/2026/ }));
+    const panelCharge = await screen.findByRole("dialog", { name: "Cobrança" });
+    expect(within(panelCharge).queryByRole("link", { name: "Ver aluno" })).toBeNull();
+  });
+
+  it("CA9: Paga com atraso aparece com selo próprio", async () => {
+    setup({ charges: () => HttpResponse.json(list([{ ...paid, status: "PAID_LATE" }])) });
+    expect(await within(await openTab()).findByText("Paga com atraso")).toBeInTheDocument();
+  });
+
+  it("CA8: Nova cobrança avulsa abre a cobrança com o aluno; Professor nem tem a aba", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await openTab(user);
+    await user.click(await within(dialog).findByRole("button", { name: "Nova cobrança avulsa" }));
+    expect(await screen.findByRole("dialog", { name: "Nova cobrança avulsa" })).toBeInTheDocument();
+  });
+
+  it("CA10: a 390 px as cobranças viram cartões em Em aberto e Pagos", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+    try {
+      setup();
+      const dialog = await openTab();
+      expect(await within(dialog).findByRole("heading", { name: "Em aberto" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("heading", { name: "Pagos" })).toBeInTheDocument();
+      expect(within(dialog).queryByRole("table")).toBeNull();
+      expect(within(dialog).getByText(/^Pix · 04\/02$/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/^venceu 05\/03 · \d+ dias$/)).toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 
   it("CA18: sem cobrança em atraso o cabeçalho mostra Em dia", async () => {
@@ -119,7 +172,7 @@ describe("aba Financeiro da ficha (RF-COB-02, R14)", () => {
     const retry = await within(dialog).findByRole("button", { name: "Tentar de novo" });
     fail = false;
     await user.click(retry);
-    expect(await within(dialog).findByText("Vence em 05/03/2026 · R$ 120,00")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Jiu-Jitsu · 03/2026")).toBeInTheDocument();
   });
 
   it("CA20: 403 mostra sem permissão", async () => {
@@ -133,7 +186,7 @@ describe("aba Financeiro da ficha (RF-COB-02, R14)", () => {
       window.innerWidth = 360;
       const { unmount } = setup();
       const dialog = await openTab();
-      await within(dialog).findByText("Vence em 05/03/2026 · R$ 120,00");
+      await within(dialog).findByText("Jiu-Jitsu · 03/2026");
       await waitFor(async () => expect(await axeViolations(dialog)).toEqual([]));
       unmount();
     }

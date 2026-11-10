@@ -16,6 +16,7 @@ import { usePermissions } from "@/features/permissions/usePermissions";
 import { StudentFinancialTab, isOverdue } from "./StudentFinancialTab";
 import { StudentEditDialog } from "./StudentEditDialog";
 import { RecordEnrollment } from "./RecordEnrollment";
+import { RecordGraduations } from "./RecordGraduations";
 import { RecordGuardians } from "./RecordGuardians";
 import { RecordHistory } from "./RecordHistory";
 import { RecordSummary } from "./RecordSummary";
@@ -25,7 +26,6 @@ import type { EnrollmentStatus, StudentRecord } from "./types";
 
 const TABS = ["summary", "enrollment", "financial", "graduations", "guardians", "history"] as const;
 type Tab = (typeof TABS)[number];
-const LATER: Tab[] = ["graduations"];
 // O Professor vê só o Resumo e os Responsáveis (RF-ALU-03, R26): matrícula, histórico e o que vier depois são da gestão.
 const TEACHER_TABS: readonly Tab[] = ["summary", "guardians"];
 
@@ -154,8 +154,8 @@ function Body({ id, onChanged }: { id: string; onChanged?: () => void }) {
       <div role="tabpanel" id={`record-panel-${tab}`} aria-labelledby={`record-tab-${tab}`}>
         {tab === "summary" && <RecordSummary record={data} modalities={enrollment.data?.modalities} charges={charges.status === "ready" ? charges.data : undefined} canCollect={canEdit && canCollect} onEdit={canEdit ? () => setEditing(true) : undefined} />}
         {tab === "enrollment" && <RecordEnrollment studentId={id} studentName={data.name} canGrant={!!permissions && permissions.BENEFITS !== "NONE"} enrollment={enrollment} onChanged={() => { reload(); onChanged?.(); }} />}
-        {tab === "financial" && <StudentFinancialTab charges={charges} onChanged={() => onChanged?.()} />}
-        {LATER.includes(tab) && <EmptyState title={t("students.record.empty.title")} text={t(`students.record.empty.${tab}`)} />}
+        {tab === "financial" && <StudentFinancialTab charges={charges} onChanged={() => onChanged?.()} onCharge={canEdit && canCollect ? () => setCharging(true) : undefined} />}
+        {tab === "graduations" && <RecordGraduations />}
         {tab === "guardians" && <RecordGuardians record={data} onChanged={reload} canManage={canEdit} />}
         {tab === "history" && <RecordHistory id={id} />}
       </div>
