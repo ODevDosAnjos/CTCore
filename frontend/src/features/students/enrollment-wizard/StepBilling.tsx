@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { formatMoney } from "@/components/fields/masks";
 import { ErrorState, LoadingState } from "@/components/states";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Text } from "@/features/units/Text";
 import { PickSelect } from "../ModalityPickers";
 import { useResource } from "../useStudentRecord";
@@ -39,7 +40,7 @@ function UnitBlock({ unitId, name, draft, inherited, errors, onChange }: { unitI
           <legend className="text-sm font-medium">{t(`${k}fee`, { value: formatMoney(settings.enrollmentFeeCents) })}</legend>
           <p className="text-sm text-muted-foreground">{t(`${k}feeHelp`)}</p>
           <label className="flex min-h-11 items-center gap-2">
-            <input type="checkbox" className="size-5" checked={draft.feeExempt} onChange={(e) => set({ feeExempt: e.target.checked })} />
+            <Checkbox checked={draft.feeExempt} onChange={(e) => set({ feeExempt: e.target.checked })} />
             {t(`${k}exempt`)}
           </label>
           {draft.feeExempt && <Text label={t(`${k}exemptReason`)} value={draft.feeExemptReason} onChange={(v) => set({ feeExemptReason: v })} maxLength={200} error={errors.feeExemptReason} />}

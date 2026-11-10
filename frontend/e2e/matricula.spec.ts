@@ -56,9 +56,9 @@ test("@critical Coordenador troca a turma e transfere a modalidade pela ficha", 
   await open(page, `/alunos/${ALUNO_MENOR}`);
   const panel = page.getByRole("dialog", { name: "Ficha do aluno" });
   await expect(panel.getByText("Ativo", { exact: true })).toBeVisible();
-  await expect(panel.getByText("Jiu-Jitsu · Unidade Centro · Jiu-Jitsu Adulto")).toBeVisible();
+  await expect(panel.getByText("Jiu-Jitsu Adulto · Unidade Centro")).toBeVisible();
 
-  await panel.getByRole("tab", { name: "Matrícula e modalidades" }).click();
+  await panel.getByRole("tab", { name: "Matrícula" }).click();
   await panel.getByRole("button", { name: "Trocar turma" }).click();
   const classDialog = page.getByRole("dialog", { name: "Trocar turma de Jiu-Jitsu" });
   await expect(classDialog.getByText("A troca vale na hora.")).toBeVisible();

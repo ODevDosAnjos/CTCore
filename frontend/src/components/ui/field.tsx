@@ -61,7 +61,7 @@ export function Field({
 }
 
 const CONTROL =
-  "w-full rounded-md border border-input bg-card px-3 text-sm text-foreground placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-danger-foreground disabled:opacity-50";
+  "[color-scheme:light] dark:[color-scheme:dark] w-full rounded-md border border-input bg-card px-3 text-sm text-foreground placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-danger-foreground disabled:opacity-50";
 
 export function Input({ className, ...rest }: React.ComponentProps<"input">) {
   return <input {...rest} className={cn(CONTROL, "h-10", className)} />;

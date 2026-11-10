@@ -103,3 +103,16 @@ describe("CA15/CA17: visual", () => {
     expect(screen.getByText("Painel B")).toBeInTheDocument();
   });
 });
+
+describe("Modal headless (466)", () => {
+  it("sem faixa: o título só existe para leitor de tela e não há botão de fechar", () => {
+    render(
+      <Modal open onOpenChange={() => {}} title="Ficha" headless>
+        <p>corpo</p>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog", { name: "Ficha" })).toBeInTheDocument();
+    expect(screen.getByText("Ficha")).toHaveClass("sr-only");
+    expect(screen.queryByRole("button", { name: "Fechar" })).toBeNull();
+  });
+});

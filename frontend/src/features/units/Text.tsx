@@ -9,7 +9,7 @@ type Props = { label: string; value: string; onChange: (v: string) => void; erro
 // Campo de texto com rótulo, ajuda e erro ligados por aria-describedby; compartilhado pelas telas de unidade.
 export function Text({ label, value, onChange, error, help, ...rest }: Props) {
   return (
-    <Field label={label} hint={error ? undefined : help} error={error}>
+    <Field label={label} required={rest.required} hint={error ? undefined : help} error={error}>
       {(c) => <Input {...rest} {...c} value={value} onChange={(e) => onChange(e.target.value)} />}
     </Field>
   );

@@ -17,14 +17,14 @@ export function avatarTone(name: string): Tone {
   return PALETTE[h % PALETTE.length];
 }
 
-export function Avatar({ name, className, decorative = false, size = "md" }: { name: string; className?: string; decorative?: boolean; size?: "sm" | "md" }) {
+export function Avatar({ name, className, decorative = false, size = "md" }: { name: string; className?: string; decorative?: boolean; size?: "sm" | "md" | "lg" }) {
   return (
     <span
       role={decorative ? undefined : "img"}
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
       data-tone={avatarTone(name)}
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold", size === "sm" ? "size-8 text-[11px]" : "size-9 text-xs", TONE_CLASS[avatarTone(name)], className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold", size === "sm" ? "size-8 text-[11px]" : size === "lg" ? "size-16 text-lg" : "size-9 text-xs", TONE_CLASS[avatarTone(name)], className)}
     >
       {initials(name)}
     </span>

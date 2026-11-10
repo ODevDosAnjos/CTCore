@@ -82,3 +82,10 @@ describe("controles (CA9)", () => {
     expect(a).toBeChecked();
   });
 });
+
+describe("466 CA9: esquema de cor do campo", () => {
+  it("o campo base declara esquema claro e escuro (ícone do calendário e caixa nativa no tema escuro)", () => {
+    render(<Input aria-label="Data" type="date" />);
+    expect(screen.getByLabelText("Data")).toHaveClass("[color-scheme:light]", "dark:[color-scheme:dark]");
+  });
+});

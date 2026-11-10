@@ -107,7 +107,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     await user.click(await screen.findByRole("link", { name: "Abrir a ficha de Ana Souza" }));
     const dialog = await panel();
     expect(screen.getByTestId("where").textContent).toBe("/alunos/s1");
-    expect(await within(dialog).findByText("Contato Um")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Contato Um (Mãe) · (21) 91111-2222")).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Fechar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.getByTestId("where").textContent).toBe("/alunos");
@@ -127,11 +127,11 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     setup("/alunos/s1");
     const dialog = await panel();
     expect(await within(dialog).findByText("AS")).toBeInTheDocument();
-    expect(within(dialog).getByText("12 anos")).toBeInTheDocument();
+    expect(await within(dialog).findByText("12 anos · aluno desde 01/2026 · Centro")).toBeInTheDocument();
     expect(within(dialog).getByText("E-mail com problema")).toBeInTheDocument();
     expect(within(dialog).getByText("ana@alfa.test")).toBeInTheDocument();
     expect(within(dialog).getByText("Marta Souza")).toBeInTheDocument();
-    expect(within(dialog).getByText("Mãe")).toBeInTheDocument();
+    expect(within(dialog).getByText("Rua Um, 1 · Centro · Rio/RJ")).toBeInTheDocument();
     expect(within(dialog).getAllByRole("tab")).toHaveLength(6);
     const link = within(dialog).queryByRole("link", { name: /WhatsApp/ });
     if (link) expect(link).toHaveAttribute("href", expect.stringContaining("wa.me/5521912345678"));
@@ -154,7 +154,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     const first = within(dialog).getByRole("tab", { name: "Resumo" });
     first.focus();
     await user.keyboard("{ArrowRight}");
-    expect(within(dialog).getByRole("tab", { name: "Matrícula e modalidades", selected: true })).toHaveFocus();
+    expect(within(dialog).getByRole("tab", { name: "Matrícula", selected: true })).toHaveFocus();
     expect(await within(dialog).findByText("Jiu-Jitsu")).toBeInTheDocument();
     await user.keyboard("{ArrowRight}");
     expect(await within(dialog).findByText("Este aluno ainda não tem cobranças.")).toBeInTheDocument();
@@ -174,8 +174,39 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     setup("/alunos/s1");
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
-    expect(await within(dialog).findByText("Jiu-Jitsu · Centro · Turma Manhã")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Turma Manhã · Centro")).toBeInTheDocument();
     expect(within(dialog).getByText("Ativo")).toBeInTheDocument();
+  });
+
+  it("466 CA2, CA3: Cobrar abre a cobrança avulsa com o aluno da ficha; Próximo vencimento soma o menor dia; Em breve sem ação", async () => {
+    const user = userEvent.setup();
+    setup("/alunos/s1");
+    server.use(
+      http.get("/api/v1/charges", () => {
+        const c = (id: string, dueOn: string, amountCents: number, status: string) => ({ id, student: { id: "s1", name: "Ana Souza", photoUrl: null }, unit: { id: "u1", name: "Centro" }, type: "MONTHLY", modality: null, referenceMonth: null, description: null, amountCents, dueOn, status, payment: null });
+        return HttpResponse.json({ items: [c("c1", "2026-10-10", 17000, "PENDING"), c("c2", "2026-10-10", 17000, "OVERDUE"), c("c3", "2026-11-10", 100, "PENDING"), c("c4", "2026-09-01", 999, "PAID")], page: 1, size: 100, total: 4, counts: { overdue: 0, dueToday: 0, inReview: 0, paidMonth: 0 }, totals: { count: 4, amountCents: 0 } });
+      }),
+      http.post("/api/v1/students/:id/charges", async ({ request, params }) => {
+        posts.push({ url: String(params.id), method: "POST", body: await request.json() });
+        return HttpResponse.json({});
+      }),
+    );
+    const dialog = await panel();
+    expect(await within(dialog).findByText("10/10/2026 · R$ 340,00 (2 modalidades)")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Mais ações" })).toHaveAttribute("aria-disabled", "true");
+    for (const name of ["Baixar dados do aluno", "Anonimizar aluno"]) expect(within(dialog).getByRole("link", { name })).toHaveAttribute("aria-disabled", "true");
+    await user.click(within(dialog).getByRole("button", { name: "Cobrar" }));
+    const charge = await screen.findByRole("dialog", { name: "Nova cobrança avulsa" });
+    expect(within(charge).queryByLabelText(/Buscar aluno/)).toBeNull();
+    expect(within(charge).getByText("Ana Souza")).toBeInTheDocument();
+  });
+
+  it("466 CA2: sem Cobranças o botão Cobrar e o Próximo vencimento não aparecem", async () => {
+    setup("/alunos/s1", { role: "TEACHER", direct: true });
+    const dialog = await panel();
+    await within(dialog).findByText("Marta Souza");
+    for (const name of ["Cobrar", "Editar dados pessoais", "Baixar dados do aluno"]) expect(within(dialog).queryByRole("button", { name })).toBeNull();
+    expect(within(dialog).queryByText("Próximo vencimento")).toBeNull();
   });
 
   it("CA33: aluno sem matrícula mostra Sem matrícula no cabeçalho e o estado vazio na aba", async () => {
@@ -184,7 +215,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
     expect(await within(dialog).findByText("Nenhuma modalidade ativa.")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("tab", { name: "Matrícula e modalidades" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     expect(within(dialog).getAllByText("Sem matrícula")).toHaveLength(2);
   });
 
@@ -193,7 +224,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     setup("/alunos/s1");
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
-    await user.click(within(dialog).getByRole("tab", { name: "Matrícula e modalidades" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     expect(await within(dialog).findByText("Plano Mensal")).toBeInTheDocument();
     expect(within(dialog).getByText("Dia 5")).toBeInTheDocument();
     expect(within(dialog).getByText("Outros horários: Turma Noite")).toBeInTheDocument();
@@ -207,7 +238,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     setup("/alunos/s1", { enrollment: () => HttpResponse.json(enrollmentOf([modalityRow({ canEdit: false, nextPlan: { id: "p2", name: "Plano Trimestral" } })])) });
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
-    await user.click(within(dialog).getByRole("tab", { name: "Matrícula e modalidades" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     expect(await within(dialog).findByText("A partir da próxima cobrança: Plano Trimestral")).toBeInTheDocument();
     expect(within(dialog).getByText("Modalidade de outra unidade: só leitura.")).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Trocar turma" })).toBeNull();
@@ -219,7 +250,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     setup("/alunos/s1");
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
-    await user.click(within(dialog).getByRole("tab", { name: "Matrícula e modalidades" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     await user.click(await within(dialog).findByRole("button", { name: "Trocar turma" }));
     const janela = await screen.findByRole("dialog", { name: "Trocar turma de Jiu-Jitsu" });
     await user.selectOptions(await within(janela).findByLabelText("Turma principal"), "k3");
@@ -235,13 +266,13 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     const first = setup("/alunos/s1", { enrollment: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     let dialog = await panel();
     await within(dialog).findByText("Marta Souza");
-    await user.click(within(dialog).getByRole("tab", { name: "Matrícula e modalidades" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     expect(await within(dialog).findByText("Você não tem acesso")).toBeInTheDocument();
     first.unmount();
     setup("/alunos/s1", { enrollment: () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) });
     dialog = await panel();
     await within(dialog).findByText("Marta Souza");
-    await user.click(within(dialog).getByRole("tab", { name: "Matrícula e modalidades" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     expect(await within(dialog).findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
 
@@ -251,7 +282,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
     expect(within(dialog).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Resumo", "Responsáveis"]);
-    expect(within(dialog).queryByRole("button", { name: "Editar dados" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Editar dados pessoais" })).toBeNull();
     await user.click(within(dialog).getByRole("tab", { name: "Responsáveis" }));
     expect(await within(dialog).findByText("Marta Souza")).toBeInTheDocument();
     for (const name of ["Tornar financeiro", "Desvincular", "Reenviar convite", "Vincular responsável"]) expect(within(dialog).queryByRole("button", { name })).toBeNull();

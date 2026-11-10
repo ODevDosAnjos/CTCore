@@ -127,7 +127,7 @@ export const casos: Caso[] = [
   { nome: "agenda-aula-avulsa", rota: "/agenda", perfil: ana, canvas: "AulaAvulsa", passos: [{ clicar: "Nova aula avulsa" }], limiteCanvas: { valor: 0.65, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #473 trata a tela e remove esta exceção)" } },
   { nome: "dia-sem-aula-novo", rota: "/dias-sem-aula", perfil: ana, canvas: "DiaSemAulaNovo", passos: [{ clicar: "Novo dia sem aula" }], limiteCanvas: { valor: 0.60, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #474 trata a tela e remove esta exceção)" } },
   // Planos, alunos, matrícula, benefícios e termos (#421). Janelas abrem pelos passos.
-  // Sem caso: ficha, trocar turma/plano, transferir, encerrar e passos da matrícula (id gerado ou fluxo longo no MSW); GM* e FichaProfessor são as mesmas telas a 390 px ou com o perfil Professor (D1).
+  // Sem caso: trocar turma/plano, transferir, encerrar e passos da matrícula (id gerado ou fluxo longo no MSW); GM* são as mesmas telas a 390 px (D1).
   { nome: "planos-lista", rota: "/planos/lista", perfil: ana, canvas: "PlanosRegras", limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #480 trata a tela e remove esta exceção)" } },
   { nome: "plano-novo", rota: "/planos/lista", perfil: ana, canvas: "PlanosRegras", passos: [{ clicar: "Novo plano" }], limiteCanvas: { valor: 0.65, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #480 trata a tela e remove esta exceção)" } },
   { nome: "beneficio-conceder", rota: "/beneficios", perfil: ana, canvas: "BeneficioConceder", passos: [{ clicar: "Conceder benefício" }], limiteCanvas: { valor: 0.60, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #481 trata a tela e remove esta exceção)" } },
@@ -147,7 +147,10 @@ export const casos: Caso[] = [
   { nome: "portal-reduzido-info", rota: "/portal/minhas-informacoes", perfil: reduzido, canvas: "PortalReduzidoInfo" },
   // Professor (#443): painel da aula e ficha pela aula, com STUDENT_RECORD ligada no MSW. Aula de segunda, 02/11/2026, da turma Jiu-Jitsu Adulto.
   { nome: "agenda-painel-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: prof, canvas: "AgendaPainelProfessor", matricula: true, limiteCanvas: { valor: 0.55, motivo: "gaveta: o canvas mostra o painel da aula como gaveta sobre a agenda, com faixa e situação por aluno; o sistema mostra uma página (medido a 46,9% na #443; a #472 trata a tela e remove esta exceção)" } },
-  { nome: "ficha-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00/alunos/00000000-0000-0000-0000-000000000701", perfil: prof, canvas: "FichaProfessor", matricula: true, limiteCanvas: { valor: 0.5, motivo: "cabeçalho e Resumo: o canvas tem nome em destaque, selo, cartões Dados e Modalidades; o sistema tem abas e aviso acima (medido a 41,9% na #443; a #466 trata a tela e remove esta exceção)" } },
+  { nome: "ficha-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00/alunos/00000000-0000-0000-0000-000000000701", perfil: prof, canvas: "FichaProfessor", matricula: true, limiteCanvas: { valor: 0.45, motivo: "fundo e largura: o canvas mostra a ficha em gaveta de 600 px sobre a agenda da semana; o sistema abre a ficha de 680 px sobre uma página da aula vazia (medido a 42,0% na #466; a #472 trata a agenda e o painel da aula e remove esta exceção)" } },
+  // Ficha do aluno e janela Editar dados pessoais (#466). GMFicha e GMAlunoEditar têm 360 px: a comparação a 390 px é pelas capturas (D5 da #435).
+  { nome: "ficha-aluno", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "AlunoDetalhes", limiteCanvas: { valor: 0.4, motivo: "ficha: o canvas traz Pendências de bloqueio, coluna Faixa, termo aceito e botões no canto do cabeçalho, que dependem da inativação, das graduações e do aceite do termo (D3 e D5 da #466; Sprint 12), e a lista atrás tem outros dados e altura (medido a 36,3% na #466)" } },
+  { nome: "aluno-editar", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "AlunoEditar", passos: [{ clicar: "Editar dados pessoais" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: o sistema mantém o bloco de foto e o campo Número (D6 da #466), omite a Última alteração (a API do aluno não traz esse dado) e a ficha atrás tem outro conteúdo (medido a 51,9% na #466)" } },
 ];
 
 export const larguras = [
@@ -176,8 +179,8 @@ export const semCaso: Record<string, string[]> = {
   ],
   // janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)
   "janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)": [
-    "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos", "AlunoDetalhes",
-    "AlunoMatricula", "AlunoFinanceiro", "AlunoGraduacoes", "AlunoResponsaveis", "AlunoHistorico", "AlunoEditar",
+    "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos",
+    "AlunoMatricula", "AlunoFinanceiro", "AlunoGraduacoes", "AlunoResponsaveis", "AlunoHistorico",
     "TrocarTurma", "TrocarPlano", "TransferirModalidade", "AlunoInativar", "AlunoReativar",
     "AlunoAnonimizar", "ResponsavelDesligar", "MatriculaModalidades", "MatriculaVencimento", "MatriculaResumo",
     "MatriculaConcluida", "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo", "ProfessorModalidadeRecusa",
