@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 import { Card, Section } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -32,6 +32,9 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { Stat } from "@/components/ui/stat";
 import { SummaryBox } from "@/components/ui/summary-box";
 import { ChoiceCards } from "@/components/ui/choice-cards";
+import { BlockerChecklist } from "@/components/ui/blocker-checklist";
+import { MemoryRouter, useInRouterContext } from "react-router";
+import { WindowSteps } from "@/components/ui/window-steps";
 import { SegmentedChoice } from "@/components/ui/segmented-choice";
 import { ReasonField } from "@/components/ReasonField";
 import { Switch } from "@/components/ui/switch";
@@ -101,6 +104,10 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
           <PersonRow name="Carla Dias" secondary="12 anos · Centro" badges={<span className="rounded-md border px-2 py-0.5 text-sm">Novo</span>} action={<WhatsAppButton phone="11999990000" />} />
         </div>
         <SummaryBox className="mt-3" label="Resumo" items={["Cancela a cobrança", "Avisa o aluno"]} />
+        <WindowSteps className="mt-3" steps={["Dados", "Revisão", "Pronto"]} current={2} />
+        <MaybeRouter>
+          <BlockerChecklist className="mt-3" label="O que impede agora" items={[{ text: "2 alunos com modalidade ativa", link: { to: "/alunos", label: "Ver alunos" } }, { text: "Nenhuma turma ativa", ok: true }]} />
+        </MaybeRouter>
       </Section>
       <Section heading="h2" title={`Campos (${theme})`}>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -195,6 +202,11 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
       </Section>
     </div>
   );
+}
+
+// Na rota o roteador do app já existe; no teste unitário não.
+function MaybeRouter({ children }: { children: ReactNode }) {
+  return useInRouterContext() ? <>{children}</> : <MemoryRouter>{children}</MemoryRouter>;
 }
 
 export default function Vitrine() {

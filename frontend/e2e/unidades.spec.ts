@@ -39,3 +39,15 @@ test("@critical configurações das unidades: Coordenador lista e ajusta, Admini
   await open(page, "/configuracoes/unidades");
   await expect(page.getByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeVisible();
 });
+
+// #462 CA6: a janela Desativar unidade, com o bloqueio, não rola para o lado a 360 px.
+test("Desativar unidade a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await loginAs(page, "ana@exemplo.com");
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/configuracoes/unidades");
+  await page.getByRole("button", { name: /Desativar\s*Unidade Centro/ }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Desativar Unidade Centro" });
+  await expect(dialog.getByText("O que impede agora")).toBeVisible();
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
