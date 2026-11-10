@@ -2564,7 +2564,7 @@ paths:
       description: |
         Vale na hora: a leitura seguinte já mostra a turma nova. Os outros horários enviados substituem os anteriores. As turmas seguem as regras da
         matrícula (ativas, da unidade e da modalidade da linha, outros horários diferentes da principal; 422). O Administrador só altera modalidade da
-        sua unidade (403 nas demais, RN-ALU-07). Modalidade encerrada, de outro aluno ou de outra organização, 404. Grava `student.class_changed`.
+        sua unidade (403 nas demais, RN-ALU-07). Modalidade encerrada, de outro aluno ou de outra organização, 404. Grava `student.class_changed` com o `reason` quando vem (3 a 200 caracteres, senão 400).
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -2589,7 +2589,7 @@ paths:
       description: |
         O plano novo fica em `nextPlan` e vale a partir da próxima cobrança gerada; `plan` não muda até lá. Trocar de novo antes substitui o
         agendamento; pedir o plano atual limpa o agendamento; pedir o plano atual sem agendamento, 422. O plano deve ser ativo, da unidade e da
-        modalidade da linha (422). Administrador só na sua unidade (403). Grava `student.plan_changed`.
+        modalidade da linha (422). Administrador só na sua unidade (403). Grava `student.plan_changed` com o `reason` quando vem (3 a 200 caracteres, senão 400).
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -2616,7 +2616,7 @@ paths:
         da unidade nova; o plano agendado é descartado. O dia de vencimento segue a regra da matrícula na unidade nova (herda o dia se o aluno já
         tem outra modalidade ativa lá). Unidade igual à atual, inativa, turma, plano ou vencimento da unidade antiga, 422; unidade de outra
         organização, 404. O Administrador precisa de alcance na origem e no destino (403). Cobranças já geradas ficam na unidade de origem.
-        Grava `student.modality_transferred` com origem e destino.
+        Grava `student.modality_transferred` com origem e destino e o `reason` quando vem (3 a 200 caracteres, senão 400).
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -5625,11 +5625,13 @@ components:
       properties:
         primaryClassId: { type: string, format: uuid }
         otherClassIds: { type: array, items: { type: string, format: uuid }, description: Substitui os outros horários; vazio ou ausente remove todos. }
+        reason: { type: string, minLength: 3, maxLength: 200, nullable: true, description: Motivo da troca; vai só para a auditoria (não volta em resposta). Vazio vira ausente. }
     EnrollmentPlanChange:
       type: object
       required: [planId]
       properties:
         planId: { type: string, format: uuid }
+        reason: { type: string, minLength: 3, maxLength: 200, nullable: true, description: Motivo da troca; vai só para a auditoria (não volta em resposta). Vazio vira ausente. }
     EnrollmentTransfer:
       type: object
       required: [unitId, primaryClassId, planId]
@@ -5639,6 +5641,7 @@ components:
         otherClassIds: { type: array, items: { type: string, format: uuid } }
         planId: { type: string, format: uuid }
         dueDay: { type: integer, minimum: 1, maximum: 28, nullable: true, description: Obrigatório se o aluno não tem outra modalidade ativa na unidade nova; senão herda o dia. }
+        reason: { type: string, minLength: 3, maxLength: 200, nullable: true, description: Motivo da troca; vai só para a auditoria (não volta em resposta). Vazio vira ausente. }
     ModalityEndInput:
       type: object
       required: [reason]

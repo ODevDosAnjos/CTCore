@@ -253,8 +253,8 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     await within(dialog).findByText("Marta Souza");
     await user.click(within(dialog).getByRole("tab", { name: "Matrícula" }));
     await user.click(await within(dialog).findByRole("button", { name: "Trocar turma" }));
-    const janela = await screen.findByRole("dialog", { name: "Trocar turma de Jiu-Jitsu" });
-    await user.selectOptions(await within(janela).findByLabelText("Turma principal"), "k3");
+    const janela = await screen.findByRole("dialog", { name: "Trocar turma" });
+    await user.selectOptions(await within(janela).findByLabelText("Nova turma principal"), "k3");
     await user.click(within(janela).getByRole("button", { name: "Trocar turma" }));
     await waitFor(() => expect(puts).toHaveLength(1));
     expect(puts[0].url).toBe("/api/v1/students/s1/modalities/m1/class");
@@ -286,7 +286,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     expect(within(dialog).queryByRole("button", { name: "Editar dados pessoais" })).toBeNull();
     await user.click(within(dialog).getByRole("tab", { name: "Responsáveis" }));
     expect(await within(dialog).findByText("Marta Souza")).toBeInTheDocument();
-    for (const name of ["Tornar financeiro", "Desvincular", "Reenviar convite", "Vincular responsável"]) expect(within(dialog).queryByRole("button", { name })).toBeNull();
+    for (const name of ["Tornar financeiro", "Desligar", "Reenviar convite", "Vincular responsável"]) expect(within(dialog).queryByRole("button", { name })).toBeNull();
     expect(enrollmentCalls).toBe(0);
     expect(chargeCalls).toBe(0);
     expect(within(dialog).queryByText("Em dia")).toBeNull();
@@ -325,7 +325,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
     await user.click(within(dialog).getByRole("tab", { name: "Responsáveis" }));
-    for (const name of ["Desvincular", "Reenviar convite", "Vincular responsável"]) expect(await within(dialog).findByRole("button", { name })).toBeInTheDocument();
+    for (const name of ["Desligar", "Reenviar convite", "Vincular responsável"]) expect(await within(dialog).findByRole("button", { name })).toBeInTheDocument();
   });
 
   it("CA12: carregando enquanto a ficha não chega", async () => {
@@ -375,7 +375,7 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     const dialog = await panel();
     await within(dialog).findByText("Marta Souza");
     await user.click(within(dialog).getByRole("tab", { name: "Histórico" }));
-    expect(await within(dialog).findByText("Responsável desvinculado")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Responsável desligado")).toBeInTheDocument();
     expect(within(dialog).getByText(/10\/01\/2026 23:30|10\/01\/2026 23h30/)).toBeInTheDocument();
     expect(within(dialog).getByText("Ana Coordenadora · Coordenador")).toBeInTheDocument();
     expect(within(dialog).getByText("Sistema")).toBeInTheDocument();

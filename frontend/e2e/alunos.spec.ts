@@ -125,7 +125,7 @@ test("Encerrar modalidade a 360 px sem rolagem lateral", async ({ page }) => {
   await page.getByRole("button", { name: "Encerrar" }).first().click();
   const dialog = page.getByRole("dialog", { name: /^Encerrar / });
   await dialog.getByRole("radio", { name: "Horário" }).check({ force: true });
-  await dialog.getByText("Cancelar", { exact: true }).first().click();
+  await dialog.getByRole("combobox").first().selectOption("cancel");
   await expect(dialog.getByLabel("Motivo do cancelamento")).toBeVisible();
   expect(await noOverflow(page)).toBe(true);
   expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);

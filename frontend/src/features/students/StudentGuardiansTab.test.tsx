@@ -107,20 +107,31 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     await waitFor(() => expect(within(screen.getByRole("tabpanel")).getAllByText("Responsável financeiro")).toHaveLength(1));
   });
 
-  it("CA11: Desvincular pede o motivo e a recusa do servidor aparece no painel sem fechar", async () => {
+  it("CA10, CA11: Desligar pede o motivo e a recusa do servidor aparece no painel sem fechar", async () => {
     setup();
     server.use(http.post("/api/v1/students/:id/guardians/:gid/unlink", () => HttpResponse.json({ code: "MINOR_NEEDS_GUARDIAN" }, { status: 409 })));
     const { user, dialog } = await open();
-    await user.click(within(dialog).getByRole("button", { name: "Desvincular" }));
-    const confirm = await screen.findByRole("dialog", { name: "Desvincular Marta Souza" });
+    await user.click(within(dialog).getByRole("button", { name: "Desligar" }));
+    const confirm = await screen.findByRole("dialog", { name: "Desligar responsável" });
     await user.type(within(confirm).getByLabelText(/Motivo/), "saiu da família");
-    await user.click(within(confirm).getByRole("button", { name: "Desvincular" }));
+    await user.click(within(confirm).getByRole("button", { name: "Desligar" }));
     expect(await screen.findByText(/precisa de ao menos um responsável/)).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Ficha do aluno" })).toBeInTheDocument();
     expect(screen.getByTestId("where").textContent).toBe("/alunos/s1");
   });
 
-  it("CA11: Desvincular com sucesso envia o motivo e recarrega a lista", async () => {
+  it("CA11: responsável não financeiro desligado não traz a linha da promoção", async () => {
+    setup();
+    record = baseRecord([guardian(), guardian({ guardianId: "g2", name: "Paulo Souza", financial: false })]);
+    const { user, dialog } = await open();
+    await user.click(within(dialog).getAllByRole("button", { name: "Desligar" })[1]);
+    const confirm = await screen.findByRole("dialog", { name: "Desligar responsável" });
+    expect(within(confirm).getByText("Paulo Souza · responsável")).toBeInTheDocument();
+    expect(within(confirm).queryByText(/passa a ser o responsável financeiro/)).toBeNull();
+    expect(within(confirm).getByText("O motivo vai para a auditoria.")).toBeInTheDocument();
+  });
+
+  it("CA10, CA11: Desligar com sucesso envia o motivo e recarrega a lista", async () => {
     setup();
     record = baseRecord([guardian(), guardian({ guardianId: "g2", name: "Paulo Souza", financial: false })]);
     let sent: unknown;
@@ -132,11 +143,15 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
       }),
     );
     const { user, dialog } = await open();
-    await user.click(within(dialog).getAllByRole("button", { name: "Desvincular" })[0]);
-    const confirm = await screen.findByRole("dialog", { name: "Desvincular Marta Souza" });
+    await user.click(within(dialog).getAllByRole("button", { name: "Desligar" })[0]);
+    const confirm = await screen.findByRole("dialog", { name: "Desligar responsável" });
+    expect(within(confirm).getByText("Marta Souza · responsável financeiro(a)")).toBeInTheDocument();
+    expect(within(confirm).getByText(/Paulo Souza, o outro responsável, passa a ser o responsável financeiro/)).toBeInTheDocument();
+    expect(within(confirm).getByText("Ana não fica sem responsável.")).toBeInTheDocument();
+    expect(within(confirm).getByRole("button", { name: "Desligar" })).toBeDisabled();
     await user.type(within(confirm).getByLabelText(/Motivo/), "mudou de cidade");
-    await user.click(within(confirm).getByRole("button", { name: "Desvincular" }));
-    expect(await screen.findByText("Marta Souza foi desvinculado.")).toBeInTheDocument();
+    await user.click(within(confirm).getByRole("button", { name: "Desligar" }));
+    expect(await screen.findByText("Marta Souza foi desligado.")).toBeInTheDocument();
     expect(sent).toEqual({ reason: "mudou de cidade" });
     await waitFor(() => expect(screen.queryByText("Marta Souza", { selector: "span" })).toBeNull());
   });
@@ -206,7 +221,7 @@ describe("ficha do aluno: aba Responsáveis (RN-RSP-02, RN-RSP-05)", () => {
     record = baseRecord([guardian(), guardian({ guardianId: "g2", name: "Paulo Souza", financial: false, access: "ACTIVE" })]);
     const { dialog } = await open();
     expect(within(dialog).getByText("Ana tem 12 anos. Só os responsáveis entram no portal dele. Até 2 responsáveis, um deles o financeiro.")).toBeInTheDocument();
-    expect(within(dialog).getAllByRole("button", { name: "Desvincular" })).toHaveLength(2);
+    expect(within(dialog).getAllByRole("button", { name: "Desligar" })).toHaveLength(2);
     expect(within(dialog).getByRole("button", { name: "Vincular responsável" })).toBeDisabled();
     expect(within(dialog).getByText("Limite de 2 responsáveis atingido")).toBeInTheDocument();
     expect(within(dialog).getByText("Até dois responsáveis com acesso. O menor nunca fica sem responsável.")).toBeInTheDocument();

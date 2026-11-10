@@ -908,7 +908,7 @@ const enrollmentView = (studentId: string) => {
     })),
   };
 };
-type ModalityBody = { unitId?: string; modalityId?: string; primaryClassId?: string; otherClassIds?: string[] | null; planId?: string; dueDay?: number | null };
+type ModalityBody = { unitId?: string; modalityId?: string; primaryClassId?: string; otherClassIds?: string[] | null; planId?: string; dueDay?: number | null; reason?: string | null };
 // RF-MAT-01 (#67): nova matrícula em etapas. Prévia sem gravar, conclusão que só grava depois de validar tudo, e o comprovante da graduação de origem.
 type ConclusionBody = {
   modalities?: (ModalityBody & { benefit?: { type?: string; value?: number; reason?: string; decidedBy?: string; validUntil?: string | null } | null; origin?: { levelId?: string; degree?: number; achievedOn?: string | null; proofKey?: string | null } | null })[];
@@ -947,6 +947,11 @@ const chargeRowView = (c: MockCharge, today: string) => {
 const reasonError = (raw: unknown) => {
   const r = typeof raw === "string" ? raw.trim() : "";
   return !r ? "obrigatório" : r.length > 200 ? "até 200 caracteres" : null;
+};
+// #468 (D5): motivo opcional das trocas da matrícula; vazio vale como ausente, senão 3 a 200 caracteres (como o servidor).
+const optionalReasonError = (raw: unknown) => {
+  const r = typeof raw === "string" ? raw.trim() : "";
+  return r && (r.length < 3 || r.length > 200) ? "de 3 a 200 caracteres" : null;
 };
 const conflict = () => error(409, "CONFLICT", "A cobrança mudou. Atualize e confira a situação.");
 // Cobrança ao alcance de quem chama: 401/403 pelo perfil, 404 fora da unidade do Administrador.
@@ -4300,14 +4305,15 @@ export const routes: Route[] = [
     resolver: async ({ request, params }) => {
       const found = modalityRowFor(params.id as string, params.modalityRowId as string);
       if (found instanceof Response) return found;
-      const body = ((await request.json().catch(() => ({}))) as { primaryClassId?: string; otherClassIds?: string[] | null }) ?? {};
+      const body = ((await request.json().catch(() => ({}))) as { primaryClassId?: string; otherClassIds?: string[] | null; reason?: string | null }) ?? {};
       if (!body.primaryClassId) return studentBad("primaryClassId", "obrigatório");
+      if (optionalReasonError(body.reason)) return studentBad("reason", optionalReasonError(body.reason)!);
       const m = found.row;
       const check = checkClasses(m.unitId, m.modalityId, body.primaryClassId, body.otherClassIds ?? []);
       if (check) return check;
       m.primaryClassId = body.primaryClassId;
       m.otherClassIds = [...new Set(body.otherClassIds ?? [])];
-      logStudent(found.student.id, "student.class_changed", null);
+      logStudent(found.student.id, "student.class_changed", body.reason?.trim() || null);
       return HttpResponse.json(enrollmentView(found.student.id));
     },
   },
@@ -4318,8 +4324,9 @@ export const routes: Route[] = [
     resolver: async ({ request, params }) => {
       const found = modalityRowFor(params.id as string, params.modalityRowId as string);
       if (found instanceof Response) return found;
-      const body = ((await request.json().catch(() => ({}))) as { planId?: string }) ?? {};
+      const body = ((await request.json().catch(() => ({}))) as { planId?: string; reason?: string | null }) ?? {};
       if (!body.planId) return studentBad("planId", "obrigatório");
+      if (optionalReasonError(body.reason)) return studentBad("reason", optionalReasonError(body.reason)!);
       const m = found.row;
       const current = body.planId === m.planId;
       if (current && !m.nextPlanId) return rule("planId", "já é o plano atual");
@@ -4327,7 +4334,7 @@ export const routes: Route[] = [
       if (!plan) return error(404, "NOT_FOUND", "Não encontrado.");
       if (plan.unitId !== m.unitId || modalityCatalog[plan.modalityIndex].id !== m.modalityId || plan.status !== "ACTIVE") return rule("planId", "plano inativo ou de outra unidade ou modalidade");
       m.nextPlanId = current ? null : body.planId;
-      logStudent(found.student.id, "student.plan_changed", null);
+      logStudent(found.student.id, "student.plan_changed", body.reason?.trim() || null);
       return HttpResponse.json(enrollmentView(found.student.id));
     },
   },
@@ -4340,6 +4347,7 @@ export const routes: Route[] = [
       if (found instanceof Response) return found;
       const body = ((await request.json().catch(() => ({}))) as ModalityBody) ?? {};
       for (const k of ["unitId", "primaryClassId", "planId"] as const) if (!body[k]) return studentBad(k, "obrigatório");
+      if (optionalReasonError(body.reason)) return studentBad("reason", optionalReasonError(body.reason)!);
       const m = found.row;
       if (!units.some((u) => u.id === body.unitId)) return error(404, "NOT_FOUND", "Não encontrado.");
       if (activeRole() !== "COORDINATOR" && body.unitId !== ADMIN_UNIT) return error(403, "FORBIDDEN", "Sem permissão.");
@@ -4361,7 +4369,7 @@ export const routes: Route[] = [
       m.planId = body.planId!;
       m.nextPlanId = null;
       m.dueDay = inherited ?? body.dueDay!;
-      logStudent(found.student.id, "student.modality_transferred", null);
+      logStudent(found.student.id, "student.modality_transferred", body.reason?.trim() || null);
       return HttpResponse.json(enrollmentView(found.student.id));
     },
   },

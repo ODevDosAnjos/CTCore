@@ -128,6 +128,26 @@ describe("matrícula x OpenAPI (RN-MAT-01, 02, 03, 04, 19)", () => {
       expect(cleared.nextPlan).toBeNull();
     });
 
+    it("motivo opcional das três trocas: 2 ou 201 caracteres dão 400 em reason; 3 a 200 ou ausente seguem (D5, #468)", async () => {
+      const id = await matricular();
+      const base = `/students/${ADULT}/modalities/${id}`;
+      const transfer = { unitId: NORTE, primaryClassId: BJJ_CLASS, planId: BJJ_PLAN, dueDay: 5 };
+      const calls: [string, string, Record<string, unknown>][] = [
+        ["PUT", `${base}/class`, { primaryClassId: BJJ_CLASS }],
+        ["PUT", `${base}/plan`, { planId: BJJ_PLAN }],
+        ["POST", `${base}/transfer`, transfer],
+      ];
+      for (const [method, url, body] of calls) {
+        for (const reason of ["ab", "x".repeat(201)]) {
+          const r = await send(method, url, { ...body, reason });
+          expect(r.status, url).toBe(400);
+          expect((await r.json()).fields[0].field).toBe("reason");
+        }
+      }
+      expect((await send("PUT", `${base}/class`, { primaryClassId: BJJ_CLASS, reason: "Mudou de horário" })).status).toBe(200);
+      expect((await send("PUT", `${base}/class`, { primaryClassId: BJJ_CLASS, reason: "  " })).status).toBe(200);
+    });
+
     it("transferência: mesma unidade e unidade desativada dão 422, unidade inexistente 404, Administrador fora do alcance 403", async () => {
       const id = await matricular();
       const url = `/students/${ADULT}/modalities/${id}/transfer`;

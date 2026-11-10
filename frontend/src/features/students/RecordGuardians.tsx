@@ -23,6 +23,7 @@ export function RecordGuardians({ record, onChanged, canManage = false }: { reco
   const base = `/students/${record.id}/guardians`;
   const narrow = useBelowSm();
   const full = record.guardians.length >= 2;
+  const other = unlinking ? record.guardians.find((g) => g.guardianId !== unlinking.guardianId) : undefined;
 
   async function run(work: () => Promise<unknown>, done: string) {
     setNotice(null);
@@ -102,8 +103,17 @@ export function RecordGuardians({ record, onChanged, canManage = false }: { reco
         <ConfirmDialog
           open
           onOpenChange={(o) => !o && setUnlinking(null)}
-          title={t(`${k}unlinkTitle`, { name: unlinking.name })}
-          summary={t(`${k}unlinkSummary`)}
+          tone="danger"
+          size="sm"
+          title={t(`${k}unlinkTitle`)}
+          subtitle={t(unlinking.financial ? `${k}unlinkSubtitleFinancial` : `${k}unlinkSubtitle`, { name: unlinking.name })}
+          summary={t(`${k}unlinkSummary`, { name: unlinking.name, student: record.name.split(" ")[0] })}
+          summaryLabel={t("students.record.enrollment.summaryLabel")}
+          summaryItems={[
+            ...(unlinking.financial && other ? [t(`${k}unlinkPromoted`, { other: other.name })] : []),
+            ...(other ? [t(`${k}unlinkKept`, { student: record.name.split(" ")[0] })] : []),
+            t(`${k}unlinkAudit`),
+          ]}
           reason="required"
           confirmLabel={t(`${k}unlink`)}
           onConfirm={(reason) => run(() => api(`${base}/${unlinking.guardianId}/unlink`, { method: "POST", body: { reason } }), t(`${k}unlinked`, { name: unlinking.name }))}

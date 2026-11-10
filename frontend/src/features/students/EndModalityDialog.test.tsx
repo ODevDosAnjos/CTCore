@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { EndModalityDialog } from "./EndModalityDialog";
 import { enrollmentOf, modalityRow } from "./enrollmentFixtures";
@@ -12,7 +12,7 @@ let bodies: unknown[];
 const onDone = vi.fn();
 const onClose = vi.fn();
 const preview = (openCharges: unknown[] = []) => http.get("/api/v1/students/s1/modalities/m1/end-preview", () => HttpResponse.json({ openCharges }));
-const open = (id: string, due: string) => ({ id, referenceMonth: "2026-03-01", dueOn: due, amountCents: 15000, status: "OVERDUE" });
+const open = (id: string, due: string) => ({ id, referenceMonth: `${due.slice(0, 7)}-01`, dueOn: due, amountCents: 15000, status: "OVERDUE" });
 
 function setup(post?: () => Response, ...extra: Parameters<typeof server.use>) {
   bodies = [];
@@ -64,20 +64,22 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
 
   it("lista as cobranças em aberto quando existirem", async () => {
     setup(undefined, preview([open("c1", "2026-03-05")]));
-    expect(await screen.findByText(/05\/03\/2026 · R\$ 150,00 · Em atraso/)).toBeInTheDocument();
+    expect(await screen.findByText(/Jiu-Jitsu · mar\/2026 · vencida há \d+ dias/)).toBeInTheDocument();
+    expect(screen.getByText("R$ 150,00")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "O que fazer" })).toBeInTheDocument();
   });
 
   it("CA19: escolhe Cancelar (com motivo) numa cobrança e Manter na outra; o envio leva charges", async () => {
     const user = userEvent.setup();
     setup(undefined, preview([open("c1", "2026-03-05"), open("c2", "2026-04-05")]));
-    const groups = await screen.findAllByRole("radiogroup", { name: /R\$ 150,00/ });
+    const groups = await screen.findAllByRole("radiogroup", { name: /Jiu-Jitsu · (mar|abr)\/2026/ });
     expect(groups).toHaveLength(2);
     expect(screen.getAllByRole("radio", { name: "Manter", checked: true })).toHaveLength(2);
     expect(screen.queryByRole("textbox", { name: /Motivo do cancelamento/ })).toBeNull();
     await user.click(screen.getByRole("radio", { name: "Motivo financeiro" }));
     await user.click(within(groups[0]).getByText("Cancelar"));
-    expect(screen.getByText(/Mantida: 05\/04\/2026/)).toBeInTheDocument();
-    expect(screen.getByText(/Cancelada: 05\/03\/2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Mantida: abr\/2026 \(R\$ 150,00\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Cancelada: mar\/2026 \(R\$ 150,00\)/)).toBeInTheDocument();
     const submit = screen.getByRole("button", { name: "Encerrar modalidade" });
     expect(submit).toBeDisabled();
     await user.type(screen.getByRole("textbox", { name: /Motivo do cancelamento/ }), " Mudou de cidade ");
@@ -139,5 +141,22 @@ describe("janela Encerrar modalidade (RF-MAT-03, CA9, CA10)", () => {
     setup();
     await screen.findByRole("radio", { name: "Outro" });
     expect(await axeViolations(document.body)).toEqual([]);
+  });
+});
+
+describe("Encerrar modalidade no celular (CA1, CA3)", () => {
+  afterEach(() => setDeviceNarrow(false));
+
+  it("cada cobrança vira uma linha com select Manter/Cancelar e o botão é vermelho cheio", async () => {
+    const user = userEvent.setup();
+    setDeviceNarrow(true);
+    setup(undefined, preview([open("c1", "2026-03-05")]));
+    const select = await screen.findByRole("combobox", { name: /Jiu-Jitsu · mar\/2026/ });
+    expect(screen.queryByRole("table")).toBeNull();
+    await user.click(screen.getByRole("radio", { name: "Outro" }));
+    await user.selectOptions(select, "Cancelar");
+    expect(screen.getByRole("textbox", { name: /Motivo do cancelamento/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Encerrar modalidade" })).toHaveClass("bg-destructive");
   });
 });

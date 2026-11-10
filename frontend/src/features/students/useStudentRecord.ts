@@ -43,9 +43,9 @@ export function useEnrollment(id: string, enabled: boolean) {
 
 // Trocas da matrícula (R9 a R11); cada uma devolve a matrícula inteira.
 const row = (id: string, rowId: string) => `/students/${id}/modalities/${rowId}`;
-export const changeClass = (id: string, rowId: string, body: { primaryClassId: string; otherClassIds: string[] }) => api<Enrollment>(`${row(id, rowId)}/class`, { method: "PUT", body });
-export const changePlan = (id: string, rowId: string, planId: string) => api<Enrollment>(`${row(id, rowId)}/plan`, { method: "PUT", body: { planId } });
-export const transferModality = (id: string, rowId: string, body: { unitId: string; primaryClassId: string; otherClassIds: string[]; planId: string; dueDay?: number }) =>
+export const changeClass = (id: string, rowId: string, body: { primaryClassId: string; otherClassIds: string[]; reason?: string }) => api<Enrollment>(`${row(id, rowId)}/class`, { method: "PUT", body });
+export const changePlan = (id: string, rowId: string, planId: string, reason?: string) => api<Enrollment>(`${row(id, rowId)}/plan`, { method: "PUT", body: { planId, reason } });
+export const transferModality = (id: string, rowId: string, body: { unitId: string; primaryClassId: string; otherClassIds: string[]; planId: string; dueDay?: number; reason?: string }) =>
   api<Enrollment>(`${row(id, rowId)}/transfer`, { method: "POST", body });
 export const endModality = (id: string, rowId: string, body: { reason: string; note?: string; charges?: ChargeDecision[] }) => api<Enrollment>(`${row(id, rowId)}/end`, { method: "POST", body });
 export const useEndPreview = (id: string, rowId: string) => useResource<EndPreview>(`${row(id, rowId)}/end-preview`);

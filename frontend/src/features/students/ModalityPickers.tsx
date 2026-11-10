@@ -1,11 +1,14 @@
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
+import { ReasonField } from "@/components/ReasonField";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
+import { SummaryBox } from "@/components/ui/summary-box";
 import { Select } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
+import { scheduleText, type ClassChoice, type PlanChoice } from "./modalityDialogSummary";
 import { useResource } from "./useStudentRecord";
 
 export interface Choice {
@@ -14,8 +17,8 @@ export interface Choice {
 }
 
 // Turmas e planos ativos da unidade e da modalidade; unidade nula (ainda não escolhida) não pede nada.
-export const useClassChoices = (unitId: string | null, modalityId: string) => useResource<{ items: Choice[] }>(unitId ? `/classes?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
-export const usePlanChoices = (unitId: string | null, modalityId: string) => useResource<{ items: Choice[] }>(unitId ? `/plans?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
+export const useClassChoices = (unitId: string | null, modalityId: string) => useResource<{ items: ClassChoice[] }>(unitId ? `/classes?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
+export const usePlanChoices = (unitId: string | null, modalityId: string) => useResource<{ items: PlanChoice[] }>(unitId ? `/plans?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
 
 export function PickSelect({ label, value, onChange, options, error }: { label: string; value: string; onChange: (v: string) => void; options: Choice[]; error?: string }) {
   const { t } = useTranslation();
@@ -48,18 +51,29 @@ export function PickSelect({ label, value, onChange, options, error }: { label: 
   );
 }
 
+/** Linha somente leitura (Modalidade, Turma principal atual, De). */
+export function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="block text-sm font-medium">{label}</span>
+      <div className="mt-1 min-h-11 rounded-md border border-input bg-surface-soft px-3 py-2.5 text-sm">{value}</div>
+    </div>
+  );
+}
+
 // Outros horários: as demais turmas da modalidade, marcadas uma a uma.
-export function OtherClasses({ options, primary, value, onChange, error }: { options: Choice[]; primary: string; value: string[]; onChange: (v: string[]) => void; error?: string }) {
+export function OtherClasses({ options, primary, value, onChange, error }: { options: ClassChoice[]; primary: string; value: string[]; onChange: (v: string[]) => void; error?: string }) {
   const { t } = useTranslation();
   const rest = options.filter((o) => o.id !== primary);
   if (rest.length === 0) return null;
   return (
     <fieldset className="flex flex-col gap-1">
       <legend className="text-sm font-medium">{t("students.record.enrollment.otherClasses")}</legend>
+      <p className="text-xs text-muted-foreground">{t("students.record.enrollment.class.otherHint")}</p>
       {rest.map((o) => (
         <label key={o.id} className="flex min-h-11 items-center gap-2">
           <input type="checkbox" checked={value.includes(o.id)} onChange={(e) => onChange(e.target.checked ? [...value, o.id] : value.filter((x) => x !== o.id))} />
-          {o.name}
+          {o.schedule?.length ? `${o.name} (${scheduleText(t, o.schedule)})` : o.name}
         </label>
       ))}
       {error && <p className="text-sm text-danger-foreground">{error}</p>}
@@ -88,9 +102,14 @@ export function ModalityDialog({
   errorPrefix = "students.record.enrollment.errors.",
   children,
   size,
+  summary,
+  reason,
+  cancelLabel,
+  fullOnMobile,
+  submitVariant,
 }: {
   title: string;
-  effect: string;
+  effect?: string;
   state: "loading" | "forbidden" | "error" | "ready";
   retry?: () => void;
   submitLabel: string;
@@ -103,6 +122,15 @@ export function ModalityDialog({
   children: (errors: Record<string, string>) => ReactNode;
   /** Janela do canvas: Cancelar e a ação vão para o rodapé fixo da `Modal`. */
   size?: "sm" | "md";
+  /** Bloco "Resumo" (setas), depois do corpo e antes do motivo. */
+  summary?: string[];
+  /** Campo "Motivo" ao fim do corpo; `optional` tira o asterisco. */
+  reason?: { label: string; value: string; onChange: (v: string) => void; optional?: boolean };
+  /** Texto do botão que fecha no rodapé (com `size`); o padrão é "Voltar". */
+  cancelLabel?: string;
+  fullOnMobile?: boolean;
+  /** Variante do botão de ação (vermelho cheio em Encerrar). */
+  submitVariant?: "primary" | "dangerSolid";
 }) {
   const { t } = useTranslation();
   const formId = useId();
@@ -135,13 +163,14 @@ export function ModalityDialog({
       onOpenChange={(o) => !o && onClose()}
       title={title}
       size={size}
+      fullOnMobile={fullOnMobile}
       footer={
         size && state === "ready" ? (
           <>
             <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
-              {t("common.back")}
+              {cancelLabel ?? t("common.back")}
             </Button>
-            <Button type="submit" form={formId} className="min-h-11" disabled={busy || !canSubmit}>
+            <Button type="submit" form={formId} variant={submitVariant} className="min-h-11" disabled={busy || !canSubmit}>
               {submitLabel}
             </Button>
           </>
@@ -153,13 +182,15 @@ export function ModalityDialog({
       {state === "error" && retry && <ErrorState onRetry={retry} />}
       {state === "ready" && (
         <form id={formId} onSubmit={submit} noValidate className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">{effect}</p>
+          {effect && <p className="text-sm text-muted-foreground">{effect}</p>}
           {form && (
             <Banner tone="danger">
               {form}
             </Banner>
           )}
           {children(errors)}
+          {summary && summary.length > 0 && <SummaryBox label={t("students.record.enrollment.summaryLabel")} items={summary} />}
+          {reason && <ReasonField label={reason.label} value={reason.value} onChange={reason.onChange} optional={reason.optional} error={errors.reason} />}
           {!size && (
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>

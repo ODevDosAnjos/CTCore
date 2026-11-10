@@ -2,15 +2,20 @@ import { useId, type ReactNode } from "react";
 import { CHAR_COUNTER_FIELD, CharCounter } from "@/components/CharCounter";
 
 /** Campo "Motivo *" das janelas de ação: rótulo com asterisco, contador, nota de apoio e erro ligado ao campo. */
-export function ReasonField({ label, value, onChange, max = 200, note, error }: { label: string; value: string; onChange: (v: string) => void; max?: number; note?: ReactNode; error?: string }) {
+export function ReasonField({ label, value, onChange, max = 200, note, error, optional }: { label: string; value: string; onChange: (v: string) => void; max?: number; note?: ReactNode; error?: string; optional?: boolean }) {
   const id = useId();
   const describedBy = [error && `${id}-erro`, note && `${id}-nota`].filter(Boolean).join(" ") || undefined;
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium">
-        {label} <span aria-hidden className="text-danger-foreground">*</span>
+        {label}
+        {!optional && (
+          <span aria-hidden className="text-danger-foreground">
+            {" "}*
+          </span>
+        )}
       </label>
-      <CharCounter id={id} value={value} max={max} onChange={onChange} rows={3} aria-required="true" aria-invalid={error ? true : undefined} aria-describedby={describedBy} className={CHAR_COUNTER_FIELD} />
+      <CharCounter id={id} value={value} max={max} onChange={onChange} rows={3} aria-required={optional ? undefined : "true"} aria-invalid={error ? true : undefined} aria-describedby={describedBy} className={CHAR_COUNTER_FIELD} />
       {note && (
         <p id={`${id}-nota`} className="text-xs text-muted-foreground">
           {note}

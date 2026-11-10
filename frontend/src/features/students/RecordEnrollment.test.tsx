@@ -116,8 +116,8 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
   });
 
   it.each([
-    ["CLASS_CHANGE", { targetClassId: "k3", targetPlanId: null }, "Trocar turma de Jiu-Jitsu", "Turma principal", "k3"],
-    ["PLAN_CHANGE", { targetClassId: null, targetPlanId: "p2" }, "Trocar plano de Jiu-Jitsu", "Plano novo", "p2"],
+    ["CLASS_CHANGE", { targetClassId: "k3", targetPlanId: null }, "Trocar turma", "Nova turma principal", "k3"],
+    ["PLAN_CHANGE", { targetClassId: null, targetPlanId: "p2" }, "Trocar plano", "Plano novo", "p2"],
   ])("R18: a ficha com ?pedido= de %s abre a troca já preenchida com o que o aluno pediu", async (kind, target, title, field, value) => {
     server.use(
       ...choiceRoutes(),
@@ -125,7 +125,8 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
     );
     show(result("ready", enrollmentOf([modalityRow()])), false, "/alunos/s1?pedido=r1");
     const dialog = await screen.findByRole("dialog", { name: title });
-    expect(await within(dialog).findByLabelText(field)).toHaveValue(value);
+    if (kind === "CLASS_CHANGE") expect(await within(dialog).findByLabelText(field)).toHaveValue(value);
+    else expect(await within(dialog).findByRole("radio", { name: /Plano Trimestral/ })).toBeChecked();
   });
 
   it("R18: pedido de outro aluno ou que não carrega não abre janela", async () => {
