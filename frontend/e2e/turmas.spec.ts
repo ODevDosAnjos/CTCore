@@ -88,3 +88,19 @@ test("Turmas em cartões a 360 px sem rolagem lateral", async ({ page }) => {
   await expect(page.getByRole("table")).toHaveCount(0);
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
 });
+
+// #462 CA6: a janela Desativar turma, com o bloqueio, não rola para o lado a 360 px.
+test("Desativar turma com bloqueio a 360 px sem rolagem lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/turmas/00000000-0000-0000-0000-000000000602");
+  await page.getByRole("button", { name: "Desativar", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Desativar Judô Infantil" });
+  await expect(dialog.getByText("2 alunos com esta turma como principal")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Ver alunos" })).toBeVisible();
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});

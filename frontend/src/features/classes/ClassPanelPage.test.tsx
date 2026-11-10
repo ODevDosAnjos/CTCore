@@ -169,7 +169,7 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     await enabled();
     await user.click(screen.getByRole("button", { name: "Desativar" }));
     const dialog = await screen.findByRole("dialog", { name: "Desativar Jiu-Jitsu Adulto" });
-    await user.click(within(dialog).getByRole("button", { name: "Desativar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Desativar turma" }));
     await waitFor(() => expect(deactivated).toBe(1));
     expect(await screen.findByText("Turma desativada.")).toBeInTheDocument();
     expect(screen.getByText("Desativada")).toBeInTheDocument();
@@ -183,8 +183,11 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     await enabled();
     await user.click(screen.getByRole("button", { name: "Desativar" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("3 alunos têm esta turma como principal");
-    expect(within(dialog).queryByRole("button", { name: "Desativar" })).toBeNull();
+    expect(within(dialog).getByRole("heading", { name: "Desativar Jiu-Jitsu Adulto" })).toHaveClass("uppercase");
+    expect(within(dialog).getByText("3 alunos com esta turma como principal")).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: "Ver alunos" })).toHaveAttribute("href", "/alunos?classId=c1");
+    expect(within(dialog).queryByRole("button", { name: "Desativar turma" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Cancelar" })).toBeNull();
     expect(deactivated).toBe(0);
   });
 
@@ -200,15 +203,15 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     await enabled();
     await user.click(screen.getByRole("button", { name: "Desativar" }));
     const dialog = await screen.findByRole("dialog");
-    await user.click(within(dialog).getByRole("button", { name: "Desativar" }));
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent("1 aluno tem esta turma como principal");
-    expect(within(dialog).queryByRole("button", { name: "Desativar" })).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: "Desativar turma" }));
+    expect(await within(dialog).findByText("1 aluno com esta turma como principal")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Desativar turma" })).toBeNull();
     await user.click(within(dialog).getAllByRole("button", { name: "Fechar" }).at(-1)!);
 
     server.use(http.post("/api/v1/classes/c1/deactivate", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 })));
     await user.click(screen.getByRole("button", { name: "Desativar" }));
     const again = await screen.findByRole("dialog");
-    await user.click(within(again).getByRole("button", { name: "Desativar" }));
+    await user.click(within(again).getByRole("button", { name: "Desativar turma" }));
     expect(await within(again).findByRole("alert")).toHaveTextContent("Não foi possível desativar");
   });
 

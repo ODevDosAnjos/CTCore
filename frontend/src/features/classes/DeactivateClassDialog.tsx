@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { deactivateClass, type ClassDetail } from "./useClasses";
 import { Banner } from "@/components/ui/banner";
+import { BlockerChecklist } from "@/components/ui/blocker-checklist";
 
 // RN-TUR-03: com aluno que tem a turma como principal, mostra a recusa com a contagem e não oferece confirmar; o servidor reconfere.
 export function DeactivateClassDialog({ klass, onClose, onDone }: { klass: ClassDetail | null; onClose: () => void; onDone: () => void }) {
@@ -34,31 +35,33 @@ function Body({ klass, onClose, onDone }: { klass: ClassDetail; onClose: () => v
     onDone();
   }
 
+  const k = "classes.panel.deactivateDialog";
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("classes.panel.deactivateDialog.title", { name: klass.name })}>
-      <div className="flex flex-col gap-3" aria-busy={busy}>
-        {blocked > 0 ? (
-          <Banner tone="danger">
-            {t("classes.panel.deactivateDialog.blocked", { count: blocked })}
-          </Banner>
-        ) : (
-          <p className="text-sm">{t("classes.panel.deactivateDialog.explain")}</p>
-        )}
-        {error && (
-          <Banner tone="danger">
-            {error}
-          </Banner>
-        )}
-        <div className="flex flex-wrap justify-end gap-2">
+    <Modal
+      open
+      size="sm"
+      onOpenChange={(o) => !o && !busy && onClose()}
+      title={t(`${k}.title`, { name: klass.name })}
+      footer={
+        <>
           <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
             {blocked > 0 ? t("common.close") : t("common.cancel")}
           </Button>
           {blocked === 0 && (
             <Button type="button" className="min-h-11" disabled={busy} onClick={() => void confirm()}>
-              {t("classes.panel.deactivate")}
+              {t(`${k}.confirm`)}
             </Button>
           )}
-        </div>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3" aria-busy={busy}>
+        <p className="text-sm">{t(`${k}.explain`)}</p>
+        <BlockerChecklist
+          label={t(`${k}.blockedHead`)}
+          items={blocked > 0 ? [{ text: t(`${k}.blockedRow`, { count: blocked }), link: { to: `/alunos?classId=${klass.id}`, label: t(`${k}.seeStudents`) } }] : []}
+        />
+        {error && <Banner tone="danger">{error}</Banner>}
       </div>
     </Modal>
   );

@@ -70,7 +70,7 @@ const open = async (user: User) => {
 };
 const NAME = "Digite o nome da unidade (Unidade Centro) para confirmar";
 const reauth = async (user: User) => {
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Desativar unidade" }));
   await user.type(await screen.findByLabelText("Senha"), "segredo123");
   await user.click(screen.getByRole("button", { name: "Confirmar" }));
 };
@@ -80,7 +80,7 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     const user = userEvent.setup();
     setup();
     await open(user);
-    const next = screen.getByRole("button", { name: "Continuar" });
+    const next = screen.getByRole("button", { name: "Desativar unidade" });
     expect(next).toBeDisabled();
     await user.type(screen.getByLabelText(NAME), "unidade");
     expect(next).toBeDisabled();
@@ -105,7 +105,7 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     const dialog = await open(user);
     expect(await screen.findByText(/2 alunos com modalidade ativa/)).toBeInTheDocument();
     expect(dialog).toHaveTextContent("1 turma ativa");
-    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
     expect(screen.getByLabelText(NAME)).toBeDisabled();
   });
 
@@ -113,8 +113,8 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     const user = userEvent.setup();
     setup({ check: () => HttpResponse.json({ activeStudents: 0, activeClasses: 0, lastActiveUnit: true, canDeactivate: false }) });
     await open(user);
-    expect(await screen.findByText("É a única unidade ativa da organização.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    expect(await screen.findByText("É a única unidade ativa da organização")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
   });
 
   it("CA11: 400 mostra a mensagem no campo; 409 volta a consultar e mostra o que impede", async () => {
@@ -134,11 +134,11 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     expect(screen.getByLabelText(NAME)).toHaveAttribute("aria-invalid", "true");
 
     blocked = true;
-    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await user.click(screen.getByRole("button", { name: "Desativar unidade" }));
     await user.type(await screen.findByLabelText("Senha"), "segredo123");
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(await screen.findByText(/3 alunos com modalidade ativa/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
   });
 
   it("CA11: erro da consulta e do envio mostram o erro com nova tentativa; 403 mostra o estado sem permissão", async () => {

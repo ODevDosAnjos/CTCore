@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
-import { Banner } from "@/components/ui/banner";
+import { BlockerChecklist } from "@/components/ui/blocker-checklist";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { ReauthDialog } from "@/features/auth/ReauthDialog";
@@ -83,7 +83,20 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
       <Modal
         open={unit !== null && phase !== "reauth"}
         onOpenChange={(o) => !o && phase !== "sending" && close()}
+        size="sm"
         title={t("units.deactivate.title", { name: unit?.name ?? "" })}
+        footer={
+          check ? (
+            <>
+              <Button type="button" variant="outline" className="min-h-11" onClick={close} disabled={phase === "sending"}>
+                {t("common.close")}
+              </Button>
+              <Button type="submit" form="deactivate-unit-form" className="min-h-11" disabled={!ready || phase === "sending"}>
+                {t("units.deactivate.confirm")}
+              </Button>
+            </>
+          ) : undefined
+        }
       >
         {phase === "forbidden" || current?.forbidden ? (
           <ForbiddenState />
@@ -95,6 +108,7 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
           <ErrorState onRetry={() => setTick((n) => n + 1)} />
         ) : (
           <form
+            id="deactivate-unit-form"
             noValidate
             className="flex flex-col gap-3"
             aria-busy={phase === "sending"}
@@ -103,17 +117,19 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
               if (ready && phase === "form") setPhase("reauth");
             }}
           >
-            <p>{t("units.deactivate.summary")}</p>
-            {check.canDeactivate ? null : (
-              <Banner tone="danger">
-                <p className="font-medium">{t("units.deactivate.blocked")}</p>
-                <ul className="list-disc pl-5">
-                  {check.activeStudents > 0 && <li>{t("units.deactivate.students", { count: check.activeStudents })}</li>}
-                  {check.activeClasses > 0 && <li>{t("units.deactivate.classes", { count: check.activeClasses })}</li>}
-                  {check.lastActiveUnit && <li>{t("units.deactivate.lastUnit")}</li>}
-                </ul>
-              </Banner>
-            )}
+            <p className="text-sm">{t("units.deactivate.summary")}</p>
+            <BlockerChecklist
+              label={t("units.deactivate.blockedHead")}
+              items={[
+                check.activeStudents > 0
+                  ? { text: t("units.deactivate.students", { count: check.activeStudents }), link: { to: `/alunos?unitId=${unit?.id}&status=ACTIVE`, label: t("units.deactivate.seeStudents") } }
+                  : { text: t("units.deactivate.studentsFree"), ok: true },
+                check.activeClasses > 0
+                  ? { text: t("units.deactivate.classes", { count: check.activeClasses }), link: { to: `/turmas?unitId=${unit?.id}&status=ACTIVE`, label: t("units.deactivate.seeClasses") } }
+                  : { text: t("units.deactivate.classesFree"), ok: true },
+                check.lastActiveUnit ? { text: t("units.deactivate.lastUnit") } : { text: t("units.deactivate.lastUnitFree"), ok: true },
+              ]}
+            />
             <Field label={t("units.deactivate.typeLabel", { name: unit?.name ?? "" })} error={error} alertError>
               {(c) => (
                 <Input
@@ -128,14 +144,6 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
                 />
               )}
             </Field>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="secondary" className="min-h-11" onClick={close} disabled={phase === "sending"}>
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" className="min-h-11" disabled={!ready || phase === "sending"}>
-                {t("units.deactivate.continue")}
-              </Button>
-            </div>
           </form>
         )}
       </Modal>
