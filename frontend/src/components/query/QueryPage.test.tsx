@@ -207,4 +207,26 @@ describe("QueryPage com canvasStates (#464)", () => {
     withStates(() => new Promise(() => {}));
     expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
   });
+
+  it("#465: carregando mostra o cabeçalho das colunas e 8 linhas de esqueleto; header recebe os totais", async () => {
+    window.history.replaceState(null, "", "/");
+    const header = vi.fn(({ total }: { total?: number }) => <p>{total === undefined ? "carregando…" : `total ${total}`}</p>);
+    let done: (p: Page<Row>) => void = () => {};
+    render(<QueryPage columns={columns} fetchPage={() => new Promise<Page<Row>>((r) => (done = r))} rowKey={(r) => r.id} canvasStates header={header} />);
+    expect(screen.getByText("carregando…")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando…");
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(8);
+    expect(document.querySelector("thead")).toHaveTextContent("Nome");
+    done({ rows: all.slice(0, 2), total: 45 });
+    expect(await screen.findByText("total 45")).toBeInTheDocument();
+  });
+
+  it("#465: abaixo de 640 px com cartões, o carregando tem 6 cartões de esqueleto", () => {
+    setDeviceNarrow(true);
+    window.history.replaceState(null, "", "/");
+    render(<QueryPage columns={columns} fetchPage={() => new Promise<Page<Row>>(() => {})} rowKey={(r) => r.id} canvasStates cardsBelow="sm" cards={(r) => r.nome} />);
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(document.querySelectorAll("li[aria-hidden]")).toHaveLength(6);
+    expect(document.querySelector("table")).toBeNull();
+  });
 });

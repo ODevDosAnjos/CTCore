@@ -87,8 +87,8 @@ describe("StudentsPage", () => {
     expect(within(row).getByText("Infantil")).toBeInTheDocument();
     expect(within(row).getByText("10/01/2026")).toBeInTheDocument();
     const other = screen.getByText("João Pereira").closest("tr")!;
-    // Faixa e modalidades vazias.
-    expect(within(other).getAllByText("—")).toHaveLength(2);
+    // Faixa, modalidades e graduação vazias.
+    expect(within(other).getAllByText("—")).toHaveLength(3);
     expect(calls.at(-1)!.get("page")).toBe("1");
     expect(calls.at(-1)!.get("size")).toBe("25");
     expect(calls.at(-1)!.get("sort")).toBe("name");
@@ -126,7 +126,7 @@ describe("StudentsPage", () => {
     expect(badges("Cadastro incompleto")).toHaveLength(1);
     expect(badges("Aniversário hoje")).toHaveLength(1);
     expect(badges("E-mail com problema")).toHaveLength(0);
-    await expectPillOptions(user, "Selo", ["Todos", "Cadastro incompleto", "E-mail com problema", "Aniversário hoje", "Novo", "Bolsista", "Termo pendente"]);
+    await expectPillOptions(user, "Selos", ["Todos", "Cadastro incompleto", "E-mail com problema", "Aniversário hoje", "Novo", "Bolsista", "Termo pendente"]);
     await user.click(screen.getByRole("option", { name: "E-mail com problema" }));
     await waitFor(() => expect(calls.at(-1)!.get("seal")).toBe("EMAIL_PROBLEM"));
     await user.click(await screen.findByRole("button", { name: "Limpar filtros" }));
@@ -143,8 +143,10 @@ describe("StudentsPage", () => {
   it("CA27: a linha mostra todas as modalidades ativas com unidade e turma principal e a situação; sem matrícula, traço e Sem matrícula", async () => {
     setup();
     const row = (await screen.findByText("Ana Souza")).closest("tr")!;
-    expect(within(row).getByText("Jiu-Jitsu · Centro · Turma Noite")).toBeInTheDocument();
-    expect(within(row).getByText("Judô · Norte · Turma Manhã")).toBeInTheDocument();
+    expect(within(row).getByText("Jiu-Jitsu")).toBeInTheDocument();
+    expect(within(row).getByText("Turma Noite")).toBeInTheDocument();
+    expect(within(row).getByText("Judô")).toBeInTheDocument();
+    expect(within(row).getByText("Turma Manhã")).toBeInTheDocument();
     expect(within(row).getByText("Ativo")).toBeInTheDocument();
     expect(within(screen.getByText("João Pereira").closest("tr")!).getByText("Sem matrícula")).toBeInTheDocument();
   });
@@ -154,7 +156,7 @@ describe("StudentsPage", () => {
     setup("COORDINATOR", () => HttpResponse.json({ items: [student({ seals: ["NEW"] })], page: 1, size: 25, total: 1, counts: { active: 1, former: 0 } }));
     await screen.findByText("Ana Souza");
     expect(screen.getAllByText("Novo").length).toBeGreaterThan(0);
-    await pickPill(user, "Selo", "Novo");
+    await pickPill(user, "Selos", "Novo");
     await waitFor(() => expect(calls.at(-1)!.get("seal")).toBe("NEW"));
   });
 
@@ -265,9 +267,12 @@ describe("StudentsPage", () => {
     expect((await screen.findByText("Nada por aqui ainda")).closest("section")).toHaveClass("rounded-card");
     empty.unmount();
 
-    // Carregando: cartão com role status enquanto a consulta não responde.
+    // Carregando: esqueleto da tabela (cabeçalho das colunas e 8 linhas) com role status.
     const loading = setup("COORDINATOR", () => new Promise<Response>(() => {}));
-    await waitFor(() => expect(screen.getAllByRole("status").some((e) => e.classList.contains("rounded-card"))).toBe(true));
+    await waitFor(() => expect(document.querySelectorAll("tbody tr")).toHaveLength(8));
+    expect(screen.getAllByRole("status")).not.toHaveLength(0);
+    expect(document.querySelector("thead")).toHaveTextContent("Graduação");
+    expect(screen.getByRole("searchbox", { name: "Buscar" })).toBeInTheDocument();
     loading.unmount();
 
     // Sem permissão: cadeado em quadro arredondado acima do título (M4).
@@ -295,15 +300,16 @@ describe("StudentsPage", () => {
     await waitFor(() => expect(calls.at(-1)!.get("page")).toBe("2"));
   });
 
-  it("CA8: Nome é fixo; desligar Idade tira a coluna, a escolha volta ao reabrir com a mesma conta e não vale para outra", async () => {
+  it("CA8: Aluno é fixo; desligar Idade tira a coluna, a escolha volta ao reabrir com a mesma conta e não vale para outra", async () => {
     const user = userEvent.setup();
     const first = setup();
     await screen.findByText("Ana Souza");
     expect(screen.getByRole("columnheader", { name: "Idade" })).toBeInTheDocument();
-    expect(screen.queryByRole("checkbox", { name: "Nome" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Colunas" }));
+    expect(screen.queryByRole("checkbox", { name: "Aluno" })).toBeNull();
     await user.click(screen.getByRole("checkbox", { name: "Idade" }));
     expect(screen.queryByRole("columnheader", { name: "Idade" })).toBeNull();
-    expect(screen.getByRole("columnheader", { name: "Nome" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Aluno" })).toBeInTheDocument();
     first.unmount();
 
     setup();
@@ -317,7 +323,7 @@ describe("StudentsPage", () => {
     localStorage.setItem("ctcore.studentColumns.a", JSON.stringify(["unit"]));
     setup("COORDINATOR", undefined, "b");
     await screen.findByText("Ana Souza");
-    for (const name of ["Modalidades", "Situação", "Unidade", "Idade", "Faixa etária", "Cadastrado em"]) expect(screen.getByRole("columnheader", { name })).toBeInTheDocument();
+    for (const name of ["Modalidades e turmas", "Graduação", "Situação", "Financeiro", "Unidade", "Idade", "Faixa etária", "Cadastrado em"]) expect(screen.getByRole("columnheader", { name })).toBeInTheDocument();
   });
 
   it("CA8: sem armazenamento disponível a tela abre com todas as colunas e a escolha vale na página", async () => {
@@ -331,6 +337,7 @@ describe("StudentsPage", () => {
     setup();
     await screen.findByText("Ana Souza");
     expect(screen.getByRole("columnheader", { name: "Idade" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Colunas" }));
     await user.click(screen.getByRole("checkbox", { name: "Idade" }));
     expect(screen.queryByRole("columnheader", { name: "Idade" })).toBeNull();
     get.mockRestore();
@@ -360,6 +367,8 @@ describe("StudentsPage", () => {
     const { container } = setup();
     await screen.findByText("Ana Souza");
     expect(await axeViolations(container)).toEqual([]);
+    await userEvent.click(screen.getByRole("button", { name: "Colunas" }));
+    expect(await axeViolations(container)).toEqual([]);
   });
 
   it("D2: as abas são exclusivas e seguem a ordem do canvas", async () => {
@@ -371,6 +380,61 @@ describe("StudentsPage", () => {
     await user.click(screen.getByRole("button", { name: "Em atraso, 2" }));
     await waitFor(() => expect(calls.at(-1)!.get("financial")).toBe("OVERDUE"));
     expect(calls.at(-1)!.get("status")).toBeNull();
+  });
+
+  it("#465 CA1: subtítulo com a contagem (carregando… antes da resposta), Exportar CSV em breve e Nova matrícula", async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    setup("COORDINATOR", async () => {
+      await gate;
+      return HttpResponse.json({ items: all, page: 1, size: 25, total: 2, counts: { active: 3, former: 1, overdue: 2 } });
+    });
+    await ready();
+    expect(screen.getByText(/carregando… · 1 ficha por pessoa na organização/)).toBeInTheDocument();
+    release();
+    expect(await screen.findByText(/· 3 ativos · 1 ficha por pessoa na organização/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exportar CSV" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("link", { name: "Nova matrícula" })).toHaveAttribute("href", "/alunos/nova-matricula");
+    expect(screen.queryByText(/Alunos da organização, com a unidade/)).toBeNull();
+  });
+
+  it("#465 CA2: Colunas abre o popover, Esc fecha e devolve o foco ao botão", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByText("Ana Souza");
+    const button = screen.getByRole("button", { name: "Colunas" });
+    await user.click(button);
+    expect(screen.getByRole("dialog", { name: "Colunas" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Colunas" })).toBeNull();
+    expect(button).toHaveFocus();
+  });
+
+  it("#465 CA3: Graduação mostra traço, Situação e Financeiro têm selo com tom, modalidade tem ponto", async () => {
+    setup("COORDINATOR", () => HttpResponse.json({ items: [student({ status: "ACTIVE", financialStatus: "OVERDUE", modalities: [bjj] })], page: 1, size: 25, total: 1, counts: { active: 1, former: 0, overdue: 1 } }));
+    const row = (await screen.findByText("Ana Souza")).closest("tr")!;
+    expect(screen.getByRole("columnheader", { name: "Graduação" })).toBeInTheDocument();
+    expect(within(row).getByText("Em atraso")).toHaveAttribute("data-tone", "danger");
+    expect(within(row).getByText("Ativo")).toHaveAttribute("data-tone", "ok");
+    expect(row.querySelector("[data-tone][class*=rounded-full][class*=size-2]")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /^Bloqueados/ })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("#465 CA5: abaixo de 640 px há um cartão por aluno com a seta para a ficha, Nova matrícula ao lado de Filtros e sem Colunas", async () => {
+    setDeviceNarrow(true);
+    try {
+      setup();
+      await screen.findByText("Ana Souza");
+      expect(screen.queryByRole("table")).toBeNull();
+      expect(screen.getAllByRole("listitem").length).toBeGreaterThanOrEqual(2);
+      expect(screen.getByRole("link", { name: "Abrir a ficha de Ana Souza" })).toHaveAttribute("href", "/alunos/s1");
+      expect(screen.getAllByRole("link", { name: "Nova matrícula" })).toHaveLength(1);
+      expect(screen.getByRole("button", { name: "Filtros" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Colunas" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Exportar CSV" })).toBeNull();
+    } finally {
+      setDeviceNarrow(false);
+    }
   });
 
   it("CA6/CA8: abaixo de 640 px os filtros abrem na folha com campos, Ver N alunos e Limpar filtros", async () => {

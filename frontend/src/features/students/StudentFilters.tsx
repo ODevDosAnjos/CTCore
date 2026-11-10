@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useBelowSm } from "@/components/query/useBelowSm";
 import { FilterSheet } from "@/components/query/FilterSheet";
 import { QuickFilters } from "@/components/ui/quick-filters";
 import { PillFilter } from "@/components/ui/pill-filter";
@@ -7,13 +9,19 @@ import { useStudentFilterOptions } from "./useStudents";
 
 const SEALS = ["INCOMPLETE_REGISTRATION", "EMAIL_PROBLEM", "BIRTHDAY_TODAY", "NEW", "SCHOLARSHIP", "TERM_PENDING"];
 
-type Props = { get: (k: string) => string; set: (k: string, v: string) => void; counts?: Record<string, number>; total?: number; clear: () => void };
+type Props = { get: (k: string) => string; set: (k: string, v: string) => void; counts?: Record<string, number>; total?: number; clear: () => void;
+  /** Botão "Colunas" (a partir de 640 px). */
+  columnsMenu?: ReactNode;
+  /** Ação ao lado de "Filtros" no celular ("Nova matrícula"). */
+  trailing?: ReactNode;
+};
 
 
 // Filtros de Pessoas › Alunos (RF-ALU-01): unidade de cadastro, faixa etária, selo (RF-ALU-02), modalidade, turma e nível; o nome é a busca da própria tela.
 // As abas mostram a contagem do servidor; abaixo de 640 px os filtros em pílula abrem numa folha.
-export function StudentFilters({ get, set, counts, total, clear }: Props) {
+export function StudentFilters({ get, set, counts, total, clear, columnsMenu, trailing }: Props) {
   const { t } = useTranslation();
+  const narrow = useBelowSm();
   const { units, ageRanges, modalities, classes } = useStudentFilterOptions();
   const modalityId = get("modalityId");
   const graduation = useGraduation(modalityId || null);
@@ -55,6 +63,7 @@ export function StudentFilters({ get, set, counts, total, clear }: Props) {
       <PillFilter label={t("students.filters.class")} value={get("classId")} onChange={(v) => set("classId", v)} allLabel={allF} options={classes} />
       <PillFilter label={t("students.filters.level")} value={get("levelId")} onChange={(v) => set("levelId", v)} allLabel={allM} options={levels} disabled={!modalityId} />
       </FilterSheet>
+      {narrow ? trailing : <div className="ml-auto">{columnsMenu}</div>}
     </>
   );
 }

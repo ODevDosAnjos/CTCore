@@ -91,3 +91,45 @@ export function DataTable<T>({
     </div>
   );
 }
+
+/** Esqueleto da tabela no carregando (canvas): cabeçalho das colunas e linhas de barras; só leitor de tela lê o texto. */
+export function TableSkeleton<T>({ columns, rows = 8 }: { columns: Column<T>[]; rows?: number }) {
+  const { t } = useTranslation();
+  return (
+    <div role="status" className="overflow-x-auto">
+      <span className="sr-only">{t("states.loadingCard")}</span>
+      <table aria-hidden="true" className="w-full text-left text-sm">
+        <thead className="bg-surface-soft text-xs uppercase text-muted-foreground">
+          <tr>
+            {columns.map((c) => (
+              <th key={c.key} scope="col" className="px-3 py-2">
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }, (_, i) => (
+            <tr key={i} className="h-[52px] border-t border-divider">
+              {columns.map((c, j) => (
+                <td key={c.key} className="px-3 py-2">
+                  {j === 0 ? (
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 shrink-0 animate-pulse rounded-full bg-neutral" />
+                      <div className="flex flex-1 flex-col gap-1">
+                        <div className="h-3 w-32 animate-pulse rounded-md bg-neutral" />
+                        <div className="h-3 w-20 animate-pulse rounded-md bg-neutral" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-3 w-20 animate-pulse rounded-md bg-neutral" />
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
