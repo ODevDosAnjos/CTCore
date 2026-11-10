@@ -1,4 +1,7 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import * as Dialog from "@radix-ui/react-dialog";
+import { ArrowLeft, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
 import { CpfField, PhoneField } from "@/components/fields/fields";
@@ -42,18 +45,43 @@ const isAdult = (birth: string) => {
 export function StudentEditDialog({ studentId, open, onClose, onSaved }: { studentId: string; open: boolean; onClose: () => void; onSaved: (saved: StudentDetail) => void }) {
   const { t } = useTranslation();
   const loaded = useStudentDetail(studentId);
+  // Rodapé fixo do Modal: o Form entra nele por portal, porque guarda o estado de salvar e da foto.
+  const [footer, setFooter] = useState<HTMLElement | null>(null);
   if (!open) return null;
   return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={t("students.edit.title")}>
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t("students.edit.title")}
+      size="md"
+      headless
+      footer={loaded.status === "ready" ? <div ref={setFooter} className="contents" /> : undefined}
+      className="max-sm:inset-0 max-sm:left-0 max-sm:top-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none"
+    >
+      <div className="-mx-6 -mt-6 mb-6 flex items-center gap-2 border-b border-divider px-4 py-3 sm:px-6 sm:py-4">
+        <Dialog.Close asChild>
+          <Button type="button" variant="ghost" size="icon" aria-label={t("students.record.back")} className="sm:hidden">
+            <ArrowLeft aria-hidden="true" />
+          </Button>
+        </Dialog.Close>
+        <p aria-hidden="true" className="min-w-0 flex-1 font-heading text-2xl font-semibold uppercase leading-none sm:text-[28px]">
+          {t("students.edit.title")}
+        </p>
+        <Dialog.Close asChild>
+          <Button type="button" variant="ghost" size="icon" aria-label={t("common.close")} className="max-sm:hidden">
+            <X aria-hidden="true" />
+          </Button>
+        </Dialog.Close>
+      </div>
       {loaded.status === "loading" && <LoadingState />}
       {loaded.status === "forbidden" && <ForbiddenState />}
       {(loaded.status === "error" || loaded.status === "notFound") && <ErrorState onRetry={loaded.reload} />}
-      {loaded.status === "ready" && loaded.data && <Form student={loaded.data} onClose={onClose} onSaved={onSaved} />}
+      {loaded.status === "ready" && loaded.data && <Form footer={footer} student={loaded.data} onClose={onClose} onSaved={onSaved} />}
     </Modal>
   );
 }
 
-function Form({ student, onClose, onSaved }: { student: StudentDetail; onClose: () => void; onSaved: (saved: StudentDetail) => void }) {
+function Form({ footer, student, onClose, onSaved }: { footer: HTMLElement | null; student: StudentDetail; onClose: () => void; onSaved: (saved: StudentDetail) => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { search } = useLocation();
@@ -192,6 +220,7 @@ function Form({ student, onClose, onSaved }: { student: StudentDetail; onClose: 
     <>
       <form
         noValidate
+        id="student-edit-form"
         className="flex flex-col gap-3"
         aria-busy={busy}
         onSubmit={(e) => {
@@ -247,74 +276,84 @@ function Form({ student, onClose, onSaved }: { student: StudentDetail; onClose: 
               )}
             </div>
           </div>
-          <Text label={t(`${k}name`)} value={name} onChange={setName} error={errors.name} autoComplete="off" />
-          <Text label={t(`${k}birthDate`)} type="date" value={birthDate} onChange={setBirthDate} error={errors.birthDate} />
-          <div>
-            <CpfField label={t(`${k}cpf`)} initial={cpf} onChange={setCpf} autoComplete="off" />
-            {errors.cpf && <p className="text-sm text-danger-foreground">{errors.cpf}</p>}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Text required label={t(`${k}name`)} value={name} onChange={setName} error={errors.name} autoComplete="off" />
+            <Text required label={t(`${k}birthDate`)} type="date" value={birthDate} onChange={setBirthDate} error={errors.birthDate} />
           </div>
-          <Text label={t(`${k}email`)} type="email" value={email} onChange={setEmail} error={errors.email} autoComplete="off" />
-          <div>
-            <PhoneField label={t(`${k}phone`)} initial={phone} onChange={setPhone} autoComplete="off" />
-            {errors.phone && <p className="text-sm text-danger-foreground">{errors.phone}</p>}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <CpfField required label={t(`${k}cpf`)} initial={cpf} onChange={setCpf} autoComplete="off" />
+              {errors.cpf && <p className="text-sm text-danger-foreground">{errors.cpf}</p>}
+            </div>
+            <div>
+              <PhoneField required label={t(`${k}phone`)} initial={phone} onChange={setPhone} autoComplete="off" />
+              {errors.phone && <p className="text-sm text-danger-foreground">{errors.phone}</p>}
+            </div>
+            <Text required label={t(`${k}email`)} type="email" value={email} onChange={setEmail} error={errors.email} autoComplete="off" />
           </div>
-          <fieldset className="flex flex-col gap-3">
-            <legend className="text-sm font-medium">{t(`${k}address`)}</legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Text label={t(`${k}postalCode`)} value={postalCode} onChange={(v) => setPostalCode(formatCep(v))} error={errors.postalCode} inputMode="numeric" autoComplete="off" />
-            <Text label={t(`${k}street`)} value={street} onChange={setStreet} error={errors.street} autoComplete="off" />
+            <div className="sm:col-span-2">
+              <Text label={t(`${k}street`)} value={street} onChange={setStreet} error={errors.street} autoComplete="off" />
+            </div>
             <Text label={t(`${k}number`)} value={number} onChange={setNumber} error={errors.number} autoComplete="off" />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Text label={t(`${k}complement`)} value={complement} onChange={setComplement} autoComplete="off" />
             <Text label={t(`${k}district`)} value={district} onChange={setDistrict} error={errors.district} autoComplete="off" />
             <Text label={t(`${k}city`)} value={city} onChange={setCity} error={errors.city} autoComplete="off" />
+            <div>
+              <label className="block text-sm font-medium">
+                {t(`${k}state`)}
+                <Select className="mt-1 font-normal" value={state} aria-invalid={errors.state ? true : undefined} onChange={(e) => setState(e.target.value)}>
+                  <option value="">{t(`${k}stateChoose`)}</option>
+                  {STATES.map((uf) => (
+                    <option key={uf} value={uf}>
+                      {uf}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              {errors.state && <p className="text-sm text-danger-foreground">{errors.state}</p>}
+            </div>
+          </div>
+          <h3 className="border-t border-divider pt-3 text-base font-semibold">{t(`${k}optional`)}</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
-              {t(`${k}state`)}
-              <Select
-                className="mt-1 font-normal"
-                value={state}
-                aria-invalid={errors.state ? true : undefined}
-                onChange={(e) => setState(e.target.value)}
-              >
-                <option value="">{t(`${k}stateChoose`)}</option>
-                {STATES.map((uf) => (
-                  <option key={uf} value={uf}>
-                    {uf}
+              {t(`${k}gender`)}
+              <Select className="mt-1 font-normal" value={gender} onChange={(e) => setGender(e.target.value)}>
+                <option value="">{t(`${k}none`)}</option>
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>
+                    {t(`${k}genders.${g}`)}
                   </option>
                 ))}
               </Select>
             </label>
-            {errors.state && <p className="text-sm text-danger-foreground">{errors.state}</p>}
-          </fieldset>
-          <label className="block text-sm font-medium">
-            {t(`${k}gender`)}
-            <Select className="mt-1 font-normal" value={gender} onChange={(e) => setGender(e.target.value)}>
-              <option value="">{t(`${k}none`)}</option>
-              {GENDERS.map((g) => (
-                <option key={g} value={g}>
-                  {t(`${k}genders.${g}`)}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="block text-sm font-medium">
-            {t(`${k}referral`)}
-            <Select className="mt-1 font-normal" value={referral} onChange={(e) => setReferral(e.target.value)}>
-              <option value="">{t(`${k}none`)}</option>
-              {REFERRALS.map((r) => (
-                <option key={r} value={r}>
-                  {t(`${k}referrals.${r}`)}
-                </option>
-              ))}
-            </Select>
-          </label>
+            <label className="block text-sm font-medium">
+              {t(`${k}referral`)}
+              <Select className="mt-1 font-normal" value={referral} onChange={(e) => setReferral(e.target.value)}>
+                <option value="">{t(`${k}none`)}</option>
+                {REFERRALS.map((r) => (
+                  <option key={r} value={r}>
+                    {t(`${k}referrals.${r}`)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </div>
           <fieldset className="flex flex-col gap-3">
-            <legend className="text-sm font-medium">{t(`${k}emergency`)}</legend>
-            <Text label={t(`${k}emergencyName`)} value={emergencyName} onChange={setEmergencyName} error={errors.emergencyName} autoComplete="off" />
-            <Text label={t(`${k}emergencyRelationship`)} value={emergencyRelationship} onChange={setEmergencyRelationship} error={errors.emergencyRelationship} autoComplete="off" />
-            <div>
-              <PhoneField label={t(`${k}emergencyPhone`)} initial={emergencyPhone} onChange={setEmergencyPhone} autoComplete="off" />
-              {errors.emergencyPhone && <p className="text-sm text-danger-foreground">{errors.emergencyPhone}</p>}
+            <legend className="mb-3 text-sm font-medium">{t(`${k}emergency`)}</legend>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Text label={t(`${k}emergencyName`)} value={emergencyName} onChange={setEmergencyName} error={errors.emergencyName} autoComplete="off" />
+              <Text label={t(`${k}emergencyRelationship`)} value={emergencyRelationship} onChange={setEmergencyRelationship} error={errors.emergencyRelationship} autoComplete="off" />
+              <div>
+                <PhoneField label={t(`${k}emergencyPhone`)} initial={emergencyPhone} onChange={setEmergencyPhone} autoComplete="off" />
+                {errors.emergencyPhone && <p className="text-sm text-danger-foreground">{errors.emergencyPhone}</p>}
+              </div>
             </div>
           </fieldset>
+          <p className="text-sm text-muted-foreground">{t(`${k}healthNote`)}</p>
         </fieldset>
         {existing && (
           <div role="alert" className="flex flex-col gap-2 rounded-md border p-3">
@@ -358,30 +397,34 @@ function Form({ student, onClose, onSaved }: { student: StudentDetail; onClose: 
             {t(`${k}photoUploadError`)}
           </Banner>
         )}
-        <div className="flex flex-wrap justify-end gap-2">
-          {saved && photoFailed ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={busy}
-              onClick={() => {
-                onClose();
-                onSaved(saved);
-              }}
-            >
-              {t(`${k}closeWithoutPhoto`)}
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
-              {t("common.cancel")}
-            </Button>
-          )}
-          <Button type="submit" className="min-h-11" disabled={busy}>
-            {saved && photoFailed ? t(`${k}photoRetry`) : t(`${k}save`)}
-          </Button>
-        </div>
       </form>
+      {footer &&
+        createPortal(
+          <>
+            {saved && photoFailed ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                disabled={busy}
+                onClick={() => {
+                  onClose();
+                  onSaved(saved);
+                }}
+              >
+                {t(`${k}closeWithoutPhoto`)}
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
+                {t("common.cancel")}
+              </Button>
+            )}
+            <Button type="submit" form="student-edit-form" className="min-h-11" disabled={busy}>
+              {saved && photoFailed ? t(`${k}photoRetry`) : t(`${k}save`)}
+            </Button>
+          </>,
+          footer,
+        )}
       {cropping && (
         <LogoCropDialog
           file={cropping}

@@ -16,6 +16,7 @@ export function Modal({
   returnFocusRef,
   footer,
   size,
+  headless,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,6 +30,8 @@ export function Modal({
   footer?: ReactNode;
   /** Janela do canvas: largura (sm 540 px, md 600 px), título em caixa alta e rodapé fixo. Sem ele, o visual de sempre. */
   size?: "sm" | "md";
+  /** Sem faixa de título: o título fica só para leitor de tela e o chamador desenha o cabeçalho e o botão de fechar (ficha do aluno). */
+  headless?: boolean;
 }) {
   const { t } = useTranslation();
   const opener = useRef<HTMLElement | null>(null);
@@ -54,16 +57,20 @@ export function Modal({
             className,
           )}
         >
-          <div className={cn("flex items-center justify-between gap-2 border-b border-divider", size ? "px-6 py-4" : "px-4 py-3")}>
-            <Dialog.Title className={cn("font-heading font-semibold", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
-            {dismissible && (
-              <Dialog.Close asChild>
-                <Button variant="ghost" size="icon" aria-label={t("common.close")}>
-                  <X aria-hidden="true" />
-                </Button>
-              </Dialog.Close>
-            )}
-          </div>
+          {headless ? (
+            <Dialog.Title className="sr-only">{title}</Dialog.Title>
+          ) : (
+            <div className={cn("flex items-center justify-between gap-2 border-b border-divider", size ? "px-6 py-4" : "px-4 py-3")}>
+              <Dialog.Title className={cn("font-heading font-semibold", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
+              {dismissible && (
+                <Dialog.Close asChild>
+                  <Button variant="ghost" size="icon" aria-label={t("common.close")}>
+                    <X aria-hidden="true" />
+                  </Button>
+                </Dialog.Close>
+              )}
+            </div>
+          )}
           <div className={cn("min-h-0 flex-1 overflow-y-auto", size ? "p-6" : "p-4")}>{children}</div>
           {footer && <div className={cn("flex justify-end gap-2 border-t border-divider bg-surface-soft", size ? "px-6 py-4" : "px-4 py-3")}>{footer}</div>}
         </Dialog.Content>

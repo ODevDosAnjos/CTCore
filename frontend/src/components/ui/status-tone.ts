@@ -3,9 +3,9 @@ export type Tone = "ok" | "warn" | "danger" | "info" | "neutral" | "acc";
 // Único mapa situação -> tom (D3): a mesma palavra tem o mesmo tom em todo o sistema.
 const GROUPS: Record<Tone, string[]> = {
   ok: ["ACTIVE", "PAID", "PAID_LATE", "CURRENT", "CONFIRMED", "APPROVED", "SENT", "COMPLETED", "ADDED"],
-  warn: ["DUE_TODAY", "DUE_SOON", "CLOSURE_REQUEST", "IN_PROGRESS", "NO_ADDRESS", "NO_PHONE", "SMS_LIMIT", "NO_EMAIL", "MINOR", "EXISTING_ACCOUNT"],
+  warn: ["DUE_TODAY", "DUE_SOON", "CLOSURE_REQUEST", "IN_PROGRESS", "NO_ADDRESS", "NO_PHONE", "SMS_LIMIT", "NO_EMAIL", "MINOR", "EXISTING_ACCOUNT", "INCOMPLETE_REGISTRATION", "TERM_PENDING"],
   danger: ["OVERDUE", "BLOCKED", "FAILED", "EMAIL_PROBLEM", "REFUSED"],
-  info: ["IN_REVIEW", "OPEN", "SCHEDULED"],
+  info: ["IN_REVIEW", "OPEN", "SCHEDULED", "NEW", "SCHOLARSHIP"],
   neutral: [
     "PENDING", "INACTIVE", "ENDED", "CANCELED", "CANCELLED", "EXPIRED", "RENEGOTIATED", "REFUNDED",
     "FORMER", "NONE", "CLOSED", "SKIPPED", "DISMISSED", "NOT_OPEN", "RECENT",

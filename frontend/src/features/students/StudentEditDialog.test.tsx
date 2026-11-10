@@ -104,29 +104,39 @@ function setup(opts: { role?: string; detail?: () => Response | Promise<Response
 
 const openEdit = async (user: ReturnType<typeof userEvent.setup>) => {
   const panel = await screen.findByRole("dialog", { name: "Ficha do aluno" });
-  await user.click(await within(panel).findByRole("button", { name: "Editar dados" }));
-  const dialog = await screen.findByRole("dialog", { name: "Editar dados do aluno" });
-  await within(dialog).findByLabelText("Nome");
+  await user.click(await within(panel).findByRole("button", { name: "Editar dados pessoais" }));
+  const dialog = await screen.findByRole("dialog", { name: "Editar dados pessoais" });
+  await within(dialog).findByLabelText(/^Nome completo/);
   return dialog;
 };
 const problem = (status: number, code: string, fields: { field: string; message: string }[] = []) =>
   HttpResponse.json({ code, message: "x", changed: false, fields }, { status });
 
 describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
+  it("466 CA8: obrigatórios com asterisco, Opcionais, nota de saúde e Salvar no rodapé", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await openEdit(user);
+    expect(within(dialog).getByLabelText(/^Nome completo/)).toHaveAttribute("aria-required", "true");
+    expect(within(dialog).getByLabelText("CEP")).not.toHaveAttribute("aria-required");
+    expect(within(dialog).getByText("Opcionais")).toBeInTheDocument();
+    expect(within(dialog).getByText("Não guardamos dados de saúde. Atestados ficam fora do sistema.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+  });
   it("abre preenchida pela ficha, salva, fecha e a ficha e a lista mostram os dados novos", async () => {
     const user = userEvent.setup();
     setup();
     const dialog = await openEdit(user);
-    expect(within(dialog).getByLabelText("Nome")).toHaveValue("Ana Souza");
+    expect(within(dialog).getByLabelText(/^Nome completo/)).toHaveValue("Ana Souza");
     expect(within(dialog).getByLabelText("CEP")).toHaveValue("01001-000");
     expect(within(dialog).getByLabelText("UF")).toHaveValue("RJ");
     const before = listCalls;
-    await user.clear(within(dialog).getByLabelText("Nome"));
-    await user.type(within(dialog).getByLabelText("Nome"), "  Ana Souza Lima ");
-    await user.clear(within(dialog).getByLabelText("Logradouro"));
-    await user.type(within(dialog).getByLabelText("Logradouro"), "Rua Nova");
+    await user.clear(within(dialog).getByLabelText(/^Nome completo/));
+    await user.type(within(dialog).getByLabelText(/^Nome completo/), "  Ana Souza Lima ");
+    await user.clear(within(dialog).getByLabelText("Endereço"));
+    await user.type(within(dialog).getByLabelText("Endereço"), "Rua Nova");
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar dados do aluno" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar dados pessoais" })).toBeNull());
     expect(puts).toHaveLength(1);
     expect(puts[0]).toMatchObject({ name: "Ana Souza Lima", street: "Rua Nova", postalCode: "01001000", state: "RJ", cpf: null, email: null, phone: null, complement: null });
     expect(puts[0]).not.toHaveProperty("registeredUnitId");
@@ -142,12 +152,12 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     const user = userEvent.setup();
     setup();
     const dialog = await openEdit(user);
-    fireEvent.change(within(dialog).getByLabelText("Nascimento"), { target: { value: "1990-01-01" } });
+    fireEvent.change(within(dialog).getByLabelText(/^Data de nascimento/), { target: { value: "1990-01-01" } });
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     expect(within(dialog).getAllByText("Preencha este campo.")).toHaveLength(3);
     expect(puts).toEqual([]);
-    fireEvent.change(within(dialog).getByLabelText("Nascimento"), { target: { value: "2014-05-02" } });
-    const names = [within(dialog).getByLabelText("Nome"), within(dialog).getByLabelText("Nome do contato")];
+    fireEvent.change(within(dialog).getByLabelText(/^Data de nascimento/), { target: { value: "2014-05-02" } });
+    const names = [within(dialog).getByLabelText(/^Nome completo/), within(dialog).getByLabelText("Nome do contato")];
     await user.type(names[1], "Contato");
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     expect(within(dialog).getByText("Informe nome, parentesco e telefone do contato, ou deixe os três em branco.")).toBeInTheDocument();
@@ -163,23 +173,23 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     const dialog = await openEdit(user);
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     expect(await within(dialog).findByText("logradouro recusado")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Nome")).toHaveValue("Ana Souza");
+    expect(within(dialog).getByLabelText(/^Nome completo/)).toHaveValue("Ana Souza");
   });
 
   it("CA15: CPF repetido mostra o existente, mantém os dados e Abrir ficha leva à ficha dele", async () => {
     const user = userEvent.setup();
     setup({ put: () => problem(409, "STUDENT_CPF_EXISTS", [{ field: "id", message: "other" }, { field: "name", message: "Bia Lima" }, { field: "photoUrl", message: "" }]) });
     const dialog = await openEdit(user);
-    await user.clear(within(dialog).getByLabelText("Nome"));
-    await user.type(within(dialog).getByLabelText("Nome"), "Nome Digitado");
+    await user.clear(within(dialog).getByLabelText(/^Nome completo/));
+    await user.type(within(dialog).getByLabelText(/^Nome completo/), "Nome Digitado");
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     expect(await within(dialog).findByText("Este CPF já está cadastrado para Bia Lima.")).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "É outra pessoa, salvar mesmo assim" })).toBeNull();
-    expect(within(dialog).getByLabelText("Nome")).toHaveValue("Nome Digitado");
+    expect(within(dialog).getByLabelText(/^Nome completo/)).toHaveValue("Nome Digitado");
     await user.click(within(dialog).getByRole("button", { name: "Abrir ficha" }));
     expect(await screen.findByText("Bia Lima", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByTestId("where").textContent).toBe("/alunos/other");
-    expect(screen.queryByRole("dialog", { name: "Editar dados do aluno" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Editar dados pessoais" })).toBeNull();
   });
 
   it("CA15: aviso de nome e nascimento mostra o parecido e o botão reenvia com confirmDuplicate", async () => {
@@ -189,7 +199,7 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     expect(await within(dialog).findByText("Parece ser Bia Lima, já cadastrado.")).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "É outra pessoa, salvar mesmo assim" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar dados do aluno" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar dados pessoais" })).toBeNull());
     expect(puts).toHaveLength(2);
     expect(puts[0]).not.toHaveProperty("confirmDuplicate");
     expect(puts[1].confirmDuplicate).toBe(true);
@@ -200,18 +210,18 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     let calls = 0;
     setup({ detail: () => (++calls === 1 ? problem(500, "INTERNAL_ERROR") : HttpResponse.json(current)) });
     const panel = await screen.findByRole("dialog", { name: "Ficha do aluno" });
-    await user.click(await within(panel).findByRole("button", { name: "Editar dados" }));
-    const dialog = await screen.findByRole("dialog", { name: "Editar dados do aluno" });
+    await user.click(await within(panel).findByRole("button", { name: "Editar dados pessoais" }));
+    const dialog = await screen.findByRole("dialog", { name: "Editar dados pessoais" });
     await user.click(await within(dialog).findByRole("button", { name: "Tentar de novo" }));
-    expect(await within(dialog).findByLabelText("Nome")).toHaveValue("Ana Souza");
+    expect(await within(dialog).findByLabelText(/^Nome completo/)).toHaveValue("Ana Souza");
   });
 
   it("403 ao carregar mostra o estado sem permissão", async () => {
     const user = userEvent.setup();
     setup({ detail: () => problem(403, "FORBIDDEN") });
     const panel = await screen.findByRole("dialog", { name: "Ficha do aluno" });
-    await user.click(await within(panel).findByRole("button", { name: "Editar dados" }));
-    const dialog = await screen.findByRole("dialog", { name: "Editar dados do aluno" });
+    await user.click(await within(panel).findByRole("button", { name: "Editar dados pessoais" }));
+    const dialog = await screen.findByRole("dialog", { name: "Editar dados pessoais" });
     expect(await within(dialog).findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
@@ -232,7 +242,7 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     );
     const panel = await screen.findByRole("dialog", { name: "Ficha do aluno" });
     await within(panel).findByText("Marta Souza");
-    expect(screen.queryByRole("button", { name: "Editar dados" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Editar dados pessoais" })).toBeNull();
   });
 
   it("foto: o corte é enviado depois de salvar; se falhar, os dados ficam salvos e dá para tentar de novo", async () => {
@@ -256,7 +266,7 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     expect(await within(dialog).findByText("Os dados foram salvos, mas a foto não foi enviada.")).toBeInTheDocument();
     expect(puts).toHaveLength(1);
     await user.click(within(dialog).getByRole("button", { name: "Tentar enviar a foto de novo" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar dados do aluno" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar dados pessoais" })).toBeNull());
     expect(puts).toHaveLength(1);
     expect(photoCalls).toBe(2);
   });

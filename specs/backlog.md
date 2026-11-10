@@ -170,7 +170,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 463 | Componente base: Gaveta lateral e popover | issue #463 | Sprint 10.5 | #448 | agente | feito |
 | 464 | Componente base: Estados: carregando, vazio, erro, sem permissão, bloqueio e link vencido | issue #464 | Sprint 10.5 | #448 | agente | feito |
 | 465 | Alunos: lista, filtros, estados e celular no visual do canvas | issue #465 | Sprint 10.5 | #454, #456, #457, #458, #459, #464, #452, #450 | agente | feito |
-| 466 | Ficha do aluno: cabeçalho, Resumo e celular no visual do canvas | issue #466 | Sprint 10.5 | #460, #461, #463, #452, #450, #449 | agente | a fazer |
+| 466 | Ficha do aluno: cabeçalho, Resumo e celular no visual do canvas | issue #466 | Sprint 10.5 | #460, #461, #463, #452, #450, #449 | agente | feito |
 | 467 | Ficha do aluno: abas Matrícula, Financeiro, Graduações, Responsáveis e Histórico no visual do canvas | issue #467 | Sprint 10.5 | #466, #458, #459, #452, #450, #449 | agente | a fazer |
 | 468 | Janelas de ação do aluno: encerrar modalidade, trocar turma e plano, transferir, desligar responsável no visual do canvas | issue #468 | Sprint 10.5 | #460, #461, #451 | agente | a fazer |
 | 469 | Assistente de matrícula (etapas 1 a 5) no visual do canvas | issue #469 | Sprint 10.5 | #453, #460, #461, #462, #450 | agente | a fazer |

@@ -13,13 +13,14 @@ import { createOneOff } from "./useChargeCreation";
 const MAX_CENTS = 10_000_000;
 
 // RN-COB-11: cobrança avulsa de uma unidade onde o aluno tem matrícula. O requestId nasce com a janela: duplo clique ou nova tentativa não duplicam (RNF-12).
-export function OneOffChargeDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+// `student`: aluno já escolhido (ficha); esconde a busca.
+export function OneOffChargeDialog({ onClose, onDone, student }: { onClose: () => void; onDone: () => void; student?: { id: string; name: string } }) {
   const { t } = useTranslation();
   const k = "charges.creation.";
   const descriptionId = useId();
   const requestId = useRef(crypto.randomUUID());
   const [query, setQuery] = useState("");
-  const [studentId, setStudentId] = useState("");
+  const [studentId, setStudentId] = useState(student?.id ?? "");
   const [chosenUnit, setChosenUnit] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState<number | null>(null);
@@ -45,7 +46,10 @@ export function OneOffChargeDialog({ onClose, onDone }: { onClose: () => void; o
     >
       {(errors) => (
         <>
-          <StudentSearch
+          {student ? (
+            <p className="text-sm font-medium">{student.name}</p>
+          ) : (
+            <StudentSearch
             query={query}
             onQuery={(q) => {
               setQuery(q);
@@ -59,7 +63,8 @@ export function OneOffChargeDialog({ onClose, onDone }: { onClose: () => void; o
               setChosenUnit("");
             }}
             error={errors.studentId}
-          />
+            />
+          )}
           {studentId && enrollment.status === "loading" && <LoadingState />}
           {studentId && enrollment.status === "forbidden" && <ForbiddenState />}
           {studentId && (enrollment.status === "error" || enrollment.status === "notFound") && <ErrorState onRetry={enrollment.reload} />}
