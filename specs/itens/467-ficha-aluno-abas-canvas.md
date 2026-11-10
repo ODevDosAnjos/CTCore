@@ -164,3 +164,44 @@ Instáveis: nenhum.
 - Limitação aberta: os `limiteCanvas` das cinco abas (0,5) citam "item de contrato sugerido na #467", sem número de issue. Nenhuma issue aberta cobre esse contrato hoje; ao criá-la, citar o número nos `limiteCanvas` e acrescentar a remoção ao "Pronto quando" dela (AGENTS.md, Autonomia 4).
 - Sugestões da verificação não corrigidas (não bloqueiam): `rowKey` do Histórico pode repetir; botão "Adicionar modalidade" é preto cheio, no canvas é de contorno; indentação do JSX dos botões do cartão em `RecordEnrollment.tsx`; `limiteCanvas` em 0,5 sem medida real.
 - Instáveis: nenhum.
+
+### Correção da entrega
+- CI do PR #550 vermelho (`frontend` e `visual`): (1) `telasCanvas421.test.ts` reprovava `RecordGraduations.tsx` porque o comentário "#467" casava com o regex de cor fixa — arquivos: `frontend/src/features/students/RecordGraduations.tsx` (comentário agora "item 467") — prova: `npx vitest run src/features/telasCanvas421` → 38 passaram; (2) a referência `aluno-encerrar-modalidade-1440-{claro,escuro}` mudou com a nova aba Matrícula e não foi regerada — arquivos: `frontend/visual/referencias/aluno-encerrar-modalidade-1440-claro.png` e `-escuro.png` — prova: `npm run test:visual:docker -- --update-snapshots -g "aluno-encerrar-modalidade"` → 4 passaram; `npm run visual:canvas -- --exige` → 110 comparadas, 0 reprovadas
+Referências visuais: `frontend/visual/referencias/aluno-encerrar-modalidade-1440-{claro,escuro}.png`
+Sugestões opcionais da verificação não feitas.
+
+### Rodada 2 — OK — 2026-11-10, estado ec20c4e543639638ce92b9102502773276164111 + correção da entrega (comentário em `RecordGraduations.tsx` e 2 referências `aluno-encerrar-modalidade-1440-{claro,escuro}`)
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA16 | PASSOU | mantido da rodada 1; a mudança de código é só um comentário; testes das áreas reexecutados |
+| CA17 | PASSOU | mantido da rodada 1; as referências regeradas só mudam o cartão da aba Matrícula (nova), coerente com o item; `test:visual:docker` e `visual:canvas` não reexecutados aqui (Autonomia 3; o CI do PR cobre) |
+
+Correção da entrega: (1) comentário "#467" trocado por "item 467" em `RecordGraduations.tsx`; `telasCanvas421` passou dentro da execução abaixo. (2) referências do `aluno-encerrar-modalidade` regeradas, só nesses 2 arquivos, da tela tocada pelo item.
+
+Comandos:
+- `npx vitest run src/features/telasCanvas421 src/features/students src/test/a11y.test.tsx visual/casos.test.ts` → 20 arquivos, 355 testes passaram
+- `npm run lint` e `npm run typecheck` → limpos
+- `verify`, `test:cov`, `e2e`, `test:visual:docker` não reexecutados (CI do PR, Autonomia 2)
+
+Achados:
+- sugestão, código — mantidas as 4 sugestões da rodada 1 (não bloqueiam).
+
+Instáveis: nenhum.
+
+### Rodada 3 — OK — 2026-11-10, estado 5b4be183c1fa6bcbf53b56bcb6bda2090d65e3e7
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA16 | PASSOU | mantido da rodada 2; reexecutados `src/features/students`, `telasCanvas421`, `a11y` |
+| CA17 | PASSOU | mantido da rodada 2; diff desde a rodada 1 é só o comentário de `RecordGraduations.tsx` e as 2 referências `aluno-encerrar-modalidade-1440-{claro,escuro}` (coerentes com a nova aba Matrícula) |
+
+Comandos:
+- `npx vitest run src/features/telasCanvas421 src/features/students src/test/a11y.test.tsx visual/casos.test.ts` → 20 arquivos, 355 testes passaram (inclui a regra de cor fixa que reprovava no CI)
+- `npm run lint` e `npm run typecheck` → limpos
+- `verify`, `test:cov`, `e2e`, `test:visual:docker`, `visual:canvas` não reexecutados (CI do PR, Autonomia 2 e 3)
+
+Achados:
+- sugestão, código — mantidas as 4 sugestões da rodada 1 (não bloqueiam).
+
+Instáveis: nenhum.
