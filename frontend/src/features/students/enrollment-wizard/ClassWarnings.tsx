@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Banner } from "@/components/ui/banner";
 import { ErrorState, ForbiddenState } from "@/components/states";
 import { useResource } from "../useStudentRecord";
 import type { ClassWarnings as Warnings } from "./types";
@@ -15,15 +16,13 @@ export function ClassWarnings({ studentId, classId, className }: { studentId: st
   const w = warnings.data;
   const range = w.ageRange;
   return (
-    <div role="status" className="flex flex-col gap-1">
+    <>
       {w.ageOutOfRange && range && (
-        <p className="text-sm font-medium">
+        <Banner tone="warn">
           {t(range.maxAge === null ? `${k}warnAgeOpen` : `${k}warnAge`, { age: w.studentAge, klass: className, range: range.name, min: range.minAge, max: range.maxAge })}
-        </p>
+        </Banner>
       )}
-      {w.overCapacity && (
-        <p className="text-sm font-medium">{t(`${k}warnCapacity`, { klass: className, count: w.activeStudents + 1, capacity: w.capacity })}</p>
-      )}
-    </div>
+      {w.overCapacity && <Banner tone="warn">{t(`${k}warnCapacity`, { count: w.activeStudents + 1, capacity: w.capacity })}</Banner>}
+    </>
   );
 }

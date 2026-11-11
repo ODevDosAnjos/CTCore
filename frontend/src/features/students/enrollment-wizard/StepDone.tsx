@@ -1,15 +1,31 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ArrowRight, Banknote, CheckCircle2, Smartphone } from "lucide-react";
 import { formatMoney } from "@/components/fields/masks";
 import { ErrorState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { RegisterPaymentDialog } from "@/features/payments/RegisterPaymentDialog";
 import { formatDate } from "@/lib/format";
+import type { StudentDetail } from "../types";
 import type { EnrollmentCharge, EnrollmentConcluded } from "./types";
 
-// Etapa 5 (RF-MAT-01, RN-MAT-06, RN-MAT-08): aluno Ativo, estado do convite e as cobranças criadas, pagas no balcão uma a uma (D14).
-export function StepDone({ name, result, onPortal }: { name: string; result: EnrollmentConcluded; onPortal: () => void }) {
+// Etapa 5 (RF-MAT-01, RN-MAT-06, RN-MAT-08, D9): aluno Ativo, convite e dois caminhos de pagamento da primeira cobrança em aberto.
+export function StepDone({
+  name,
+  detail,
+  result,
+  payNow,
+  onBack,
+  onRecord,
+}: {
+  name: string;
+  detail?: StudentDetail;
+  result: EnrollmentConcluded;
+  payNow: boolean;
+  onBack: () => void;
+  onRecord: () => void;
+}) {
   const { t } = useTranslation();
   const k = "enrollmentWizard.done.";
   const { status, permissions, retry } = usePermissions();
@@ -17,37 +33,72 @@ export function StepDone({ name, result, onPortal }: { name: string; result: Enr
   const [paid, setPaid] = useState<Record<string, number>>({});
   const canPay = permissions?.COLLECTIONS === "FULL";
   const label = (c: EnrollmentCharge) => (c.type === "ENROLLMENT_FEE" ? t(`${k}fee`) : t(`${k}monthly`));
+  const open = result.charges.filter((c) => paid[c.id] === undefined);
+  const next = open[0];
+  const lastReceipt = Object.values(paid).at(-1);
+  const turma = result.enrollment.modalities[0]?.primaryClass.name ?? "";
+  const invite =
+    result.inviteStatus === "SENT"
+      ? detail?.email
+        ? t(`${k}inviteSentTo`, { email: detail.email })
+        : t(`${k}invite.SENT`)
+      : t(`${k}invite.${result.inviteStatus}`);
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    // D9: a intenção marcada na etapa 4 abre a janela da primeira cobrança, uma vez.
+    if (payNow && canPay && next && !autoOpened.current) {
+      autoOpened.current = true;
+      setPaying(next);
+    }
+  }, [payNow, canPay, next]);
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{t(`${k}title`, { name })}</h2>
-      <p role="status">{t(`${k}active`)}</p>
-      <p>{t(`${k}invite.${result.inviteStatus}`)}</p>
-      <h3 className="font-medium">{t(`${k}charges`)}</h3>
-      {result.charges.length === 0 && <p>{t(`${k}noCharges`)}</p>}
+    <section className="flex flex-col items-center gap-4 text-center">
+      <CheckCircle2 aria-hidden="true" className="size-12 text-ok-foreground" />
+      <h2 className="text-xl font-semibold uppercase">{t(`${k}title`, { name })}</h2>
+      <p role="status" className="max-w-xl text-sm text-muted-foreground">
+        {t(`${k}active`, { turma })} {invite}
+      </p>
       {status === "loading" && result.charges.length > 0 && <LoadingState />}
       {status === "error" && <ErrorState onRetry={retry} />}
-      {status === "ready" && !canPay && result.charges.length > 0 && <p>{t(`${k}forbidden`)}</p>}
-      <ul aria-label={t(`${k}charges`)} className="flex flex-col gap-2">
-        {result.charges.map((c) => (
-          <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
-            <span>{t(`${k}chargeLine`, { label: label(c), value: formatMoney(c.amountCents), date: formatDate(c.dueOn), days: c.toleranceDays })}</span>
-            {paid[c.id] !== undefined ? (
-              <span>{t(`${k}paid`, { number: paid[c.id] })}</span>
-            ) : (
-              canPay && (
-                <Button type="button" variant="outline" className="min-h-11" onClick={() => setPaying(c)}>
-                  {t(`${k}payNow`)}
+      <div className="grid w-full gap-4 text-left sm:grid-cols-2">
+        <section aria-label={t(`${k}payNow`)} className="flex flex-col gap-2 rounded-lg border p-4">
+          <h3 className="flex items-center gap-2 font-medium">
+            <Banknote aria-hidden="true" />
+            {t(`${k}payNow`)}
+          </h3>
+          <p className="text-sm text-muted-foreground">{t(`${k}payNowText`)}</p>
+          {lastReceipt !== undefined && <p className="text-sm font-medium">{t(`${k}receipt`, { number: lastReceipt })}</p>}
+          {status === "ready" && !canPay && result.charges.length > 0 && <p className="text-sm text-muted-foreground">{t(`${k}forbidden`)}</p>}
+          {result.charges.length === 0 && <p className="text-sm text-muted-foreground">{t(`${k}noCharges`)}</p>}
+          {next && (
+            <>
+              <p className="text-sm text-muted-foreground">{t(`${k}chargeLine`, { label: label(next), value: formatMoney(next.amountCents), date: formatDate(next.dueOn), days: next.toleranceDays })}</p>
+              {canPay && (
+                <Button type="button" className="min-h-11" onClick={() => setPaying(next)}>
+                  {t(`${k}register`)}
                 </Button>
-              )
-            )}
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" className="min-h-11" onClick={onPortal}>
-          {t(`${k}portal`)}
-        </Button>
+              )}
+            </>
+          )}
+          {!next && result.charges.length > 0 && <p className="text-sm text-muted-foreground">{t(`${k}allPaid`)}</p>}
+        </section>
+        <section aria-label={t(`${k}portal`)} className="flex flex-col gap-2 rounded-lg border p-4">
+          <h3 className="flex items-center gap-2 font-medium">
+            <Smartphone aria-hidden="true" />
+            {t(`${k}portal`)}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {result.charges.length === 0 ? t(`${k}noCharges`) : t(`${k}portalText`, { value: formatMoney(open.reduce((s, c) => s + c.amountCents, 0)) })}
+          </p>
+          <Button type="button" variant="secondary" className="min-h-11" onClick={onBack}>
+            {t(`${k}back`)}
+          </Button>
+        </section>
       </div>
+      <Button type="button" variant="ghost" className="self-end" onClick={onRecord}>
+        <ArrowRight aria-hidden="true" />
+        {t(`${k}record`, { name })}
+      </Button>
       {paying && (
         <RegisterPaymentDialog
           chargeId={paying.id}

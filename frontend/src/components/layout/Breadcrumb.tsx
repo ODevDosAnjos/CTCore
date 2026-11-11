@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { NavGroup } from "./AppLayout";
 
 // A trilha vem dos grupos do menu e do item ativo: "Grupo › Tela" (o grupo some quando é só o Início).
-export function Breadcrumb({ groups, activeId }: { groups: NavGroup[]; activeId: string }) {
+export function Breadcrumb({ groups, activeId, trail }: { groups: NavGroup[]; activeId: string; trail?: string }) {
   const { t } = useTranslation();
   const group = groups.find((g) => g.items.some((i) => i.id === activeId));
   const item = group?.items.find((i) => i.id === activeId);
@@ -20,9 +20,25 @@ export function Breadcrumb({ groups, activeId }: { groups: NavGroup[]; activeId:
             </li>
           </>
         )}
-        <li aria-current="page" className="truncate font-medium text-foreground">
-          {item.label}
-        </li>
+        {trail ? (
+          <>
+            <li className="truncate">
+              <a href={item.href} className="hover:underline">
+                {item.label}
+              </a>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="size-4" />
+            </li>
+            <li aria-current="page" className="truncate font-medium text-foreground">
+              {trail}
+            </li>
+          </>
+        ) : (
+          <li aria-current="page" className="truncate font-medium text-foreground">
+            {item.label}
+          </li>
+        )}
       </ol>
     </nav>
   );

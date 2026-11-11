@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -20,6 +20,15 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
       await page.getByRole("button", { name: "Confirmar" }).click();
     }
     await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+    if (oferta) {
+      // a Coordenação liga Jiu-Jitsu na unidade Centro para o assistente oferecer a modalidade
+      await page.evaluate(async () => {
+        await fetch("/api/v1/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "ana@exemplo.com", password: "segredo123" }) });
+        await fetch("/api/v1/modalities/00000000-0000-0000-0000-000000000103/activation", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: true }) });
+        const r = await fetch("/api/v1/units/00000000-0000-0000-0000-000000000021/modalities/00000000-0000-0000-0000-000000000103", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ offered: true }) });
+        if (!r.ok) throw new Error(`oferta do caso: ${r.status}`);
+      });
+    }
     if (matricula) {
       // o MSW vive na página: a Coordenação matricula o aluno fictício na turma 601, liga a ficha do Professor e o login volta ao perfil do caso
       await page.evaluate(async (email) => {
@@ -53,9 +62,12 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
   if (perfil && rota === "/conta") await expect(page.getByRole("button", { name: /^Encerrar a sessão em/ }).first()).toBeVisible(); // lista de sessões
   for (const p of passos) {
     if ("preencher" in p) await page.getByLabel(p.preencher[0], { exact: true }).fill(p.preencher[1]);
-    else {
+    else if ("escolher" in p) {
+      const campo = page.getByLabel(p.escolher[0], { exact: true });
+      await campo.selectOption({ label: (await campo.locator("option").filter({ hasText: p.escolher[1] }).first().textContent())! });
+    } else {
       const botao = page.getByRole(p.papel ?? "button", { name: new RegExp(`^${p.clicar}`) }).first();
-      if (!p.seExistir || (await botao.count()) > 0) await botao.click();
+      if (!p.seExistir || (await botao.count()) > 0) await botao.click({ force: p.papel === "radio" });
     }
   }
   await assentar(page, perfil);
@@ -72,7 +84,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

@@ -51,11 +51,13 @@ async function fillModality(user: ReturnType<typeof userEvent.setup>) {
   await choose(user, "Plano", /Jiu-Jitsu Livre/);
 }
 
+const pickDay = async (user: ReturnType<typeof userEvent.setup>) => user.click(await screen.findByRole("radio", { name: "Dia 5" }));
+
 async function toBilling(user: ReturnType<typeof userEvent.setup>) {
   await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}`);
   await fillModality(user);
-  await user.click(screen.getByRole("button", { name: "Avançar" }));
-  await choose(user, "Dia de vencimento", "Dia 5");
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await pickDay(user);
 }
 
 describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
@@ -64,7 +66,7 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
   it("CA18: a gestão vê o assistente na etapa 1; o Professor não", async () => {
     const first = await setup();
     expect(await screen.findByRole("heading", { name: "Nova matrícula", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("Etapa 1 de 5")).toBeInTheDocument();
+    expect(screen.getByText(/Etapa 1 de 5/)).toBeInTheDocument();
     first.unmount();
     await setup("TEACHER");
     await waitFor(() => expect(screen.queryByRole("heading", { name: "Nova matrícula", level: 1 })).toBeNull());
@@ -72,14 +74,40 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
 
   it("CA18: aberto pela ficha, o assistente já está no aluno, a partir da etapa 2", async () => {
     await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}`);
-    expect(await screen.findByText("Etapa 2 de 5")).toBeInTheDocument();
-    expect(screen.getByText("Aluno: Aluno Adulto Fictício")).toBeInTheDocument();
+    expect(await screen.findByText(/Etapa 2 de 5/)).toBeInTheDocument();
+    expect(await screen.findByText(/Aluno Adulto Fictício · \d+ anos/)).toBeInTheDocument();
+  });
+
+  it("CA1 a CA3: migalha, subtítulo, passos, Até aqui só nas etapas 2 e 3 e botões da moldura", async () => {
+    const user = userEvent.setup();
+    await setup();
+    expect(await screen.findByText(/Unidade .* · o aluno fica Ativo ao concluir|O aluno fica Ativo ao concluir/)).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Você está em" })).getByText("Nova matrícula")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("list", { name: "Etapas" }).querySelectorAll("li")).toHaveLength(5);
+    expect(screen.getByText("Etapa 1 de 5 · Aluno")).toBeInTheDocument();
+    expect(screen.queryByText("Até aqui")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(await screen.findByRole("heading", { name: "Alunos", level: 1 })).toBeInTheDocument();
+  });
+
+  it("CA2: a coluna Até aqui aparece na etapa 2, com o aluno e a idade, e some na etapa 4", async () => {
+    const user = userEvent.setup();
+    await toBilling(user);
+    expect(screen.getByText("Até aqui")).toBeInTheDocument();
+    expect(await screen.findByText(/Aluno Adulto Fictício · [0-9]+ anos/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Voltar" })).toBeEnabled();
+    await pickDay(user);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByText(/Etapa 4 de 5/);
+    expect(screen.queryByText("Até aqui")).toBeNull();
+    expect(await screen.findByRole("button", { name: "Concluir matrícula" })).toBeInTheDocument();
   });
 
   it("R18: o pedido de nova modalidade abre o assistente com unidade e modalidade preenchidas", async () => {
     server.use(http.get("/api/v1/units/:id/modalities", () => HttpResponse.json({ canManage: true, items: [{ id: "00000000-0000-0000-0000-000000000103", name: "Jiu-Jitsu", offered: true }] })));
     await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}&unidade=00000000-0000-0000-0000-000000000021&modalidade=00000000-0000-0000-0000-000000000103`);
-    expect(await screen.findByText("Etapa 2 de 5")).toBeInTheDocument();
+    expect(await screen.findByText(/Etapa 2 de 5/)).toBeInTheDocument();
     expect(await screen.findByLabelText("Unidade")).toHaveValue("00000000-0000-0000-0000-000000000021");
     await waitFor(() => expect(screen.getByLabelText("Modalidade")).toHaveValue("00000000-0000-0000-0000-000000000103"));
   });
@@ -93,27 +121,33 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     expect(screen.getByText("Matrícula nova")).toBeInTheDocument();
     expect(screen.queryByLabelText("Nome completo")).toBeNull();
     await user.click(screen.getByRole("button", { name: "É este aluno, continuar" }));
-    expect(await screen.findByText("Etapa 2 de 5")).toBeInTheDocument();
+    expect(await screen.findByText(/Etapa 2 de 5/)).toBeInTheDocument();
   });
 
-  it("CA19: CPF novo cadastra o aluno; menor sem responsável não avança", async () => {
+  it("CA9 e CA4: menor sem responsável não avança e mostra o aviso; com responsável cadastra e vai à etapa 2", async () => {
     const user = userEvent.setup();
     await setup();
-    await user.type(await screen.findByLabelText("CPF do aluno"), NEW_CPF);
-    await user.click(screen.getByRole("button", { name: "Buscar" }));
     await choose(user, "Unidade de cadastro", /Centro/);
-    await user.type(await screen.findByLabelText("Nome completo"), "Criança Nova");
-    await user.type(screen.getByLabelText("Data de nascimento"), "2018-04-05");
+    await user.type(await screen.findByLabelText(/Nome completo/), "Criança Nova");
+    await user.type(screen.getByLabelText(/Data de nascimento/), "2018-04-05");
     await user.type(screen.getByLabelText("CEP"), "01001000");
     await user.type(screen.getByLabelText("Rua"), "Rua A");
     await user.type(screen.getByLabelText("Número"), "10");
     await user.type(screen.getByLabelText("Bairro"), "Centro");
     await user.type(screen.getByLabelText("Cidade"), "Rio");
     await choose(user, "Estado", "RJ");
-    expect(await screen.findByText("Responsável")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Cadastrar e continuar" }));
+    expect(await screen.findByText("Responsáveis")).toBeInTheDocument();
+    expect(screen.getByText("Menor de idade: vincule ao menos um responsável.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    await user.type(screen.getByLabelText("Nome do responsável"), "Mãe Fictícia");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findAllByText("Informe os dados do responsável.")).not.toHaveLength(0);
-    expect(screen.queryByText("Etapa 2 de 5")).toBeNull();
+    expect(screen.queryByText(/Etapa 2 de 5/)).toBeNull();
+    await user.type(screen.getByLabelText("CPF do responsável"), NEW_CPF);
+    await user.type(screen.getByLabelText("E-mail do responsável"), "mae@exemplo.example");
+    await user.type(screen.getByLabelText("Celular do responsável"), "21999990000");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText(/Etapa 2 de 5/)).toBeInTheDocument();
   });
 
   it("RF-MAT-02 CA5: turma fora da faixa e cheia mostra os dois avisos e não bloqueia avançar; trocar a turma remove os avisos", async () => {
@@ -131,13 +165,13 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     await fillModality(user);
     expect(await screen.findByText(/fora da faixa etária da turma Jiu-Jitsu Adulto/)).toBeInTheDocument();
     expect(screen.getByText(/acima da capacidade/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Avançar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeEnabled();
   });
 
   it("CA20: a 11ª modalidade não pode ser adicionada", async () => {
     const user = userEvent.setup();
     await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}`);
-    const add = await screen.findByRole("button", { name: "Adicionar modalidade" });
+    const add = await screen.findByRole("button", { name: "Adicionar outra modalidade" });
     for (let i = 0; i < 9; i++) await user.click(add);
     expect(add).toBeDisabled();
     expect(screen.getByText("O aluno pode ter no máximo 10 modalidades ativas.")).toBeInTheDocument();
@@ -146,7 +180,7 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
   it("CA20: sem unidade e modalidade escolhidas não avança; sem modalidade oferecida diz o que fazer", async () => {
     const user = userEvent.setup();
     await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}`);
-    expect(await screen.findByRole("button", { name: "Avançar" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Continuar" })).toBeDisabled();
     await choose(user, "Unidade", /Centro/);
     expect(await screen.findByText(/não oferece modalidade disponível/)).toBeInTheDocument();
   });
@@ -161,10 +195,9 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     );
     await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}`);
     await fillModality(user);
-    const next = screen.getByRole("button", { name: "Avançar" });
+    const next = screen.getByRole("button", { name: "Continuar" });
     expect(next).toBeEnabled();
-    await user.click(await screen.findByLabelText("O aluno já tem graduação nesta modalidade"));
-    await choose(user, "Nível", "Azul");
+    await choose(user, "Graduação de origem", "Azul");
     expect(next).toBeDisabled();
     expect(screen.getByText("Envie o comprovante para continuar.")).toBeInTheDocument();
     await user.upload(screen.getByLabelText("Comprovante da graduação (obrigatório)"), new File(["x"], "faixa.pdf", { type: "application/pdf" }));
@@ -183,9 +216,9 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
   it("CA21: o dia de vencimento só oferece os dias da unidade e a segunda cobrança é editável", async () => {
     const user = userEvent.setup();
     await toBilling(user);
-    const days = within(screen.getByLabelText("Dia de vencimento")).getAllByRole("option").map((o) => o.textContent);
-    expect(days).toEqual(["Escolha", "Dia 1", "Dia 5", "Dia 10", "Dia 15"]);
-    const second = screen.getByLabelText("Segunda cobrança (opcional)");
+    const days = within(screen.getByRole("radiogroup", { name: "Dia de vencimento" })).getAllByRole("radio").map((o) => o.parentElement?.textContent);
+    expect(days).toEqual(["Dia 1", "Dia 5", "Dia 10", "Dia 15"]);
+    const second = screen.getByLabelText("Data da segunda cobrança");
     await user.type(second, "2030-01-10");
     expect(second).toHaveValue("2030-01-10");
   });
@@ -198,18 +231,18 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
       ),
     );
     await toBilling(user);
-    expect(await screen.findByText("Taxa de matrícula: R$ 50,00")).toBeInTheDocument();
-    await user.click(screen.getByLabelText("Isentar taxa"));
-    expect(screen.getByRole("button", { name: "Avançar" })).toBeDisabled();
+    expect(await screen.findByText(/cobra R\$ 50,00\. Isenção pede motivo\./)).toBeInTheDocument();
+    await user.click(screen.getByRole("switch", { name: "Isentar a taxa de matrícula" }));
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
     await user.type(screen.getByLabelText(/Motivo da isenção/), "bolsa da turma");
-    expect(screen.getByRole("button", { name: "Avançar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeEnabled();
   });
 
   it("CA21: sem taxa na unidade, nada de taxa", async () => {
     const user = userEvent.setup();
     await toBilling(user);
-    expect(screen.queryByText(/Taxa de matrícula:/)).toBeNull();
-    expect(screen.queryByLabelText("Isentar taxa")).toBeNull();
+    expect(screen.queryByText(/cobra R\$/)).toBeNull();
+    expect(screen.queryByRole("switch", { name: "Isentar a taxa de matrícula" })).toBeNull();
   });
 
   it("CA22 e CA23: resumo, conclusão com botão desabilitado durante o envio, etapa 5 e volta para a ficha", async () => {
@@ -219,9 +252,9 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     const real = await fetch("/api/v1/auth/session").catch(() => null);
     void real;
     await toBilling(user);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    expect(await screen.findByText("Mensalidade: R$ 200,00")).toBeInTheDocument();
-    expect(screen.getByText(/criadas ao concluir/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByRole("heading", { name: "Termo de matrícula" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Modalidade" })).toBeInTheDocument();
     server.use(
       http.post("/api/v1/students/:id/enrollment/conclude", async () => {
         await gate;
@@ -241,12 +274,12 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     await user.click(conclude);
     expect(conclude).toBeDisabled();
     release();
-    expect(await screen.findByText("Aluno Ativo")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /está matriculado/ })).toBeInTheDocument();
     expect(screen.getByText(/Sem convite: o aluno é menor/)).toBeInTheDocument();
-    expect(screen.getByText("Nenhuma cobrança foi criada: o valor final é zero.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Registrar pagamento agora" })).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Aluno paga pelo portal" }));
-    await waitFor(() => expect(screen.queryByText("Aluno Ativo")).toBeNull());
+    expect(screen.getAllByText("Nenhuma cobrança foi criada: o valor final é zero.").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Registrar pagamento" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Pronto, voltar aos alunos" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: /está matriculado/ })).toBeNull());
   });
 
   it("CA28: a etapa 5 lista as cobranças, registra o pagamento no balcão e mostra número e código do recibo", async () => {
@@ -276,16 +309,14 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     });
     expect(put.status).toBe(200);
     await toBilling(user);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await screen.findByText("Mensalidade: R$ 200,00");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "Termo de matrícula" });
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
-    expect(await screen.findByText("Aluno Ativo")).toBeInTheDocument();
-    const lines = within(await screen.findByRole("list", { name: "Cobranças criadas" })).getAllByRole("listitem");
-    expect(lines).toHaveLength(2);
-    expect(lines[0]).toHaveTextContent("Mensalidade: R$ 200,00");
-    expect(lines[1]).toHaveTextContent("Taxa de matrícula: R$ 50,00");
+    expect(await screen.findByRole("heading", { name: /está matriculado/ })).toBeInTheDocument();
+    const card = within(await screen.findByRole("region", { name: "Registrar pagamento agora" }));
+    expect(card.getByText(/Mensalidade: R\$ 200,00/)).toBeInTheDocument();
     expect(await axeViolations(document.body)).toEqual([]);
-    await user.click(within(lines[0]).getByRole("button", { name: "Registrar pagamento agora" }));
+    await user.click(await card.findByRole("button", { name: "Registrar pagamento" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Registrar pagamento" }));
     await user.selectOptions(dialog.getByLabelText("Meio de pagamento"), "Pix pela chave");
     await user.click(dialog.getByRole("button", { name: "Confirmar pagamento" }));
@@ -293,17 +324,18 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     const code = dialog.getByText(/Código de conferência: /).textContent!.split(": ")[1];
     expect(code).toHaveLength(16);
     await user.click(dialog.getAllByRole("button", { name: "Fechar" })[0]);
-    expect(within(screen.getByRole("list", { name: "Cobranças criadas" })).getAllByRole("listitem")[0]).toHaveTextContent("Paga, recibo 1");
+    expect(await screen.findByText(/Recibo nº 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Taxa de matrícula: R\$ 50,00/)).toBeInTheDocument();
     expect((await fetch(`/api/v1/public/receipts/${code}`)).status).toBe(200);
   });
 
   it("CA28: erro 409 aparece na janela e mantém o botão; Professor sem COLLECTIONS não vê o botão", async () => {
     const user = userEvent.setup();
     await toBilling(user);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await screen.findByText("Mensalidade: R$ 200,00");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "Termo de matrícula" });
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
-    await user.click(await screen.findByRole("button", { name: "Registrar pagamento agora" }));
+    await user.click(await screen.findByRole("button", { name: "Registrar pagamento" }));
     server.use(http.post("/api/v1/charges/:id/payments", () => HttpResponse.json({ code: "CHARGE_NOT_PAYABLE", message: "x", changed: false, fields: [], traceId: "t" }, { status: 409 })));
     await user.click(await screen.findByRole("button", { name: "Confirmar pagamento" }));
     expect(await screen.findByText(/não pode receber pagamento/)).toBeInTheDocument();
@@ -316,12 +348,12 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
   it("CA28: sem COLLECTIONS completo a etapa 5 mostra a mensagem e nenhum botão de pagamento", async () => {
     const user = userEvent.setup();
     await toBilling(user);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await screen.findByText("Mensalidade: R$ 200,00");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "Termo de matrícula" });
     server.use(http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: { COLLECTIONS: "NONE" } })));
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
     expect(await screen.findByText(/não tem permissão para registrar pagamentos/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Registrar pagamento agora" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Registrar pagamento" })).toBeNull();
   });
 
   it("CA29: o resumo mostra o débito anterior e a taxa que não será cobrada", async () => {
@@ -336,17 +368,16 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
         }),
       ),
     );
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Débito anterior: 2 cobranças em aberto, R$ 250,00")).toBeInTheDocument();
-    expect(screen.getByText("Taxa de matrícula: não será cobrada")).toBeInTheDocument();
-    expect(screen.getByText(/com 5 dias de tolerância/)).toBeInTheDocument();
+    expect(screen.queryByText("Taxa de matrícula")).toBeNull();
   });
 
   it("CA22: erro 422 volta à etapa do campo com a mensagem e preserva o que foi digitado", async () => {
     const user = userEvent.setup();
     await toBilling(user);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await screen.findByText("Mensalidade: R$ 200,00");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "Termo de matrícula" });
     server.use(
       http.post("/api/v1/students/:id/enrollment/conclude", () =>
         HttpResponse.json({ code: "UNPROCESSABLE", message: "x", changed: false, fields: [{ field: "dueDay", message: "dia não permitido pela unidade" }], traceId: "t" }, { status: 422 }),
@@ -354,15 +385,15 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     );
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
     expect(await screen.findByText("dia não permitido pela unidade")).toBeInTheDocument();
-    expect(screen.getByText("Etapa 3 de 5")).toBeInTheDocument();
-    expect(screen.getByLabelText("Dia de vencimento")).toHaveValue("5");
+    expect(screen.getByText(/Etapa 3 de 5/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Dia 5" })).toBeChecked();
   });
 
   it("CA22: erro de rede mostra o estado de erro com Tentar de novo", async () => {
     const user = userEvent.setup();
     await toBilling(user);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await screen.findByText("Mensalidade: R$ 200,00");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "Termo de matrícula" });
     server.use(http.post("/api/v1/students/:id/enrollment/conclude", () => HttpResponse.error()));
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
     expect(await screen.findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
@@ -399,14 +430,14 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     const second = await setup("COORDINATOR", `/alunos/nova-matricula?aluno=${ADULT_ID}`);
     await fillModality(user);
     expect(await axeViolations(second.container)).toEqual([]);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await choose(user, "Dia de vencimento", "Dia 5");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await pickDay(user);
     expect(await axeViolations(second.container)).toEqual([]);
-    await user.click(screen.getByRole("button", { name: "Avançar" }));
-    await screen.findByText("Mensalidade: R$ 200,00");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "Termo de matrícula" });
     expect(await axeViolations(second.container)).toEqual([]);
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
-    await screen.findByText("Aluno Ativo");
+    await screen.findByRole("heading", { name: /está matriculado/ });
     expect(await axeViolations(second.container)).toEqual([]);
   });
 });

@@ -17,7 +17,7 @@ import { usePendingRequests } from "./usePendingRequests";
 import { usePermissions } from "./usePermissions";
 
 // Layout da gestão com o menu montado pelas permissões do servidor (R7). O menu só esconde; a barreira é o servidor (D5).
-export function ManagementLayout({ activeId = "home", children }: { activeId?: string; children: ReactNode }) {
+export function ManagementLayout({ activeId = "home", trail, children }: { activeId?: string; trail?: string; children: ReactNode }) {
   const { t } = useTranslation();
   const { state } = useSession();
   const side = useLogout();
@@ -44,6 +44,7 @@ export function ManagementLayout({ activeId = "home", children }: { activeId?: s
         org={link?.organizationName}
         roleLabel={roleLabel}
         badges={{ requests: pending }}
+        trail={trail}
         tabs={buildTabs(permissions, link?.role, t)}
         onLogout={side.logout}
         unit={(variant) => <UnitSwitcher variant={variant} />}
