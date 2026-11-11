@@ -1,6 +1,6 @@
 import type { StudentDetail } from "@/features/students/types";
 import type { MockCharge, MockEnrollment, MockPortalRequest } from "../handlers";
-import { ID } from "./alunos";
+import { CLASS_JUDO, ID } from "./alunos";
 
 // Cenário do portal (#449, R10 a R13): `aluno@` (adulto), `familia@` (dois filhos em unidades diferentes), pedidos. Dados fictícios puros, datas por `dayShift` (D3).
 export type PortalCtx = {
@@ -61,7 +61,7 @@ export function portalCenario(ctx: PortalCtx) {
   });
   const decided = (ago: number) => ({ decidedAt: `${d(-ago)}T16:00:00.000Z` });
   const requests = [
-    request("CLASS_CHANGE", "OPEN", 2, { modalityRowId: judo.id, targetClassId: ID.classJuvenil, note: "Prefiro o horário da tarde." }),
+    request("CLASS_CHANGE", "OPEN", 2, { modalityRowId: judo.id, targetClassId: CLASS_JUDO, note: "Prefiro o horário da tarde." }),
     request("NEW_MODALITY", "APPROVED", 9, { targetModalityId: mod("Muay Thai").id, targetUnitId: centro, response: "Procure a recepção para a matrícula.", ...decided(8) }),
     request("PLAN_CHANGE", "REFUSED", 14, { modalityRowId: judo.id, targetPlanId: PLAN_JUDO_OLD, response: "Esse plano foi desativado.", ...decided(13) }),
     request("CLOSURE", "OPEN", 1, { modalityRowId: boxe.id, unitId: norte, reason: "SCHEDULE" }),

@@ -131,8 +131,17 @@ describe("pedidos do portal x OpenAPI (RF-MAT-04, #86)", () => {
 
     await login("varios@exemplo.com", ADMIN_LINK);
     const open = await (await send("GET", "/portal-requests")).json();
-    expect(Object.keys(open).sort()).toEqual(["items", "page", "size", "total"]);
+    expect(Object.keys(open).sort()).toEqual(["counts", "items", "page", "size", "total"]);
     expect(open.items.map((r: { kind: string }) => r.kind)).toEqual(["CLASS_CHANGE", "PLAN_CHANGE"]);
+    // Contagens dos abertos, sem o filtro de tipo; prazo, turma e plano atuais em cada pedido.
+    expect(open.counts).toEqual({ total: 2, CLASS_CHANGE: 1, NEW_MODALITY: 0, PLAN_CHANGE: 1, CLOSURE: 0 });
+    expect(Object.keys(open.counts).sort()).toEqual(Object.keys(openapi.components.schemas.PortalRequestCounts.properties).sort());
+    expect((await (await send("GET", "/portal-requests?kind=PLAN_CHANGE")).json()).counts.total).toBe(2);
+    expect((await (await send("GET", `/portal-requests?unitId=00000000-0000-0000-0000-000000000022`)).json()).counts.total).toBe(0);
+    const [{ createdAt, expiresAt, currentClass, currentPlan }] = open.items;
+    expect(Date.parse(expiresAt) - Date.parse(createdAt.slice(0, 10))).toBeGreaterThanOrEqual(29 * 86_400_000);
+    expect(expiresAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect([currentClass, currentPlan].every((v) => typeof v === "string")).toBe(true);
     expect((await (await send("GET", "/portal-requests?kind=PLAN_CHANGE")).json()).items).toHaveLength(1);
     expect((await (await send("GET", `/portal-requests?unitId=00000000-0000-0000-0000-000000000022`)).json()).items).toEqual([]);
     expect((await send("GET", "/portal-requests?status=NOPE")).status).toBe(400);

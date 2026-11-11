@@ -50,6 +50,18 @@ class PortalRequestControllerIT extends PortalRequestBase {
         assertThat(all.get("items")).hasSize(3);
         assertThat(all.get("items").findValuesAsText("id").get(0)).isEqualTo(w.openId());
         assertThat(body(manage("GET", "?kind=CLOSURE", coordinator, null)).get("items")).hasSize(1);
+        var counts = body(manage("GET", "?kind=CLOSURE", coordinator, null)).get("counts");
+        assertThat(counts.get("total").asInt()).isEqualTo(3);
+        assertThat(counts.get("CLASS_CHANGE").asInt()).isEqualTo(1);
+        assertThat(counts.get("PLAN_CHANGE").asInt()).isEqualTo(1);
+        assertThat(counts.get("CLOSURE").asInt()).isEqualTo(1);
+        assertThat(counts.get("NEW_MODALITY").asInt()).isZero();
+        assertThat(forA.get("counts").get("total").asInt()).isEqualTo(1);
+        assertThat(body(manage("GET", "", adminB, null)).get("counts").get("total").asInt()).isEqualTo(2);
+        assertThat(body(manage("GET", "?unitId=" + w.unitB(), coordinator, null)).get("counts").get("total").asInt()).isEqualTo(2);
+        assertThat(body(manage("GET", "?unitId=" + w.unitB(), adminA, null)).get("counts").get("total").asInt()).isZero();
+        assertThat(body(manage("GET", "?status=ALL", coordinator, null)).get("counts").get("total").asInt()).isEqualTo(3);
+        assertThat(body(manage("GET", "", who(tenant(), Role.COORDINATOR), null)).get("counts").get("total").asInt()).isZero();
         assertThat(body(manage("GET", "?unitId=" + w.unitB(), coordinator, null)).get("items")).hasSize(2);
         assertThat(body(manage("GET", "?unitId=" + w.unitB(), adminA, null)).get("items")).isEmpty();
         assertThat(body(manage("GET", "?status=REFUSED", coordinator, null)).get("items")).isEmpty();
@@ -62,6 +74,23 @@ class PortalRequestControllerIT extends PortalRequestBase {
         assertThat(manage("GET", "/" + w.openId(), adminB, null).getStatus()).isEqualTo(404);
         assertThat(manage("GET", "/" + w.openId(), who(tenant(), Role.COORDINATOR), null).getStatus()).isEqualTo(404);
         assertThat(body(manage("GET", "", who(tenant(), Role.COORDINATOR), null)).get("items")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("CA4, CA9: o pedido traz expiresAt na data da unidade (30 dias; 8 no encerramento), a turma e o plano atuais, e nada disso no pedido de nova modalidade")
+    void expiryAndCurrent() throws Exception {
+        World w = world();
+        String closure = body(request(w.who(), w.student(), closure(w.m(), "OTHER"))).get("id").asText();
+        // 01:30 UTC de 10/03 ainda é 09/03 em America/Sao_Paulo
+        adminJdbc().update("update portal_request set created_at = '2026-03-10T01:30:00Z'");
+        var items = body(manage("GET", "", who(w.t(), Role.COORDINATOR), null)).get("items");
+        for (var r : items) {
+            boolean isClosure = r.get("id").asText().equals(closure);
+            assertThat(r.get("expiresAt").asText()).isEqualTo(isClosure ? "2026-03-17" : "2026-04-08");
+            assertThat(r.get("currentClass").asText()).isEqualTo(adminJdbc().queryForObject("select name from training_class where id = ?", String.class, w.m().klass()));
+            assertThat(r.get("currentPlan").asText()).isEqualTo(adminJdbc().queryForObject("select name from plan where id = ?", String.class, w.m().plan()));
+        }
+        assertThat(items).hasSize(2);
     }
 
     @Test
