@@ -146,3 +146,5 @@ Decisões:
 Divergências com o canvas (limiteCanvas em `frontend/visual/casos.ts`, medidas na comparação): contador "N/500" do componente base (canvas "N de 500"); aba "Aguardando aprovação" sem contagem; aviso verde sem negrito em "Pedido aprovado."; "Outros horários" e a nota do rodapé da troca de turma; janela de recusa a 59,1% e fluxo de troca a 60,6% (fundo e dados do mock); D3 (horário e preço no Detalhe) e D5 (sem folha no celular). As exceções citam só D3 e D5 deste item; não há issue aberta que as remova.
 
 Regressão: `npm run lint`, `npm run typecheck` e `npm run build` ok; `npm run test:cov` 2229 de 2230, com falha em `LoginPage.test.tsx` (CA4 e CA5, #445, fora do item). Passou 2 vezes sozinho (teste instável, regra 5: anotado no PR). `npm run e2e:full` e `verify` completo não rodaram localmente; ficam para o CI do PR.
+
+- Exceções de `limiteCanvas` (`pedido-recusar`, `pedido-trocar-turma`): a #556 (Sprint 10.5) as remove e traz isso no "Pronto quando"; os motivos em `frontend/visual/casos.ts` citam a #556 (Autonomia 4, autorizado pelo dono).
