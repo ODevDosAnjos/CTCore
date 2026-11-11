@@ -20,6 +20,7 @@ export function AppLayout({
   org,
   roleLabel,
   badges,
+  trail,
   tabs = [],
   onLogout,
   children,
@@ -33,6 +34,7 @@ export function AppLayout({
   org?: string;
   roleLabel?: string;
   badges?: Record<string, number>;
+  trail?: string;
   tabs?: NavTab[];
   onLogout?: () => void;
   children: ReactNode;
@@ -57,7 +59,7 @@ export function AppLayout({
         <Sidebar {...side} collapsed={collapsed} onToggle={toggle} />
       </aside>
       <div className="min-w-0 flex-1">
-        <Topbar groups={groups} activeId={activeId} org={org} unit={unit} bell={bell} userMenu={userMenu}>
+        <Topbar groups={groups} activeId={activeId} org={org} unit={unit} bell={bell} userMenu={userMenu} trail={trail}>
           {headerExtra}
         </Topbar>
         <main id="conteudo" ref={main} tabIndex={-1} className="px-4 py-6 pb-20 focus:outline-none md:pb-6">

@@ -3,7 +3,8 @@
 // `canvas`: nome da tela em docs/design/canvas (sem .dc.html); `canvasEscuro`: versão escura, quando existe.
 // D4 (#419): passos antes do print, para chegar a janelas e estados. `preencher`: [rótulo exato, valor]; `clicar`: início do nome do botão.
 // seExistir: o botão só aparece em parte das larguras (ex.: "Filtros" abaixo de 640 px)
-export type Passo = { preencher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" };
+// escolher: [rótulo exato do select, trecho do texto da opção] (select não aceita `fill`); papel "radio" marca o seletor segmentado (#469)
+export type Passo = { preencher: [string, string] } | { escolher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" | "radio" };
 export type Caso = {
   nome: string;
   rota: string;
@@ -14,6 +15,7 @@ export type Caso = {
   limiteCanvas?: { valor: number; motivo: string }; // limite de diferença do caso, no lugar do padrão (#435)
   fullPage?: boolean;
   matricula?: boolean; // #443: antes do print, matricula o aluno fictício na turma do Professor (o MSW começa sem matrículas)
+  oferta?: boolean; // #469: antes do print, a Unidade Centro passa a oferecer Jiu-Jitsu (o MSW começa sem modalidade ligada nas unidades)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
 };
@@ -24,6 +26,10 @@ const prof = "prof@exemplo.com"; // Professor
 const aluno = "aluno@exemplo.com"; // Aluno adulto, portal completo
 const familia = "familia@exemplo.com"; // Responsável com dois filhos
 const reduzido = "reduzido@exemplo.com"; // Aluno sem modalidade ativa, portal reduzido
+
+// #469: aluno fictício adulto (Carla, só com Judô, do MSW) e os passos que preenchem a etapa 2
+const matriculaRota = "/alunos/nova-matricula?aluno=00000000-0000-0000-0000-000000000722";
+const modalidade: Passo[] = [{ escolher: ["Unidade", "Centro"] }, { escolher: ["Modalidade", "Jiu-Jitsu"] }, { escolher: ["Turma principal", "Jiu-Jitsu Adulto"] }, { escolher: ["Plano", "Jiu-Jitsu Livre"] }];
 
 export const casos: Caso[] = [
   { nome: "vitrine", rota: "/dev/vitrine", fullPage: true },
@@ -146,6 +152,10 @@ export const casos: Caso[] = [
   // Telas do canvas já construídas que o MSW alcança por rota (#435). Fora delas, ver semCaso.
   { nome: "inicio-professor", rota: "/", perfil: prof, canvas: "ProfessorInicio" },
   { nome: "matricula-aluno", rota: "/alunos/nova-matricula", perfil: ana, canvas: "MatriculaAluno" },
+  { nome: "matricula-modalidades", rota: matriculaRota, perfil: ana, canvas: "MatriculaModalidades", oferta: true, passos: modalidade },
+  { nome: "matricula-vencimento", rota: matriculaRota, perfil: ana, canvas: "MatriculaVencimento", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }] },
+  { nome: "matricula-resumo", rota: matriculaRota, perfil: ana, canvas: "MatriculaResumo", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }, { clicar: "Continuar" }] },
+  { nome: "matricula-concluida", rota: matriculaRota, perfil: ana, canvas: "MatriculaConcluida", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }, { clicar: "Continuar" }, { clicar: "Concluir matrícula" }] },
   { nome: "portal-conta", rota: "/conta", perfil: aluno, canvas: "PortalConta", canvasCelular: "PortalMConta" },
   { nome: "portal-familia", rota: "/portal/financeiro", perfil: familia, canvas: "PortalFamilia", canvasCelular: "PortalMFamilia" },
   { nome: "portal-reduzido-info", rota: "/portal/minhas-informacoes", perfil: reduzido, canvas: "PortalReduzidoInfo" },
@@ -191,8 +201,8 @@ export const semCaso: Record<string, string[]> = {
   "janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)": [
     "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos",
     "AlunoInativar", "AlunoReativar",
-    "AlunoAnonimizar", "MatriculaModalidades", "MatriculaVencimento", "MatriculaResumo",
-    "MatriculaConcluida", "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo", "ProfessorModalidadeRecusa",
+    "AlunoAnonimizar",
+    "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo", "ProfessorModalidadeRecusa",
     "AgendaPainel", "AulaEditar", "AulaCancelar", "AulaEditarSeguintes", "AulaCorrigir",
     "AulaAvisarTurma", "TurmaTitularInativo", "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "CobrancaPainel", "SomenteLeitura", "EstadoErro", "PagamentoRegistrar",

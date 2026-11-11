@@ -5,6 +5,7 @@ import { ReasonField } from "@/components/ReasonField";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
+import { Popover } from "@/components/ui/popover";
 import { SummaryBox } from "@/components/ui/summary-box";
 import { Select } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
@@ -20,7 +21,7 @@ export interface Choice {
 export const useClassChoices = (unitId: string | null, modalityId: string) => useResource<{ items: ClassChoice[] }>(unitId ? `/classes?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
 export const usePlanChoices = (unitId: string | null, modalityId: string) => useResource<{ items: PlanChoice[] }>(unitId ? `/plans?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
 
-export function PickSelect({ label, value, onChange, options, error }: { label: string; value: string; onChange: (v: string) => void; options: Choice[]; error?: string }) {
+export function PickSelect({ label, value, onChange, options, error, blank }: { label: string; value: string; onChange: (v: string) => void; options: Choice[]; error?: string; blank?: string }) {
   const { t } = useTranslation();
   const id = useId();
   return (
@@ -35,7 +36,7 @@ export function PickSelect({ label, value, onChange, options, error }: { label: 
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-erro` : undefined}
       >
-        <option value="">{t("students.record.enrollment.choose")}</option>
+        <option value="">{blank ?? t("students.record.enrollment.choose")}</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name}
@@ -62,21 +63,47 @@ export function ReadOnlyField({ label, value }: { label: string; value: string }
 }
 
 // Outros horários: as demais turmas da modalidade, marcadas uma a uma.
-export function OtherClasses({ options, primary, value, onChange, error }: { options: ClassChoice[]; primary: string; value: string[]; onChange: (v: string[]) => void; error?: string }) {
+export function OtherClasses({ options, primary, value, onChange, error, popover }: { options: ClassChoice[]; primary: string; value: string[]; onChange: (v: string[]) => void; error?: string; popover?: boolean }) {
   const { t } = useTranslation();
   const rest = options.filter((o) => o.id !== primary);
   if (rest.length === 0) return null;
+  const title = t("students.record.enrollment.otherClasses");
+  const hint = <p className="text-xs text-muted-foreground">{t("students.record.enrollment.class.otherHint")}</p>;
+  const boxes = rest.map((o) => (
+    <label key={o.id} className="flex min-h-11 items-center gap-2">
+      <input type="checkbox" checked={value.includes(o.id)} onChange={(e) => onChange(e.target.checked ? [...value, o.id] : value.filter((x) => x !== o.id))} />
+      {o.schedule?.length ? `${o.name} (${scheduleText(t, o.schedule)})` : o.name}
+    </label>
+  ));
+  const fail = error && <p className="text-sm text-danger-foreground">{error}</p>;
+  if (popover)
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-medium">{title}</span>
+        <Popover
+          label={title}
+          trigger={(p) => (
+            <Button type="button" variant="outline" className="min-h-11 w-full justify-start font-normal" {...p}>
+              {value.length ? t("enrollmentWizard.modalities.othersCount", { count: value.length }) : t("students.record.enrollment.choose")}
+            </Button>
+          )}
+        >
+          {() => (
+            <div className="flex flex-col gap-1">
+              {hint}
+              {boxes}
+            </div>
+          )}
+        </Popover>
+        {fail}
+      </div>
+    );
   return (
     <fieldset className="flex flex-col gap-1">
-      <legend className="text-sm font-medium">{t("students.record.enrollment.otherClasses")}</legend>
-      <p className="text-xs text-muted-foreground">{t("students.record.enrollment.class.otherHint")}</p>
-      {rest.map((o) => (
-        <label key={o.id} className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" checked={value.includes(o.id)} onChange={(e) => onChange(e.target.checked ? [...value, o.id] : value.filter((x) => x !== o.id))} />
-          {o.schedule?.length ? `${o.name} (${scheduleText(t, o.schedule)})` : o.name}
-        </label>
-      ))}
-      {error && <p className="text-sm text-danger-foreground">{error}</p>}
+      <legend className="text-sm font-medium">{title}</legend>
+      {hint}
+      {boxes}
+      {fail}
     </fieldset>
   );
 }

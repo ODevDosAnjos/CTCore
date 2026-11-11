@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
@@ -21,8 +21,8 @@ describe("avisos da turma (RF-MAT-02, #68)", () => {
     server.use(http.get(URL, () => HttpResponse.json({ studentAge: 10, ageRange: range, ageOutOfRange: true, capacity: 2, activeStudents: 2, overCapacity: true })));
     view();
     expect(await screen.findByText("Aluno com 10 anos, fora da faixa etária da turma Judô Juvenil (Juvenil, 13–17 anos).")).toBeInTheDocument();
-    expect(screen.getByText("Turma Judô Juvenil acima da capacidade com esta matrícula (3/2).")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText("Turma acima da capacidade com esta matrícula: 3 de 2. Você pode seguir; a capacidade só avisa.")).toBeInTheDocument();
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
   });
 
   it("CA8: o simulado devolve o formato do contrato", async () => {
@@ -40,8 +40,9 @@ describe("avisos da turma (RF-MAT-02, #68)", () => {
 
   it("CA5: sem o que avisar nada aparece", async () => {
     server.use(http.get(URL, () => HttpResponse.json({ studentAge: 15, ageRange: range, ageOutOfRange: false, capacity: 5, activeStudents: 1, overCapacity: false })));
-    view();
-    expect(await screen.findByRole("status")).toBeEmptyDOMElement();
+    const { container } = view();
+    await waitFor(() => expect(screen.queryByText(/Conferindo/)).toBeNull());
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("CA9: erro mostra Tentar de novo e a nova tentativa funciona", async () => {

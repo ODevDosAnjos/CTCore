@@ -15,13 +15,15 @@ export interface TopbarProps {
   unit?: (variant: "desktop" | "mobile" | "compact") => ReactNode;
   bell?: ReactNode;
   userMenu?: ReactNode;
+  /** Último nível da migalha, depois do item ativo. */
+  trail?: string;
   children?: ReactNode;
 }
 
 // Barra de cima. Desktop (md+), numa só linha: trilha, unidade, busca, sino, tema, ajuda, divisória e conta.
 // Celular: seta de voltar (fora do Início), marca, título e unidade à esquerda; lupa e sino à direita (R5, R7).
 // Busca e ajuda ainda sem tela: desabilitadas com motivo ("Em breve").
-export function Topbar({ groups, activeId, org, unit, bell, userMenu, children }: TopbarProps) {
+export function Topbar({ groups, activeId, org, unit, bell, userMenu, trail, children }: TopbarProps) {
   const { t } = useTranslation();
   const soon = t("layout.soon");
   const desktopUnit = unit?.("desktop");
@@ -30,7 +32,7 @@ export function Topbar({ groups, activeId, org, unit, bell, userMenu, children }
   return (
     <header className="flex flex-nowrap items-center gap-1 border-b px-4 py-2 md:gap-2">
       <div className="hidden min-w-0 flex-1 md:block">
-        <Breadcrumb groups={groups} activeId={activeId} />
+        <Breadcrumb groups={groups} activeId={activeId} trail={trail} />
       </div>
       <div className="hidden min-w-0 md:flex">{desktopUnit}</div>
       <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">

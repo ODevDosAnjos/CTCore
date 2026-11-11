@@ -17,6 +17,7 @@ export async function carregarCasos() {
     .replace(/export type Passo = [^;]*;\r?\n/, "")
     .replace(/export type Caso = \{[\s\S]*?\};\r?\n/, "")
     .replace(/: Caso\[\]/, "")
+    .replace(/: Passo\[\]/, "")
     .replace(/: Record<string, string\[\]>/, "")
     .replace(/ as const/g, "");
   return (await import(`data:text/javascript;base64,${Buffer.from(src).toString("base64")}`)).casos;

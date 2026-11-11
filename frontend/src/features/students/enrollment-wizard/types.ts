@@ -135,3 +135,39 @@ export interface ClassWarnings {
   activeStudents: number;
   overCapacity: boolean;
 }
+
+// Rascunho da etapa 1 (fica no Wizard para não se perder ao voltar). CPF e celular são só dígitos.
+export interface GuardianDraft {
+  key: string;
+  name: string;
+  cpf: string;
+  email: string;
+  phone: string;
+  financial: boolean;
+}
+export interface StudentDraft {
+  cpf: string;
+  unitId: string;
+  name: string;
+  birthDate: string;
+  email: string;
+  phone: string;
+  postalCode: string;
+  street: string;
+  number: string;
+  district: string;
+  city: string;
+  state: string;
+  referral: string;
+  emergencyName: string;
+  emergencyRelationship: string;
+  emergencyPhone: string;
+  guardians: GuardianDraft[];
+  photo: Blob | null;
+}
+let guardianSeq = 0;
+export const newGuardian = (financial: boolean): GuardianDraft => ({ key: `g${++guardianSeq}`, name: "", cpf: "", email: "", phone: "", financial });
+export const emptyStudentDraft = (): StudentDraft => ({
+  cpf: "", unitId: "", name: "", birthDate: "", email: "", phone: "", postalCode: "", street: "", number: "", district: "", city: "", state: "",
+  referral: "", emergencyName: "", emergencyRelationship: "", emergencyPhone: "", guardians: [newGuardian(true)], photo: null,
+});

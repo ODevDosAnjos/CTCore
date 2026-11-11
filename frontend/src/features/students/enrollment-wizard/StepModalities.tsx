@@ -1,15 +1,18 @@
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MoneyField } from "@/components/fields/fields";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
+import { ModalityDot } from "@/components/ui/modality-dot";
 import { Text } from "@/features/units/Text";
 import { ApiError } from "@/lib/api";
 import { OtherClasses, PickSelect, useClassChoices, usePlanChoices, type Choice } from "../ModalityPickers";
 import { useResource } from "../useStudentRecord";
 import { ClassWarnings } from "./ClassWarnings";
 import { uploadOriginProof } from "./api";
+import { monthlyText } from "./modalityMonthly";
 import { emptyOrigin, MAX_ACTIVE, newModality } from "./request";
 import type { ModalityDraft } from "./types";
 
@@ -54,17 +57,20 @@ function OriginBlock({ studentId, draft, graduation, onChange }: { studentId: st
   }
 
   return (
-    <fieldset className="flex flex-col gap-2 rounded-md border p-3">
-      <legend className="px-1 text-sm font-medium">{t(`${k}title`)}</legend>
-      <label className="flex min-h-11 items-center gap-2">
-        <input type="checkbox" className="size-5" checked={o.on} onChange={(e) => setOrigin({ on: e.target.checked, proofRequired: graduation.requireOriginProof })} />
-        {t(`${k}toggle`)}
-      </label>
+    <div className="flex flex-col gap-3">
+      <PickSelect
+        label={t(`${k}title`)}
+        blank={t(`${k}none`)}
+        value={o.on ? o.levelId : ""}
+        onChange={(v) => setOrigin({ on: v !== "", levelId: v, degree: "0", proofRequired: graduation.requireOriginProof })}
+        options={graduation.levels}
+      />
       {o.on && (
         <>
-          <PickSelect label={t(`${k}level`)} value={o.levelId} onChange={(v) => setOrigin({ levelId: v, degree: "0" })} options={graduation.levels} />
+          <p className="text-xs text-muted-foreground">{t("enrollmentWizard.modalities.originHint")}</p>
           <PickSelect
             label={t(`${k}degree`)}
+            blank="0"
             value={o.degree}
             onChange={(v) => setOrigin({ degree: v })}
             options={Array.from({ length: (level?.maxDegree ?? 0) + 1 }, (_, i) => ({ id: String(i), name: String(i) }))}
@@ -85,7 +91,7 @@ function OriginBlock({ studentId, draft, graduation, onChange }: { studentId: st
           </div>
         </>
       )}
-    </fieldset>
+    </div>
   );
 }
 
@@ -95,23 +101,19 @@ function BenefitBlock({ draft, onChange }: { draft: ModalityDraft; onChange: (m:
   const b = draft.benefit;
   const set = (patch: Partial<ModalityDraft["benefit"]>) => onChange({ ...draft, benefit: { ...b, ...patch } });
   return (
-    <fieldset className="flex flex-col gap-2 rounded-md border p-3">
-      <legend className="px-1 text-sm font-medium">{t(`${k}title`)}</legend>
-      <label className="flex min-h-11 items-center gap-2">
-        <input type="checkbox" className="size-5" checked={b.on} onChange={(e) => set({ on: e.target.checked })} />
-        {t(`${k}toggle`)}
-      </label>
+    <div className="flex flex-col gap-3">
+      <PickSelect
+        label={t(`${k}title`)}
+        blank={t(`${k}none`)}
+        value={b.on ? b.type : ""}
+        onChange={(v) => set({ on: v !== "", type: v === "AMOUNT" ? "AMOUNT" : "PERCENT" })}
+        options={[
+          { id: "PERCENT", name: t(`${k}percent`) },
+          { id: "AMOUNT", name: t(`${k}amount`) },
+        ]}
+      />
       {b.on && (
         <>
-          <PickSelect
-            label={t(`${k}type`)}
-            value={b.type}
-            onChange={(v) => set({ type: v === "AMOUNT" ? "AMOUNT" : "PERCENT" })}
-            options={[
-              { id: "PERCENT", name: t(`${k}percent`) },
-              { id: "AMOUNT", name: t(`${k}amount`) },
-            ]}
-          />
           {b.type === "PERCENT" ? (
             <Text label={t(`${k}percentValue`)} value={b.percent} inputMode="numeric" onChange={(v) => set({ percent: v })} />
           ) : (
@@ -122,7 +124,7 @@ function BenefitBlock({ draft, onChange }: { draft: ModalityDraft; onChange: (m:
           <Text label={t(`${k}validUntil`)} type="date" value={b.validUntil} onChange={(v) => set({ validUntil: v })} />
         </>
       )}
-    </fieldset>
+    </div>
   );
 }
 
@@ -157,46 +159,57 @@ function ModalityCard({
   const denied = [offered, ...choiceState].some((r) => r.status === "forbidden");
   const loading = [offered, ...choiceState].some((r) => r.status === "loading");
   const set = (patch: Partial<ModalityDraft>) => onChange({ ...draft, ...patch });
+  const modalityName = options.find((m) => m.id === draft.modalityId)?.name;
+  const plan = plans.data?.items.find((p) => p.id === draft.planId);
+  const classList = classes.data?.items ?? [];
+  const ready = Boolean(draft.modalityId) && classes.status === "ready" && classList.length > 0;
+  const hasPlans = Boolean(draft.modalityId) && plans.status === "ready" && (plans.data?.items.length ?? 0) > 0;
   return (
-    <li className="flex flex-col gap-3 rounded-md border p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-medium">{t(`${k}item`, { n: index + 1 })}</h2>
-        <Button type="button" variant="outline" className="min-h-11" onClick={onRemove}>
-          {t(`${k}remove`)}
+    <li className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-medium">{modalityName ? <ModalityDot name={modalityName} /> : t(`${k}item`, { n: index + 1 })}</h2>
+        <Button type="button" variant="ghost" size="icon" aria-label={t(`${k}remove`)} onClick={onRemove}>
+          <Trash2 aria-hidden="true" />
         </Button>
       </div>
-      <PickSelect label={t(`${k}unit`)} value={draft.unitId} onChange={(v) => set({ unitId: v, modalityId: "", primaryClassId: "", otherClassIds: [], planId: "" })} options={units} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <PickSelect label={t(`${k}unit`)} value={draft.unitId} onChange={(v) => set({ unitId: v, modalityId: "", primaryClassId: "", otherClassIds: [], planId: "" })} options={units} />
+        {draft.unitId && options.length > 0 && (
+          <PickSelect
+            label={t(`${k}modality`)}
+            value={draft.modalityId}
+            onChange={(v) => set({ modalityId: v, primaryClassId: "", otherClassIds: [], planId: "", origin: emptyOrigin() })}
+            options={options}
+            error={errors.modalityId}
+          />
+        )}
+        {ready && (
+          <>
+            <PickSelect label={t(`${k}class`)} value={draft.primaryClassId} onChange={(v) => set({ primaryClassId: v, otherClassIds: draft.otherClassIds.filter((x) => x !== v) })} options={classList} error={errors.primaryClassId} />
+            <OtherClasses popover options={classList} primary={draft.primaryClassId} value={draft.otherClassIds} onChange={(v) => set({ otherClassIds: v })} error={errors.otherClassIds} />
+          </>
+        )}
+      </div>
       {denied && <ForbiddenState />}
       {failed && <ErrorState onRetry={() => [offered, classes, plans].forEach((r) => r.reload())} />}
       {loading && <LoadingState />}
       {draft.unitId && offered.status === "ready" && options.length === 0 && <p className="text-sm text-muted-foreground">{t(`${k}noModality`)}</p>}
-      {draft.unitId && options.length > 0 && (
-        <PickSelect
-          label={t(`${k}modality`)}
-          value={draft.modalityId}
-          onChange={(v) => set({ modalityId: v, primaryClassId: "", otherClassIds: [], planId: "", origin: emptyOrigin() })}
-          options={options}
-          error={errors.modalityId}
-        />
+      {draft.modalityId && classes.status === "ready" && classList.length === 0 && <p className="text-sm text-muted-foreground">{t(`${k}noClass`)}</p>}
+      {draft.modalityId && plans.status === "ready" && !hasPlans && <p className="text-sm text-muted-foreground">{t(`${k}noPlan`)}</p>}
+      {ready &&
+        [draft.primaryClassId, ...draft.otherClassIds].filter(Boolean).map((id) => (
+          <ClassWarnings key={id} studentId={studentId} classId={id} className={classList.find((c) => c.id === id)?.name ?? ""} />
+        ))}
+      {hasPlans && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <PickSelect label={t(`${k}plan`)} value={draft.planId} onChange={(v) => set({ planId: v })} options={plans.data!.items} error={errors.planId} />
+          <BenefitBlock draft={draft} onChange={onChange} />
+        </div>
       )}
-      {draft.modalityId && classes.status === "ready" && (classes.data?.items.length ?? 0) === 0 && <p className="text-sm text-muted-foreground">{t(`${k}noClass`)}</p>}
-      {draft.modalityId && plans.status === "ready" && (plans.data?.items.length ?? 0) === 0 && <p className="text-sm text-muted-foreground">{t(`${k}noPlan`)}</p>}
-      {draft.modalityId && classes.status === "ready" && (classes.data?.items.length ?? 0) > 0 && (
-        <>
-          <PickSelect label={t(`${k}class`)} value={draft.primaryClassId} onChange={(v) => set({ primaryClassId: v, otherClassIds: draft.otherClassIds.filter((x) => x !== v) })} options={classes.data!.items} error={errors.primaryClassId} />
-          <OtherClasses options={classes.data!.items} primary={draft.primaryClassId} value={draft.otherClassIds} onChange={(v) => set({ otherClassIds: v })} error={errors.otherClassIds} />
-          {[draft.primaryClassId, ...draft.otherClassIds].filter(Boolean).map((id) => (
-            <ClassWarnings key={id} studentId={studentId} classId={id} className={classes.data!.items.find((c) => c.id === id)?.name ?? ""} />
-          ))}
-        </>
-      )}
-      {draft.modalityId && plans.status === "ready" && (plans.data?.items.length ?? 0) > 0 && (
-        <PickSelect label={t(`${k}plan`)} value={draft.planId} onChange={(v) => set({ planId: v })} options={plans.data!.items} error={errors.planId} />
-      )}
-      {draft.modalityId && <BenefitBlock draft={draft} onChange={onChange} />}
       {draft.modalityId && graduation.status === "ready" && graduation.data?.enabled && (
         <OriginBlock studentId={studentId} draft={draft} graduation={graduation.data} onChange={onChange} />
       )}
+      {plan?.valueCents !== undefined && <p className="text-sm font-medium">{monthlyText(t, plan.valueCents, draft.benefit)}</p>}
     </li>
   );
 }

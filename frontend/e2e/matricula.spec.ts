@@ -109,7 +109,7 @@ test("@critical Coordenador conclui a nova matrícula em cinco etapas", async ({
   await noOverflow();
   await open(page, "/alunos/nova-matricula");
   await noOverflow();
-  await expect(page.getByText("Etapa 1 de 5")).toBeVisible();
+  await expect(page.getByText(/Etapa 1 de 5/)).toBeVisible();
   await noOverflow();
   await expect(page.getByRole("status").filter({ hasText: "Carregando unidades..." })).toHaveCount(0);
   await noOverflow();
@@ -118,35 +118,36 @@ test("@critical Coordenador conclui a nova matrícula em cinco etapas", async ({
   await expect(page.getByText("Matrícula nova")).toBeVisible();
   await page.getByRole("button", { name: "É este aluno, continuar" }).click();
 
-  await expect(page.getByText("Etapa 2 de 5")).toBeVisible();
+  await expect(page.getByText(/Etapa 2 de 5/)).toBeVisible();
   await noOverflow();
   await page.getByLabel("Unidade", { exact: true }).selectOption({ label: "Unidade Centro" });
   await page.getByLabel("Modalidade", { exact: true }).selectOption({ label: "Jiu-Jitsu" });
   // CA5 e CA9 (#68): aviso de faixa etária sem bloquear e sem estourar a 360 px; trocar de turma remove o aviso.
   await page.getByLabel("Turma principal").selectOption({ label: "Jiu-Jitsu Infantil" });
-  await expect(page.getByRole("status").filter({ hasText: "fora da faixa" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "fora da faixa" })).toBeVisible();
   await page.getByLabel("Plano", { exact: true }).selectOption({ label: "Jiu-Jitsu Livre" });
-  await expect(page.getByRole("button", { name: "Avançar" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Continuar" })).toBeEnabled();
   await noOverflow();
   await page.getByLabel("Turma principal").selectOption({ label: "Jiu-Jitsu Adulto" });
-  await expect(page.getByRole("status").filter({ hasText: "fora da faixa" })).toHaveCount(0);
+  await expect(page.getByRole("alert").filter({ hasText: "fora da faixa" })).toHaveCount(0);
   await page.getByLabel("Plano", { exact: true }).selectOption({ label: "Jiu-Jitsu Livre" });
-  await page.getByRole("button", { name: "Avançar" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page.getByText("Etapa 3 de 5")).toBeVisible();
+  await expect(page.getByText(/Etapa 3 de 5/)).toBeVisible();
   await noOverflow();
-  await page.getByLabel("Dia de vencimento").selectOption({ label: "Dia 5" });
-  await page.getByRole("button", { name: "Avançar" }).click();
+  await page.getByRole("radio", { name: "Dia 5" }).check({ force: true });
+  await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page.getByText("Etapa 4 de 5")).toBeVisible();
-  await expect(page.getByText("Mensalidade: R$ 200,00")).toBeVisible();
+  await expect(page.getByText(/Etapa 4 de 5/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Termo de matrícula" })).toBeVisible();
+  await expect(page.getByRole("table").getByText("R$ 200,00").first()).toBeVisible();
   await noOverflow();
   await page.getByRole("button", { name: "Concluir matrícula" }).click();
 
-  await expect(page.getByText("Aluno Ativo")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /está matriculado/ })).toBeVisible();
   await noOverflow();
-  await expect(page.getByRole("button", { name: "Registrar pagamento agora" })).toBeEnabled();
-  await page.getByRole("button", { name: "Aluno paga pelo portal" }).click();
+  await expect(page.getByRole("button", { name: "Registrar pagamento", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Abrir ficha de" }).click();
   await expect(page.getByRole("dialog", { name: "Ficha do aluno" })).toBeVisible();
 });
 
@@ -165,28 +166,28 @@ test("@critical Matrícula com primeira cobrança", async ({ page }) => {
 
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page, `/alunos/nova-matricula?aluno=${ALUNO_MENOR}`);
-  await expect(page.getByText("Etapa 2 de 5")).toBeVisible();
+  await expect(page.getByText(/Etapa 2 de 5/)).toBeVisible();
   await page.getByLabel("Unidade", { exact: true }).selectOption({ label: "Unidade Centro" });
   await page.getByLabel("Modalidade", { exact: true }).selectOption({ label: "Jiu-Jitsu" });
   await page.getByLabel("Turma principal").selectOption({ label: "Jiu-Jitsu Adulto" });
   await page.getByLabel("Plano", { exact: true }).selectOption({ label: "Jiu-Jitsu Livre" });
-  await page.getByRole("button", { name: "Avançar" }).click();
-  await page.getByLabel("Dia de vencimento").selectOption({ label: "Dia 5" });
-  await page.getByRole("button", { name: "Avançar" }).click();
-  await expect(page.getByText("Etapa 4 de 5")).toBeVisible();
-  await expect(page.getByText("Taxa de matrícula: R$ 50,00")).toBeVisible();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("radio", { name: "Dia 5" }).check({ force: true });
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByText(/Etapa 4 de 5/)).toBeVisible();
+  await expect(page.getByRole("table").getByText("Taxa de matrícula")).toBeVisible();
   await page.getByRole("button", { name: "Concluir matrícula" }).click();
 
-  const charges = page.getByRole("list", { name: "Cobranças criadas" });
+  const charges = page.getByRole("region", { name: "Registrar pagamento agora" });
   await expect(charges.getByText("Mensalidade: R$ 200,00")).toBeVisible();
-  await expect(charges.getByText("Taxa de matrícula: R$ 50,00")).toBeVisible();
   await expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
-  await charges.getByRole("button", { name: "Registrar pagamento agora" }).first().click();
+  await charges.getByRole("button", { name: "Registrar pagamento" }).click();
   const dialog = page.getByRole("dialog", { name: "Registrar pagamento" });
   await dialog.getByLabel("Meio de pagamento").selectOption({ label: "Dinheiro" });
   await dialog.getByRole("button", { name: "Confirmar pagamento" }).click();
   await expect(dialog.getByText("Recibo número 1")).toBeVisible();
   await expect(dialog.getByText(/Código de conferência: [A-Z0-9]{16}/)).toBeVisible();
   await dialog.getByRole("button", { name: "Fechar" }).first().click();
-  await expect(charges.getByText("Paga, recibo 1")).toBeVisible();
+  await expect(charges.getByText(/Recibo nº 1/)).toBeVisible();
+  await expect(charges.getByText("Taxa de matrícula: R$ 50,00")).toBeVisible();
 });
