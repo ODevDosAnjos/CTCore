@@ -26,4 +26,11 @@ export interface PortalRequest {
   response: string | null;
   createdAt: string;
   decidedAt: string | null;
+  // Data (AAAA-MM-DD, na data da unidade) em que o pedido expira; no encerramento, o dia em que a modalidade se encerra sozinha.
+  expiresAt: string;
+  currentClass: string | null;
+  currentPlan: string | null;
 }
+
+// Abertos do alcance e da unidade, sem o filtro de tipo.
+export type PortalRequestCounts = { total: number } & Record<PortalRequestKind, number>;

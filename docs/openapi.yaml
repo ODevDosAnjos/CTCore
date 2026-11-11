@@ -3518,7 +3518,7 @@ paths:
       summary: Lista de pedidos do portal da gestão (RF-MAT-04). Coordenador e Administrador.
       description: |
         Por padrão os abertos (`status=OPEN`; `ALL` traz todos), do mais antigo ao mais novo. O Coordenador vê todas as unidades; o Administrador só as do seu alcance
-        (RN-ALU-07), e `unitId` fora dele devolve lista vazia. Professor, Aluno e Responsável: 403. Valor inválido de `status` ou `kind`: 400.
+        (RN-ALU-07), e `unitId` fora dele devolve lista vazia. `counts` traz os abertos por tipo no mesmo alcance e unidade, sem `kind`. Professor, Aluno e Responsável: 403. Valor inválido de `status` ou `kind`: 400.
       security: [{ sessionCookie: [] }]
       parameters:
         - { name: status, in: query, required: false, schema: { type: string, enum: [OPEN, APPROVED, REFUSED, EXPIRED, CLOSED, ALL], default: OPEN } }
@@ -6618,12 +6618,26 @@ components:
         response: { type: string, nullable: true, description: Mensagem da gestão ao decidir. }
         createdAt: { type: string, format: date-time }
         decidedAt: { type: string, nullable: true, format: date-time }
+        expiresAt: { type: string, format: date, description: "Data em que o pedido expira, na data da unidade: criação + 30 dias (+ 8 dias no encerramento, quando a modalidade é encerrada sozinha)." }
+        currentClass: { type: string, nullable: true, description: Turma principal atual da modalidade do pedido (nulo em nova modalidade). }
+        currentPlan: { type: string, nullable: true, description: Plano atual da modalidade do pedido (nulo em nova modalidade). }
+    PortalRequestCounts:
+      type: object
+      required: [total, CLASS_CHANGE, NEW_MODALITY, PLAN_CHANGE, CLOSURE]
+      description: Pedidos abertos do alcance e da unidade escolhida, sem o filtro de tipo nem de situação.
+      properties:
+        total: { type: integer, format: int64 }
+        CLASS_CHANGE: { type: integer, format: int64 }
+        NEW_MODALITY: { type: integer, format: int64 }
+        PLAN_CHANGE: { type: integer, format: int64 }
+        CLOSURE: { type: integer, format: int64 }
     PortalRequestList:
       allOf:
         - $ref: '#/components/schemas/Page'
         - type: object
           properties:
             items: { type: array, items: { $ref: '#/components/schemas/PortalRequest' } }
+            counts: { $ref: '#/components/schemas/PortalRequestCounts' }
     PixInstructions:
       type: object
       required: [chargeId, pixKey, amountCents, dueOn, unit]

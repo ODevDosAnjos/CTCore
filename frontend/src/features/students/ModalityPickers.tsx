@@ -152,7 +152,7 @@ export function ModalityDialog({
   /** Bloco "Resumo" (setas), depois do corpo e antes do motivo. */
   summary?: string[];
   /** Campo "Motivo" ao fim do corpo; `optional` tira o asterisco. */
-  reason?: { label: string; value: string; onChange: (v: string) => void; optional?: boolean };
+  reason?: { label: string; value: string; onChange: (v: string) => void; optional?: boolean; max?: number; field?: string };
   /** Texto do botão que fecha no rodapé (com `size`); o padrão é "Voltar". */
   cancelLabel?: string;
   fullOnMobile?: boolean;
@@ -217,7 +217,7 @@ export function ModalityDialog({
           )}
           {children(errors)}
           {summary && summary.length > 0 && <SummaryBox label={t("students.record.enrollment.summaryLabel")} items={summary} />}
-          {reason && <ReasonField label={reason.label} value={reason.value} onChange={reason.onChange} optional={reason.optional} error={errors.reason} />}
+          {reason && <ReasonField label={reason.label} value={reason.value} onChange={reason.onChange} optional={reason.optional} max={reason.max} error={errors[reason.field ?? "reason"]} />}
           {!size && (
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>

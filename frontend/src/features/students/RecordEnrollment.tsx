@@ -17,7 +17,7 @@ import type { Enrollment, EnrollmentModality } from "./types";
 
 const MAX_ACTIVE = 10;
 const SITUATION = ["inactivate", "reactivate", "cancelCharges"] as const;
-type Action = { kind: "class" | "plan" | "transfer" | "end" | "benefit"; row: EnrollmentModality; initial?: string };
+type Action = { kind: "class" | "plan" | "transfer" | "end" | "benefit"; row: EnrollmentModality; initial?: string; createdAt?: string };
 
 function Line({ label, value }: { label: string; value: string }) {
   return (
@@ -89,7 +89,7 @@ export function RecordEnrollment({ studentId, studentName, enrollment, canGrant 
   const fromRequest = useMemo<Action | undefined>(() => {
     const row = data?.modalities.find((m) => m.id === asked?.modalityRowId && m.status === "ACTIVE" && m.canEdit);
     if (!asked || asked.studentId !== studentId || !row) return undefined;
-    if (asked.kind === "CLASS_CHANGE" && asked.targetClassId) return { kind: "class", row, initial: asked.targetClassId };
+    if (asked.kind === "CLASS_CHANGE" && asked.targetClassId) return { kind: "class", row, initial: asked.targetClassId, createdAt: asked.createdAt };
     if (asked.kind === "PLAN_CHANGE" && asked.targetPlanId) return { kind: "plan", row, initial: asked.targetPlanId };
     return undefined;
   }, [asked, data, studentId]);
@@ -135,7 +135,7 @@ export function RecordEnrollment({ studentId, studentName, enrollment, canGrant 
           ))}
         </div>
       </section>
-      {action?.kind === "class" && <ChangeClassDialog {...props} row={action.row} initial={action.initial} />}
+      {action?.kind === "class" && <ChangeClassDialog {...props} row={action.row} initial={action.initial} request={action.createdAt ? { student: studentName, createdAt: action.createdAt } : undefined} />}
       {action?.kind === "plan" && <ChangePlanDialog {...props} row={action.row} initial={action.initial} />}
       {action?.kind === "benefit" && (
         <GrantBenefitDialog

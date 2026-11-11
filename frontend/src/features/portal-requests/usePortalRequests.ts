@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import type { Page, Query } from "@/components/query/QueryPage";
 import { api } from "@/lib/api";
-import type { PortalRequest } from "./types";
+import type { PortalRequest, PortalRequestCounts } from "./types";
 
 // Query da tela (RNF-27) -> GET /portal-requests. Sem `status` valem os abertos; o servidor ordena do mais antigo ao mais novo.
 export async function fetchPortalRequests(q: Query): Promise<Page<PortalRequest>> {
   const p = new URLSearchParams({ page: String(q.pagina), size: String(q.tamanho) });
   for (const [k, v] of Object.entries(q.filtros)) p.set(k, v);
-  const data = await api<{ items: PortalRequest[]; total: number }>(`/portal-requests?${p}`);
-  return { rows: data.items, total: data.total };
+  const data = await api<{ items: PortalRequest[]; total: number; counts: PortalRequestCounts }>(`/portal-requests?${p}`);
+  return { rows: data.items, total: data.total, counts: data.counts };
 }
 
 // Aprovar só marca o pedido (D4); a matrícula muda quando a gestão conclui o fluxo. Recusar exige mensagem.

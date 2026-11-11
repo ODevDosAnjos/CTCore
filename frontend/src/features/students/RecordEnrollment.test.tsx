@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
 import userEvent from "@testing-library/user-event";
@@ -127,6 +127,20 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
     const dialog = await screen.findByRole("dialog", { name: title });
     if (kind === "CLASS_CHANGE") expect(await within(dialog).findByLabelText(field)).toHaveValue(value);
     else expect(await within(dialog).findByRole("radio", { name: /Plano Trimestral/ })).toBeChecked();
+  });
+
+  it("CA7: a troca de turma vinda do pedido traz subtítulo, aviso verde e Desistir/Confirmar troca; Desistir fecha", async () => {
+    server.use(
+      ...choiceRoutes(),
+      http.get("/api/v1/portal-requests/r1", () => HttpResponse.json({ id: "r1", kind: "CLASS_CHANGE", status: "APPROVED", studentId: "s1", modalityRowId: "m1", targetClassId: "k3", targetPlanId: null, createdAt: "2026-10-07T15:00:00Z" })),
+    );
+    show(result("ready", enrollmentOf([modalityRow()])), false, "/alunos/s1?pedido=r1");
+    const dialog = await screen.findByRole("dialog", { name: "Trocar turma" });
+    expect(within(dialog).getByText(/· pedido do portal de 07\/10$/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/^Pedido aprovado\. Termine a troca abaixo; se desistir, o pedido continua Aprovado e a matrícula não muda\.$/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Confirmar troca" })).toBeInTheDocument();
+    await userEvent.setup().click(within(dialog).getByRole("button", { name: "Desistir" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("R18: pedido de outro aluno ou que não carrega não abre janela", async () => {

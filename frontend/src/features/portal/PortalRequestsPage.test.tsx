@@ -19,7 +19,7 @@ const session = (role: string): SessionView => ({
 });
 const done: PortalRequest = {
   id: "r1", kind: "PLAN_CHANGE", status: "REFUSED", studentId: "s1", studentName: "Aluno", unitId: "u1", unit: "Centro", modalityRowId: "m1", modality: "Judô", targetClassId: null, targetClass: null,
-  targetPlanId: "p2", targetPlan: "Judô Anual", targetModalityId: null, targetUnitId: null, targetUnit: null, reason: null, note: null, response: "Fale com a recepção.", createdAt: "2026-10-20T15:00:00Z", decidedAt: "2026-10-21T15:00:00Z",
+  targetPlanId: "p2", targetPlan: "Judô Anual", targetModalityId: null, targetUnitId: null, targetUnit: null, reason: null, note: null, response: "Fale com a recepção.", createdAt: "2026-10-20T15:00:00Z", decidedAt: "2026-10-21T15:00:00Z", expiresAt: "2026-11-19", currentClass: "Judô Manhã", currentPlan: "Judô Mensal",
 };
 const options = (closureRequestedAt: string | null = null) => ({
   modalities: [

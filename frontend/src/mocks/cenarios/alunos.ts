@@ -31,7 +31,7 @@ export const ID = {
 const PLAN_JUDO = "00000000-0000-0000-0000-000000000601";
 const PLAN_JIU = "00000000-0000-0000-0000-000000000602";
 const CLASS_JIU = "00000000-0000-0000-0000-000000000601";
-const CLASS_JUDO = "00000000-0000-0000-0000-000000000602";
+export const CLASS_JUDO = "00000000-0000-0000-0000-000000000602";
 const G = (n: number) => `00000000-0000-0000-0000-0000000008${n.toString(16).padStart(2, "0")}`;
 
 const base = { complement: null, district: "Centro", city: "Rio de Janeiro", state: "RJ", postalCode: "01001000", gender: null, referral: null, emergencyName: null, emergencyRelationship: null, emergencyPhone: null, photoUrl: null };

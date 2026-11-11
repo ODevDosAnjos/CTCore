@@ -14,8 +14,10 @@ import br.com.ctcore.mail.EmailService;
 import br.com.ctcore.mail.EmailTemplate;
 import br.com.ctcore.notification.NotificationType;
 import br.com.ctcore.notification.Notifications;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -49,7 +51,7 @@ public class PortalRequests {
 
     public record Request(UUID id, String kind, String status, UUID studentId, String studentName, UUID unitId, String unit, UUID modalityRowId, String modality,
             UUID targetClassId, String targetClass, UUID targetPlanId, String targetPlan, UUID targetModalityId, UUID targetUnitId, String targetUnit, String reason,
-            String note, String response, Instant createdAt, Instant decidedAt) {}
+            String note, String response, Instant createdAt, Instant decidedAt, LocalDate expiresAt, String currentClass, String currentPlan) {}
 
     public record Choice(UUID id, String name) {}
 
@@ -62,16 +64,24 @@ public class PortalRequests {
 
     public record Options(List<ModalityOption> modalities, List<Offer> offers) {}
 
-    public record RequestList(List<Request> items, int page, int size, long total) {}
+    /** Pedidos abertos por tipo, do alcance e da unidade pedidos, sem o filtro de tipo. */
+    public record Counts(long total, @JsonProperty("CLASS_CHANGE") long classChange, @JsonProperty("NEW_MODALITY") long newModality,
+            @JsonProperty("PLAN_CHANGE") long planChange, @JsonProperty("CLOSURE") long closure) {}
+
+    public record RequestList(List<Request> items, int page, int size, long total, Counts counts) {}
 
     /** O pedido gravado e o e-mail da conta que pediu, lidos dentro da transação para o aviso depois do commit. */
     record Saved(Request request, String requesterEmail) {}
 
     private static final String SELECT = "select r.id, r.kind, r.status, r.student_id, s.name, r.unit_id, u.name, r.enrollment_modality_id, md.name, r.target_class_id, tc.name, "
-            + "r.target_plan_id, tp.name, r.target_modality_id, r.target_unit_id, tu.name, r.reason, r.note, r.response, r.created_at, r.decided_at "
+            + "r.target_plan_id, tp.name, r.target_modality_id, r.target_unit_id, tu.name, r.reason, r.note, r.response, r.created_at, r.decided_at, "
+            + "(r.created_at at time zone u.timezone)::date + case when r.kind = 'CLOSURE' then " + PortalRequestJob.CLOSE_DAYS + " else " + PortalRequestJob.EXPIRE_DAYS
+            + " end, cc.name, cp.name "
             + "from portal_request r join student s on s.organization_id = r.organization_id and s.id = r.student_id "
             + "join unit u on u.organization_id = r.organization_id and u.id = r.unit_id "
             + "left join enrollment_modality em on em.organization_id = r.organization_id and em.id = r.enrollment_modality_id "
+            + "left join training_class cc on cc.organization_id = r.organization_id and cc.id = em.primary_class_id "
+            + "left join plan cp on cp.organization_id = r.organization_id and cp.id = em.plan_id "
             + "left join modality md on md.id = coalesce(em.modality_id, r.target_modality_id) "
             + "left join training_class tc on tc.organization_id = r.organization_id and tc.id = r.target_class_id "
             + "left join plan tp on tp.organization_id = r.organization_id and tp.id = r.target_plan_id "
@@ -235,7 +245,7 @@ public class PortalRequests {
         if (status != null && !status.equals("ALL") && !STATUSES.contains(status)) throw new ApiValidationException("status", "inválido");
         if (kind != null && !KINDS.contains(kind)) throw new ApiValidationException("kind", "inválido");
         Set<UUID> reach = reach(who);
-        if (reach != null && (reach.isEmpty() || unitId != null && !reach.contains(unitId))) return new RequestList(List.of(), page.page(), page.size(), 0);
+        if (reach != null && (reach.isEmpty() || unitId != null && !reach.contains(unitId))) return new RequestList(List.of(), page.page(), page.size(), 0, new Counts(0, 0, 0, 0, 0));
         return transactions.execute(() -> {
             StringBuilder where = new StringBuilder("where r.organization_id = :org");
             Map<String, Object> params = new HashMap<>();
@@ -259,8 +269,28 @@ public class PortalRequests {
             long total = jdbc.sql("select count(*) from portal_request r " + where).params(params).query(Long.class).single();
             List<Request> items = jdbc.sql(SELECT + where + " order by r.created_at, r.id limit :limit offset :offset").params(params)
                     .param("limit", page.size()).param("offset", page.offset()).query((rs, n) -> map(rs)).list();
-            return new RequestList(items, page.page(), page.size(), total);
+            return new RequestList(items, page.page(), page.size(), total, counts(who, unitId, reach));
         });
+    }
+
+    /** Dentro da transação: só abertos, com o alcance e a unidade da lista, sem {@code kind} nem {@code status}. */
+    private Counts counts(AccountPrincipal who, UUID unitId, Set<UUID> reach) {
+        StringBuilder where = new StringBuilder("where organization_id = :org and status = 'OPEN'");
+        Map<String, Object> params = new HashMap<>();
+        params.put("org", who.organizationId());
+        if (unitId != null) {
+            where.append(" and unit_id = :unit");
+            params.put("unit", unitId);
+        }
+        if (reach != null) {
+            where.append(" and unit_id in (:reach)");
+            params.put("reach", reach);
+        }
+        Map<String, Long> byKind = new HashMap<>();
+        jdbc.sql("select kind, count(*) from portal_request " + where + " group by kind").params(params).query((rs, n) -> byKind.put(rs.getString(1), rs.getLong(2))).list();
+        long c = byKind.getOrDefault("CLASS_CHANGE", 0L), m = byKind.getOrDefault("NEW_MODALITY", 0L), p = byKind.getOrDefault("PLAN_CHANGE", 0L),
+                z = byKind.getOrDefault("CLOSURE", 0L);
+        return new Counts(c + m + p + z, c, m, p, z);
     }
 
     public Request get(AccountPrincipal who, UUID id) {
@@ -408,6 +438,7 @@ public class PortalRequests {
         return new Request(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getObject(4, UUID.class), rs.getString(5), rs.getObject(6, UUID.class),
                 rs.getString(7), rs.getObject(8, UUID.class), rs.getString(9), rs.getObject(10, UUID.class), rs.getString(11), rs.getObject(12, UUID.class),
                 rs.getString(13), rs.getObject(14, UUID.class), rs.getObject(15, UUID.class), rs.getString(16), rs.getString(17), rs.getString(18), rs.getString(19),
-                rs.getObject(20, OffsetDateTime.class).toInstant(), decided == null ? null : decided.toInstant());
+                rs.getObject(20, OffsetDateTime.class).toInstant(), decided == null ? null : decided.toInstant(),
+                rs.getObject(22, LocalDate.class), rs.getString(23), rs.getString(24));
     }
 }

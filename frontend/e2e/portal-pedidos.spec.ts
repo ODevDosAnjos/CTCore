@@ -87,24 +87,23 @@ test.describe("pedidos do portal a 360 px", () => {
       // Gestão: recusa o encerramento com mensagem e aprova a troca de turma.
       await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
       await open(page, "/pedidos");
-      await expect(page.getByRole("heading", { name: "Pedidos do portal", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Pedidos", level: 1 })).toBeVisible();
       await expect(page.getByText("Troca de turma").first()).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
       await page.getByRole("button", { name: /^Recusar pedido de/ }).last().click();
-      const refuse = page.getByRole("dialog", { name: "Recusar pedido" });
-      await refuse.getByLabel("Mensagem ao aluno").fill("Vamos conversar antes de encerrar.");
+      const refuse = page.getByRole("dialog", { name: "Recusar encerramento" });
+      await refuse.getByLabel(/^Mensagem para a/).fill("Vamos conversar antes de encerrar.");
       expect(await violations(page)).toEqual([]);
-      await refuse.getByRole("button", { name: "Recusar pedido" }).click();
+      await refuse.getByRole("button", { name: "Recusar e enviar mensagem" }).click();
       await expect(refuse).toHaveCount(0);
 
       await page.getByRole("button", { name: /^Aprovar pedido de/ }).click();
-      await page.getByRole("dialog", { name: "Aprovar pedido" }).getByRole("button", { name: "Aprovar e continuar" }).click();
       await expect(page).toHaveURL(new RegExp(`/alunos/${ALUNO_ADULTO}\\?pedido=`));
       const change = page.getByRole("dialog", { name: /Trocar turma/ });
-      await expect(change.getByLabel("Turma principal")).toHaveValue(/.+/);
-      await expect(change.getByLabel("Turma principal").locator("option:checked")).toHaveText(/^Jiu-Jitsu Noite/);
+      await expect(change.getByLabel("Nova turma principal")).toHaveValue(/.+/);
+      await expect(change.getByLabel("Nova turma principal").locator("option:checked")).toHaveText(/^Jiu-Jitsu Noite/);
     });
   }
 });

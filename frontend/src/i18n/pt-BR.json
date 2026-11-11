@@ -565,7 +565,11 @@
             "now": "A troca vale agora: o aluno aparece na nova turma a partir da próxima aula.",
             "same": "Plano e mensalidade não mudam."
           },
-          "submit": "Trocar turma"
+          "submit": "Trocar turma",
+          "fromRequest": "{{student}} · pedido do portal de {{date}}",
+          "approved": "Pedido aprovado. Termine a troca abaixo; se desistir, o pedido continua Aprovado e a matrícula não muda.",
+          "giveUp": "Desistir",
+          "confirm": "Confirmar troca"
         },
         "plan": {
           "title": "Trocar plano",
@@ -2760,8 +2764,7 @@
     }
   },
   "portalRequests": {
-    "title": "Pedidos do portal",
-    "intro": "Pedidos de troca de turma, nova modalidade, troca de plano e encerramento feitos pelos alunos. Um pedido nunca altera a matrícula sozinho: ao aprovar, você conclui o fluxo já preenchido.",
+    "title": "Pedidos",
     "emptyTitle": "Nenhum pedido",
     "emptyText": "Quando um aluno fizer um pedido pelo portal, ele aparece aqui.",
     "kinds": {
@@ -2784,55 +2787,72 @@
       "CLOSURE": "{{modality}}: encerrar ({{reason}})"
     },
     "filters": {
-      "status": "Situação",
-      "open": "Abertos",
-      "allStatuses": "Todas",
       "kind": "Tipo",
-      "allKinds": "Todos os tipos",
-      "unit": "Unidade",
-      "allUnits": "Todas as unidades"
+      "all": "Todos",
+      "unit": "Unidade"
     },
     "columns": {
-      "kind": "Tipo",
       "student": "Aluno",
-      "unit": "Unidade",
-      "request": "Pedido",
-      "message": "Mensagem",
-      "date": "Data",
-      "status": "Situação",
+      "kind": "Pedido",
+      "detail": "Detalhe",
+      "date": "Recebido em",
+      "deadline": "Prazo",
       "actions": "Ações"
     },
-    "cardUnit": "{{unit}} · {{date}}",
     "actions": {
       "approve": "Aprovar",
       "approveFor": "Aprovar pedido de {{student}}",
       "refuse": "Recusar",
       "refuseFor": "Recusar pedido de {{student}}",
-      "openRecord": "Abrir ficha",
-      "openRecordFor": "Abrir ficha de {{student}} para encerrar"
-    },
-    "decide": {
-      "who": "{{student}} · {{summary}}",
-      "note": "Mensagem do aluno: {{note}}"
-    },
-    "approve": {
-      "title": "Aprovar pedido",
-      "effect": "O pedido fica aprovado e o aluno é avisado por e-mail. A matrícula só muda quando você concluir o fluxo que vai abrir.",
-      "message": "Mensagem ao aluno (opcional)",
-      "submit": "Aprovar e continuar"
+      "openRecord": "Ver ficha",
+      "openRecordFor": "Ver ficha de {{student}}"
     },
     "refuse": {
       "title": "Recusar pedido",
-      "effect": "O aluno recebe a sua mensagem por e-mail. No pedido de encerramento, a modalidade volta a ficar ativa.",
-      "message": "Mensagem ao aluno",
-      "submit": "Recusar pedido"
+      "closureTitle": "Recusar encerramento",
+      "closureSubtitle": "{{student}} · {{modality}} · pedido de {{date}} · encerra sozinho em {{expires}}",
+      "who": "{{student}} · {{kind}}",
+      "refused": "O pedido fica Recusado.",
+      "closureActive": "{{modality}} volta a ficar Ativa.",
+      "closureMessage": "{{student}} recebe a sua mensagem por e-mail e no portal.",
+      "message": "Mensagem para a {{student}}",
+      "submit": "Recusar pedido",
+      "closureSubmit": "Recusar e enviar mensagem",
+      "back": "Voltar",
+      "suggested": {
+        "CLASS_CHANGE": "Olá, {{student}}! Não conseguimos aprovar a troca de turma agora. Fale com a recepção para combinarmos a melhor turma para você.",
+        "NEW_MODALITY": "Olá, {{student}}! Não conseguimos aprovar a nova modalidade agora. Fale com a recepção para combinarmos os próximos passos.",
+        "PLAN_CHANGE": "Olá, {{student}}! Não conseguimos aprovar a troca de plano agora. Fale com a recepção para vermos a melhor opção para você.",
+        "CLOSURE": "Olá, {{student}}! Preferimos manter a sua modalidade ativa. Fale com a recepção se quiser conversar sobre o seu treino."
+      }
     },
     "errors": {
       "403": "Você não tem permissão para decidir este pedido.",
       "404": "Este pedido não existe mais.",
       "409": "Este pedido já foi decidido. Atualize a lista.",
       "generic": "Não conseguimos concluir. Nada foi alterado."
-    }
+    },
+    "subtitle": "Tudo que chegou pelo portal e pelo link de matrícula, para você decidir",
+    "tabs": {
+      "label": "Pedidos",
+      "requests": "Pedidos do portal",
+      "pending": "Aguardando aprovação"
+    },
+    "detail": {
+      "CLASS_CHANGE": "{{modality}}: {{from}} → {{to}}",
+      "PLAN_CHANGE": "{{modality}}: {{from}} → {{to}}",
+      "NEW_MODALITY": "{{modality}} na unidade {{targetUnit}}",
+      "CLOSURE": "{{modality}} · motivo: {{reason}} · encerra sozinho em {{date}} se ninguém agir"
+    },
+    "deadline": {
+      "today": "expira hoje",
+      "expires_one": "expira em {{count}} dia",
+      "expires_other": "expira em {{count}} dias",
+      "left_one": "falta {{count}} dia",
+      "left_other": "faltam {{count}} dias"
+    },
+    "footerNote": "Pedidos sem resposta expiram em 30 dias e o aluno é avisado. Ao recusar, você escreve a mensagem que o aluno vai ver.",
+    "cardDate": "Recebido em {{date}}"
   },
   "common": {
     "cancel": "Cancelar",

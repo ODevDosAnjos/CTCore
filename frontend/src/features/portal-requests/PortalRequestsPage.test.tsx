@@ -9,6 +9,7 @@ import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
+import { requestDeadline } from "./RequestSummary";
 import type { PortalRequest } from "./types";
 
 const session = (role: string): SessionView => ({
@@ -17,6 +18,8 @@ const session = (role: string): SessionView => ({
   activeLinkId: "l1",
   twoFactor: { enabled: false, required: false },
 });
+// Data do dia daqui a n dias (fuso da unidade), igual à que a tela usa para contar o prazo.
+const DAYS = (n: number) => new Date(Date.parse(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()) + "T00:00:00Z") + n * 86_400_000).toISOString().slice(0, 10);
 const request = (over: Partial<PortalRequest>): PortalRequest => ({
   id: "r1",
   kind: "CLASS_CHANGE",
@@ -39,12 +42,16 @@ const request = (over: Partial<PortalRequest>): PortalRequest => ({
   response: null,
   createdAt: "2026-10-20T15:00:00Z",
   decidedAt: null,
+  expiresAt: DAYS(29),
+  currentClass: "Judô Manhã",
+  currentPlan: "Judô 2x",
   ...over,
 });
 const all = [
   request({}),
-  request({ id: "r2", kind: "CLOSURE", targetClassId: null, targetClass: null, reason: "FINANCIAL", note: null, studentName: "Aluno Menor Fictício", studentId: "s2" }),
+  request({ id: "r2", kind: "CLOSURE", targetClassId: null, targetClass: null, reason: "SCHEDULE", note: null, studentName: "Aluno Menor Fictício", studentId: "s2", expiresAt: DAYS(7) }),
 ];
+const counts = { total: 4, CLASS_CHANGE: 1, NEW_MODALITY: 1, PLAN_CHANGE: 1, CLOSURE: 1 };
 
 let calls: URLSearchParams[];
 let decisions: { url: string; body: unknown }[];
@@ -66,7 +73,7 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>) 
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: [{ id: "u1", name: "Centro", shortName: "c" }] })),
     http.get("/api/v1/portal-requests", ({ request: req }) => {
       calls.push(new URL(req.url).searchParams);
-      return list ? list() : HttpResponse.json({ items: all, page: 1, size: 25, total: all.length });
+      return list ? list() : HttpResponse.json({ items: all, page: 1, size: 25, total: all.length, counts });
     }),
     http.post("/api/v1/portal-requests/:id/approve", decide("APPROVED")),
     http.post("/api/v1/portal-requests/:id/refuse", decide("REFUSED")),
@@ -82,34 +89,57 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>) 
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Pedidos do portal", level: 1 });
+const ready = () => screen.findByRole("heading", { name: "Pedidos", level: 1 });
 
 describe("PortalRequestsPage (RF-MAT-04)", () => {
-  it("CA19: lista tipo, aluno, unidade, pedido, mensagem e data; pede os abertos por padrão", async () => {
+  it("CA1, CA3, CA4, CA5: cabeçalho, abas, colunas, detalhe, prazo e ações", async () => {
     setup();
     await ready();
+    expect(screen.getByText("Tudo que chegou pelo portal e pelo link de matrícula, para você decidir")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Pedidos" });
+    await waitFor(() => expect(within(nav).getByText("Pedidos do portal").closest("[aria-current]")).toHaveTextContent("4"));
+    const soon = within(nav).getByText("Aguardando aprovação");
+    expect(soon).toHaveAttribute("aria-disabled", "true");
+    expect(within(nav).getByText("Em breve")).toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Aluno", "Pedido", "Detalhe", "Recebido em", "Prazo", "Ações"]);
     const row = (await screen.findAllByText("Aluno Adulto Fictício"))[0].closest("tr")!;
-    expect(within(row).getByText("Troca de turma")).toBeInTheDocument();
+    expect(within(row).getByText("AF")).toBeInTheDocument();
     expect(within(row).getByText("Centro")).toBeInTheDocument();
-    expect(within(row).getByText("Judô: para a turma Judô Noite")).toBeInTheDocument();
-    expect(within(row).getByText("Troco por causa do trabalho")).toBeInTheDocument();
+    expect(within(row).getByText("Troca de turma")).toBeInTheDocument();
+    expect(within(row).getByText("Judô: Judô Manhã → Judô Noite")).toBeInTheDocument();
+    expect(within(row).getByText("20/10/2026")).toBeInTheDocument();
+    expect(within(row).getByText("expira em 29 dias")).toBeInTheDocument();
+    expect(within(row).getByRole("link", { name: "Aluno Adulto Fictício" })).toHaveAttribute("href", "/alunos/s1");
+    expect(within(row).getByRole("button", { name: "Aprovar pedido de Aluno Adulto Fictício" })).toBeInTheDocument();
     const closure = screen.getAllByText("Aluno Menor Fictício")[0].closest("tr")!;
-    expect(within(closure).getByText("Judô: encerrar (Motivo financeiro)")).toBeInTheDocument();
+    expect(within(closure).getByText(/^Judô · motivo: horário · encerra sozinho em \d\d\/\d\d se ninguém agir$/)).toBeInTheDocument();
+    expect(within(closure).getByText("faltam 6 dias")).toBeInTheDocument();
     expect(within(closure).queryByRole("button", { name: /^Aprovar/ })).toBeNull();
-    expect(within(closure).getByRole("link", { name: "Abrir ficha de Aluno Menor Fictício para encerrar" })).toHaveAttribute("href", "/alunos/s2");
+    expect(within(closure).getByRole("link", { name: "Ver ficha de Aluno Menor Fictício" })).toHaveAttribute("href", "/alunos/s2");
+    expect(screen.getByText("Pedidos sem resposta expiram em 30 dias e o aluno é avisado. Ao recusar, você escreve a mensagem que o aluno vai ver.")).toBeInTheDocument();
     expect(calls.at(-1)!.get("status")).toBeNull();
+    expect(screen.queryByLabelText("Situação")).toBeNull();
   });
 
-  it("filtros de situação, tipo e unidade refazem a consulta", async () => {
+  it("CA4: prazo no último dia vira expira hoje, no encerramento e nos demais", () => {
+    const t = (k: string, o?: Record<string, unknown>) => `${k}${o ? JSON.stringify(o) : ""}`;
+    expect(requestDeadline(t, request({ expiresAt: DAYS(0) }))).toBe("portalRequests.deadline.today");
+    expect(requestDeadline(t, request({ kind: "CLOSURE", expiresAt: DAYS(1) }))).toBe("portalRequests.deadline.today");
+    expect(requestDeadline(t, request({ kind: "CLOSURE", expiresAt: DAYS(7) }))).toBe('portalRequests.deadline.left{"count":6}');
+    expect(requestDeadline(t, request({ expiresAt: DAYS(29) }))).toBe('portalRequests.deadline.expires{"count":29}');
+  });
+
+  it("CA2: pílulas com contagem filtram por tipo sem mudar as contagens; unidade refaz; sem filtro de situação", async () => {
     const user = userEvent.setup();
     setup();
     await screen.findAllByText("Aluno Adulto Fictício");
-    await user.selectOptions(screen.getByLabelText("Situação"), "ALL");
-    await waitFor(() => expect(calls.at(-1)!.get("status")).toBe("ALL"));
-    await user.selectOptions(screen.getByLabelText("Tipo"), "CLOSURE");
+    const pills = ["Todos, 4", "Troca de turma, 1", "Nova modalidade, 1", "Troca de plano, 1", "Encerramento, 1"];
+    for (const name of pills) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Encerramento, 1" }));
     await waitFor(() => expect(calls.at(-1)!.get("kind")).toBe("CLOSURE"));
-    await waitFor(() => expect(within(screen.getByLabelText("Unidade")).getAllByRole("option")).toHaveLength(2));
-    await user.selectOptions(screen.getByLabelText("Unidade"), "u1");
+    expect(screen.getByRole("button", { name: "Todos, 4" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /^Unidade/ }));
+    await user.click(await screen.findByRole("option", { name: "Centro" }));
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u1"));
   });
 
@@ -119,10 +149,12 @@ describe("PortalRequestsPage (RF-MAT-04)", () => {
     await user.click((await screen.findAllByRole("button", { name: "Recusar pedido de Aluno Adulto Fictício" }))[0]);
     const dialog = await screen.findByRole("dialog", { name: "Recusar pedido" });
     const submit = within(dialog).getByRole("button", { name: "Recusar pedido" });
+    expect(submit).toBeEnabled();
+    await user.clear(within(dialog).getByLabelText(/^Mensagem para a Aluno/));
     expect(submit).toBeDisabled();
-    await user.type(within(dialog).getByLabelText("Mensagem ao aluno"), "ab");
+    await user.type(within(dialog).getByLabelText(/^Mensagem para a Aluno/), "ab");
     expect(submit).toBeDisabled();
-    await user.type(within(dialog).getByLabelText("Mensagem ao aluno"), "c");
+    await user.type(within(dialog).getByLabelText(/^Mensagem para a Aluno/), "c");
     server.use(http.get("/api/v1/portal-requests", () => HttpResponse.json({ items: [all[1]], page: 1, size: 25, total: 1 })));
     await user.click(submit);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -130,15 +162,32 @@ describe("PortalRequestsPage (RF-MAT-04)", () => {
     await waitFor(() => expect(screen.queryByText("Troco por causa do trabalho")).toBeNull());
   });
 
-  it("CA19: Aprovar marca o pedido e leva à ficha do aluno", async () => {
+  it("CA6: a janela traz resumo, texto sugerido e contador; o encerramento tem título, subtítulo e botões próprios", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click((await screen.findAllByRole("button", { name: "Recusar pedido de Aluno Adulto Fictício" }))[0]);
+    let dialog = await screen.findByRole("dialog", { name: "Recusar pedido" });
+    expect(within(dialog).getByText("Resumo")).toBeInTheDocument();
+    expect(within(dialog).getByText("O pedido fica Recusado.")).toBeInTheDocument();
+    expect((within(dialog).getByLabelText(/^Mensagem para a Aluno/) as HTMLTextAreaElement).value).toMatch(/^Olá, Aluno! /);
+    expect(within(dialog).getByText(/^\d+\/500$/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    await user.click(screen.getAllByRole("button", { name: "Recusar pedido de Aluno Menor Fictício" })[0]);
+    dialog = await screen.findByRole("dialog", { name: "Recusar encerramento" });
+    expect(within(dialog).getByText(/^Aluno Menor Fictício · Judô · pedido de \d\d\/\d\d · encerra sozinho em \d\d\/\d\d$/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Judô volta a ficar Ativa.")).toBeInTheDocument();
+    expect(within(dialog).getByText("Aluno recebe a sua mensagem por e-mail e no portal.")).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button", { name: "Voltar" }).at(-1)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Recusar e enviar mensagem" })).toBeEnabled();
+  });
+
+  it("CA7: Aprovar não abre janela, chama approve sem corpo e leva à ficha do aluno", async () => {
     const user = userEvent.setup();
     setup();
     await user.click((await screen.findAllByRole("button", { name: "Aprovar pedido de Aluno Adulto Fictício" }))[0]);
-    const dialog = await screen.findByRole("dialog", { name: "Aprovar pedido" });
-    await user.type(within(dialog).getByLabelText("Mensagem ao aluno (opcional)"), "Pode vir");
-    await user.click(within(dialog).getByRole("button", { name: "Aprovar e continuar" }));
-    await waitFor(() => expect(decisions).toEqual([{ url: expect.stringContaining("/portal-requests/r1/approve"), body: { message: "Pode vir" } }]));
-    await waitFor(() => expect(screen.queryByRole("heading", { name: "Pedidos do portal" })).toBeNull());
+    await waitFor(() => expect(decisions).toEqual([{ url: expect.stringContaining("/portal-requests/r1/approve"), body: {} }]));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Pedidos", level: 1 })).toBeNull());
   });
 
   it("CA19: vazio, erro com nova tentativa e sem permissão", async () => {
@@ -169,5 +218,17 @@ describe("PortalRequestsPage (RF-MAT-04)", () => {
     const { container } = setup();
     await screen.findAllByText("Aluno Adulto Fictício");
     expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA10: a janela de recusa não tem violações no axe no tema %s", async (_n, dark) => {
+    setDevicePrefersDark(dark);
+    window.innerWidth = 360;
+    setup();
+    await userEvent.setup().click((await screen.findAllByRole("button", { name: "Recusar pedido de Aluno Adulto Fictício" }))[0]);
+    const dialog = await screen.findByRole("dialog", { name: "Recusar pedido" });
+    expect(await axeViolations(dialog)).toEqual([]);
   });
 });

@@ -1257,7 +1257,13 @@ const requestView = (r: MockPortalRequest) => {
     targetClassId: r.targetClassId, targetClass: mockClasses.find((c) => c.id === r.targetClassId)?.name ?? null, targetPlanId: r.targetPlanId,
     targetPlan: mockPlans.find((p) => p.id === r.targetPlanId)?.name ?? null, targetModalityId: r.targetModalityId, targetUnitId: r.targetUnitId,
     targetUnit: units.find((u) => u.id === r.targetUnitId)?.name ?? null, reason: r.reason, note: r.note, response: r.response, createdAt: r.createdAt, decidedAt: r.decidedAt,
+    expiresAt: requestExpiry(r), currentClass: mockClasses.find((c) => c.id === row?.primaryClassId)?.name ?? null, currentPlan: mockPlans.find((p) => p.id === row?.planId)?.name ?? null,
   };
+};
+// Prazo (RN-MAT-16, RN-MAT-18): criação + 30 dias, ou + 8 dias no encerramento (o dia em que a modalidade se encerra sozinha), na data da unidade.
+const requestExpiry = (r: MockPortalRequest) => {
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(r.createdAt));
+  return new Date(Date.parse(`${day}T00:00:00Z`) + (r.kind === "CLOSURE" ? 8 : 30) * 86_400_000).toISOString().slice(0, 10);
 };
 // Rotas do portal: termo em dia e aluno ligado à conta (404 fora).
 const portalRequestStudent = (id: string) => {
@@ -5024,10 +5030,12 @@ export const routes: Route[] = [
       if ((status !== "ALL" && !REQUEST_STATUSES.includes(status)) || (kind && !REQUEST_KINDS.includes(kind))) return error(400, "BAD_REQUEST", "Filtro inválido.");
       const page = Number(p.get("page") ?? 1);
       const size = Number(p.get("size") ?? 25);
-      const all = mockPortalRequests
-        .filter((r) => (activeRole() === "COORDINATOR" || r.unitId === ADMIN_UNIT) && (status === "ALL" || r.status === status) && (!kind || r.kind === kind) && (!p.get("unitId") || r.unitId === p.get("unitId")))
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      return HttpResponse.json({ items: all.slice((page - 1) * size, page * size).map(requestView), page, size, total: all.length });
+      const inReach = mockPortalRequests.filter((r) => (activeRole() === "COORDINATOR" || r.unitId === ADMIN_UNIT) && (!p.get("unitId") || r.unitId === p.get("unitId")));
+      const all = inReach.filter((r) => (status === "ALL" || r.status === status) && (!kind || r.kind === kind)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      // Contagens dos abertos do alcance e da unidade, sem o filtro de tipo.
+      const open = inReach.filter((r) => r.status === "OPEN");
+      const counts = { total: open.length, ...Object.fromEntries(REQUEST_KINDS.map((k) => [k, open.filter((r) => r.kind === k).length])) };
+      return HttpResponse.json({ items: all.slice((page - 1) * size, page * size).map(requestView), page, size, total: all.length, counts });
     },
   },
   {
