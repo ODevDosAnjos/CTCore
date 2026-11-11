@@ -199,3 +199,30 @@ RESULTADO desta rodada: OK
   - `e2e`: 2 falhas, `no-class-days` e `portal-pedidos` (tema escuro); as duas passam isoladas.
   - Isolado: `EnrollmentWizardPage` (CA9 e CA4) falha; a construção registrou que já falhava antes deste item.
   - Cobertura de 80% e de 100% das pastas financeiras não foi lida por causa das falhas acima.
+- **CI do PR #559 (`--ci 1`, run 43104792786, SHA be08b2e).** Falha só no job `visual` (`ci-gate` vermelho); os demais jobs passaram. Falhas em `frontend/visual/telas.visual.ts`:
+  - `moldura-professor 1440 claro`: 24739 pixels diferentes (0,02), referência `visual/referencias/moldura-professor-1440-claro.png`.
+  - `moldura-professor 1440 escuro`: 25557 pixels diferentes (0,02), referência `visual/referencias/moldura-professor-1440-escuro.png`.
+  - `moldura-professor 390 claro`: 29068 pixels diferentes (0,09), referência `visual/referencias/moldura-professor-390-claro.png`.
+  - `moldura-professor 390 escuro`: 29768 pixels diferentes (0,10), referência `visual/referencias/moldura-professor-390-escuro.png`.
+  - As quatro referências aparecem modificadas na pasta de trabalho e não entraram no commit `be08b2e`. Regerar no container do teste visual (`npm run test:visual:docker -- --update-snapshots -g "moldura-professor"`), commitar e reverificar.
+  - Os 461 demais testes visuais passaram.
+
+### Correção da entrega
+- CI do PR #559, job `visual` (4 falhas em `moldura-professor`, 1440 e 390 px, claro e escuro) — arquivos: `frontend/visual/referencias/moldura-professor-{1440,390}-{claro,escuro}.png` regerados no container do CI — prova: `npm run test:visual:docker -- --update-snapshots -g "moldura-professor"` → 4 passam; rodado de novo sem `--update-snapshots` → 4 passam. Sem mudança de código do produto.
+Referências visuais: as quatro `moldura-professor-*` acima (a moldura do Professor mudou com a agenda em gaveta e a ficha sem moldura própria); para o dono revisar no fim da sprint.
+Regressão: nada além do teste visual foi rodado (só imagens de referência mudaram); o CI do PR é a prova.
+
+### Rodada 4 — OK — 2026-11-11, estado 984bf66108b8128d5768f647e3dafbaa8067c74a
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA17 | PASSOU (mantido da rodada 3) | desde be08b2e só mudaram 4 PNGs `moldura-professor-*` e este arquivo (`git diff --stat be08b2e <estado>`); nenhum código |
+| Achado do CI (job `visual`, 4 falhas em `moldura-professor`) | PASSOU | `npm run test:visual:docker -- -g "moldura-professor"` (sem `--update-snapshots`) → 4 passam; a referência 390 mostra a agenda do Professor com título do dia, setas, aviso de dia sem aula, "Nova aula avulsa" e aba "Agenda" ativa, coerente com o item |
+
+Comandos: o teste visual acima → 4 passam. Vitest, back-end, `test:cov` e `e2e` não rodados de novo (nada de código mudou; o CI do PR é a prova, Autonomia 2).
+Instáveis: nenhum.
+Achados:
+- obrigatório: nenhum.
+- sugestão, processo — a descrição do PR deve registrar as quatro referências `moldura-professor-*` regeradas, para o dono revisar no fim da sprint.
+
+RESULTADO desta rodada: OK
