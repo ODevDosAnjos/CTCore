@@ -292,6 +292,14 @@ describe("ficha do aluno (RF-ALU-03)", () => {
     expect(within(dialog).queryByText("Em dia")).toBeNull();
   });
 
+  it("472 CA14: a ficha do Professor abre em gaveta sobre a agenda, que continua visível atrás", async () => {
+    setup("/agenda/aulas/les1/alunos/s1", { role: "TEACHER" });
+    const dialog = await panel();
+    await within(dialog).findByText(/Visão do Professor/);
+    expect(screen.getByRole("heading", { name: "Agenda", level: 1, hidden: true })).toBeInTheDocument();
+    expect(await screen.findByText(/8 semanas sempre criadas/)).toBeInTheDocument();
+  });
+
   it("443 CA3, CA5: a ficha do Professor abre pela aula, mostra a Visão do Professor e fecha de volta à aula; a gestão e o Professor em /alunos/:id não a abrem", async () => {
     const user = userEvent.setup();
     setup("/agenda/aulas/les1/alunos/s1", { role: "TEACHER" });

@@ -558,6 +558,12 @@ const teacherInReach = (t: MockTeacher) => activeRole() === "COORDINATOR" || t.u
 const teacherKey = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 // Turmas (RF-TUR-01), fixas: a faixa etária é resolvida pelo nome na hora, porque as faixas do mock têm id novo a cada carga.
 const TEACHER_ANA = "00000000-0000-0000-0000-000000000501";
+const SIMPLE_BELTS = [
+  { belt: "Branca", beltColor: "#FFFFFF", beltSecondaryColor: null, degree: 0 },
+  { belt: "Azul", beltColor: "#1D4ED8", beltSecondaryColor: null, degree: 2 },
+  { belt: "Roxa", beltColor: "#7E22CE", beltSecondaryColor: null, degree: 1 },
+  { belt: "Marrom", beltColor: "#78350F", beltSecondaryColor: null, degree: 3 },
+];
 const TEACHER_JOAO = "00000000-0000-0000-0000-000000000502";
 const TEACHER_MARCOS = "00000000-0000-0000-0000-000000000503";
 export type MockClass = { scenario?: { activeStudents: number; roster: { id: string; name: string; primary: boolean }[] }; id: string; name: string; unitId: string; modalityId: string; ageRange: string | null; schedule: [number, string, string][]; head: string; assistants: string[]; capacity: number | null; status: string; groupLink?: string; blocking?: number };
@@ -633,6 +639,8 @@ const adhocLesson = (a: MockAdhoc, today: string) => {
     substitute: false,
     canEdit: !day,
     canCancel: future && !day,
+    activeStudents: 0,
+    trialClasses: 0,
   };
 };
 const applyEdit = <T extends { id: string; date: string; startsAt: string; endsAt: string; teacher: { id: string; name: string }; substitute: boolean; status: string; cancelReason: string | null; cancelReasonCode: string | null; canEdit: boolean; canCancel: boolean }>(l: T): T => {
@@ -672,6 +680,8 @@ const mockLesson = (c: MockClass, unit: { id: string; name: string }, date: stri
     substitute,
     canEdit: !cancelled,
     canCancel: !cancelled && future,
+    activeStudents: c.scenario?.activeStudents ?? 0,
+    trialClasses: 0,
   };
 };
 // RN-AGE-07: o Professor só alcança a aula em que é o professor, ou da turma da qual é titular ou auxiliar (o do mock é sempre o TEACHER_ANA).
@@ -698,7 +708,6 @@ const lessonView = (id: string) => {
       ...lesson,
       visibilityClass: visible ? { id: visible.id, name: visible.name } : null,
       head: null,
-      activeStudents: 0,
       trialClasses: 0,
       groupLink: null,
       canEdit,
@@ -721,7 +730,6 @@ const lessonView = (id: string) => {
     ...lesson,
     visibilityClass: null,
     head: lesson.substitute ? classRow(c).head : null,
-    activeStudents: 0,
     trialClasses: 0,
     groupLink: c.groupLink ?? null,
     canEdit,
@@ -3721,7 +3729,8 @@ export const routes: Route[] = [
       const items = mockStudents
         .filter((s) => (mockEnrollments[s.id]?.modalities ?? []).some((m) => m.status === "ACTIVE" && (m.primaryClassId === klass.id || m.otherClassIds.includes(klass.id))))
         .sort((a, b) => teacherKey(a.name).localeCompare(teacherKey(b.name)) || a.id.localeCompare(b.id))
-        .map((s) => ({ id: s.id, name: s.name, photoUrl: s.photoUrl, belt: null, blocked: false }));
+        // Faixa e grau de exemplo (a graduação real chega nas #105 e #106): alternam pela posição na lista.
+        .map((s, i) => ({ id: s.id, name: s.name, photoUrl: s.photoUrl, ...SIMPLE_BELTS[i % SIMPLE_BELTS.length], blocked: false }));
       return HttpResponse.json(items);
     },
   },

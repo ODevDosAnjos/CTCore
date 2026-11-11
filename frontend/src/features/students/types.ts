@@ -97,6 +97,9 @@ export interface StudentSimple {
   name: string;
   photoUrl: string | null;
   belt: string | null;
+  beltColor: string | null;
+  beltSecondaryColor: string | null;
+  degree: number;
   blocked: boolean;
 }
 export interface StudentRow {

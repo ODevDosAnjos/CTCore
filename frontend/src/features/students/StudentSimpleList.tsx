@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, type To } from "react-router";
+import { Badge } from "@/components/ui/badge";
+import { GraduationBelt } from "@/components/ui/graduation-belt";
+import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { api, ApiError } from "@/lib/api";
 import type { StudentSimple } from "./types";
+
+const LIMIT = 5;
 
 type Done = { key: string; items?: StudentSimple[]; failure?: "forbidden" | "error" };
 
@@ -25,12 +30,13 @@ export function StudentSimpleList({
 }: {
   lessonId?: string;
   classId?: string;
-  recordHref?: (id: string) => string;
+  recordHref?: (id: string) => To;
   noRecordNotice?: boolean;
 }) {
   const { t } = useTranslation();
   const [tick, setTick] = useState(0);
   const [done, setDone] = useState<Done>();
+  const [all, setAll] = useState(false);
   const query = lessonId ? `lessonId=${lessonId}` : `classId=${classId}`;
   const key = `${query}:${tick}`;
   useEffect(() => {
@@ -51,7 +57,7 @@ export function StudentSimpleList({
   return (
     <>
     <ul className="flex flex-col gap-2">
-      {state.items.map((s) => (
+      {(all ? state.items : state.items.slice(0, LIMIT)).map((s) => (
         <li key={s.id} className="flex min-h-11 flex-wrap items-center gap-2">
           {s.photoUrl ? (
             <img src={s.photoUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
@@ -67,11 +73,20 @@ export function StudentSimpleList({
           ) : (
             <span className="min-w-0 break-words font-medium">{s.name}</span>
           )}
-          {s.belt && <span className="rounded-md border px-2 py-0.5 text-sm">{s.belt}</span>}
-          {s.blocked && <span className="rounded-md border px-2 py-0.5 text-sm">{t("students.simple.blocked")}</span>}
+          {s.belt && s.beltColor && (
+            <GraduationBelt name={s.belt} color={s.beltColor} secondaryColor={s.beltSecondaryColor} degree={s.degree} label={s.belt} className="text-sm" />
+          )}
+          <Badge tone={s.blocked ? "danger" : "ok"} className="ml-auto">
+            {t(s.blocked ? "students.simple.blocked" : "students.simple.active")}
+          </Badge>
         </li>
       ))}
     </ul>
+    {!all && state.items.length > LIMIT && (
+      <Button variant="ghost" className="mt-1 min-h-11 self-start" onClick={() => setAll(true)}>
+        {t("students.simple.showAll", { count: state.items.length })}
+      </Button>
+    )}
     {noRecordNotice && <p className="mt-2 text-sm text-muted-foreground">{t("students.simple.noRecord")}</p>}
     </>
   );

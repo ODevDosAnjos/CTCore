@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -86,7 +86,7 @@ function setup(opts: Opts = {}) {
     ),
     http.get("/api/v1/students/simple", ({ request }) => {
       asked.push(new URL(request.url).searchParams.get("lessonId") ?? "");
-      return HttpResponse.json([{ id: "s9", name: "Bia Lima", photoUrl: null, belt: null, blocked: false }]);
+      return HttpResponse.json([{ id: "s9", name: "Bia Lima", photoUrl: null, belt: null, beltColor: null, beltSecondaryColor: null, degree: 0, blocked: false }]);
     }),
     http.get("/api/v1/agenda/lessons/:id", () =>
       opts.respond
@@ -108,41 +108,30 @@ function setup(opts: Opts = {}) {
 }
 
 const ready = () =>
-  screen.findByRole("heading", { name: "Jiu-Jitsu Adulto", level: 1 });
+  screen.findByRole("heading", { name: "Jiu-Jitsu Adulto", level: 2 });
 
 describe("LessonPanelPage", () => {
   it("CA9, CA6: horário, turma, modalidade, professor, alunos, experimentais, grupo e ações do Coordenador", async () => {
     setup();
     await ready();
-    expect(
-      screen.getByText("10/03/2026, das 19:00 às 20:00"),
-    ).toBeInTheDocument();
-    expect(within(screen.getByRole("main")).getByText("Centro")).toBeInTheDocument();
-    expect(screen.getByText("Jiu-Jitsu")).toBeInTheDocument();
-    expect(screen.getByText("Ana Souza")).toBeInTheDocument();
-    expect(
-      screen.getByText("Alunos ativos da turma").nextElementSibling,
-    ).toHaveTextContent("0");
-    expect(
-      screen.getByText("Aulas experimentais marcadas").nextElementSibling,
-    ).toHaveTextContent("0");
-    expect(screen.queryByText("Substituição")).toBeNull();
-    const group = screen.getByRole("link", { name: "Abrir grupo" });
+    const drawer = screen.getByRole("dialog");
+    expect(within(drawer).getByText("Terça, 10/03/2026 · 19h–20h · Centro")).toBeInTheDocument();
+    expect(within(drawer).getByText("Jiu-Jitsu")).toBeInTheDocument();
+    expect(within(drawer).getByText("Professor da aula").nextElementSibling).toHaveTextContent("Ana Souza");
+    expect(within(drawer).getByText("Alunos da turma").nextElementSibling).toHaveTextContent("0 ativos");
+    expect(within(drawer).getByText("Aulas experimentais").nextElementSibling).toHaveTextContent("Nenhuma marcada");
+    expect(within(drawer).getByText("Agendada")).toBeInTheDocument();
+    expect(within(drawer).queryByText("Substituição")).toBeNull();
+    const group = within(drawer).getByRole("link", { name: "chat.whatsapp.com/abc" });
     expect(group).toHaveAttribute("href", "https://chat.whatsapp.com/abc");
     expect(group).toHaveAttribute("target", "_blank");
-    expect(screen.getByRole("link", { name: "Ver turma" })).toHaveAttribute(
-      "href",
-      "/turmas/c1",
-    );
+    expect(within(drawer).getByRole("link", { name: "Ver turma" })).toHaveAttribute("href", "/turmas/c1");
     expect(await screen.findByRole("link", { name: "Avisar turma" })).toHaveAttribute(
       "href",
       "/comunicados/novo?classId=c1&type=GENERAL&date=2026-03-10&time=19%3A00",
     );
     expect(screen.getByRole("button", { name: "Editar aula" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Cancelar aula" })).toBeEnabled();
-    expect(
-      screen.getByRole("link", { name: "Voltar à agenda" }),
-    ).toHaveAttribute("href", "/agenda");
   });
 
   it("CA32: o painel mostra a lista simples dos alunos da aula, pedida pelo id da aula", async () => {
@@ -185,7 +174,7 @@ describe("LessonPanelPage", () => {
       }),
     });
     await ready();
-    expect(screen.getByText("Substituição")).toBeInTheDocument();
+    expect(screen.getAllByText("Substituição").length).toBeGreaterThan(0);
     expect(screen.getByText("João Pereira")).toBeInTheDocument();
     expect(screen.getAllByText("Cancelada").length).toBeGreaterThan(0);
     expect(screen.getByText("Chuva forte")).toBeInTheDocument();
@@ -206,6 +195,17 @@ describe("LessonPanelPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("CA8: a gaveta abre sobre a agenda e Esc a fecha, deixando a agenda", async () => {
+    const user = userEvent.setup();
+    setup({ path: "/agenda/aulas/les1?semana=2026-03-10" });
+    await ready();
+    expect(screen.getByRole("heading", { name: "Agenda", level: 1, hidden: true })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByRole("heading", { name: "Agenda", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("9 a 15 de março de 2026")).toBeInTheDocument();
+  });
+
   it("CA10: carregando, erro com Tentar de novo, sem permissão e aula não encontrada", async () => {
     const user = userEvent.setup();
     let fail = true;
@@ -220,9 +220,9 @@ describe("LessonPanelPage", () => {
     });
     // "Carregando..." também aparece na sessão e na rota; só após a requisição da aula é o estado dela.
     await requested.opened;
-    expect(screen.getByText("Carregando...")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("Carregando...")).toBeInTheDocument();
     loading.release();
-    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    const retry = await within(screen.getByRole("dialog")).findByRole("button", { name: "Tentar de novo" });
     fail = false;
     await user.click(retry);
     await ready();
@@ -313,12 +313,12 @@ describe("LessonPanelPage", () => {
       await user.selectOptions(within(dialog).getByLabelText("Professor da aula"), "t2");
       await user.click(within(dialog).getByRole("radio", { name: /Esta e as seguintes/ }));
       await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
-      expect(await screen.findByText("Substituição")).toBeInTheDocument();
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect((await screen.findAllByText("Substituição")).length).toBeGreaterThan(0);
+      expect(screen.queryByRole("dialog", { name: "Editar aula" })).toBeNull();
       expect(sent).toEqual([
         { scope: "FOLLOWING", date: "2026-03-10", startsAt: "18:30", endsAt: "20:00", teacherId: "t2" },
       ]);
-      expect(screen.getByText("10/03/2026, das 18:30 às 20:00")).toBeInTheDocument();
+      expect(screen.getByText("Terça, 10/03/2026 · 18h30–20h · Centro")).toBeInTheDocument();
     });
 
     it("RN-AGE-04: com esta e as seguintes a janela avisa quantas aulas já alteradas à mão serão substituídas", async () => {
@@ -382,7 +382,7 @@ describe("LessonPanelPage", () => {
       stubTeachers(500);
       await ready();
       await user.click(screen.getByRole("button", { name: "Editar aula" }));
-      const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+      const retry = await within(screen.getByRole("dialog")).findByRole("button", { name: "Tentar de novo" });
       stubTeachers();
       await user.click(retry);
       expect(await screen.findByRole("option", { name: "João Pereira" })).toBeInTheDocument();
@@ -406,7 +406,7 @@ describe("LessonPanelPage", () => {
       expect(await screen.findByText("Informe o motivo da correção.")).toBeInTheDocument();
       await user.type(screen.getByLabelText("Motivo da correção"), "Troca registrada");
       await user.click(screen.getByRole("button", { name: "Salvar" }));
-      expect(await screen.findByText("Substituição")).toBeInTheDocument();
+      expect((await screen.findAllByText("Substituição")).length).toBeGreaterThan(0);
       expect(sent).toEqual([
         { scope: "THIS", date: "2026-03-10", startsAt: "19:00", endsAt: "20:00", teacherId: "t2", reason: "Troca registrada" },
       ]);
@@ -457,7 +457,7 @@ describe("LessonPanelPage", () => {
       await user.click(within(dialog).getByRole("button", { name: "Cancelar aula" }));
       expect(await within(dialog).findByText(/já concluída ou cancelada/)).toBeInTheDocument();
       await user.click(within(dialog).getByRole("button", { name: "Manter aula" }));
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.queryByRole("dialog", { name: "Cancelar aula" })).toBeNull();
     });
 
     it("CA12: cancelada por código mostra o texto traduzido no painel", async () => {

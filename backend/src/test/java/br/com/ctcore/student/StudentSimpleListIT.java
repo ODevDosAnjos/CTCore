@@ -87,7 +87,7 @@ class StudentSimpleListIT extends OrganizationBase {
 
         assertThat(names("?classId=" + mine, me)).containsExactly("Ana Outro Horario", "Bia Principal");
         JsonNode body = json.readTree(get("?classId=" + mine, me).getContentAsString());
-        assertThat(body.get(0).fieldNames()).toIterable().containsExactlyInAnyOrder("id", "name", "photoUrl", "belt", "blocked");
+        assertThat(body.get(0).fieldNames()).toIterable().containsExactlyInAnyOrder("id", "name", "photoUrl", "belt", "beltColor", "beltSecondaryColor", "degree", "blocked");
         assertThat(body.get(0).get("blocked").asBoolean()).isFalse();
         assertThat(get("?classId=" + mine, me).getContentAsString()).doesNotContain("52998").doesNotContain("987654321").doesNotContain("Rua Um").doesNotContain("seals");
         // A chave "ver ficha" desligada não tira a lista simples, mas a ficha continua fechada.

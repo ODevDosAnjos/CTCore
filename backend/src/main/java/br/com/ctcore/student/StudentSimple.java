@@ -20,8 +20,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class StudentSimple {
-    /** {@code belt} é nulo até a graduação (#105 e #106) e {@code blocked} é sempre falso até a inativação (#109), D13 e D14. */
-    public record Item(UUID id, String name, String photoUrl, String belt, boolean blocked) {}
+    /** {@code belt}, as cores da faixa e {@code degree} (0) vêm vazios até a graduação (#105 e #106) e {@code blocked} é sempre falso até a inativação (#109), D13 e D14. */
+    public record Item(UUID id, String name, String photoUrl, String belt, String beltColor, String beltSecondaryColor, int degree, boolean blocked) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -69,7 +69,7 @@ public class StudentSimple {
                     + "and s.id = m.student_id where m.organization_id = :org and m.status = 'ACTIVE' and (m.primary_class_id = :class or exists "
                     + "(select 1 from enrollment_modality_class o where o.organization_id = m.organization_id and o.modality_row_id = m.id and o.class_id = :class)) "
                     + "order by s.name_key, s.name, s.id").param("org", org).param("class", target)
-                    .query((rs, n) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), students.photoUrl(rs.getString(4)), null, false)).list();
+                    .query((rs, n) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), students.photoUrl(rs.getString(4)), null, null, null, 0, false)).list();
         });
     }
 }

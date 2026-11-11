@@ -21,7 +21,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.context.annotation.Lazy;
@@ -42,7 +44,7 @@ public class Agenda {
 
     public record Lesson(UUID id, String date, String startsAt, String endsAt, Status status, String cancelReason, String cancelReasonCode,
             @JsonProperty("class") Ref trainingClass, String title, Ref unit, Ref modality, Ref teacher, boolean substitute, boolean canEdit,
-            boolean canCancel) {}
+            boolean canCancel, int activeStudents, int trialClasses) {}
 
     /** RF-AGE-02: painel da aula. {@code head} só vem na substituição (D6). */
     public record LessonDetail(UUID id, String date, String startsAt, String endsAt, Status status, String cancelReason, String cancelReasonCode,
@@ -150,8 +152,14 @@ public class Agenda {
                                 st == Status.CANCELLED ? rs.getString(6) : null, st == Status.CANCELLED ? rs.getString(15) : null,
                                 ref(rs, 7, 8), rs.getString(16), unit,
                                 new Ref(rs.getObject(9, UUID.class), rs.getString(10)), new Ref(rs.getObject(11, UUID.class), rs.getString(12)),
-                                rs.getBoolean(13), can.edit(), can.cancel());
+                                rs.getBoolean(13), can.edit(), can.cancel(), 0, 0);
                     }).list();
+            // uma contagem por turma distinta, fora do mapeamento das linhas; a avulsa fica com 0
+            Map<UUID, Integer> students = new HashMap<>();
+            lessons = lessons.stream().map(l -> new Lesson(l.id(), l.date(), l.startsAt(), l.endsAt(), l.status(), l.cancelReason(),
+                    l.cancelReasonCode(), l.trainingClass(), l.title(), l.unit(), l.modality(), l.teacher(), l.substitute(), l.canEdit(),
+                    l.canCancel(), l.trainingClass() == null ? 0 : students.computeIfAbsent(l.trainingClass().id(), classes::activeStudentsOf),
+                    trialClasses(l.id()))).toList();
             List<NoClassDay> days = jdbc.sql("select starts_on, ends_on, reason from no_class_day where organization_id = :org and unit_id = :unit "
                     + "and starts_on <= :to and ends_on >= :from "
                     + "and not exists (select 1 from no_class_day_class k where k.no_class_day_id = no_class_day.id) order by starts_on, id")

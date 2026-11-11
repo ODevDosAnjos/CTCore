@@ -80,6 +80,8 @@ class AgendaIT extends AgendaBase {
         assertThat(l.get("startsAt").asText()).isEqualTo("18:00");
         assertThat(l.get("substitute").asBoolean()).isFalse();
         assertThat(v.get("lessons").get(2).get("substitute").asBoolean()).isTrue();
+        assertThat(l.get("activeStudents").asInt()).isZero();
+        assertThat(l.get("trialClasses").asInt()).isZero();
         assertThat(v.get("lessons").get(1).get("cancelReason").isNull()).isTrue();
         assertThat(v.get("noClassDays")).hasSize(1);
         assertThat(v.get("noClassDays").get(0).get("reason").asText()).isEqualTo("Feriado");
