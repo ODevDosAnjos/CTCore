@@ -203,7 +203,7 @@ describe("lista de alunos com matrícula x OpenAPI (RF-ALU-01, RF-ALU-02, R18 a 
     expect(openapi.components.schemas.StudentRow.required).toEqual(expect.arrayContaining(["status", "modalities"]));
     expect(openapi.components.schemas.StudentList.allOf[1].required).toContain("counts");
     expect(Object.keys(openapi.paths["/students/simple"].get.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "404"]));
-    expect(openapi.components.schemas.StudentSimple.required.sort()).toEqual(["belt", "blocked", "id", "name", "photoUrl"]);
+    expect(openapi.components.schemas.StudentSimple.required.sort()).toEqual(["belt", "beltColor", "beltSecondaryColor", "blocked", "degree", "id", "name", "photoUrl"]);
   });
 
   it("a linha traz status e modalidades ativas, o selo Novo e as contagens; filtros por modalidade, turma, nível e situação combinam", async () => {
@@ -238,7 +238,7 @@ describe("lista de alunos com matrícula x OpenAPI (RF-ALU-01, RF-ALU-02, R18 a 
     await login("ana@exemplo.com");
     await enrollAdult();
     const mine = await (await send("GET", `/students/simple?classId=${BJJ_CLASS}`)).json();
-    expect(mine).toEqual([{ id: ADULT, name: "Aluno Adulto Fictício", photoUrl: null, belt: null, blocked: false }]);
+    expect(mine).toEqual([{ id: ADULT, name: "Aluno Adulto Fictício", photoUrl: null, belt: "Branca", beltColor: "#FFFFFF", beltSecondaryColor: null, degree: 0, blocked: false }]);
     expect((await send("GET", "/students/simple")).status).toBe(400);
     expect((await send("GET", `/students/simple?classId=${BJJ_CLASS}&lessonId=${BJJ_CLASS}-2026-01-05-19:00`)).status).toBe(400);
     expect(await (await send("GET", `/students/simple?lessonId=${BJJ_CLASS}-2026-01-05-19:00`)).json()).toEqual(mine);

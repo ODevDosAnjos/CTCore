@@ -64,6 +64,7 @@ export const casos: Caso[] = [
   { nome: "alunos-filtros", rota: "/alunos", perfil: ana, canvas: "GMAlunosFiltros", passos: [{ clicar: "Filtros", seExistir: true }] }, // #457: folha de filtros do celular (no 1440 os filtros ficam na linha)
   { nome: "professores", rota: "/professores", perfil: ana, canvas: "Professores" },
   { nome: "agenda", rota: "/agenda", perfil: ana, canvas: "Agenda" },
+  { nome: "agenda-painel", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AgendaPainel", matricula: true },
   { nome: "dias-sem-aula", rota: "/dias-sem-aula", perfil: ana, canvas: "DiasSemAula" },
   { nome: "turmas", rota: "/turmas", perfil: ana, canvas: "Turmas" },
   { nome: "planos", rota: "/planos", perfil: ana, canvas: "Planos" },
@@ -163,8 +164,8 @@ export const casos: Caso[] = [
   { nome: "portal-familia", rota: "/portal/financeiro", perfil: familia, canvas: "PortalFamilia", canvasCelular: "PortalMFamilia" },
   { nome: "portal-reduzido-info", rota: "/portal/minhas-informacoes", perfil: reduzido, canvas: "PortalReduzidoInfo" },
   // Professor (#443): painel da aula e ficha pela aula, com STUDENT_RECORD ligada no MSW. Aula de segunda, 02/11/2026, da turma Jiu-Jitsu Adulto.
-  { nome: "agenda-painel-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: prof, canvas: "AgendaPainelProfessor", matricula: true, limiteCanvas: { valor: 0.55, motivo: "gaveta: o canvas mostra o painel da aula como gaveta sobre a agenda, com faixa e situação por aluno; o sistema mostra uma página (medido a 46,9% na #443; a #472 trata a tela e remove esta exceção)" } },
-  { nome: "ficha-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00/alunos/00000000-0000-0000-0000-000000000701", perfil: prof, canvas: "FichaProfessor", matricula: true, limiteCanvas: { valor: 0.45, motivo: "fundo e largura: o canvas mostra a ficha em gaveta de 600 px sobre a agenda da semana; o sistema abre a ficha de 680 px sobre uma página da aula vazia (medido a 42,0% na #466; a #472 trata a agenda e o painel da aula e remove esta exceção)" } },
+  { nome: "agenda-painel-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: prof, canvas: "AgendaPainelProfessor", matricula: true },
+  { nome: "ficha-professor", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00/alunos/00000000-0000-0000-0000-000000000701", perfil: prof, canvas: "FichaProfessor", matricula: true, limiteCanvas: { valor: 0.45, motivo: "conteúdo da ficha: a agenda e a gaveta já são as do canvas (agenda visível atrás); sobra o miolo da ficha do Professor (abas Resumo e Responsáveis, gaveta de 680 px) contra os cartões Dados e Modalidades do canvas, em gaveta de 600 px (medido a 41,9% na #472; pedido de ajuste registrado no item 472, removido pela #558)" } },
   // Ficha do aluno e janela Editar dados pessoais (#466). GMFicha e GMAlunoEditar têm 360 px: a comparação a 390 px é pelas capturas (D5 da #435).
   { nome: "ficha-aluno", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "AlunoDetalhes", limiteCanvas: { valor: 0.4, motivo: "ficha: o canvas traz Pendências de bloqueio, coluna Faixa, termo aceito e botões no canto do cabeçalho, que dependem da inativação, das graduações e do aceite do termo (D3 e D5 da #466; Sprint 12), e a lista atrás tem outros dados e altura (medido a 36,3% na #466)" } },
   { nome: "aluno-editar", rota: "/alunos/00000000-0000-0000-0000-000000000721", perfil: ana, canvas: "AlunoEditar", passos: [{ clicar: "Editar dados pessoais" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: o sistema mantém o bloco de foto e o campo Número (D6 da #466), omite a Última alteração (a API do aluno não traz esse dado) e a ficha atrás tem outro conteúdo (medido a 51,9% na #466)" } },
@@ -206,7 +207,7 @@ export const semCaso: Record<string, string[]> = {
     "AlunoInativar", "AlunoReativar",
     "AlunoAnonimizar",
     "PedidoEncerramentoRecusar",
-    "AgendaPainel", "AulaEditar", "AulaCancelar", "AulaEditarSeguintes", "AulaCorrigir",
+    "AulaEditar", "AulaCancelar", "AulaEditarSeguintes", "AulaCorrigir",
     "AulaAvisarTurma", "TurmaTitularInativo", "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "CobrancaPainel", "SomenteLeitura", "EstadoErro", "PagamentoRegistrar",
     "Renegociar", "Estornar", "ExportarMensalidades", "ComprovanteVarias", "BeneficioEncerrar",

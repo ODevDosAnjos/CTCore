@@ -4466,7 +4466,7 @@ components:
         noClassDays: { type: array, items: { $ref: '#/components/schemas/NoClassDay' } }
     AgendaLesson:
       type: object
-      required: [id, date, startsAt, endsAt, status, cancelReason, cancelReasonCode, class, title, unit, modality, teacher, substitute, canEdit, canCancel]
+      required: [id, date, startsAt, endsAt, status, cancelReason, cancelReasonCode, class, title, unit, modality, teacher, substitute, canEdit, canCancel, activeStudents, trialClasses]
       properties:
         id: { type: string, format: uuid }
         date: { type: string, format: date }
@@ -4483,6 +4483,8 @@ components:
         substitute: { type: boolean }
         canEdit: { type: boolean }
         canCancel: { type: boolean }
+        activeStudents: { type: integer, minimum: 0, description: Alunos ativos da turma; 0 na aula avulsa. }
+        trialClasses: { type: integer, minimum: 0, description: Aulas experimentais marcadas; 0 até a Sprint 18. }
     LessonDetail:
       type: object
       required: [id, date, startsAt, endsAt, status, cancelReason, cancelReasonCode, class, title, visibilityClass, unit, modality, teacher, head, substitute, activeStudents, trialClasses, groupLink, canEdit, canCancel, canViewClass, followingEdited]
@@ -5332,12 +5334,15 @@ components:
         level: { type: object, nullable: true, description: Nível de graduação; nulo até a graduação do aluno., required: [id, name], properties: { id: { type: string, format: uuid }, name: { type: string } } }
     StudentSimple:
       type: object
-      required: [id, name, photoUrl, belt, blocked]
+      required: [id, name, photoUrl, belt, beltColor, beltSecondaryColor, degree, blocked]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         photoUrl: { type: string, nullable: true }
         belt: { type: string, nullable: true, description: Faixa; nula até a graduação. }
+        beltColor: { type: string, nullable: true, description: 'Cor principal da faixa (#RRGGBB); nula até a graduação.' }
+        beltSecondaryColor: { type: string, nullable: true, description: 'Cor da ponta da faixa (#RRGGBB), quando há; nula até a graduação.' }
+        degree: { type: integer, minimum: 0, description: Grau na faixa; 0 até a graduação. }
         blocked: { type: boolean, description: Sempre falso até a inativação. }
     StudentBirthday:
       type: object

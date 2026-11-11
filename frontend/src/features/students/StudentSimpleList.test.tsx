@@ -8,8 +8,8 @@ import { ThemeProvider } from "@/theme/ThemeProvider";
 import { StudentSimpleList } from "./StudentSimpleList";
 import type { StudentSimple } from "./types";
 
-const ana: StudentSimple = { id: "s1", name: "Ana Souza", photoUrl: null, belt: "Azul", blocked: false };
-const joao: StudentSimple = { id: "s2", name: "João Pereira", photoUrl: "https://files.example/joao.png", belt: null, blocked: true };
+const ana: StudentSimple = { id: "s1", name: "Ana Souza", photoUrl: null, belt: "Azul", beltColor: "#1D4ED8", beltSecondaryColor: null, degree: 2, blocked: false };
+const joao: StudentSimple = { id: "s2", name: "João Pereira", photoUrl: "https://files.example/joao.png", belt: null, beltColor: null, beltSecondaryColor: null, degree: 0, blocked: true };
 
 let query: URLSearchParams;
 function setup(list: () => Response | Promise<Response>, props: { lessonId?: string; classId?: string } = { classId: "k1" }) {
@@ -33,8 +33,21 @@ describe("lista simples da turma e da aula (R22, CA31, CA32)", () => {
     expect(query.get("classId")).toBe("k1");
     expect(screen.getByText("AS")).toBeInTheDocument();
     expect(screen.getByText("Azul")).toBeInTheDocument();
+    expect(screen.getAllByTestId("belt-stripe")).toHaveLength(2);
     expect(screen.getByText("Bloqueado")).toBeInTheDocument();
     expect(document.querySelector("img[src='https://files.example/joao.png']")).not.toBeNull();
+  });
+
+  it("mostra 5 alunos e Ver os N mostra o resto; cada um com a situação", async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: 7 }, (_, i) => ({ ...ana, id: `s${i}`, name: `Aluno ${i}` }));
+    setup(() => HttpResponse.json(many));
+    await screen.findByText("Aluno 0");
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getAllByText("Ativo")).toHaveLength(5);
+    await user.click(screen.getByRole("button", { name: "Ver os 7" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(7);
+    expect(screen.queryByRole("button", { name: "Ver os 7" })).toBeNull();
   });
 
   it("a lista da aula pede pelo id da aula", async () => {

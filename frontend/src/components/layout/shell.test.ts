@@ -10,9 +10,9 @@ const walk = (dir: string): string[] =>
 
 describe("moldura da gestão (CA8)", () => {
   const pages = walk("src/features").filter((f) => /Page\.tsx$/.test(f) && readFileSync(f, "utf8").includes("<ManagementLayout"));
-  // O painel do professor virou gaveta sobre a lista (#470): quem tem a moldura é a lista.
+  // O painel do professor (#470) e o da aula e a ficha do Professor (#472) viraram gaveta sobre a lista: quem tem a moldura é a lista.
   it("encontra as páginas da gestão", () => {
-    expect(pages.length).toBeGreaterThanOrEqual(28);
+    expect(pages.length).toBeGreaterThanOrEqual(26);
   });
 
   it.each(pages)("%s usa PageHeader e nenhum <h1 próprio", (f) => {

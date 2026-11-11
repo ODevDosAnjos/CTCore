@@ -36,6 +36,8 @@ const adhoc: AgendaLesson = {
   substitute: false,
   canEdit: true,
   canCancel: true,
+  activeStudents: 0,
+  trialClasses: 0,
 };
 const agenda = (over: Partial<AgendaData> = {}): AgendaData => ({
   units: [{ id: "u1", name: "Centro" }],
@@ -219,19 +221,19 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
 
   it("CA10: o painel abre sem Ver turma, sem grupo e com a turma de visibilidade", async () => {
     setup({ path: "/agenda/aulas/av1", lesson: panel({ visibilityClass: { id: "c1", name: "Judô Infantil" } }) });
-    expect(await screen.findByRole("heading", { name: "Seminário de quedas", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("Avulsa")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Seminário de quedas", level: 2 })).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("Avulsa")).toBeInTheDocument();
     expect(screen.getByText("Judô Infantil")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Ver turma" })).toBeNull();
     expect(screen.queryByText("Grupo de WhatsApp")).toBeNull();
-    expect(screen.queryByText("Alunos ativos da turma")).toBeNull();
+    expect(screen.queryByText("Alunos da turma")).toBeNull();
     expect(screen.getByRole("button", { name: "Editar aula" })).toBeInTheDocument();
   });
 
   it("CA10: sem turma de visibilidade o painel mostra todas as turmas; editar usa o título e só oferece esta aula", async () => {
     const user = userEvent.setup();
     setup({ path: "/agenda/aulas/av1" });
-    await screen.findByRole("heading", { name: "Seminário de quedas", level: 1 });
+    await screen.findByRole("heading", { name: "Seminário de quedas", level: 2 });
     expect(screen.getByText("Todas as turmas da unidade")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Editar aula" }));
     const dialog = await screen.findByRole("dialog", { name: "Editar aula" });

@@ -1,18 +1,11 @@
-import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router";
-import { PageHeader } from "@/components/ui/page-header";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { StudentRecordPanel } from "./StudentRecordPanel";
 
-// RF-ALU-03: ficha "Visão do Professor", aberta pela aula; fechar volta ao painel da aula. A barreira é o servidor.
+// RF-ALU-03: ficha "Visão do Professor", aberta pela aula em gaveta sobre a agenda (a página-base vem da rota-pai);
+// fechar volta à gaveta da aula, na mesma semana. A barreira é o servidor.
 export function TeacherRecordPage() {
-  const { t } = useTranslation();
   const { id = "", studentId = "" } = useParams();
+  const { search } = useLocation();
   const navigate = useNavigate();
-  return (
-    <ManagementLayout activeId="agenda">
-      <PageHeader title={t("agenda.title")} />
-      <StudentRecordPanel id={studentId} onClose={() => navigate(`/agenda/aulas/${id}`)} />
-    </ManagementLayout>
-  );
+  return <StudentRecordPanel id={studentId} onClose={() => navigate({ pathname: `/agenda/aulas/${id}`, search })} />;
 }

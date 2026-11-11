@@ -23,6 +23,8 @@ export interface AgendaLesson {
   substitute: boolean;
   canEdit: boolean;
   canCancel: boolean;
+  activeStudents: number;
+  trialClasses: number;
 }
 
 export interface NoClassDay {

@@ -131,13 +131,15 @@ export function App() {
           <Route path="/confirmar-email/:code" element={<ConfirmEmailPage />} />
           <Route path="/sem-acesso" element={<AreaUnavailablePage />} />
           <Route element={<RequireArea roles={["COORDINATOR", "ADMINISTRATOR", "TEACHER"]} />}>
-            <Route path="/agenda" element={<AgendaPage />} />
-            <Route path="/agenda/aulas/:id" element={<LessonPanelPage />} />
+            <Route element={<AgendaPage />}>
+              <Route path="/agenda" element={null} />
+              <Route path="/agenda/aulas/:id" element={<LessonPanelPage />} />
+              <Route element={<RequireArea roles={["TEACHER"]} />}>
+                <Route path="/agenda/aulas/:id/alunos/:studentId" element={<TeacherRecordPage />} />
+              </Route>
+            </Route>
             <Route path="/comunicados" element={<AnnouncementsPage />} />
             <Route path="/comunicados/novo" element={<NewAnnouncementPage />} />
-          </Route>
-          <Route element={<RequireArea roles={["TEACHER"]} />}>
-            <Route path="/agenda/aulas/:id/alunos/:studentId" element={<TeacherRecordPage />} />
           </Route>
           <Route element={<RequireArea roles={["COORDINATOR", "ADMINISTRATOR"]} />}>
             <Route path="/dias-sem-aula" element={<NoClassDaysPage />} />

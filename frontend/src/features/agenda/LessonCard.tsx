@@ -1,6 +1,8 @@
+import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Badge } from "@/components/ui/badge";
+import { hourLabel } from "./agendaDates";
 import type { AgendaLesson } from "./useAgenda";
 
 // D2: a tabela de modalidades não tem cor; ela vem de uma paleta fixa, escolhida pelo id. A cor nunca é a única indicação: a modalidade também vai em texto.
@@ -15,31 +17,60 @@ export function cancelReasonText(lesson: Pick<AgendaLesson, "cancelReason" | "ca
 // RF-AGE-04: a aula avulsa mostra o título no lugar do nome da turma.
 export const lessonName = (lesson: Pick<AgendaLesson, "class" | "title">) => lesson.class?.name ?? lesson.title ?? "";
 
-// RF-AGE-02: o cartão inteiro leva ao painel da aula.
-export function LessonCard({ lesson }: { lesson: AgendaLesson }) {
+// R6/R7: cartão da lista do dia (celular). Hora grande à esquerda; o Professor vê a unidade e um chevron no lugar do professor.
+export function DayLessonCard({ lesson, teacherView }: { lesson: AgendaLesson; teacherView?: boolean }) {
   const { t } = useTranslation();
+  const { search } = useLocation();
   const cancelled = lesson.status === "CANCELLED";
-  const color = `hsl(${modalityHue(lesson.modality.id)} 60% 45%)`;
+  const color = modalityColor(lesson.modality.id);
+  const meta = teacherView
+    ? [lesson.unit.name, t("agenda.studentsCount", { count: lesson.activeStudents }), lesson.trialClasses > 0 ? t("agenda.experimental", { count: lesson.trialClasses }) : ""]
+    : [lesson.teacher.name, t("agenda.studentsCount", { count: lesson.activeStudents })];
   return (
-    <li className="min-w-0 rounded-md border border-l-4 bg-card text-sm break-words" style={{ borderLeftColor: color }}>
-      <Link to={`/agenda/aulas/${lesson.id}`} className="flex min-h-11 min-w-0 flex-col gap-0.5 p-2">
-        <span className="text-xs text-muted-foreground">
-          {lesson.startsAt}–{lesson.endsAt}
+    <li className={`min-w-0 rounded-lg border border-l-4 text-sm break-words ${cancelled ? "bg-surface-soft" : "bg-card"}`} style={{ borderLeftColor: cancelled ? "var(--divider)" : color }}>
+      <Link to={{ pathname: `/agenda/aulas/${lesson.id}`, search }} className="flex min-h-14 min-w-0 items-center gap-3 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="flex w-12 shrink-0 flex-col">
+          <span className="text-lg font-semibold leading-tight">{hourLabel(lesson.startsAt)}</span>
+          <span className="text-[11px] text-muted-foreground">{t("agenda.until", { time: hourLabel(lesson.endsAt) })}</span>
         </span>
-        <span className={cancelled ? "font-medium line-through" : "font-medium"}>{lessonName(lesson)}</span>
-        <span>{lesson.teacher.name}</span>
-        <span className="flex items-center gap-1 text-muted-foreground">
-          <span aria-hidden="true" className="inline-block size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-          {lesson.modality.name}
-        </span>
-        {!lesson.class && <Badge tone="neutral" className="w-fit">{t("agenda.adhoc")}</Badge>}
-        {lesson.substitute && <Badge tone="info" className="w-fit">{t("agenda.substitute")}</Badge>}
-        {cancelled && (
-          <span className="flex flex-col text-xs">
-            <Badge tone="danger" className="w-fit">{t("agenda.cancelled")}</Badge>
-            {cancelReasonText(lesson, t) && <span className="text-muted-foreground">{cancelReasonText(lesson, t)}</span>}
+        <span className="flex min-w-0 grow flex-col gap-0.5">
+          <span className={cancelled ? "font-semibold line-through" : "font-semibold"}>{lessonName(lesson)}</span>
+          <span className="text-muted-foreground">{meta.filter(Boolean).join(" · ")}</span>
+          <span className="flex flex-wrap gap-1 empty:hidden">
+            {lesson.substitute && <Badge tone="info">{t("agenda.substitute")}</Badge>}
+            {!lesson.class && <Badge tone="neutral">{t("agenda.adhoc")}</Badge>}
+            {cancelled && <Badge tone="danger">{t("agenda.cancelled")}</Badge>}
+            {!teacherView && lesson.trialClasses > 0 && <Badge tone="acc">{t("agenda.experimental", { count: lesson.trialClasses })}</Badge>}
           </span>
-        )}
+        </span>
+        {teacherView && !lesson.substitute && <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
+      </Link>
+    </li>
+  );
+}
+
+export const modalityColor = (id: string) => `hsl(${modalityHue(id)} 60% 45%)`;
+
+// Cartão da grade semanal (RF-AGE-01): faixa lateral e fundo suave na cor da modalidade; a posição vem da grade.
+export function GridLessonCard({ lesson, top, height }: { lesson: AgendaLesson; top: number; height: number }) {
+  const { t } = useTranslation();
+  const { search } = useLocation();
+  const cancelled = lesson.status === "CANCELLED";
+  const color = modalityColor(lesson.modality.id);
+  return (
+    <li className="absolute inset-x-0.5 min-w-0 overflow-hidden rounded-md border-l-4 text-xs" style={{ top, height, borderLeftColor: cancelled ? "var(--divider)" : color, backgroundColor: cancelled ? "var(--surface-soft)" : `hsl(${modalityHue(lesson.modality.id)} 60% 45% / 0.12)` }}>
+      <Link to={{ pathname: `/agenda/aulas/${lesson.id}`, search }} className="flex h-full min-w-0 flex-col gap-px p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="text-[11px] text-muted-foreground">
+          {hourLabel(lesson.startsAt)}–{hourLabel(lesson.endsAt)}
+        </span>
+        <span className={`truncate font-semibold ${cancelled ? "line-through" : ""}`}>{lessonName(lesson)}</span>
+        <span className="truncate text-muted-foreground">{lesson.teacher.name}</span>
+        <span className="mt-0.5 flex flex-wrap gap-1">
+          {lesson.substitute && <Badge tone="info">{t("agenda.substitute")}</Badge>}
+          {!lesson.class && <Badge tone="neutral">{t("agenda.adhoc")}</Badge>}
+          {cancelled && <Badge tone="danger">{t("agenda.cancelled")}</Badge>}
+          {lesson.trialClasses > 0 && <Badge tone="acc">{t("agenda.experimental", { count: lesson.trialClasses })}</Badge>}
+        </span>
       </Link>
     </li>
   );

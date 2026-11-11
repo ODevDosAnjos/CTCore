@@ -11,7 +11,7 @@ import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { addDays, br, mondayOf, todayIso } from "./agendaDates";
+import { addDays, brShort, mondayOf, rangeLabel, todayIso } from "./agendaDates";
 import type { AgendaData, AgendaLesson } from "./useAgenda";
 
 const session = (role: string): SessionView => ({
@@ -38,6 +38,8 @@ const lesson = (over: Partial<AgendaLesson>): AgendaLesson => ({
   substitute: false,
   canEdit: true,
   canCancel: true,
+  activeStudents: 10,
+  trialClasses: 0,
   ...over,
 });
 const data = (over: Partial<AgendaData> = {}): AgendaData => ({
@@ -94,44 +96,105 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("AgendaPage", () => {
-  it("CA13: grade da semana com turma, professor e modalidade; cancelada riscada com o rótulo; Sem aula com motivo; selo Substituição", async () => {
+  it("CA3, CA6, CA7: grade da semana com turma, professor, selos, cancelada riscada e Sem aula com o motivo", async () => {
     setup();
     await ready();
     const cell = (await screen.findAllByText("Jiu-Jitsu Adulto"))[0].closest("li")!;
     expect(within(cell).getByText("Ana Souza")).toBeInTheDocument();
-    expect(within(cell).getByText("Jiu-Jitsu")).toBeInTheDocument();
+    expect(within(cell).getByText("19h–20h")).toBeInTheDocument();
     const cancelled = screen.getByText("Judô Infantil").closest("li")!;
     expect(screen.getByText("Judô Infantil")).toHaveClass("line-through");
     expect(within(cancelled).getByText("Cancelada")).toBeInTheDocument();
-    expect(within(cancelled).getByText("Chuva forte")).toBeInTheDocument();
     expect(screen.getByText("Substituição")).toBeInTheDocument();
-    const head = screen.getByText("Sem aula").closest("th")!;
-    expect(head).toHaveClass("bg-muted");
-    expect(within(head).getByText("Feriado local")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: /Seg/ })).toBeInTheDocument();
-    expect(screen.getByRole("rowheader", { name: "18:00" })).toBeInTheDocument();
+    const off = screen.getByText("Sem aula").closest("li")!;
+    expect(off).toHaveAttribute("data-no-class");
+    expect(within(off).getByText("Feriado local")).toBeInTheDocument();
+    expect(screen.getByLabelText("Seg " + Number(monday().slice(8)))).toBeInTheDocument();
+    expect(screen.getByText("Jiu-Jitsu", { selector: "li" })).toBeInTheDocument(); // legenda
     expect(calls[0].get("from")).toBe(monday());
     expect(calls[0].get("to")).toBe(addDays(monday(), 6));
   });
 
-  it("CA13: setas trocam a semana, Hoje e Esta semana voltam; filtros refazem a consulta; unidade só com mais de uma", async () => {
+  it("CA5: escala de 7h a 21h, cartão a 2 px e a 522 px com 74 px e 48 px; aula às 22h estende a escala", async () => {
+    const day = monday();
+    setup({
+      view: data({
+        lessons: [
+          lesson({ id: "a", date: day, startsAt: "07:00", endsAt: "08:30" }),
+          lesson({ id: "b", date: day, startsAt: "17:00", endsAt: "18:00", class: { id: "c9", name: "Boxe" } }),
+        ],
+        noClassDays: [],
+      }),
+    });
+    await ready();
+    const a = (await screen.findByText("Jiu-Jitsu Adulto")).closest("li")!;
+    expect(a).toHaveStyle({ top: "2px", height: "74px" });
+    expect(screen.getByText("Boxe").closest("li")).toHaveStyle({ top: "522px", height: "48px" });
+    expect(screen.getByText("7h–8h30")).toBeInTheDocument();
+    expect(screen.getByLabelText("Seg " + Number(day.slice(8)))).toHaveStyle({ height: "780px" });
+  });
+
+  it("CA5: uma aula às 22h estende a escala até 23h", async () => {
+    setup({ view: data({ lessons: [lesson({ startsAt: "22:00", endsAt: "23:00" })], noClassDays: [] }) });
+    await ready();
+    await screen.findByText("Jiu-Jitsu Adulto");
+    expect(screen.getByLabelText("Seg " + Number(monday().slice(8)))).toHaveStyle({ height: "832px" });
+  });
+
+  it("CA6: aula avulsa e experimentais ganham selo; sem experimental, nenhum", async () => {
+    setup({ view: data({ lessons: [lesson({ id: "av", class: null, title: "Seminário", trialClasses: 1 }), lesson({ id: "x", startsAt: "10:00", endsAt: "11:00" })], noClassDays: [] }) });
+    await ready();
+    expect(await screen.findByText("Avulsa")).toBeInTheDocument();
+    expect(screen.getByText("1 experimental")).toBeInTheDocument();
+    expect(screen.queryAllByText(/experimental/)).toHaveLength(1);
+  });
+
+  it("CA1, CA2: cabeçalho com subtítulo da unidade, Dias sem aula, Nova aula avulsa e sem parágrafo de introdução", async () => {
+    setup();
+    await ready();
+    expect(await screen.findByText("Unidade Centro · 8 semanas sempre criadas a partir dos horários das turmas")).toBeInTheDocument();
+    expect(within(screen.getByRole("heading", { level: 1 }).closest("header")!).getByRole("link", { name: "Dias sem aula" })).toHaveAttribute("href", "/dias-sem-aula");
+    expect(screen.getByRole("button", { name: "Nova aula avulsa" })).toBeInTheDocument();
+    expect(screen.queryByText(/As aulas da semana da sua unidade/)).toBeNull();
+  });
+
+  it("CA2: o Professor sem Dias sem aula não vê o link", async () => {
+    setup({ role: "TEACHER" });
+    await ready();
+    await screen.findByText("Substituição");
+    expect(within(screen.getByRole("heading", { level: 1 }).closest("header")!).queryByRole("link", { name: "Dias sem aula" })).toBeNull();
+  });
+
+  it("CA3: Esta semana marcada, Próxima semana avança 7 dias e a marca muda; setas movem 7 dias; faixa por extenso", async () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Substituição");
-    expect(screen.queryByLabelText("Unidade")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Próxima semana" }));
+    expect(screen.getByRole("radio", { name: "Esta semana" })).toBeChecked();
+    await user.click(screen.getByRole("radio", { name: "Próxima semana" }));
     await waitFor(() => expect(calls.at(-1)!.get("from")).toBe(addDays(monday(), 7)));
-    expect(screen.getByText(`${br(addDays(monday(), 7))} a ${br(addDays(monday(), 13))}`)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Próxima semana" })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Próxima semana" }));
+    await waitFor(() => expect(calls.at(-1)!.get("from")).toBe(addDays(monday(), 14)));
+    expect(screen.getByRole("radio", { name: "Esta semana" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Próxima semana" })).not.toBeChecked();
     await user.click(screen.getByRole("button", { name: "Hoje" }));
     await waitFor(() => expect(calls.at(-1)!.get("from")).toBe(monday()));
     await user.click(screen.getByRole("button", { name: "Semana anterior" }));
     await waitFor(() => expect(calls.at(-1)!.get("from")).toBe(addDays(monday(), -7)));
-    await user.click(screen.getByRole("button", { name: "Esta semana" }));
-    await waitFor(() => expect(calls.at(-1)!.get("from")).toBe(monday()));
-    await user.selectOptions(await screen.findByLabelText("Professor"), "t1");
+    expect(screen.getByText("2 a 8 de novembro de 2026")).toBeInTheDocument();
+  });
+
+  it("CA4: escolher a modalidade refaz a consulta e a pílula mostra o nome; filtro de professor refaz a consulta", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByText("Substituição");
+    await user.click(screen.getByRole("button", { name: /Professor/ }));
+    await user.click(await screen.findByRole("option", { name: "Ana Souza" }));
     await waitFor(() => expect(calls.at(-1)!.get("teacherId")).toBe("t1"));
-    await user.selectOptions(screen.getByLabelText("Modalidade"), "m2");
+    await user.click(screen.getByRole("button", { name: /Modalidade/ }));
+    await user.click(await screen.findByRole("option", { name: "Judô" }));
     await waitFor(() => expect(calls.at(-1)!.get("modalityId")).toBe("m2"));
+    expect(screen.getByRole("button", { name: "Modalidade Judô" })).toBeInTheDocument();
   });
 
   it("CA13: com mais de uma unidade aparece o seletor e escolher refaz a consulta sem os filtros antigos", async () => {
@@ -147,18 +210,18 @@ describe("AgendaPage", () => {
     setup({ width: 360 });
     await ready();
     const today = todayIso();
-    expect(await screen.findByText(br(today), { exact: false })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: new RegExp(brShort(today)) })).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Dia anterior" }));
     await user.click(screen.getByRole("button", { name: "Dia anterior" }));
     await user.click(screen.getByRole("button", { name: "Hoje" }));
     expect(screen.getByRole("button", { name: "Próximo dia" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Próximo dia" }));
-    expect(await screen.findByText(br(addDays(today, 1)), { exact: false })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: new RegExp(brShort(addDays(today, 1))) })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Esta semana" }));
-    expect(await screen.findByText(br(addDays(today, 1)), { exact: false })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: new RegExp(brShort(addDays(today, 1))) })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Hoje" }));
-    expect(await screen.findByText(br(today), { exact: false })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: new RegExp(brShort(today)) })).toBeInTheDocument();
   });
 
   it("CA14: a lista do dia mostra cancelada riscada, selo e Sem aula com o motivo", async () => {
@@ -174,9 +237,55 @@ describe("AgendaPage", () => {
     expect(await screen.findByText("Cancelada")).toBeInTheDocument();
     expect(screen.getByText("Jiu-Jitsu Adulto")).toHaveClass("line-through");
     expect(screen.getByText("Substituição")).toBeInTheDocument();
-    expect(screen.getByText("Sem aula")).toBeInTheDocument();
-    expect(screen.getByText(/Feriado local/)).toBeInTheDocument();
+    expect(screen.getByText(/sem aula · Feriado local/)).toBeInTheDocument();
     expect(screen.getByText("Boxe Noite")).toBeInTheDocument();
+  });
+
+  it("CA9, celular: cabeçalho do dia, hora grande com até, N alunos, aviso de dia sem aula, pílulas e Nova aula avulsa ao pé", async () => {
+    const day = todayIso();
+    setup({
+      width: 390,
+      view: data({
+        lessons: [lesson({ id: "m1", date: day, startsAt: "07:00", endsAt: "08:30", activeStudents: 12, trialClasses: 1 })],
+        noClassDays: [{ startsOn: addDays(day, 1), endsOn: addDays(day, 1), reason: "Feriado local" }],
+      }),
+    });
+    await ready();
+    const card = (await screen.findByText("Jiu-Jitsu Adulto")).closest("li")!;
+    expect(within(card).getByText("7h")).toBeInTheDocument();
+    expect(within(card).getByText("até 8h30")).toBeInTheDocument();
+    expect(within(card).getByText("Ana Souza · 12 alunos")).toBeInTheDocument();
+    expect(within(card).getByText("1 experimental")).toBeInTheDocument();
+    expect(screen.getByText(/^1 aula · Centro$/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Professor/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Modalidade/ })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    expect(await screen.findByText(/sem aula · Feriado local/)).toBeInTheDocument();
+    const buttons = screen.getAllByRole("button", { name: "Nova aula avulsa" });
+    expect(buttons).toHaveLength(1);
+  });
+
+  it("CA10, celular: o Professor vê só título com setas, sem pílulas, com unidade, chevron e selo de substituição", async () => {
+    const day = todayIso();
+    setup({
+      role: "TEACHER",
+      width: 390,
+      view: data({
+        lessons: [
+          lesson({ id: "p1", date: day, activeStudents: 8, trialClasses: 2 }),
+          lesson({ id: "p2", date: day, startsAt: "20:00", endsAt: "21:00", substitute: true, class: { id: "c5", name: "Boxe" }, activeStudents: 5 }),
+        ],
+        noClassDays: [],
+      }),
+    });
+    await ready();
+    const a = (await screen.findByText("Jiu-Jitsu Adulto")).closest("li")!;
+    expect(within(a).getByText("Centro · 8 alunos · 2 experimentais")).toBeInTheDocument();
+    expect(within(screen.getByText("Boxe").closest("li")!).getByText("Substituição")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Professor Todos/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Hoje" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Dia anterior" })).toBeInTheDocument();
   });
 
   it("CA14: dia sem aulas na lista mostra o estado vazio", async () => {
@@ -227,5 +336,13 @@ describe("AgendaPage", () => {
     const { container } = setup();
     await screen.findByText("Substituição");
     expect(await axeViolations(container)).toEqual([]);
+  });
+});
+
+describe("agendaDates", () => {
+  it("D2: faixa por extenso, com mês e ano quando a semana cruza meses", () => {
+    expect(rangeLabel("2026-10-12", "2026-10-18")).toBe("12 a 18 de outubro de 2026");
+    expect(rangeLabel("2026-09-28", "2026-10-04")).toBe("28 de setembro a 4 de outubro de 2026");
+    expect(rangeLabel("2026-12-28", "2027-01-03")).toBe("28 de dezembro de 2026 a 3 de janeiro de 2027");
   });
 });

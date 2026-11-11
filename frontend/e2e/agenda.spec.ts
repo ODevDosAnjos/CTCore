@@ -25,10 +25,10 @@ test("@critical Coordenador abre a Agenda", async ({ page }) => {
   await page.getByRole("button", { name: "Hoje" }).click();
   await expect(page.getByText("Sem aula").first()).toBeVisible();
 
-  // RF-AGE-02: clicar numa aula abre o painel dela.
+  // RF-AGE-02: clicar numa aula abre o painel dela em gaveta sobre a agenda.
   await page.getByRole("button", { name: "Próxima semana" }).click();
   await page.getByRole("link", { name: /Jiu-Jitsu Adulto/ }).first().click();
-  await expect(page.getByRole("heading", { name: "Jiu-Jitsu Adulto", level: 1 })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "Jiu-Jitsu Adulto" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver turma" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Avisar turma" })).toBeVisible();
 
@@ -39,10 +39,9 @@ test("@critical Coordenador abre a Agenda", async ({ page }) => {
   await edit.getByLabel("Início").fill("06:15");
   await edit.getByLabel("Término").fill("07:15");
   await edit.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText(/das 06:15 às 07:15/)).toBeVisible();
-  await page.getByRole("link", { name: "Voltar à agenda" }).click();
+  await expect(page.getByText(/6h15–7h15/)).toBeVisible();
+  await page.getByRole("button", { name: "Fechar" }).click(); // volta à agenda, na mesma semana
   await expect(page.getByRole("heading", { name: "Agenda", level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: "Próxima semana" }).click();
   await page.getByRole("link", { name: /Jiu-Jitsu Adulto/ }).last().click();
   await page.getByRole("button", { name: "Cancelar aula" }).click();
   const cancel = page.getByRole("dialog", { name: "Cancelar aula" });
@@ -52,7 +51,7 @@ test("@critical Coordenador abre a Agenda", async ({ page }) => {
   await expect(page.getByText("Cancelada").first()).toBeVisible();
 
   // RF-AGE-04: o Coordenador cria uma aula avulsa e a vê na agenda.
-  await page.getByRole("link", { name: "Voltar à agenda" }).click();
+  await page.getByRole("button", { name: "Fechar" }).click();
   await page.getByRole("button", { name: "Nova aula avulsa" }).click();
   const adhoc = page.getByRole("dialog", { name: "Nova aula avulsa" });
   await adhoc.getByLabel("Título").fill("Seminário de quedas");
@@ -62,8 +61,10 @@ test("@critical Coordenador abre a Agenda", async ({ page }) => {
   await adhoc.getByLabel("Professor").selectOption({ label: "Ana Souza" });
   await adhoc.getByRole("button", { name: "Criar aula" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText("Seminário de quedas").first()).toBeVisible();
-  await expect(page.getByText("Avulsa").first()).toBeVisible();
+  await page.getByRole("button", { name: "Hoje" }).click(); // a aula avulsa nasce com a data de hoje
+  const card = page.getByRole("link", { name: /Seminário de quedas/ });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("Avulsa");
 });
 
 // #460 CA3/CA7: a 360 px as janelas de aula avulsa e de cobrança avulsa cabem na tela, sem rolagem lateral.
