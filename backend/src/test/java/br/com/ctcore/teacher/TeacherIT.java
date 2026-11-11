@@ -29,6 +29,7 @@ class TeacherIT extends OrganizationBase {
     void clean() {
         adminJdbc().update("delete from lesson");
         adminJdbc().update("delete from training_class_assistant");
+        adminJdbc().update("delete from training_class_schedule");
         adminJdbc().update("delete from training_class");
         adminJdbc().update("delete from teacher_modality");
         adminJdbc().update("delete from organization_modality");
@@ -152,6 +153,82 @@ class TeacherIT extends OrganizationBase {
         assertThat(substitute.get("upcomingClasses").findValuesAsText("name")).containsExactly("Judô Kids", "Judô Adulto");
         var other = tenant();
         assertThat(body(call(MockMvcRequestBuilders.get("/api/v1/teachers/" + ana), who(other, Role.COORDINATOR)).getResponse()).has("upcomingClasses")).isFalse();
+    }
+
+    @Test
+    @DisplayName("RF-PRO-01 (#470 CA3): modalidades trazem as cores do nível; counts valem para alcance e unidade, sem os demais filtros")
+    void countsAndColors() throws Exception {
+        var t = tenant();
+        UUID second = unit(t, "Zona Sul");
+        UUID jj = modality("Jiu-Jitsu");
+        UUID blue = level(t, jj, "Azul", 4);
+        adminJdbc().update("update graduation_level set secondary_color = '#445566' where id = ?", blue);
+        offer(t, jj, true);
+        UUID a1 = account();
+        UUID a2 = account();
+        UUID a3 = account();
+        link(t, a1, "TEACHER", "ACTIVE");
+        link(t, a2, "TEACHER", "PENDING");
+        link(t, a3, "TEACHER", "ACTIVE");
+        UUID ana = teacher(t, "Ana", "ACTIVE", a1, t.unitId());
+        teacher(t, "Beto", "ACTIVE", a2, t.unitId());
+        teacher(t, "Caio", "INACTIVE", a3, t.unitId());
+        teacher(t, "Dani", "ACTIVE", null, second);
+        teaches(t, ana, jj, blue, 1);
+        teaches(t, ana, modality("Judô"), null, 0);
+        var c = who(t, Role.COORDINATOR);
+        var all = body(get("", c));
+        assertThat(all.get("counts").get("active").asInt()).isEqualTo(3);
+        assertThat(all.get("counts").get("withAccess").asInt()).isEqualTo(1);
+        var mods = all.get("items").get(0).get("modalities");
+        assertThat(mods.get(0).get("levelColor").asText()).isEqualTo("#112233");
+        assertThat(mods.get(0).get("levelSecondaryColor").asText()).isEqualTo("#445566");
+        assertThat(mods.get(1).get("levelColor").isNull()).isTrue();
+        assertThat(mods.get(1).get("levelSecondaryColor").isNull()).isTrue();
+        var filtered = body(get("?status=INACTIVE&q=caio", c));
+        assertThat(filtered.get("total").asInt()).isEqualTo(1);
+        assertThat(filtered.get("counts").get("active").asInt()).isEqualTo(3);
+        assertThat(body(get("?unitId=" + second, c)).get("counts").get("active").asInt()).isEqualTo(1);
+        assertThat(body(get("?unitId=" + second, c)).get("counts").get("withAccess").asInt()).isZero();
+        var admin = body(get("", who(t, Role.ADMINISTRATOR)));
+        assertThat(admin.get("counts").get("active").asInt()).isEqualTo(2);
+        assertThat(admin.get("counts").get("withAccess").asInt()).isEqualTo(1);
+        assertThat(body(get("?unitId=" + second, who(t, Role.ADMINISTRATOR))).get("counts").get("active").asInt()).isZero();
+        var other = tenant();
+        assertThat(body(get("", who(other, Role.COORDINATOR))).get("counts").get("active").asInt()).isZero();
+    }
+
+    @Test
+    @DisplayName("RF-PRO-02 (#470 CA5): painel traz modalidade, unidade e horários das turmas, substituições e último acesso; nulo sem conta")
+    void panelNewFields() throws Exception {
+        var t = tenant();
+        UUID judo = modality("Judô");
+        UUID account = account();
+        link(t, account, "TEACHER", "ACTIVE");
+        adminJdbc().update("update account set last_access_at = '2026-11-10T10:10:00Z' where id = ?", account);
+        UUID ana = teacher(t, "Ana", "ACTIVE", account, t.unitId());
+        UUID beto = teacher(t, "Beto", "ACTIVE", null, t.unitId());
+        UUID adulto = classOf(t, "Judô Adulto", judo, ana, "ACTIVE");
+        UUID kids = classOf(t, "Judô Kids", judo, beto, "ACTIVE", ana);
+        adminJdbc().update("insert into training_class_schedule (organization_id, class_id, weekday, starts_at, ends_at) values (?, ?, 1, '19:00', '20:00'), (?, ?, 3, '19:00', '20:00')",
+                t.orgId(), adulto, t.orgId(), adulto);
+        lesson(t, kids, null, null, 2, "18:00", ana, false);
+        adminJdbc().update("update lesson set substitute = true where class_id = ?", kids);
+        lesson(t, adulto, null, null, 1, "19:00", ana, false);
+        var c = who(t, Role.COORDINATOR);
+        var d = body(call(MockMvcRequestBuilders.get("/api/v1/teachers/" + ana), c).getResponse());
+        var first = d.get("classes").get(0);
+        assertThat(first.get("modalityId").asText()).isEqualTo(judo.toString());
+        assertThat(first.get("unitName").asText()).isEqualTo("Unit");
+        assertThat(first.get("schedule").findValuesAsText("weekday")).containsExactly("1", "3");
+        assertThat(first.get("schedule").get(0).get("startsAt").asText()).isEqualTo("19:00");
+        assertThat(d.get("classes").get(1).get("schedule")).isEmpty();
+        assertThat(d.get("substitutions")).hasSize(1);
+        assertThat(d.get("substitutions").get(0).get("classId").asText()).isEqualTo(kids.toString());
+        assertThat(d.get("lastAccessAt").asText()).startsWith("2026-11-10T10:10");
+        var bare = body(call(MockMvcRequestBuilders.get("/api/v1/teachers/" + beto), c).getResponse());
+        assertThat(bare.get("lastAccessAt").isNull()).isTrue();
+        assertThat(bare.get("substitutions")).isEmpty();
     }
 
     @Test

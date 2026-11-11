@@ -2,10 +2,11 @@ import { useContext, useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { FilterSheetContext } from "@/components/query/FilterSheet";
 import { Select } from "@/components/ui/field";
+import { ModalityDot } from "@/components/ui/modality-dot";
 import { usePopover } from "@/components/layout/usePopover";
 import { cn } from "@/lib/utils";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name: string; /** Ponto de cor da modalidade antes do nome. */ dot?: boolean };
 
 /** Filtro em pílula do canvas: "Rótulo Valor ⌄" que abre uma lista de uma escolha; a opção "todas" vem primeiro. */
 export function PillFilter({ label, value, onChange, allLabel, options, disabled }: { label: string; value: string; onChange: (id: string) => void; allLabel: string; options: Option[]; disabled?: boolean }) {
@@ -71,7 +72,7 @@ export function PillFilter({ label, value, onChange, allLabel, options, disabled
         )}
       >
         <span className="text-muted-foreground">{label}</span>{" "}
-        <span className="truncate font-medium">{selected?.name ?? allLabel}</span>
+        <span className="truncate font-medium">{selected?.dot ? <ModalityDot name={selected.name} /> : (selected?.name ?? allLabel)}</span>
         <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       </button>
       {open && (
@@ -96,7 +97,7 @@ export function PillFilter({ label, value, onChange, allLabel, options, disabled
               }}
               className="flex min-h-11 cursor-pointer items-center rounded-sm px-3 hover:bg-surface-soft focus-visible:bg-surface-soft focus-visible:outline-none aria-selected:font-medium"
             >
-              {o.name}
+              {o.dot ? <ModalityDot name={o.name} /> : o.name}
             </li>
           ))}
         </ul>

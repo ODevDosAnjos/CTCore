@@ -1747,7 +1747,8 @@ paths:
         Ordenada por nome e depois id (`sort=name`). O Coordenador vê todos; o Administrador vê os professores com ao menos uma das suas
         unidades (e todas as unidades deles); `unitId` fora do alcance dele devolve lista vazia. Professor, Aluno e Responsável recebem 403.
         Sem `status` traz `ACTIVE` e `INACTIVE`. `q` ignora acento e maiúsculas; os filtros combinam (E). `classCount` conta as turmas ativas em que é titular ou auxiliar.
-        `photoUrl` é uma URL temporária assinada. A resposta nunca traz telefone nem e-mail (RN-PRO-04).
+        `photoUrl` é uma URL temporária assinada. A resposta nunca traz telefone nem e-mail (RN-PRO-04). `counts` traz os professores ativos e os ativos
+        com acesso `ACTIVE` para o alcance de quem chama e a unidade escolhida, sem os demais filtros.
       security: [{ sessionCookie: [] }]
       parameters:
         - { name: q, in: query, required: false, schema: { type: string } }
@@ -1927,8 +1928,9 @@ paths:
     get:
       summary: Pré-visualiza a inativação do professor (RF-PRO-04). Coordenador e Administrador.
       description: |
-        Não altera nada. `headClasses` lista as turmas em que o professor é titular e que ficarão sem titular (turmas ativas).
-        `canDeactivate` é falso se o professor já está inativo ou, para o Administrador, se alguma unidade do professor (ativa ou não)
+        Não altera nada. `headClasses` lista as turmas ativas em que o professor é titular e que ficarão sem titular, cada uma com a unidade e os
+        `candidates` a novo titular (professores ativos da unidade que ensinam a modalidade da turma, menos o próprio); `assistantClasses` lista as
+        turmas ativas em que ele é auxiliar e das quais sai. `canDeactivate` é falso se o professor já está inativo ou, para o Administrador, se alguma unidade do professor (ativa ou não)
         está fora do alcance dele. Administrador sem alcance sobre o professor: 404.
       security: [{ sessionCookie: [] }]
       parameters:
@@ -1945,15 +1947,24 @@ paths:
       summary: Inativa o professor (RF-PRO-04, RN-PRO-05). Coordenador e Administrador.
       description: |
         Muda a situação para `INACTIVE`, encerra o vínculo de Professor na organização (convite pendente é cancelado) e as sessões que
-        dependiam dele; a conta e o cadastro continuam. Sem corpo. O Coordenador inativa qualquer professor; o Administrador só quem tem
-        todas as unidades entre as dele (senão 403). Professor já inativo: 409. Grava `teacher.deactivated`, sem e-mail nem telefone.
+        dependiam dele; a conta e o cadastro continuam. O corpo traz `reason` (obrigatório, 3 a 200 caracteres, só na auditoria) e `replacements`
+        (opcional): para cada item, a turma tem o titular trocado por `teacherId` (ativo, da unidade da turma, que ensina a modalidade) e deixa de
+        ser "turma sem professor ativo"; as turmas sem item ficam sem titular (RN-PRO-05). O professor sai das turmas em que era auxiliar. Tudo na
+        mesma transação. `reason` ausente ou fora de 3 a 200: 400 em `reason`; `teacherId` inválido: 400 em `replacements`; `classId` que não é
+        turma ativa dele como titular (ou é de outra organização): 400 em `replacements`, sem revelar a existência. O Coordenador inativa qualquer
+        professor; o Administrador só quem tem todas as unidades entre as dele (senão 403). Professor já inativo: 409. Grava `teacher.deactivated`
+        (com o motivo e as turmas afetadas) e `class.updated` por turma trocada, sem e-mail nem telefone.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDeactivateInput' } } }
       responses:
         '200':
           description: Painel com `status` igual a `INACTIVE`.
           content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDetail' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4379,6 +4390,7 @@ components:
               receiptNumber: { type: integer }
     TeacherRow:
       type: object
+      description: Cada item de `modalities` traz as cores do nível (RN-PRO-03), nulas sem nível.
       required: [id, name, photoUrl, modalities, units, classCount, status, directoryConsent, access]
       properties:
         id: { type: string, format: uuid }
@@ -4388,13 +4400,15 @@ components:
           type: array
           items:
             type: object
-            required: [id, name, levelId, level, degree]
+            required: [id, name, levelId, level, degree, levelColor, levelSecondaryColor]
             properties:
               id: { type: string, format: uuid }
               name: { type: string }
               levelId: { type: string, format: uuid, nullable: true }
               level: { type: string, nullable: true, description: Nível de graduação no sistema da organização. }
               degree: { type: integer, nullable: true, minimum: 0, maximum: 10 }
+              levelColor: { type: string, nullable: true, pattern: '^#[0-9A-Fa-f]{6}$', description: Cor do nível (faixa); nulo sem nível. }
+              levelSecondaryColor: { type: string, nullable: true, pattern: '^#[0-9A-Fa-f]{6}$', description: "Segunda cor da faixa, quando o nível tem; nulo sem nível ou sem segunda cor." }
         units:
           type: array
           items:
@@ -4847,11 +4861,32 @@ components:
       allOf:
         - $ref: '#/components/schemas/Page'
         - type: object
+          required: [counts]
           properties:
             items: { type: array, items: { $ref: '#/components/schemas/TeacherRow' } }
+            counts:
+              type: object
+              required: [active, withAccess]
+              description: Professores ativos e ativos com acesso `ACTIVE`, sobre o alcance de quem chama e a unidade escolhida, sem os demais filtros.
+              properties:
+                active: { type: integer, minimum: 0 }
+                withAccess: { type: integer, minimum: 0 }
+    TeacherDeactivateInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 200 }
+        replacements:
+          type: array
+          items:
+            type: object
+            required: [classId, teacherId]
+            properties:
+              classId: { type: string, format: uuid }
+              teacherId: { type: string, format: uuid }
     TeacherDetail:
       type: object
-      required: [id, name, photoUrl, bio, email, phone, directoryConsent, consentDeclaredByManagement, status, modalities, units, classes, upcomingClasses, access]
+      required: [id, name, photoUrl, bio, email, phone, directoryConsent, consentDeclaredByManagement, status, modalities, units, classes, upcomingClasses, substitutions, lastAccessAt, access]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -4869,11 +4904,34 @@ components:
           description: Turmas ativas como titular ou auxiliar, por nome (as mesmas contadas em `classCount`).
           items:
             type: object
-            required: [id, name, role]
+            required: [id, name, role, modalityId, unitName, schedule]
             properties:
               id: { type: string, format: uuid }
               name: { type: string }
               role: { type: string, enum: [HEAD, ASSISTANT] }
+              modalityId: { type: string, format: uuid }
+              unitName: { type: string }
+              schedule:
+                type: array
+                description: Um horário por dia da semana, por dia (1 segunda a 7 domingo); horas de parede da unidade.
+                items:
+                  type: object
+                  required: [weekday, startsAt, endsAt]
+                  properties:
+                    weekday: { type: integer, minimum: 1, maximum: 7 }
+                    startsAt: { type: string, example: '19:00' }
+                    endsAt: { type: string, example: '20:00' }
+        substitutions:
+          type: array
+          description: Até 10 próximas aulas não canceladas de turma em que o professor substitui o titular, por início.
+          items:
+            type: object
+            required: [classId, name, startsAt]
+            properties:
+              classId: { type: string, format: uuid }
+              name: { type: string }
+              startsAt: { type: string, format: date-time }
+        lastAccessAt: { type: string, format: date-time, nullable: true, description: Último acesso da conta; nulo sem conta ou sem acesso. }
         upcomingClasses:
           type: array
           description: Até 10 próximas aulas não canceladas em que o professor dá a aula (titular ou substituto) ou é auxiliar da turma, por início. A aula avulsa traz `classId` nulo e o título em `name`.
@@ -4887,18 +4945,39 @@ components:
         access: { type: string, enum: [NONE, PENDING, ACTIVE, ENDED] }
     TeacherDeactivationPreview:
       type: object
-      required: [headClasses, canDeactivate]
+      required: [headClasses, assistantClasses, canDeactivate]
       properties:
         headClasses:
           type: array
           description: Turmas ativas que ficarão sem titular.
           items:
             type: object
-            required: [id, name, role]
+            required: [id, name, role, unitName, candidates]
             properties:
               id: { type: string, format: uuid }
               name: { type: string }
               role: { type: string, enum: [HEAD, ASSISTANT] }
+              unitName: { type: string }
+              candidates:
+                type: array
+                description: Professores ativos da unidade que ensinam a modalidade da turma, menos o próprio.
+                items:
+                  type: object
+                  required: [id, name]
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string }
+        assistantClasses:
+          type: array
+          description: Turmas ativas em que o professor é auxiliar e das quais sai.
+          items:
+            type: object
+            required: [id, name, role, unitName]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              role: { type: string, enum: [ASSISTANT] }
+              unitName: { type: string }
         canDeactivate: { type: boolean }
     TeacherInput:
       type: object

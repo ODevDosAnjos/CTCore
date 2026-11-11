@@ -17,6 +17,7 @@ export function DataTable<T>({
   selectable,
   selected = [],
   onSelectionChange,
+  onRowClick,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -26,6 +27,8 @@ export function DataTable<T>({
   selectable?: boolean;
   selected?: string[];
   onSelectionChange?: (keys: string[]) => void;
+  /** Clique na linha (fora de links e botões); o teclado usa o link da própria linha. */
+  onRowClick?: (row: T) => void;
 }) {
   const { t } = useTranslation();
   const desc = order.startsWith("-");
@@ -73,7 +76,11 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={rowKey(r)} className="h-[52px] border-t border-divider hover:bg-surface-soft">
+            <tr
+              key={rowKey(r)}
+              className={cn("h-[52px] border-t border-divider hover:bg-surface-soft", onRowClick && "cursor-pointer")}
+              onClick={onRowClick && ((e) => !(e.target as HTMLElement).closest("a,button,input") && onRowClick(r))}
+            >
               {selectable && (
                 <td className="px-3">
                   <Checkbox aria-label={t("ui.selectRow")} checked={selected.includes(rowKey(r))} onChange={() => toggle(rowKey(r))} />

@@ -31,6 +31,8 @@ export function QueryPage<T>({
   canvasPagination,
   canvasStates,
   header,
+  defaultFilters = {},
+  onRowClick,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
@@ -55,6 +57,10 @@ export function QueryPage<T>({
   canvasStates?: boolean;
   /** Cabeçalho da tela acima da busca; recebe os totais da lista (ex.: subtítulo com a contagem). */
   header?: (p: { counts?: Record<string, number>; total?: number }) => ReactNode;
+  /** Valor de filtro quando o endereço não traz o parâmetro (ex.: `{ status: "ACTIVE" }`). A tela grava um valor próprio (ex.: "ALL") para o "Todos" não reaplicar o padrão. */
+  defaultFilters?: Record<string, string>;
+  /** Linha da tabela clicável (o link do nome continua sendo o alvo do teclado). */
+  onRowClick?: (row: T) => void;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -68,9 +74,11 @@ export function QueryPage<T>({
   const ordem = columns.some((c) => c.sortable && c.key === rawOrder.replace(/^-/, "")) ? rawOrder : "";
   const rawSize = Number(get("tamanho"));
   const tamanho = (PAGE_SIZES as readonly number[]).includes(rawSize) ? rawSize : DEFAULT_PAGE_SIZE;
-  const filtros = Object.fromEntries(filterKeys.map((k) => [k, get(k)]).filter(([, v]) => v));
+  const getF = (k: string) => get(k) || defaultFilters[k] || "";
+  const filtros = Object.fromEntries(filterKeys.map((k) => [k, getF(k)]).filter(([, v]) => v));
   const filtrosKey = JSON.stringify(filtros);
-  const hasFilter = Boolean(q) || Object.keys(filtros).length > 0;
+  // O padrão da tela não conta como filtro: sem resultado nele, o vazio é o de "nada ainda".
+  const hasFilter = Boolean(q) || Object.entries(filtros).some(([k, v]) => v !== defaultFilters[k]);
 
   // O resultado guarda a chave da consulta que o gerou; chave diferente da atual significa carregando.
   const [tick, setTick] = useState(0);
@@ -147,7 +155,7 @@ export function QueryPage<T>({
       <>
         {!(cardsOnly && narrow) && (
           <div className={cards && !cardsOnly ? "hidden md:block" : undefined}>
-            <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} order={ordem} onOrder={(o) => set({ ordem: o })} />
+            <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} onRowClick={onRowClick} order={ordem} onOrder={(o) => set({ ordem: o })} />
           </div>
         )}
         {cards && (!cardsOnly || narrow) && (
@@ -187,7 +195,7 @@ export function QueryPage<T>({
             onChange={(e) => set({ q: e.target.value })}
           />
         )}
-        {filters?.({ get, set: (k, v) => set({ [k]: v }), counts: lastCounts, total: lastTotal, clear })}
+        {filters?.({ get: getF, set: (k, v) => set({ [k]: v }), counts: lastCounts, total: lastTotal, clear })}
       </form>
       {body}
     </div>

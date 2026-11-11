@@ -12,6 +12,10 @@ import br.com.ctcore.identity.InviteService;
 import br.com.ctcore.identity.LinkService;
 import br.com.ctcore.identity.Role;
 import br.com.ctcore.isolation.OrganizationTransactions;
+import br.com.ctcore.api.error.ApiValidationException;
+import br.com.ctcore.trainingclass.TrainingClassWrite;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,8 +32,14 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class TeacherDeactivation {
-    public record Preview(List<Teachers.ClassRef> headClasses, boolean canDeactivate) {}
+    public record Preview(List<Teachers.DeactivationClass> headClasses, List<Teachers.AssistantClass> assistantClasses, boolean canDeactivate) {}
 
+    /** RN-PRO-05: novo titular de uma turma do professor inativado. */
+    public record Replacement(UUID classId, UUID teacherId) {}
+
+    public record Request(String reason, List<Replacement> replacements) {}
+
+    private final TrainingClassWrite classWrite;
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
     private final Teachers teachers;
@@ -39,7 +49,8 @@ public class TeacherDeactivation {
     private final BenefitWrite benefitWrite;
 
     public TeacherDeactivation(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Teachers teachers, LinkService links,
-            InviteService invites, AuditService audit, BenefitWrite benefitWrite) {
+            InviteService invites, AuditService audit, BenefitWrite benefitWrite, TrainingClassWrite classWrite) {
+        this.classWrite = classWrite;
         this.jdbc = jdbc;
         this.transactions = transactions;
         this.teachers = teachers;
@@ -65,12 +76,15 @@ public class TeacherDeactivation {
         teachers.requireAccess(who);
         return transactions.execute(() -> {
             Teachers.Basic t = teachers.find(who, id);
-            return new Preview(teachers.headClasses(id), t.status().equals("ACTIVE") && inReach(who, id));
+            return new Preview(teachers.headClasses(id), teachers.assistantClasses(id), t.status().equals("ACTIVE") && inReach(who, id));
         });
     }
 
-    public Teachers.Detail deactivate(AccountPrincipal who, UUID id, String ip) {
+    public Teachers.Detail deactivate(AccountPrincipal who, UUID id, Request request, String ip) {
         teachers.requireAccess(who);
+        String reason = request == null || request.reason() == null ? "" : request.reason().strip();
+        if (reason.length() < 3 || reason.length() > 200) throw new ApiValidationException("reason", "de 3 a 200 caracteres");
+        List<Replacement> replacements = request.replacements() == null ? List.of() : request.replacements();
         Inviter inviter = new Inviter(who.accountId(), who.role(), who.units());
         // O fim das sessões audita em outras organizações e por isso roda depois do commit desta.
         record Result(Teachers.Detail detail, LinkService.Before ended) {}
@@ -79,6 +93,19 @@ public class TeacherDeactivation {
             Teachers.Basic t = teachers.find(who, id);
             if (!inReach(who, id)) throw new AccessDeniedException("Units out of reach");
             if (t.status().equals("INACTIVE")) throw new ApiStatusException(ErrorCode.CONFLICT);
+            // Tudo é validado e gravado na mesma transação: um erro de campo desfaz até a troca de titular já feita.
+            List<Teachers.DeactivationClass> heads = teachers.headClasses(id);
+            List<Teachers.AssistantClass> assistants = teachers.assistantClasses(id);
+            Set<UUID> headIds = new HashSet<>(heads.stream().map(Teachers.DeactivationClass::id).toList());
+            Set<UUID> replaced = new LinkedHashSet<>();
+            for (Replacement rep : replacements) {
+                if (rep == null || rep.classId() == null || rep.teacherId() == null || rep.teacherId().equals(id) || !headIds.contains(rep.classId()) || !replaced.add(rep.classId())) {
+                    throw new ApiValidationException("replacements", "turma ou professor inválido");
+                }
+                classWrite.replaceHead(who, rep.classId(), rep.teacherId(), ip);
+            }
+            jdbc.sql("delete from training_class_assistant where organization_id = :org and teacher_id = :id and class_id in (select id from training_class where status = 'ACTIVE')")
+                    .param("org", who.organizationId()).param("id", id).update();
             LinkService.Before ended = null;
             if (t.accountId() != null && !t.access().equals("NONE") && !t.access().equals("ENDED")) {
                 UUID link = jdbc.sql("select id from account_link where organization_id = :org and account_id = :a and role = 'TEACHER'")
@@ -89,7 +116,9 @@ public class TeacherDeactivation {
             jdbc.sql("update teacher set status = 'INACTIVE' where id = :id").param("id", id).update();
             benefitWrite.endTeacherBenefits(who, id, ip);
             audit.record(new AuditEntry(actor(who), "teacher.deactivated", "teacher", id.toString(), null,
-                    Map.of("status", "ACTIVE"), Map.of("status", "INACTIVE", "classesWithoutHead", teachers.headClasses(id).size(),
+                    Map.of("status", "ACTIVE"), Map.of("status", "INACTIVE", "reason", reason, "classesWithoutHead", heads.size() - replaced.size(),
+                            "replacedClassIds", replaced.stream().map(UUID::toString).toList(),
+                            "assistantClassIds", assistants.stream().map(a -> a.id().toString()).toList(),
                             "accessEnded", !t.access().equals("NONE") && !t.access().equals("ENDED")), null, ip));
             return new Result(teachers.detail(who, id), ended);
         });

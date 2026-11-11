@@ -15,11 +15,13 @@ export function ConfirmDialog({
   summaryItems,
   summaryLabel,
   reason = "none",
+  reasonLabel,
   typedText,
   confirmLabel,
   onConfirm,
   tone,
   size,
+  scrim,
   subtitle,
   cancelLabel,
   confirmDisabled,
@@ -32,13 +34,16 @@ export function ConfirmDialog({
   summaryItems?: string[];
   summaryLabel?: string;
   reason?: "none" | "optional" | "required";
+  /** Rótulo do campo de motivo, quando o canvas pede outro texto (ex.: "Motivo *"). */
+  reasonLabel?: string;
   typedText?: string;
   confirmLabel?: string;
   onConfirm: (reason: string) => void | Promise<void>;
   /** "danger": ação principal em vermelho e "Cancelar" fantasma (canvas). Sem ele, o visual de sempre. */
   tone?: "danger";
   /** Repassado à Modal (janela do canvas: título em caixa alta e rodapé fixo). */
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
+  scrim?: "canvas";
   subtitle?: string;
   cancelLabel?: string;
   confirmDisabled?: boolean;
@@ -88,6 +93,7 @@ export function ConfirmDialog({
       onOpenChange={handleOpenChange}
       title={title}
       size={size}
+      scrim={scrim}
       footer={
         <>
           <Button variant={tone === "danger" ? "ghost" : "secondary"} onClick={() => handleOpenChange(false)}>
@@ -105,7 +111,7 @@ export function ConfirmDialog({
         {summaryItems && <SummaryBox items={summaryItems} label={summaryLabel} />}
         {children}
         {reason !== "none" && (
-          <Field label={t("confirm.reasonLabel")}>
+          <Field label={reasonLabel ?? t("confirm.reasonLabel")}>
             {(c) => <Textarea {...c} aria-required={reason === "required" || undefined} value={motivo} onChange={(e) => setMotivo(e.target.value)} />}
           </Field>
         )}

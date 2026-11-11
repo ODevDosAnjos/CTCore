@@ -519,12 +519,12 @@ const gone = (code: string) =>
 // Cada item que declarar rota acrescenta aqui o handler dela; o teste msw.test.ts confere contra o OpenAPI.
 // Professores (RF-PRO-01), fixos: o Administrador (ADMIN_UNIT) só vê os que têm a unidade dele; telefone e e-mail nunca saem (RN-PRO-04).
 const UNIT_NORTE = "00000000-0000-0000-0000-000000000022";
-type MockModality = { id: string; name: string; levelId: string | null; level: string | null; degree: number | null };
+type MockModality = { id: string; name: string; levelId: string | null; level: string | null; degree: number | null; levelColor: string | null; levelSecondaryColor: string | null };
 export type MockTeacher = { id: string; name: string; photoUrl: string | null; modalities: MockModality[]; units: { id: string; name: string }[]; classCount: number; status: string; directoryConsent: boolean; access: string };
 const initialTeachers = (): MockTeacher[] => [
-  { id: "00000000-0000-0000-0000-000000000501", name: "Ana Souza", photoUrl: null as string | null, modalities: [{ id: modalityCatalog[3].id, name: "Jiu-Jitsu", levelId: null as string | null, level: "Roxa", degree: 2 }], units: [{ id: ADMIN_UNIT, name: "Unidade Centro" }], classCount: 0, status: "ACTIVE", directoryConsent: true, access: "ACTIVE" },
-  { id: "00000000-0000-0000-0000-000000000502", name: "João Pereira", photoUrl: null, modalities: [{ id: modalityCatalog[3].id, name: "Jiu-Jitsu", levelId: null as string | null, level: "Azul", degree: 0 }, { id: modalityCatalog[4].id, name: "Judô", levelId: null as string | null, level: null, degree: null }], units: [{ id: ADMIN_UNIT, name: "Unidade Centro" }, { id: UNIT_NORTE, name: "Unidade Norte" }], classCount: 0, status: "ACTIVE", directoryConsent: false, access: "NONE" },
-  { id: "00000000-0000-0000-0000-000000000503", name: "Marcos Lima", photoUrl: null, modalities: [{ id: modalityCatalog[0].id, name: "Boxe", levelId: null as string | null, level: null, degree: null }], units: [{ id: UNIT_NORTE, name: "Unidade Norte" }], classCount: 0, status: "INACTIVE", directoryConsent: false, access: "ENDED" },
+  { id: "00000000-0000-0000-0000-000000000501", name: "Ana Souza", photoUrl: null as string | null, modalities: [{ id: modalityCatalog[3].id, name: "Jiu-Jitsu", levelId: null as string | null, level: "Roxa", degree: 2, levelColor: "#7E22CE", levelSecondaryColor: null }], units: [{ id: ADMIN_UNIT, name: "Unidade Centro" }], classCount: 0, status: "ACTIVE", directoryConsent: true, access: "ACTIVE" },
+  { id: "00000000-0000-0000-0000-000000000502", name: "João Pereira", photoUrl: null, modalities: [{ id: modalityCatalog[3].id, name: "Jiu-Jitsu", levelId: null as string | null, level: "Azul", degree: 0, levelColor: "#1E40AF", levelSecondaryColor: null }, { id: modalityCatalog[4].id, name: "Judô", levelId: null as string | null, level: null, degree: null, levelColor: null, levelSecondaryColor: null }], units: [{ id: ADMIN_UNIT, name: "Unidade Centro" }, { id: UNIT_NORTE, name: "Unidade Norte" }], classCount: 0, status: "ACTIVE", directoryConsent: false, access: "NONE" },
+  { id: "00000000-0000-0000-0000-000000000503", name: "Marcos Lima", photoUrl: null, modalities: [{ id: modalityCatalog[0].id, name: "Boxe", levelId: null as string | null, level: null, degree: null, levelColor: null, levelSecondaryColor: null }], units: [{ id: UNIT_NORTE, name: "Unidade Norte" }], classCount: 0, status: "INACTIVE", directoryConsent: false, access: "ENDED" },
 ];
 let mockTeachers = initialTeachers();
 // Contato e apresentação só saem no painel (RF-PRO-02, D2); a lista nunca os traz. João tem e-mail e ainda sem acesso; Marcos não tem e-mail.
@@ -541,8 +541,9 @@ const teacherDetail = (t: MockTeacher) => {
   // Turmas ativas como titular ou auxiliar (as do classCount); o simulado não gera aulas, então as próximas vêm vazias.
   const classes = mockClasses
     .filter((c) => c.status === "ACTIVE" && (c.head === id || c.assistants.includes(id)))
-    .map((c) => ({ id: c.id, name: c.name, role: c.head === id ? "HEAD" : "ASSISTANT" }));
-  return { id, name, photoUrl, directoryConsent, status, modalities, units, access, ...teacherContacts[id], classes, upcomingClasses: [] };
+    .map((c) => ({ id: c.id, name: c.name, role: c.head === id ? "HEAD" : "ASSISTANT", modalityId: c.modalityId, unitName: units.find((u) => u.id === c.unitId)?.name ?? "", schedule: c.schedule.map(([weekday, startsAt, endsAt]) => ({ weekday, startsAt, endsAt })) }));
+  // Último acesso fixo para quem tem conta ativa; o simulado não gera aulas, então substituições e próximas aulas vêm vazias.
+  return { id, name, photoUrl, directoryConsent, status, modalities, units, access, ...teacherContacts[id], classes, upcomingClasses: [], substitutions: [], lastAccessAt: access === "ACTIVE" ? "2026-11-10T10:10:00Z" : null };
 };
 // Quem chama: 401 sem sessão, 403 sem TEACHERS, 404 fora do alcance (Administrador sem a unidade dele) ou inexistente.
 const teacherFor = (id: string) => {
@@ -861,13 +862,14 @@ const teacherFromInput = (b: TeacherInput, current: MockTeacher | null) => {
     seen.add(option.id);
     if (!option.graduationEnabled) {
       if (m.levelId || (m.degree ?? 0) !== 0) return teacherBad("modalities", "a modalidade não tem graduação");
-      modalities.push({ id: option.id, name: option.name, levelId: null, level: null, degree: null });
+      modalities.push({ id: option.id, name: option.name, levelId: null, level: null, degree: null, levelColor: null, levelSecondaryColor: null });
       continue;
     }
     const level = option.levels.find((l) => l.id === m.levelId);
     if (!level) return teacherBad("modalities", m.levelId ? "nível inválido para a modalidade" : "escolha o nível");
     if (!Number.isInteger(m.degree) || m.degree! < 0 || m.degree! > level.maxDegree) return teacherBad("modalities", `grau de 0 a ${level.maxDegree}`);
-    modalities.push({ id: option.id, name: option.name, levelId: level.id, level: level.name, degree: m.degree! });
+    const full = graduationOf(option.id).levels.find((l) => l.id === level.id);
+    modalities.push({ id: option.id, name: option.name, levelId: level.id, level: level.name, degree: m.degree!, levelColor: full?.color ?? null, levelSecondaryColor: full?.secondaryColor ?? null });
   }
   const kept = activeRole() === "ADMINISTRATOR" ? (current?.units ?? []).filter((u) => u.id !== ADMIN_UNIT) : [];
   const chosen = [...kept, ...asked.map((id) => ({ id, name: units.find((u) => u.id === id)!.name }))].sort((a, c) => a.name.localeCompare(c.name));
@@ -2683,7 +2685,13 @@ export const routes: Route[] = [
         .filter((t) => !modalityId || t.modalities.some((m) => m.id === modalityId))
         .filter((t) => !unitId || (role === "COORDINATOR" || unitId === ADMIN_UNIT) && t.units.some((u) => u.id === unitId))
         .sort((a, b) => a.name.localeCompare(b.name) * (p.get("sort") === "name,desc" ? -1 : 1));
-      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length });
+      // counts: ativos e ativos com acesso, no alcance e na unidade escolhida, sem os outros filtros.
+      const scope = mockTeachers
+        .filter((t) => role === "COORDINATOR" || t.units.some((u) => u.id === ADMIN_UNIT))
+        .filter((t) => !unitId || (role === "COORDINATOR" || unitId === ADMIN_UNIT) && t.units.some((u) => u.id === unitId))
+        .filter((t) => t.status === "ACTIVE");
+      const counts = { active: scope.length, withAccess: scope.filter((t) => t.access === "ACTIVE").length };
+      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length, counts });
     },
   },
   {
@@ -3429,18 +3437,39 @@ export const routes: Route[] = [
     resolver: ({ params }) => {
       const found = teacherFor(params.id as string);
       if (found instanceof HttpResponse) return found;
-      return HttpResponse.json({ headClasses: [], canDeactivate: found.status === "ACTIVE" && teacherInReach(found) });
+      const mine = mockClasses.filter((c) => c.status === "ACTIVE" && (c.head === found.id || c.assistants.includes(found.id)));
+      const unitName = (c: MockClass) => units.find((u) => u.id === c.unitId)?.name ?? "";
+      const candidates = (c: MockClass) =>
+        mockTeachers.filter((t) => t.id !== found.id && t.status === "ACTIVE" && t.units.some((u) => u.id === c.unitId) && t.modalities.some((m) => m.id === c.modalityId)).map(({ id, name }) => ({ id, name }));
+      return HttpResponse.json({
+        headClasses: mine.filter((c) => c.head === found.id).map((c) => ({ id: c.id, name: c.name, role: "HEAD", unitName: unitName(c), candidates: candidates(c) })),
+        assistantClasses: mine.filter((c) => c.head !== found.id).map((c) => ({ id: c.id, name: c.name, role: "ASSISTANT", unitName: unitName(c) })),
+        canDeactivate: found.status === "ACTIVE" && teacherInReach(found),
+      });
     },
   },
   {
     // RN-PRO-05: inativa e encerra o vínculo (access ENDED se havia conta); já inativo 409; fora do alcance 403.
     method: "post",
     path: "/teachers/{id}/deactivate",
-    resolver: ({ params }) => {
+    resolver: async ({ request, params }) => {
       const found = teacherFor(params.id as string);
       if (found instanceof HttpResponse) return found;
       if (!teacherInReach(found)) return error(403, "FORBIDDEN", "Sem permissão.");
       if (found.status === "INACTIVE") return error(409, "CONFLICT", "Os dados entram em conflito com algo que já existe.");
+      // Corpo validado antes de gravar: motivo de 3 a 200 e, por troca, turma ativa dele como titular e novo titular ativo da unidade que ensina a modalidade.
+      const body = (await request.json().catch(() => ({}))) as { reason?: string; replacements?: { classId?: string; teacherId?: string }[] };
+      const reason = (body.reason ?? "").trim();
+      if (reason.length < 3 || reason.length > 200) return teacherBad("reason", "de 3 a 200 caracteres");
+      const swaps: [MockClass, string][] = [];
+      for (const r of body.replacements ?? []) {
+        const klass = mockClasses.find((c) => c.id === r.classId && c.status === "ACTIVE" && c.head === found.id);
+        const next = mockTeachers.find((t) => t.id === r.teacherId && t.id !== found.id && t.status === "ACTIVE");
+        if (!klass || !next || !next.units.some((u) => u.id === klass.unitId) || !next.modalities.some((m) => m.id === klass.modalityId)) return teacherBad("replacements", "escolha uma turma dele e um professor ativo da unidade que ensine a modalidade");
+        swaps.push([klass, next.id]);
+      }
+      swaps.forEach(([klass, next]) => (klass.head = next));
+      mockClasses.filter((c) => c.status === "ACTIVE").forEach((c) => (c.assistants = c.assistants.filter((a) => a !== found.id)));
       found.status = "INACTIVE";
       benefitRows.filter((b) => b.teacherId === found.id && b.status !== "ENDED").forEach((b) => (b.status = "ENDED"));
       if (found.access === "PENDING" || found.access === "ACTIVE") found.access = "ENDED";

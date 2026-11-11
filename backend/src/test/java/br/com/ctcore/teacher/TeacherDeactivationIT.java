@@ -28,6 +28,10 @@ class TeacherDeactivationIT extends OrganizationBase {
 
     @AfterEach
     void clean() {
+        adminJdbc().update("delete from lesson");
+        adminJdbc().update("delete from training_class_assistant");
+        adminJdbc().update("delete from training_class");
+        adminJdbc().update("delete from teacher_modality");
         adminJdbc().update("delete from teacher_unit");
         adminJdbc().update("delete from teacher");
         for (String email : emails) {
@@ -82,7 +86,12 @@ class TeacherDeactivationIT extends OrganizationBase {
     }
 
     private MockHttpServletResponse deactivate(UUID id, AccountPrincipal who) throws Exception {
-        return call(MockMvcRequestBuilders.post("/api/v1/teachers/" + id + "/deactivate"), who).getResponse();
+        return deactivate(id, who, "{\"reason\":\"Saída da academia\"}");
+    }
+
+    private MockHttpServletResponse deactivate(UUID id, AccountPrincipal who, String content) throws Exception {
+        var post = MockMvcRequestBuilders.post("/api/v1/teachers/" + id + "/deactivate");
+        return call(content == null ? post : post.contentType("application/json").content(content), who).getResponse();
     }
 
     private MockHttpServletResponse grant(UUID id, AccountPrincipal who) throws Exception {
@@ -239,5 +248,112 @@ class TeacherDeactivationIT extends OrganizationBase {
                 .content("{\"name\":\"Ana Maria\",\"unitIds\":[\"" + t.unitId() + "\"],\"modalities\":[],\"directoryConsent\":false}"), c).getResponse();
         assertThat(put.getStatus()).as(put.getContentAsString()).isEqualTo(200);
         assertThat(status(id)).isEqualTo("INACTIVE");
+    }
+
+    private UUID teaches(Tenant t, UUID teacher, String modality) {
+        UUID m = adminJdbc().queryForObject("select id from modality where name = ?", UUID.class, modality);
+        adminJdbc().update("insert into teacher_modality (organization_id, teacher_id, modality_id) values (?, ?, ?)", t.orgId(), teacher, m);
+        return m;
+    }
+
+    private UUID klass(Tenant t, UUID unit, String name, UUID modality, UUID head, UUID... assistants) {
+        UUID id = UUID.randomUUID();
+        adminJdbc().update("insert into training_class (id, organization_id, unit_id, name, name_key, modality_id, head_teacher_id, status) values (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')",
+                id, t.orgId(), unit, name, name.toLowerCase(), modality, head);
+        for (UUID a : assistants) {
+            adminJdbc().update("insert into training_class_assistant (organization_id, class_id, teacher_id) values (?, ?, ?)", t.orgId(), id, a);
+        }
+        return id;
+    }
+
+    private UUID head(UUID klass) {
+        return adminJdbc().queryForObject("select head_teacher_id from training_class where id = ?", UUID.class, klass);
+    }
+
+    private static String replacements(String reason, UUID... pairs) {
+        StringBuilder sb = new StringBuilder("{\"reason\":\"" + reason + "\",\"replacements\":[");
+        for (int i = 0; i < pairs.length; i += 2) {
+            sb.append(i > 0 ? "," : "").append("{\"classId\":\"").append(pairs[i]).append("\",\"teacherId\":\"").append(pairs[i + 1]).append("\"}");
+        }
+        return sb.append("]}").toString();
+    }
+
+    @Test
+    @DisplayName("#470 CA8, CA9: prévia traz unidade, candidatos e turmas de auxiliar; inativar troca o titular escolhido, tira o auxiliar e audita sem contato")
+    void replacesHeads() throws Exception {
+        var t = tenant();
+        UUID thiago = teacher(t, email(), "ACTIVE", t.unitId());
+        UUID rafael = teacher(t, email(), "ACTIVE", t.unitId());
+        UUID lia = teacher(t, email(), "ACTIVE", t.unitId());
+        UUID jj = teaches(t, thiago, "Jiu-Jitsu");
+        teaches(t, rafael, "Jiu-Jitsu");
+        teaches(t, lia, "Judô");
+        UUID a = klass(t, t.unitId(), "JJ Manhã", jj, thiago);
+        UUID b = klass(t, t.unitId(), "JJ Kids", jj, thiago);
+        UUID c = klass(t, t.unitId(), "JJ Noite", jj, rafael, thiago);
+        var coordinator = who(t, Role.COORDINATOR);
+        var p = body(preview(thiago, coordinator));
+        assertThat(p.get("headClasses").get(0).get("name").asText() + "," + p.get("headClasses").get(1).get("name").asText()).isEqualTo("JJ Kids,JJ Manhã");
+        assertThat(p.get("headClasses").get(0).get("unitName").asText()).isEqualTo("Unit");
+        assertThat(p.get("headClasses").get(0).get("candidates")).hasSize(1);
+        assertThat(p.get("headClasses").get(0).get("candidates").get(0).get("id").asText()).isEqualTo(rafael.toString());
+        assertThat(p.get("assistantClasses").findValuesAsText("name")).containsExactly("JJ Noite");
+
+        var r = deactivate(thiago, coordinator, replacements("Mudou de cidade", a, rafael));
+        assertThat(r.getStatus()).as(r.getContentAsString()).isEqualTo(200);
+        assertThat(status(thiago)).isEqualTo("INACTIVE");
+        assertThat(head(a)).isEqualTo(rafael);
+        assertThat(head(b)).isEqualTo(thiago);
+        assertThat(adminJdbc().queryForObject("select count(*) from training_class_assistant where class_id = ?", Integer.class, c)).isZero();
+        var log = audit(t, "teacher.deactivated");
+        assertThat(log).hasSize(1);
+        assertThat(log.get(0)).contains("Mudou de cidade", a.toString()).doesNotContain("11999990000").doesNotContain("@synthetic");
+        assertThat(audit(t, "class.updated")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#470 CA9: motivo fora de 3 a 200 ou sem corpo e troca inválida dão 400 no campo e nada muda, nem a situação nem outra troca já válida")
+    void rejectsInvalidBody() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        UUID second = unit(t, "Zona Sul");
+        UUID thiago = teacher(t, email(), "ACTIVE", t.unitId());
+        UUID rafael = teacher(t, email(), "ACTIVE", t.unitId());
+        UUID inactive = teacher(t, email(), "INACTIVE", t.unitId());
+        UUID elsewhere = teacher(t, email(), "ACTIVE", second);
+        UUID judoOnly = teacher(t, email(), "ACTIVE", t.unitId());
+        UUID jj = teaches(t, thiago, "Jiu-Jitsu");
+        teaches(t, rafael, "Jiu-Jitsu");
+        teaches(t, inactive, "Jiu-Jitsu");
+        teaches(t, elsewhere, "Jiu-Jitsu");
+        teaches(t, judoOnly, "Judô");
+        UUID a = klass(t, t.unitId(), "JJ Manhã", jj, thiago);
+        UUID b = klass(t, t.unitId(), "JJ Kids", jj, thiago);
+        UUID notHis = klass(t, t.unitId(), "JJ Noite", jj, rafael, thiago);
+        UUID foreignTeacher = teacher(other, email(), "ACTIVE", other.unitId());
+        UUID foreignClass = klass(other, other.unitId(), "JJ Alheia", teaches(other, foreignTeacher, "Jiu-Jitsu"), foreignTeacher);
+        var c = who(t, Role.COORDINATOR);
+
+        assertThat(deactivate(thiago, c, null).getStatus()).isEqualTo(400);
+        for (String reason : new String[] {"", "ab", "x".repeat(201)}) {
+            var r = deactivate(thiago, c, "{\"reason\":\"" + reason + "\"}");
+            assertThat(r.getStatus()).as(reason.length() + "").isEqualTo(400);
+            assertThat(r.getContentAsString()).contains("reason");
+        }
+        assertThat(deactivate(thiago, c, "{}").getStatus()).isEqualTo(400);
+        UUID[][] bad = {{a, inactive}, {a, elsewhere}, {a, judoOnly}, {a, thiago}, {notHis, rafael}, {foreignClass, rafael}, {a, foreignTeacher},
+                {a, UUID.randomUUID()}, {UUID.randomUUID(), rafael}};
+        for (UUID[] pair : bad) {
+            var r = deactivate(thiago, c, replacements("Motivo válido", b, rafael, pair[0], pair[1]));
+            assertThat(r.getStatus()).as(r.getContentAsString()).isEqualTo(400);
+            assertThat(r.getContentAsString()).contains("replacements");
+            assertThat(status(thiago)).isEqualTo("ACTIVE");
+            assertThat(head(b)).isEqualTo(thiago);
+            assertThat(head(a)).isEqualTo(thiago);
+        }
+        assertThat(deactivate(thiago, c, replacements("Motivo válido", a, rafael, a, rafael)).getStatus()).isEqualTo(400);
+        assertThat(adminJdbc().queryForObject("select count(*) from training_class_assistant where class_id = ?", Integer.class, notHis)).isEqualTo(1);
+        assertThat(audit(t, "teacher.deactivated")).isEmpty();
+        assertThat(head(foreignClass)).isEqualTo(foreignTeacher);
     }
 }

@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./avatar";
 
-const SIZE_CLASS = { sm: "size-8", md: "size-9" } as const;
+const SIZE_CLASS = { sm: "size-8", md: "size-9", lg: "size-16" } as const;
 
 // Avatar da lista: foto quando existe, senão as iniciais coloridas do `Avatar`.
-export function PersonAvatar({ name, photoUrl, size = "md" }: { name: string; photoUrl?: string | null; size?: "sm" | "md" }) {
+export function PersonAvatar({ name, photoUrl, size = "md" }: { name: string; photoUrl?: string | null; size?: "sm" | "md" | "lg" }) {
   return photoUrl ? <img src={photoUrl} alt="" className={cn("shrink-0 rounded-full object-cover", SIZE_CLASS[size])} /> : <Avatar name={name} decorative size={size} />;
 }
 

@@ -67,7 +67,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
       await campo.selectOption({ label: (await campo.locator("option").filter({ hasText: p.escolher[1] }).first().textContent())! });
     } else {
       const botao = page.getByRole(p.papel ?? "button", { name: new RegExp(`^${p.clicar}`) }).first();
-      if (!p.seExistir || (await botao.count()) > 0) await botao.click({ force: p.papel === "radio" });
+      if (!p.seExistir || (await botao.count()) > 0) await botao.click({ force: p.papel === "radio" || p.papel === "checkbox" });
     }
   }
   await assentar(page, perfil);

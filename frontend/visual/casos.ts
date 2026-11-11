@@ -4,7 +4,7 @@
 // D4 (#419): passos antes do print, para chegar a janelas e estados. `preencher`: [rótulo exato, valor]; `clicar`: início do nome do botão.
 // seExistir: o botão só aparece em parte das larguras (ex.: "Filtros" abaixo de 640 px)
 // escolher: [rótulo exato do select, trecho do texto da opção] (select não aceita `fill`); papel "radio" marca o seletor segmentado (#469)
-export type Passo = { preencher: [string, string] } | { escolher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" | "radio" };
+export type Passo = { preencher: [string, string] } | { escolher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" | "radio" | "checkbox" };
 export type Caso = {
   nome: string;
   rota: string;
@@ -123,9 +123,10 @@ export const casos: Caso[] = [
   { nome: "configuracoes-modalidades-graduacao", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeGraduacao", passos: [{ clicar: "Ativar" }, { clicar: "Graduação" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #485 trata a tela e remove esta exceção)" } },
   { nome: "configuracoes-modalidades-pedido", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadesOferecidasRecusa", passos: [{ clicar: "Não achei minha modalidade" }], limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #485 trata a tela e remove esta exceção)" } },
   { nome: "configuracoes-faixa-nova", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", passos: [{ clicar: "Nova faixa" }], limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #486 trata a tela e remove esta exceção)" } },
-  { nome: "professor-novo", rota: "/professores", perfil: ana, canvas: "ProfessorNovo", passos: [{ clicar: "Novo professor" }], limiteCanvas: { valor: 0.60, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #470 trata a tela e remove esta exceção)" } },
-  { nome: "professor-painel", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorPainel", limiteCanvas: { valor: 0.45, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #470 trata a tela e remove esta exceção)" } },
-  { nome: "professor-inativar", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorInativar", passos: [{ clicar: "Inativar" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela; o canvas traz escolha de novo titular e Motivo, que exigem API e regra nova (divergência medida na #435; a #470 trata a tela e remove esta exceção)" } },
+  { nome: "professor-novo", rota: "/professores", perfil: ana, canvas: "ProfessorNovo", passos: [{ clicar: "Novo professor" }] },
+  { nome: "professor-painel", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorPainel" },
+  { nome: "professor-inativar", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorInativar", passos: [{ clicar: "Inativar" }], limiteCanvas: { valor: 0.45, motivo: "fundo: a ação nasce no painel, então a janela abre sobre a gaveta do professor e o canvas a mostra sobre a lista; dados do mock diferem do canvas (medido a 41,3% na #470; a #553 remove este limite)" } },
+  { nome: "professor-modalidade-recusa", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorModalidadeRecusa", passos: [{ clicar: "Editar" }, { clicar: "Judô", papel: "checkbox" }], limiteCanvas: { valor: 0.55, motivo: "janela e fundo: o canvas mostra uma janela curta (Nome, Unidades, modalidades) sobre a lista, e o sistema reaproveita o formulário completo (R9) sobre a gaveta do painel (medido a 51,9% na #470; a #553 remove este limite)" } },
   { nome: "portal-revogar-imagem", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalRevogarImagem", passos: [{ clicar: "Revogar" }], limiteCanvas: { valor: 0.85, motivo: "fundo: a janela confere com o canvas; a página atrás (Minhas informações) é mais longa que a do canvas (medido na #451; a #498 trata a tela e remove esta exceção)" } },
   { nome: "turma-desativar", rota: "/turmas/00000000-0000-0000-0000-000000000602", perfil: ana, canvas: "TurmaDesativar", passos: [{ clicar: "Desativar" }], limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: o canvas lista nomes de alunos na recusa e o contrato só traz a contagem; atrás, a gaveta da turma e a lista de turmas têm outro conteúdo (medido a 70,2% na #463; a #475 trata a tela e remove esta exceção)" } },
   { nome: "turma-nova", rota: "/turmas", perfil: ana, canvas: "TurmaEditar", passos: [{ clicar: "Nova turma" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #475 trata a tela e remove esta exceção)" } },
@@ -202,7 +203,7 @@ export const semCaso: Record<string, string[]> = {
     "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos",
     "AlunoInativar", "AlunoReativar",
     "AlunoAnonimizar",
-    "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo", "ProfessorModalidadeRecusa",
+    "PedidoRecusar", "PedidoEncerramentoRecusar", "PedidoAprovadoFluxo",
     "AgendaPainel", "AulaEditar", "AulaCancelar", "AulaEditarSeguintes", "AulaCorrigir",
     "AulaAvisarTurma", "TurmaTitularInativo", "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "CobrancaPainel", "SomenteLeitura", "EstadoErro", "PagamentoRegistrar",
