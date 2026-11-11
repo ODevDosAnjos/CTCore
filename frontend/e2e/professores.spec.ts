@@ -33,13 +33,12 @@ test("@critical Coordenador dá acesso a um professor", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/professores");
   await page.getByRole("link", { name: "João Pereira" }).click(); // pelo roteador, sem recarregar
-  await expect(page.getByRole("heading", { name: "João Pereira", level: 1 })).toBeVisible();
-  await expect(page.getByText("Sem acesso", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "João Pereira", level: 2 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dar acesso" })).toBeVisible();
 
   await page.getByRole("button", { name: "Dar acesso" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Enviar convite" }).click();
-  await expect(page.getByText("Convite enviado", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reenviar convite" })).toBeVisible();
 });
 
@@ -58,13 +57,15 @@ test("@critical Coordenador cadastra um professor", async ({ page }) => {
 
   await page.getByRole("button", { name: "Novo professor" }).click();
   const dialog = page.getByRole("dialog", { name: "Novo professor" });
-  await dialog.getByLabel("Nome").fill("Paula Nogueira");
-  await dialog.getByRole("checkbox", { name: "Unidade Centro" }).check();
-  await dialog.getByRole("checkbox", { name: "Judô" }).check();
-  await dialog.getByRole("button", { name: "Salvar" }).click();
+  await dialog.getByLabel("Nome completo *").fill("Paula Nogueira");
+  await dialog.getByLabel("E-mail *").fill("paula@exemplo.test");
+  await dialog.getByLabel("Celular *").fill("11999990000");
+  await dialog.getByText("Unidade Centro", { exact: true }).click(); // chip: a caixa fica oculta
+  await dialog.getByText("Judô", { exact: true }).click();
+  await dialog.getByRole("button", { name: "Salvar e enviar convite" }).click();
 
-  await expect(page.getByRole("heading", { name: "Paula Nogueira", level: 1 })).toBeVisible();
-  await expect(page.getByText("Judô", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Paula Nogueira", level: 2 })).toBeVisible();
+  await expect(page.getByRole("dialog").getByText("Judô", { exact: true })).toBeVisible();
 });
 
 // RF-PRO-04 / RN-PRO-05: o Coordenador abre o painel de um professor ativo, inativa e vê a situação "Inativo".
@@ -76,14 +77,14 @@ test("@critical Coordenador inativa um professor", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/professores");
   await page.getByRole("link", { name: "João Pereira" }).click();
-  await expect(page.getByRole("heading", { name: "João Pereira", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "João Pereira", level: 2 })).toBeVisible();
 
   await page.getByRole("button", { name: "Inativar" }).click();
   const dialog = page.getByRole("dialog", { name: "Inativar João Pereira" });
-  await expect(dialog.getByText("Nenhuma turma ficará sem titular.")).toBeVisible();
+  await dialog.getByLabel("Motivo *").fill("Saiu da academia");
   await dialog.getByRole("button", { name: "Inativar professor" }).click();
-  await expect(page.getByText("Inativo", { exact: true })).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Inativar", exact: true })).toBeDisabled();
+  await expect(page.getByRole("dialog", { name: "Inativar João Pereira" })).toHaveCount(0);
 });
 
 // #458 CA6: a 360 px a lista vira cartões e não há rolagem lateral.

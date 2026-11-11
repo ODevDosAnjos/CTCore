@@ -229,4 +229,28 @@ describe("QueryPage com canvasStates (#464)", () => {
     expect(document.querySelectorAll("li[aria-hidden]")).toHaveLength(6);
     expect(document.querySelector("table")).toBeNull();
   });
+
+  it("#470: defaultFilters vale sem o parâmetro no endereço, o valor do endereço vence e o padrão não conta como filtro", async () => {
+    const fetchPage = vi.fn((): Promise<Page<Row>> => Promise.resolve({ rows: [], total: 0 }));
+    window.history.replaceState(null, "", "/");
+    const { unmount } = render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} filterKeys={["status"]} defaultFilters={{ status: "ACTIVE" }} filters={({ get }) => <p>status {get("status")}</p>} />);
+    expect(await screen.findByText("Nada por aqui ainda")).toBeInTheDocument();
+    expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ filtros: { status: "ACTIVE" } }));
+    expect(screen.getByText("status ACTIVE")).toBeInTheDocument();
+    unmount();
+    window.history.replaceState(null, "", "/?status=ALL");
+    render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} filterKeys={["status"]} defaultFilters={{ status: "ACTIVE" }} />);
+    await waitFor(() => expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ filtros: { status: "ALL" } })));
+    expect(await screen.findByText("Nenhum resultado")).toBeInTheDocument();
+  });
+
+  it("#470: onRowClick abre a linha, menos quando o clique é num link ou botão", async () => {
+    const onRowClick = vi.fn();
+    window.history.replaceState(null, "", "/");
+    render(<QueryPage columns={[{ key: "nome", label: "Nome", render: (r: Row) => <><span>{r.nome}</span><a href="#x">ver {r.id}</a></> }]} fetchPage={() => Promise.resolve({ rows: all.slice(0, 1), total: 1 })} rowKey={(r) => r.id} onRowClick={onRowClick} />);
+    await userEvent.click(await screen.findByText("ver 0"));
+    expect(onRowClick).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByText("Aluno 0"));
+    expect(onRowClick).toHaveBeenCalledWith(all[0]);
+  });
 });

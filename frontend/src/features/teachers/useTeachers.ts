@@ -7,7 +7,7 @@ export interface Teacher {
   id: string;
   name: string;
   photoUrl: string | null;
-  modalities: { id: string; name: string; levelId: string | null; level: string | null; degree: number | null }[];
+  modalities: { id: string; name: string; levelId: string | null; level: string | null; degree: number | null; levelColor: string | null; levelSecondaryColor: string | null }[];
   units: { id: string; name: string }[];
   classCount: number;
   status: "ACTIVE" | "INACTIVE";
@@ -19,14 +19,17 @@ interface Choice {
   name: string;
 }
 
+export const ALL_STATUS = "ALL";
+
 // Query da tela (RNF-27) -> GET /teachers. A ordem "name" ou "-name" vira sort=name,asc|desc; erro sobe com o status (403 vira "sem permissão").
 export async function fetchTeachers(q: Query): Promise<Page<Teacher>> {
   const p = new URLSearchParams({ page: String(q.pagina), size: String(q.tamanho) });
   if (q.q) p.set("q", q.q);
   if (q.ordem) p.set("sort", q.ordem.startsWith("-") ? "name,desc" : "name,asc");
-  for (const [k, v] of Object.entries(q.filtros)) p.set(k, v);
-  const data = await api<{ items: Teacher[]; total: number }>(`/teachers?${p}`);
-  return { rows: data.items, total: data.total };
+  // "ALL" é o "Todos" da situação (sem ele a tela abre em Ativos): não vai para a API.
+  for (const [k, v] of Object.entries(q.filtros)) if (v !== ALL_STATUS) p.set(k, v);
+  const data = await api<{ items: Teacher[]; total: number; counts: { active: number; withAccess: number } }>(`/teachers?${p}`);
+  return { rows: data.items, total: data.total, counts: data.counts };
 }
 
 // Opções dos filtros: modalidades ativas da organização e unidades ao alcance. Falha deixa a lista vazia; a lista de professores segue.
@@ -61,8 +64,10 @@ export interface TeacherDetail {
   status: "ACTIVE" | "INACTIVE";
   modalities: Teacher["modalities"];
   units: Teacher["units"];
-  classes: { id: string; name: string; role: "HEAD" | "ASSISTANT" }[];
+  classes: { id: string; name: string; role: "HEAD" | "ASSISTANT"; modalityId: string; unitName: string; schedule: { weekday: number; startsAt: string; endsAt: string }[] }[];
   upcomingClasses: { classId: string | null; name: string; startsAt: string }[];
+  substitutions: { classId: string; name: string; startsAt: string }[];
+  lastAccessAt: string | null;
   access: Teacher["access"];
 }
 
@@ -138,10 +143,11 @@ export function useTeacherOptions(enabled: boolean) {
   return { status: !current ? "loading" : current.options ? "ready" : "error", options: current?.options, retry: () => setTick((n) => n + 1) } as const;
 }
 
-// Espelha TeacherDeactivationPreview do OpenAPI (RF-PRO-04): turmas que ficarão sem titular e se quem chama pode inativar.
+// Espelha TeacherDeactivationPreview do OpenAPI (RF-PRO-04): turmas que ficarão sem titular (com os candidatos a novo titular), as de auxiliar e se quem chama pode inativar.
 export interface DeactivationPreview {
-  headClasses: { id: string; name: string; role: "HEAD" | "ASSISTANT" }[];
+  headClasses: { id: string; name: string; role: "HEAD"; unitName: string; candidates: { id: string; name: string }[] }[];
+  assistantClasses: { id: string; name: string; role: "ASSISTANT"; unitName: string }[];
   canDeactivate: boolean;
 }
 export const fetchDeactivationPreview = (id: string) => api<DeactivationPreview>(`/teachers/${id}/deactivation`);
-export const deactivateTeacher = (id: string) => api<TeacherDetail>(`/teachers/${id}/deactivate`, { method: "POST" });
+export const deactivateTeacher = (id: string, body: { reason: string; replacements?: { classId: string; teacherId: string }[] }) => api<TeacherDetail>(`/teachers/${id}/deactivate`, { method: "POST", body });

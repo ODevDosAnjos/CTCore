@@ -13,6 +13,7 @@ import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
 import br.com.ctcore.storage.FileStorage;
+import br.com.ctcore.trainingclass.TrainingClasses;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,26 +43,36 @@ public class Teachers {
 
     public record UnitRef(UUID id, String name) {}
 
-    public record ModalityRef(UUID id, String name, UUID levelId, String level, Integer degree) {}
+    public record ModalityRef(UUID id, String name, UUID levelId, String level, Integer degree, String levelColor, String levelSecondaryColor) {}
 
     public record Row(UUID id, String name, String photoUrl, List<ModalityRef> modalities, List<UnitRef> units, int classCount,
             String status, boolean directoryConsent, String access) {}
 
-    /** Turma ativa do professor; {@code role} é HEAD (titular). */
-    public record ClassRef(UUID id, String name, String role) {}
+    /** RF-PRO-01: professores ativos e ativos com acesso, no alcance e na unidade escolhida, sem os demais filtros. */
+    public record Counts(long active, long withAccess) {}
+
+    public record TeacherList(List<Row> items, int page, int size, long total, Counts counts) {}
+
+    /** Turma ativa do professor; {@code role} é HEAD (titular) ou ASSISTANT. */
+    public record ClassRef(UUID id, String name, String role, UUID modalityId, String unitName, List<TrainingClasses.Slot> schedule) {}
+
+    /** RF-PRO-04: turma na inativação; só a de titular traz candidatos. */
+    public record DeactivationClass(UUID id, String name, String role, String unitName, List<UnitRef> candidates) {} // candidatos: id e nome (mesma forma de UnitRef)
+
+    public record AssistantClass(UUID id, String name, String role, String unitName) {}
 
     public record UpcomingClass(UUID classId, String name, java.time.OffsetDateTime startsAt) {}
 
     public record Detail(UUID id, String name, String photoUrl, String bio, String email, String phone, boolean directoryConsent, boolean consentDeclaredByManagement,
             String status, List<ModalityRef> modalities, List<UnitRef> units, List<ClassRef> classes,
-            List<UpcomingClass> upcomingClasses, String access) {}
+            List<UpcomingClass> upcomingClasses, List<UpcomingClass> substitutions, java.time.OffsetDateTime lastAccessAt, String access) {}
 
     record Basic(UUID id, String name, String photo, String bio, String email, String phone, boolean consent, boolean declared, String status,
             UUID accountId, String access) {}
 
     private record Head(UUID id, String name, String photo, String status, boolean consent, String access, int classCount) {}
 
-    private record Loaded(long total, List<Head> heads, Map<UUID, List<UnitRef>> units, Map<UUID, List<ModalityRef>> modalities) {}
+    private record Loaded(long total, Counts counts, List<Head> heads, Map<UUID, List<UnitRef>> units, Map<UUID, List<ModalityRef>> modalities) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -75,17 +86,29 @@ public class Teachers {
         this.storage = storage;
     }
 
-    public PageResponse<Row> list(AccountPrincipal who, String q, UUID modalityId, UUID unitId, String status, PageRequest page) {
+    public TeacherList list(AccountPrincipal who, String q, UUID modalityId, UUID unitId, String status, PageRequest page) {
         requireAccess(who);
         String st = status == null || status.isBlank() ? null : status.strip().toUpperCase(Locale.ROOT);
         if (st != null && !STATUSES.contains(st)) throw new ApiValidationException("status", "valor inválido");
         boolean admin = who.role() == Role.ADMINISTRATOR;
         Set<UUID> reach = who.units() == null ? Set.of() : who.units();
-        if (admin && (reach.isEmpty() || unitId != null && !reach.contains(unitId))) return PageResponse.of(List.of(), page, 0);
+        if (admin && (reach.isEmpty() || unitId != null && !reach.contains(unitId))) {
+            return new TeacherList(List.of(), page.page(), page.size(), 0, new Counts(0, 0));
+        }
 
-        StringBuilder where = new StringBuilder("t.organization_id = :org");
+        // Alcance e unidade valem também para as contagens; os demais filtros, não.
+        StringBuilder scope = new StringBuilder("t.organization_id = :org");
         Map<String, Object> params = new HashMap<>();
         params.put("org", who.organizationId());
+        if (unitId != null) {
+            scope.append(" and exists (select 1 from teacher_unit tu where tu.teacher_id = t.id and tu.unit_id = :unit)");
+            params.put("unit", unitId);
+        }
+        if (admin) {
+            scope.append(" and exists (select 1 from teacher_unit tr where tr.teacher_id = t.id and tr.unit_id in (:reach))");
+            params.put("reach", reach);
+        }
+        StringBuilder where = new StringBuilder(scope);
         if (q != null && !q.isBlank()) {
             where.append(" and t.name_key like :q escape '\\'");
             params.put("q", "%" + Modalities.normalize(q).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%");
@@ -94,17 +117,9 @@ public class Teachers {
             where.append(" and exists (select 1 from teacher_modality tm where tm.teacher_id = t.id and tm.modality_id = :modality)");
             params.put("modality", modalityId);
         }
-        if (unitId != null) {
-            where.append(" and exists (select 1 from teacher_unit tu where tu.teacher_id = t.id and tu.unit_id = :unit)");
-            params.put("unit", unitId);
-        }
         if (st != null) {
             where.append(" and t.status = :status");
             params.put("status", st);
-        }
-        if (admin) {
-            where.append(" and exists (select 1 from teacher_unit tr where tr.teacher_id = t.id and tr.unit_id in (:reach))");
-            params.put("reach", reach);
         }
         String order = page.sort() != null && page.sort().desc() ? "t.name_key desc, t.name desc, t.id desc" : "t.name_key, t.name, t.id";
 
@@ -120,12 +135,16 @@ public class Teachers {
             Map<UUID, List<UnitRef>> units = new HashMap<>();
             Map<UUID, List<ModalityRef>> modalities = new HashMap<>();
             refs(who.organizationId(), ids, units, modalities);
-            return new Loaded(total, heads, units, modalities);
+            Counts counts = jdbc.sql("select count(*), count(*) filter (where l.status = 'ACTIVE') from teacher t "
+                    + "left join account_link l on l.organization_id = t.organization_id and l.account_id = t.account_id and l.role = 'TEACHER' "
+                    + "where " + scope + " and t.status = 'ACTIVE'")
+                    .params(params).query((rs, n) -> new Counts(rs.getLong(1), rs.getLong(2))).single();
+            return new Loaded(total, counts, heads, units, modalities);
         });
         List<Row> rows = loaded.heads().stream().map(h -> new Row(h.id(), h.name(), photoUrl(h.photo()),
                 loaded.modalities().getOrDefault(h.id(), List.of()), loaded.units().getOrDefault(h.id(), List.of()), h.classCount(),
                 h.status(), h.consent(), h.access())).toList();
-        return PageResponse.of(rows, page, loaded.total());
+        return new TeacherList(rows, page.page(), page.size(), loaded.total(), loaded.counts());
     }
 
     private void refs(UUID org, List<UUID> ids, Map<UUID, List<UnitRef>> units, Map<UUID, List<ModalityRef>> modalities) {
@@ -136,7 +155,7 @@ public class Teachers {
                 .query((rs, n) -> units.computeIfAbsent(rs.getObject(1, UUID.class), k -> new ArrayList<>())
                         .add(new UnitRef(rs.getObject(2, UUID.class), rs.getString(3)))).list();
         // RF-MOD-02: com a graduação da modalidade desligada o nível e o grau gravados ficam, mas não saem (volta ao religar)
-        jdbc.sql("select tm.teacher_id, m.id, m.name, g.name, tm.degree, tm.level_id from teacher_modality tm join modality m on m.id = tm.modality_id "
+        jdbc.sql("select tm.teacher_id, m.id, m.name, g.name, tm.degree, tm.level_id, g.color, g.secondary_color from teacher_modality tm join modality m on m.id = tm.modality_id "
                 + "left join organization_modality om on om.organization_id = tm.organization_id and om.modality_id = tm.modality_id "
                 + "left join graduation_level g on g.id = tm.level_id and coalesce(om.graduation_enabled, false) "
                 + "where tm.organization_id = :org and tm.teacher_id in (:ids) order by m.name, m.id")
@@ -144,7 +163,7 @@ public class Teachers {
                 .query((rs, n) -> {
                     String level = rs.getString(4);
                     return modalities.computeIfAbsent(rs.getObject(1, UUID.class), k -> new ArrayList<>())
-                            .add(new ModalityRef(rs.getObject(2, UUID.class), rs.getString(3), level == null ? null : rs.getObject(6, UUID.class), level, level == null ? null : rs.getInt(5)));
+                            .add(new ModalityRef(rs.getObject(2, UUID.class), rs.getString(3), level == null ? null : rs.getObject(6, UUID.class), level, level == null ? null : rs.getInt(5), rs.getString(7), rs.getString(8)));
                 }).list();
     }
 
@@ -182,15 +201,40 @@ public class Teachers {
         Map<UUID, List<ModalityRef>> modalities = new HashMap<>();
         refs(who.organizationId(), List.of(id), units, modalities);
         return new Detail(b.id(), b.name(), photoUrl(b.photo()), b.bio(), b.email(), b.phone(), b.consent(), b.declared(), b.status(),
-                modalities.getOrDefault(id, List.of()), units.getOrDefault(id, List.of()), classes(id), upcoming(id), b.access());
+                modalities.getOrDefault(id, List.of()), units.getOrDefault(id, List.of()), classes(id), upcoming(id), substitutions(id),
+                lastAccess(who.organizationId(), b.accountId()), b.access());
+    }
+
+    /** RF-PRO-02: último acesso da conta, só com vínculo de Professor na organização; sem conta ou sem acesso, nulo. */
+    private java.time.OffsetDateTime lastAccess(UUID org, UUID accountId) {
+        if (accountId == null) return null;
+        return jdbc.sql("select a.last_access_at from account a join account_link l on l.account_id = a.id and l.organization_id = :org and l.role = 'TEACHER' "
+                + "where a.id = :a").param("org", org).param("a", accountId).query(java.time.OffsetDateTime.class).optional().orElse(null);
+    }
+
+    /** RF-PRO-02: até 10 próximas aulas não canceladas de turma em que o professor substitui o titular. */
+    List<UpcomingClass> substitutions(UUID teacherId) {
+        return jdbc.sql("select l.class_id, c.name, ((l.lesson_date + l.starts_at) at time zone u.timezone) from lesson l "
+                + "join unit u on u.id = l.unit_id join training_class c on c.id = l.class_id "
+                + "where not l.cancelled and l.substitute and l.teacher_id = :id and ((l.lesson_date + l.ends_at) at time zone u.timezone) > now() "
+                + "order by 3, 2 limit 10").param("id", teacherId)
+                .query((rs, n) -> new UpcomingClass(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, java.time.OffsetDateTime.class))).list();
     }
 
     /** RF-PRO-02: turmas ativas como titular ou auxiliar (as mesmas do classCount). Roda dentro da transação da organização. */
     List<ClassRef> classes(UUID teacherId) {
-        return jdbc.sql("select c.id, c.name, case when c.head_teacher_id = :id then 'HEAD' else 'ASSISTANT' end from training_class c "
+        Map<UUID, List<TrainingClasses.Slot>> schedule = new HashMap<>();
+        jdbc.sql("select s.class_id, s.weekday, s.starts_at, s.ends_at from training_class_schedule s join training_class c on c.id = s.class_id "
+                + "where c.status = 'ACTIVE' and (c.head_teacher_id = :id or exists (select 1 from training_class_assistant a where a.class_id = c.id and a.teacher_id = :id)) "
+                + "order by s.weekday").param("id", teacherId)
+                .query((rs, n) -> schedule.computeIfAbsent(rs.getObject(1, UUID.class), k -> new ArrayList<>())
+                        .add(new TrainingClasses.Slot(rs.getInt(2), rs.getObject(3, java.time.LocalTime.class).toString(), rs.getObject(4, java.time.LocalTime.class).toString()))).list();
+        return jdbc.sql("select c.id, c.name, case when c.head_teacher_id = :id then 'HEAD' else 'ASSISTANT' end, c.modality_id, u.name from training_class c "
+                + "join unit u on u.id = c.unit_id "
                 + "where c.status = 'ACTIVE' and (c.head_teacher_id = :id or exists (select 1 from training_class_assistant a where a.class_id = c.id and a.teacher_id = :id)) "
                 + "order by c.name_key, c.id").param("id", teacherId)
-                .query((rs, n) -> new ClassRef(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3))).list();
+                .query((rs, n) -> new ClassRef(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getObject(4, UUID.class), rs.getString(5),
+                        schedule.getOrDefault(rs.getObject(1, UUID.class), List.of()))).list();
     }
 
     /** RF-PRO-02, RN-PRO-06: próximas aulas não canceladas em que o professor dá a aula (titular ou substituto) ou é auxiliar da turma; a avulsa traz o título. */
@@ -204,9 +248,27 @@ public class Teachers {
     }
 
     /** RN-PRO-05: turmas ativas em que o professor é titular. Roda dentro da transação da organização. */
-    List<ClassRef> headClasses(UUID teacherId) {
-        return jdbc.sql("select id, name from training_class where head_teacher_id = :id and status = 'ACTIVE' order by name_key, id")
-                .param("id", teacherId).query((rs, n) -> new ClassRef(rs.getObject(1, UUID.class), rs.getString(2), "HEAD")).list();
+    List<DeactivationClass> headClasses(UUID teacherId) {
+        return jdbc.sql("select c.id, c.name, u.name, c.unit_id, c.modality_id from training_class c join unit u on u.id = c.unit_id "
+                + "where c.head_teacher_id = :id and c.status = 'ACTIVE' order by c.name_key, c.id")
+                .param("id", teacherId).query((rs, n) -> new DeactivationClass(rs.getObject(1, UUID.class), rs.getString(2), "HEAD", rs.getString(3),
+                        candidates(teacherId, rs.getObject(4, UUID.class), rs.getObject(5, UUID.class)))).list();
+    }
+
+    /** RF-PRO-04: possíveis novos titulares: ativos da unidade que ensinam a modalidade, menos o próprio. */
+    private List<UnitRef> candidates(UUID teacherId, UUID unitId, UUID modalityId) {
+        return jdbc.sql("select t.id, t.name from teacher t where t.status = 'ACTIVE' and t.id <> :id "
+                + "and exists (select 1 from teacher_unit tu where tu.teacher_id = t.id and tu.unit_id = :unit) "
+                + "and exists (select 1 from teacher_modality tm where tm.teacher_id = t.id and tm.modality_id = :m) order by t.name_key, t.id")
+                .param("id", teacherId).param("unit", unitId).param("m", modalityId)
+                .query((rs, n) -> new UnitRef(rs.getObject(1, UUID.class), rs.getString(2))).list();
+    }
+
+    /** RN-PRO-05: turmas ativas em que o professor é auxiliar e das quais sai ao ser inativado. */
+    List<AssistantClass> assistantClasses(UUID teacherId) {
+        return jdbc.sql("select c.id, c.name, u.name from training_class c join unit u on u.id = c.unit_id where c.status = 'ACTIVE' "
+                + "and exists (select 1 from training_class_assistant a where a.class_id = c.id and a.teacher_id = :id) order by c.name_key, c.id")
+                .param("id", teacherId).query((rs, n) -> new AssistantClass(rs.getObject(1, UUID.class), rs.getString(2), "ASSISTANT", rs.getString(3))).list();
     }
 
     String photoUrl(String photo) {

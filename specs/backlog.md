@@ -174,7 +174,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 467 | Ficha do aluno: abas Matrícula, Financeiro, Graduações, Responsáveis e Histórico no visual do canvas | issue #467 | Sprint 10.5 | #466, #458, #459, #452, #450, #449 | agente | feito |
 | 468 | Janelas de ação do aluno: encerrar modalidade, trocar turma e plano, transferir, desligar responsável no visual do canvas | issue #468 | Sprint 10.5 | #460, #461, #451 | agente | feito |
 | 469 | Assistente de matrícula (etapas 1 a 5) no visual do canvas | issue #469 | Sprint 10.5 | #453, #460, #461, #462, #450 | agente | feito |
-| 470 | Professores: lista, novo, painel, inativar e recusa de modalidade no visual do canvas | issue #470 | Sprint 10.5 | #456, #457, #458, #459, #460, #461, #463, #452 | agente | a fazer |
+| 470 | Professores: lista, novo, painel, inativar e recusa de modalidade no visual do canvas | issue #470 | Sprint 10.5 | #456, #457, #458, #459, #460, #461, #463, #452 | agente | feito |
 | 471 | Pedidos do portal na gestão: lista e janelas de recusar e aprovar no visual do canvas | issue #471 | Sprint 10.5 | #456, #457, #460, #461, #450 | agente | a fazer |
 | 472 | Agenda: grade semanal, celular e visão do Professor no visual do canvas | issue #472 | Sprint 10.5 | #454, #456, #457, #458, #459, #464 | agente | a fazer |
 | 473 | Aula: painel, editar, cancelar, corrigir, avisar turma e aula avulsa no visual do canvas | issue #473 | Sprint 10.5 | #460, #461, #463, #451, #450 | agente | a fazer |

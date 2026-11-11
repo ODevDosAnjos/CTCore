@@ -27,10 +27,12 @@ const detail = (over: Partial<TeacherDetail> = {}): TeacherDetail => ({
   directoryConsent: true,
   consentDeclaredByManagement: true,
   status: "ACTIVE",
-  modalities: [{ id: "m1", name: "Jiu-Jitsu", levelId: "l1", level: "Roxa", degree: 2 }],
+  modalities: [{ id: "m1", name: "Jiu-Jitsu", levelId: "l1", level: "Roxa", degree: 2, levelColor: "#7E22CE", levelSecondaryColor: null }],
   units: [{ id: "u1", name: "Centro" }, { id: "u2", name: "Norte" }],
   classes: [],
   upcomingClasses: [],
+  substitutions: [],
+  lastAccessAt: null,
   access: "NONE",
   ...over,
 });
@@ -66,22 +68,22 @@ function setup(get: () => Response | Promise<Response> = () => HttpResponse.json
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Ana Souza", level: 1 });
+const ready = () => screen.findByRole("heading", { name: "Ana Souza", level: 2 });
 
 describe("TeacherPanelPage (RF-PRO-02)", () => {
   it("CA9: mostra cabeçalho, apresentação, contato, graduação, unidades, vazios de turmas e aulas e a situação do acesso", async () => {
     setup();
     await ready();
-    expect(screen.getByText("AS")).toBeInTheDocument();
+    expect(screen.getByText("No diretório")).toBeInTheDocument();
     expect(screen.getByText("Ativo")).toBeInTheDocument();
     expect(screen.getByText("Faixa preta.")).toBeInTheDocument();
     expect(screen.getByText("ana@alfa.test")).toBeInTheDocument();
     expect(screen.getByText("(11) 91234-5678")).toBeInTheDocument();
-    expect(screen.getByText("Jiu-Jitsu · Roxa, grau 2")).toBeInTheDocument();
-    expect(screen.getByText("Centro, Norte")).toBeInTheDocument();
+    expect(screen.getByText("Faixa Roxa · 2 graus")).toBeInTheDocument();
+    expect(screen.getByText(/Professor · Centro, Norte · sem acesso/)).toBeInTheDocument();
     expect(screen.getByText("Nenhuma turma ainda.")).toBeInTheDocument();
     expect(screen.getByText("Nenhuma aula agendada.")).toBeInTheDocument();
-    expect(screen.getByText("Sem acesso")).toBeInTheDocument();
+    
   });
 
   it("CA9: Editar e Inativar ativos; foto aparece quando há URL; WhatsApp só com telefone", async () => {
@@ -95,11 +97,29 @@ describe("TeacherPanelPage (RF-PRO-02)", () => {
   });
 
   it("CA9: sem telefone não há WhatsApp; turmas e próximas aulas listam o que vier", async () => {
-    setup(() => HttpResponse.json(detail({ phone: null, classes: [{ id: "c1", name: "Jiu-Jitsu Noite", role: "HEAD" }], upcomingClasses: [{ classId: "c1", name: "Jiu-Jitsu Noite", startsAt: "2026-10-20T22:00:00Z" }] })));
+    setup(() => HttpResponse.json(detail({ phone: null, classes: [{ id: "c1", name: "Jiu-Jitsu Noite", role: "HEAD", modalityId: "m1", unitName: "Centro", schedule: [] }], upcomingClasses: [{ classId: "c1", name: "Jiu-Jitsu Noite", startsAt: "2026-10-20T22:00:00Z" }] })));
     await ready();
     expect(screen.queryByRole("link", { name: "Abrir conversa no WhatsApp" })).toBeNull();
-    expect(screen.getByText("Jiu-Jitsu Noite · Titular")).toBeInTheDocument();
+    expect(screen.getByText("Jiu-Jitsu Noite")).toBeInTheDocument();
     expect(screen.getAllByText(/Jiu-Jitsu Noite/).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("CA4: turmas com papel e horários, substituição futura, próximas aulas e linha do diretório", async () => {
+    setup(() =>
+      HttpResponse.json(
+        detail({
+          directoryConsent: false,
+          classes: [{ id: "c1", name: "Jiu-Jitsu Adulto · Noite", role: "HEAD", modalityId: "m1", unitName: "Centro", schedule: [{ weekday: 1, startsAt: "19:30", endsAt: "21:00" }, { weekday: 3, startsAt: "19:30", endsAt: "21:00" }, { weekday: 5, startsAt: "19:30", endsAt: "21:00" }] }],
+          substitutions: [{ classId: "c2", name: "Jiu-Jitsu Adulto · Manhã", startsAt: "2026-10-09T10:00:00Z" }],
+        }),
+      ),
+    );
+    await ready();
+    expect(screen.getByText("Seg, Qua e Sex 19h30")).toBeInTheDocument();
+    expect(screen.getByText("Substituto")).toBeInTheDocument();
+    expect(screen.getByText("Substituição")).toBeInTheDocument();
+    expect(screen.getByText("Não aparece no diretório")).toBeInTheDocument();
+    expect(screen.queryByText("No diretório")).toBeNull();
   });
 
   it.each([
@@ -137,7 +157,7 @@ describe("TeacherPanelPage (RF-PRO-02)", () => {
     await user.click(within(dialog).getByRole("checkbox", { name: "Norte" }));
     await user.click(within(dialog).getByRole("button", { name: "Enviar convite" }));
     await waitFor(() => expect(granted).toEqual({ unitIds: ["u1"] }));
-    expect(await screen.findByText("Convite enviado")).toBeInTheDocument();
+    expect(await screen.findByText(/convite enviado/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reenviar convite" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Dar acesso" })).toBeNull();
   });
@@ -212,15 +232,18 @@ describe("TeacherPanelPage (RF-PRO-02)", () => {
 describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
   let preview: () => Response | Promise<Response>;
   let deactivated: number;
+  let body: unknown;
   let current: TeacherDetail;
+  const loaded = (d: HTMLElement) => waitFor(() => expect(within(d).queryByText("Carregando...")).toBeNull());
   const open = async (user: ReturnType<typeof userEvent.setup>, teacher = detail()) => {
     current = teacher;
     deactivated = 0;
-    preview = () => HttpResponse.json({ headClasses: [], canDeactivate: true });
+    preview = () => HttpResponse.json({ headClasses: [], assistantClasses: [], canDeactivate: true });
     setup(() => HttpResponse.json(current));
     server.use(
       http.get("/api/v1/teachers/t1/deactivation", () => preview()),
-      http.post("/api/v1/teachers/t1/deactivate", () => {
+      http.post("/api/v1/teachers/t1/deactivate", async ({ request }) => {
+        body = await request.json();
         deactivated += 1;
         current = detail({ status: "INACTIVE", access: teacher.access === "NONE" ? "NONE" : "ENDED" });
         return HttpResponse.json(current);
@@ -232,14 +255,16 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     return screen.findByRole("dialog", { name: "Inativar Ana Souza" });
   };
 
-  it("CA9, CA11: sem turmas diz que nenhuma ficará sem titular; confirmar atualiza o painel para Inativo e fecha a janela", async () => {
+  it("CA9, CA11: sem turmas só mostra resumo e motivo; confirmar atualiza o painel para Inativo e fecha a janela", async () => {
     const user = userEvent.setup();
     const dialog = await open(user);
-    expect(await within(dialog).findByText("Nenhuma turma ficará sem titular.")).toBeInTheDocument();
+    await loaded(dialog);
+    expect(within(dialog).queryByText(/ficam? sem titular/)).toBeNull();
     expect(within(dialog).getByText(/O acesso dele é desligado agora/)).toBeInTheDocument();
+    await user.type(within(dialog).getByRole("textbox", { name: /Motivo/ }), "Mudou de cidade");
     await user.click(within(dialog).getByRole("button", { name: "Inativar professor" }));
     expect(await screen.findByText("Professor inativado.")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Inativar Ana Souza" })).toBeNull());
     expect(deactivated).toBe(1);
     expect(screen.getByText("Inativo")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Inativar" })).toBeDisabled();
@@ -248,20 +273,38 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
   it("CA9: lista as turmas sem titular e avisa que o acesso será encerrado quando há conta", async () => {
     const user = userEvent.setup();
     const dialog = await open(user, detail({ access: "ACTIVE" }));
-    await within(dialog).findByText("Nenhuma turma ficará sem titular.");
+    await loaded(dialog);
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
-    preview = () => HttpResponse.json({ headClasses: [{ id: "c1", name: "Jiu-Jitsu Noite", role: "HEAD" }], canDeactivate: true });
+    preview = () =>
+      HttpResponse.json({
+        headClasses: [
+          { id: "c1", name: "Jiu-Jitsu Noite", role: "HEAD", unitName: "Centro", candidates: [{ id: "t2", name: "Rafael Duarte" }] },
+          { id: "c2", name: "Jiu-Jitsu Kids", role: "HEAD", unitName: "Centro", candidates: [] },
+        ],
+        assistantClasses: [{ id: "c3", name: "Jiu-Jitsu Adulto", role: "ASSISTANT", unitName: "Norte" }],
+        canDeactivate: true,
+      });
     await user.click(screen.getByRole("button", { name: "Inativar" }));
     const again = await screen.findByRole("dialog");
-    expect(await within(again).findByText("Estas turmas ficarão sem titular:")).toBeInTheDocument();
-    expect(within(again).getByText("Jiu-Jitsu Noite")).toBeInTheDocument();
+    expect(await within(again).findByText("2 turmas ficam sem titular")).toBeInTheDocument();
+    for (const h of ["Turma", "Papel", "Novo titular"]) expect(within(again).getByRole("columnheader", { name: h })).toBeInTheDocument();
+    expect(within(again).getByText("Jiu-Jitsu Noite (Centro)")).toBeInTheDocument();
+    expect(within(again).getByText("sai da turma")).toBeInTheDocument();
     expect(within(again).getByText(/O acesso dele é desligado agora/)).toBeInTheDocument();
+    // sem motivo o botão não chama a API; com motivo e um novo titular a chamada leva reason e replacements só das turmas escolhidas
+    await user.click(within(again).getByRole("button", { name: "Inativar professor" }));
+    expect(deactivated).toBe(0);
+    await user.selectOptions(within(again).getByLabelText("Novo titular de Jiu-Jitsu Noite"), "Rafael Duarte");
+    await user.type(within(again).getByRole("textbox", { name: "Motivo *" }), "Mudou de cidade");
+    await user.click(within(again).getByRole("button", { name: "Inativar professor" }));
+    await waitFor(() => expect(deactivated).toBe(1));
+    expect(body).toEqual({ reason: "Mudou de cidade", replacements: [{ classId: "c1", teacherId: "t2" }] });
   });
 
   it("CA9: Administrador fora do alcance vê o aviso e não confirma", async () => {
     const user = userEvent.setup();
     const dialog = await open(user);
-    preview = () => HttpResponse.json({ headClasses: [], canDeactivate: false });
+    preview = () => HttpResponse.json({ headClasses: [], assistantClasses: [], canDeactivate: false });
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
     await user.click(screen.getByRole("button", { name: "Inativar" }));
     const again = await screen.findByRole("dialog");
@@ -273,16 +316,17 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
   it("CA9: erro da pré-visualização mostra Tentar de novo; 409 e 403 do servidor aparecem na janela", async () => {
     const user = userEvent.setup();
     const dialog = await open(user);
-    await within(dialog).findByText("Nenhuma turma ficará sem titular.");
+    await loaded(dialog);
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
     preview = () => HttpResponse.json({}, { status: 500 });
     await user.click(screen.getByRole("button", { name: "Inativar" }));
     const failed = await screen.findByRole("dialog");
     expect(await within(failed).findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
-    preview = () => HttpResponse.json({ headClasses: [], canDeactivate: true });
+    preview = () => HttpResponse.json({ headClasses: [], assistantClasses: [], canDeactivate: true });
     await user.click(within(failed).getByRole("button", { name: "Tentar de novo" }));
-    await within(failed).findByText("Nenhuma turma ficará sem titular.");
+    await loaded(failed);
     server.use(http.post("/api/v1/teachers/t1/deactivate", () => HttpResponse.json({ code: "CONFLICT" }, { status: 409 })));
+    await user.type(within(failed).getByRole("textbox", { name: /Motivo/ }), "Mudou de cidade");
     await user.click(within(failed).getByRole("button", { name: "Inativar professor" }));
     expect(await within(failed).findByText("Este professor já está inativo.")).toBeInTheDocument();
     server.use(http.post("/api/v1/teachers/t1/deactivate", () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 })));
@@ -298,7 +342,7 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     window.innerWidth = 360;
     const user = userEvent.setup();
     const dialog = await open(user, detail({ access: "ACTIVE" }));
-    await within(dialog).findByText("Nenhuma turma ficará sem titular.");
+    await loaded(dialog);
     expect(await axeViolations(document.body)).toEqual([]);
   });
 });

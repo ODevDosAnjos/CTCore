@@ -43,7 +43,7 @@ class TeacherController {
     }
 
     @GetMapping
-    PageResponse<Teachers.Row> list(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) String q,
+    Teachers.TeacherList list(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) String q,
             @RequestParam(required = false) UUID modalityId, @RequestParam(required = false) UUID unitId,
             @RequestParam(required = false) String status, @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size, @RequestParam(required = false) String sort) {
@@ -103,7 +103,8 @@ class TeacherController {
     }
 
     @PostMapping("/{id}/deactivate")
-    Teachers.Detail deactivate(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, HttpServletRequest request) {
-        return deactivation.deactivate(who, id, request.getRemoteAddr());
+    Teachers.Detail deactivate(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id,
+            @RequestBody(required = false) TeacherDeactivation.Request body, HttpServletRequest request) {
+        return deactivation.deactivate(who, id, body, request.getRemoteAddr());
     }
 }

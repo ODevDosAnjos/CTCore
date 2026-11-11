@@ -26,7 +26,7 @@ export function listasCenario(ctx: ListasCtx) {
 
   const unit = (id: string) => ({ id, name: unitName(id) });
   const teacher = (n: number, name: string, modality: string, units: string[], status: string, access: string, consent: boolean): MockTeacher => ({
-    id: p(0x10 + n), name, photoUrl: null, modalities: [{ id: mod(modality).id, name: modality, levelId: null, level: null, degree: null }], units: units.map(unit), classCount: 0, status, directoryConsent: consent, access,
+    id: p(0x10 + n), name, photoUrl: null, modalities: [{ id: mod(modality).id, name: modality, levelId: null, level: null, degree: null, levelColor: null, levelSecondaryColor: null }], units: units.map(unit), classCount: 0, status, directoryConsent: consent, access,
   });
   const teachers = [
     teacher(1, "Paulo Teixeira", "Judô", [ctx.centro], "ACTIVE", "PENDING", false),

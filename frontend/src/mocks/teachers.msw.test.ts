@@ -20,9 +20,11 @@ describe("professores x OpenAPI (RF-PRO-01, CA10)", () => {
   it("Coordenador: envelope e linha no formato do contrato, sem contato, ordenados por nome", async () => {
     await login("ana@exemplo.com");
     const data = await (await list()).json();
-    expect(Object.keys(data).sort()).toEqual(["items", "page", "size", "total"]);
-    expect(data).toMatchObject({ page: 1, size: 25, total: 3 });
+    expect(Object.keys(data).sort()).toEqual(["counts", "items", "page", "size", "total"]);
+    expect(data).toMatchObject({ page: 1, size: 25, total: 3, counts: { active: 2, withAccess: 1 } });
     expect(names(data)).toEqual(["Ana Souza", "João Pereira", "Marcos Lima"]);
+    expect(data.items[0].modalities[0]).toMatchObject({ levelColor: "#7E22CE", levelSecondaryColor: null });
+    expect(data.items[1].modalities[1]).toMatchObject({ levelColor: null, levelSecondaryColor: null });
     expect(Object.keys(data.items[0]).sort()).toEqual([...openapi.components.schemas.TeacherRow.required].sort());
     expect(JSON.stringify(data)).not.toMatch(/email|phone/);
     expect(names(await (await list("?sort=name,desc")).json())[0]).toBe("Marcos Lima");
@@ -67,6 +69,9 @@ describe("painel do professor x OpenAPI (RF-PRO-02, CA10)", () => {
     const data = await (await fetch(`/api/v1/teachers/${JOAO}`)).json();
     expect(Object.keys(data).sort()).toEqual([...openapi.components.schemas.TeacherDetail.required].sort());
     expect(data).toMatchObject({ email: "joao.pereira@alfa.test", classes: [{ id: "00000000-0000-0000-0000-000000000601", name: "Jiu-Jitsu Adulto", role: "ASSISTANT" }, { id: "00000000-0000-0000-0000-000000000602", name: "Judô Infantil", role: "HEAD" }], upcomingClasses: [], access: "NONE" });
+    expect(data.classes[0]).toMatchObject({ unitName: "Unidade Centro", schedule: [{ weekday: 1, startsAt: "19:00", endsAt: "20:00" }, { weekday: 3, startsAt: "19:00", endsAt: "20:00" }] });
+    expect(data).toMatchObject({ substitutions: [], lastAccessAt: null });
+    expect((await (await fetch(`/api/v1/teachers/${ANA}`)).json()).lastAccessAt).toEqual(expect.any(String));
     expect((await fetch("/api/v1/teachers/00000000-0000-0000-0000-0000000009ff")).status).toBe(404);
   });
 
@@ -196,13 +201,24 @@ describe("inativar professor x OpenAPI (RF-PRO-04, CA10)", () => {
     await login("ana@exemplo.com");
     const preview = await (await fetch(`/api/v1/teachers/${JOAO}/deactivation`)).json();
     expect(Object.keys(preview).sort()).toEqual([...openapi.components.schemas.TeacherDeactivationPreview.required].sort());
-    expect(preview).toEqual({ headClasses: [], canDeactivate: true });
+    expect(preview).toMatchObject({
+      canDeactivate: true,
+      headClasses: [{ name: "Judô Infantil", role: "HEAD", unitName: "Unidade Centro", candidates: [] }],
+      assistantClasses: [{ name: "Jiu-Jitsu Adulto", role: "ASSISTANT", unitName: "Unidade Centro" }],
+    });
+    // Corpo: motivo de 3 a 200 e troca só por professor ativo da unidade que ensina a modalidade; nada muda no 400.
+    expect((await post(`${JOAO}/deactivate`)).status).toBe(400);
+    expect((await post(`${JOAO}/deactivate`, { reason: "ab" })).status).toBe(400);
+    expect((await post(`${JOAO}/deactivate`, { reason: "x".repeat(201) })).status).toBe(400);
+    const bad = await post(`${JOAO}/deactivate`, { reason: "Mudou de cidade", replacements: [{ classId: preview.headClasses[0].id, teacherId: ANA }] });
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).fields[0].field).toBe("replacements");
     expect((await (await fetch(`/api/v1/teachers/${JOAO}`)).json()).status).toBe("ACTIVE");
     await post(`${JOAO}/access`);
-    const done = await post(`${JOAO}/deactivate`);
+    const done = await post(`${JOAO}/deactivate`, { reason: "Mudou de cidade" });
     expect(done.status).toBe(200);
     expect(await done.json()).toMatchObject({ status: "INACTIVE", access: "ENDED" });
-    expect((await post(`${JOAO}/deactivate`)).status).toBe(409);
+    expect((await post(`${JOAO}/deactivate`, { reason: "Mudou de cidade" })).status).toBe(409);
     expect((await (await fetch(`/api/v1/teachers/${JOAO}/deactivation`)).json()).canDeactivate).toBe(false);
     expect((await post("00000000-0000-0000-0000-0000000009ff/deactivate")).status).toBe(404);
   });
@@ -210,10 +226,10 @@ describe("inativar professor x OpenAPI (RF-PRO-04, CA10)", () => {
   it("Administrador só inativa quem tem só a unidade dele (403 e canDeactivate falso senão); Professor 403", async () => {
     await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
     expect((await (await fetch(`/api/v1/teachers/${JOAO}/deactivation`)).json()).canDeactivate).toBe(false);
-    expect((await post(`${JOAO}/deactivate`)).status).toBe(403);
-    expect((await post(`${ANA}/deactivate`)).status).toBe(200);
+    expect((await post(`${JOAO}/deactivate`, { reason: "Mudou de cidade" })).status).toBe(403);
+    expect((await post(`${ANA}/deactivate`, { reason: "Mudou de cidade" })).status).toBe(200);
     await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000013");
-    expect((await post(`${JOAO}/deactivate`)).status).toBe(403);
+    expect((await post(`${JOAO}/deactivate`, { reason: "Mudou de cidade" })).status).toBe(403);
     expect((await fetch(`/api/v1/teachers/${JOAO}/deactivation`)).status).toBe(403);
   });
 });

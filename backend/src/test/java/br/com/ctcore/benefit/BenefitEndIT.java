@@ -223,7 +223,7 @@ class BenefitEndIT extends OrganizationBase {
         UUID teacherBenefit = grant(fx, c, fx.teacher());
         UUID plainBenefit = grant(plain, c, null);
         assertThat(adminJdbc().queryForObject("select teacher_id from benefit where id = ?", UUID.class, teacherBenefit)).isEqualTo(fx.teacher());
-        var r = call(MockMvcRequestBuilders.post("/api/v1/teachers/" + fx.teacher() + "/deactivate"), c).getResponse();
+        var r = call(MockMvcRequestBuilders.post("/api/v1/teachers/" + fx.teacher() + "/deactivate").contentType("application/json").content("{\"reason\":\"Saída da academia\"}"), c).getResponse();
         assertThat(r.getStatus()).as(r.getContentAsString()).isEqualTo(200);
         assertThat(status(teacherBenefit)).isEqualTo("ENDED");
         assertThat(adminJdbc().queryForObject("select end_reason from benefit where id = ?", String.class, teacherBenefit)).isEqualTo("Professor inativado");

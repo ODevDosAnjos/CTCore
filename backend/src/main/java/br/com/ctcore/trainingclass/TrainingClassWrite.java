@@ -198,6 +198,26 @@ public class TrainingClassWrite {
         });
     }
 
+    /**
+     * RN-PRO-05: troca só o titular de uma turma ativa, dentro da transação de quem chama (inativação de professor). Valida o novo titular
+     * como na edição (ativo, da unidade, ensina a modalidade) e audita {@code class.updated}.
+     */
+    public void replaceHead(AccountPrincipal who, UUID classId, UUID newHeadId, String ip) {
+        record Row(UUID unit, UUID modality, UUID head) {}
+        Row row = jdbc.sql("select unit_id, modality_id, head_teacher_id from training_class where id = :id and organization_id = :org and status = 'ACTIVE' for update")
+                .param("id", classId).param("org", who.organizationId())
+                .query((rs, n) -> new Row(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class))).single();
+        if (!activeTeachers(who, row.unit(), row.modality(), Set.of(newHeadId))) {
+            throw new ApiValidationException("replacements", "escolha um professor ativo da unidade que ensine a modalidade");
+        }
+        jdbc.sql("update training_class set head_teacher_id = :head where id = :id and organization_id = :org")
+                .param("head", newHeadId).param("id", classId).param("org", who.organizationId()).update();
+        jdbc.sql("delete from training_class_assistant where organization_id = :org and class_id = :id and teacher_id = :t")
+                .param("org", who.organizationId()).param("id", classId).param("t", newHeadId).update();
+        audit.record(new AuditEntry(actor(who), "class.updated", "training_class", classId.toString(), row.unit(),
+                Map.of("headTeacherId", row.head().toString()), Map.of("headTeacherId", newHeadId.toString()), null, ip));
+    }
+
     /** D8: unidades ativas do alcance, com modalidades oferecidas e professores ativos de cada uma, e as faixas da organização. */
     public Options options(AccountPrincipal who) {
         classes.requireAccess(who);
