@@ -167,7 +167,7 @@ Achados:
 
 Muda: Financeiro › Cobranças (Coordenação e Administração) igual ao canvas: cabeçalho com subtítulo e os quatro botões (Exportar CSV "Em breve"), abas em pílula com contagem, busca e filtros em pílula, tabela com referência em duas linhas, vencimento antes da situação, dias de atraso, meio com valor pago, menu "..." por linha, rodapé de totais e paginação; celular com cabeçalho enxuto e cartões compactos; estados de erro (cartão do canvas) e sem acesso. API: `ChargeRow.daysLate`, `payment.amountCents`, `counts.all`, `totals.paidCents/openCents` (contrato, SQL e `ChargesIT`).
 
-Verificado: rodada 1 OK (estado 6e763bd6c3f7703680f9410d3d81258345bf72cd), CA1 a CA13. `visual:canvas --exige`: 131 comparadas, 0 reprovadas. Capturas em `.capturas/476/`.
+Verificado: rodada 2 OK (estado b3cdafd0520b6dcb53ab394ced6479b978853323), CA1 a CA13. `visual:canvas --exige`: 131 comparadas, 0 reprovadas. Capturas em `.capturas/476/`.
 
 Decisões e divergências com o canvas (também na descrição do PR):
 - D5: o período abre em "Todo o período", não em "Outubro/2026" do canvas.
@@ -182,3 +182,23 @@ Decisões e divergências com o canvas (também na descrição do PR):
 - `GMCobrancas` (360 px) conferido só pelas capturas.
 
 Regressão (da construção; base `dev` não avançou, não rerodada): `verify` do back-end 878 testes verdes; lint, typecheck, build e `test:cov` (2335 testes, `src/features/charges` com 100%) verdes; `e2e` (@critical) 96 passaram; `configuracao-unidade` e `portal-pedidos` (dark) estouraram 30 s e passaram repetidos. Instáveis fora do item sob carga: `LoginPage`, `EnrollmentWizardPage`, `DailyReceiptsPage` (passaram isolados). Sem issue de instabilidade; a primeira linha do erro não foi anotada na construção. `e2e:full` só roda no PR para `main`.
+
+Verificações do PR (PR #572, estado fdd5f9659b431547302096b773419e4881b3739b, run 43304990639): `ci-gate` e `visual` falharam; os demais passaram. Falha: `visual/telas.visual.ts:111` (caso `cobrancas-previa`, não coberto pelo filtro local da rodada 1), `expect(page).toHaveScreenshot` nos quatro casos, 1440 claro (8384 px), 1440 escuro (8486 px), 390 claro (12140 px), 390 escuro (12389 px) diferentes das referências em `visual/referencias/cobrancas-previa-*.png`. Devolvido `CORRIGIR_CODIGO`.
+
+### Correção da entrega
+- Falha do `visual` no PR #572 (caso `cobrancas-previa`, nao coberto pelo filtro local da rodada 1): a diferenca e o botao "Gerar proximas mensalidades" na Previa (D1, esperado). Referencias regeradas so desse caso — arquivos: `frontend/visual/referencias/cobrancas-previa-{1440,390}-{claro,escuro}.png` — prova: `npm run test:visual:docker -- -g "cobrancas-previa"` antes 4 falharam, apos `--update-snapshots` e nova rodada sem update 4 passaram; `npm run visual:canvas -- --exige` -> 131 comparadas, 0 reprovadas.
+- Referencias visuais: alteradas `cobrancas-previa-*` (4).
+- Visual do CI: cobrancas-previa -> passou.
+
+### Rodada 2 — OK — 2026-11-12, estado b3cdafd0520b6dcb53ab394ced6479b978853323
+
+Mudança desde a rodada 1 / commit fdd5f96: só as 4 referências `cobrancas-previa-{1440,390}-{claro,escuro}.png` e este arquivo (sem código). Achado da entrega (visual do CI em `cobrancas-previa`) conferido: a diferença é o botão "Gerar próximas mensalidades" na Prévia (D1, CA3).
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA3 | PASSOU | `cobrancas-previa` 4 casos passaram contra as referências novas |
+| CA11 | PASSOU | `test:visual:docker -g "cobranca\|sem-acesso"` → 44 passaram; `visual:canvas --exige` → 131 comparadas, 0 reprovadas |
+| CA1, CA2, CA4 a CA10, CA12, CA13 | PASSOU (mantido da rodada 1) | sem mudança de código |
+
+Comandos: os dois acima, resultado real.
+Achados: nenhum obrigatório. Sugestões da rodada 1 mantidas.
