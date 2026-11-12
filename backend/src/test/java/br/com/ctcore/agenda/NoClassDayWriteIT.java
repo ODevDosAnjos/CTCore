@@ -86,7 +86,11 @@ class NoClassDayWriteIT extends NoClassDayBase {
 
         assertThat(post(body(d, d, "Recesso", t.unitId(), other.unitId()), coord).getStatus()).isEqualTo(404);
         assertThat(days(t)).isZero();
-        assertThat(body(post(body(d, d, "Recesso", t.unitId(), u2.unitId()), coord), 201)).hasSize(2);
+        var created = body(post(body(d, d, "Recesso", t.unitId(), u2.unitId()), coord), 201);
+        assertThat(created).hasSize(2);
+        assertThat(created.findValuesAsText("unitsInBatch")).containsExactly("2", "2");
+        assertThat(adminJdbc().queryForObject("select count(distinct batch_id) from no_class_day where organization_id = ? and batch_id is not null", Integer.class,
+                t.orgId())).isEqualTo(1);
         assertThat(days(t)).isEqualTo(2);
         assertThat(status(l1)).isEqualTo("CANCELLED");
         assertThat(status(l2)).isEqualTo("CANCELLED");

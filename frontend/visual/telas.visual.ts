@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -27,6 +27,20 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         await fetch("/api/v1/modalities/00000000-0000-0000-0000-000000000103/activation", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: true }) });
         const r = await fetch("/api/v1/units/00000000-0000-0000-0000-000000000021/modalities/00000000-0000-0000-0000-000000000103", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ offered: true }) });
         if (!r.ok) throw new Error(`oferta do caso: ${r.status}`);
+      });
+    }
+    if (dias) {
+      // #474: a Coordenação lança os dias do canvas (recesso em duas unidades, graduação, Finados) e ignora os feriados que sobram, para a tela ter as 4 sugestões e os lançados do canvas
+      await page.evaluate(async () => {
+        const call = (method: string, url: string, body?: unknown) => fetch(`/api/v1${url}`, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+        await call("POST", "/auth/login", { email: "ana@exemplo.com", password: "segredo123" });
+        const lista = (await (await call("GET", "/no-class-days")).json()) as { units: { id: string }[]; unit: { id: string } };
+        const unitIds = lista.units.map((u) => u.id);
+        const lancar = async (body: object) => { const r = await call("POST", "/no-class-days", body); if (!r.ok) throw new Error(`dia sem aula do caso: ${r.status} ${await r.text()}`); };
+        await lancar({ unitIds, startsOn: "2026-12-24", endsOn: "2027-01-03", reason: "Recesso de fim de ano", classIds: [], notice: { mode: "SCHEDULED", sendAt: "2026-12-01T12:00:00Z" } });
+        await lancar({ unitIds: [lista.unit.id], startsOn: "2026-10-31", endsOn: "2026-10-31", reason: "Graduação na Barra (evento)", classIds: [], notice: { mode: "NONE" } });
+        await lancar({ unitIds: [lista.unit.id], startsOn: "2026-11-02", endsOn: "2026-11-02", reason: "Finados", classIds: [], holiday: true, notice: { mode: "NONE" } });
+        for (const date of ["2027-01-01", "2027-03-26", "2027-04-21", "2027-05-01", "2027-09-07", "2027-10-12"]) await call("POST", "/no-class-days/ignored-holidays", { unitId: lista.unit.id, date });
       });
     }
     if (matricula) {
@@ -84,7 +98,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

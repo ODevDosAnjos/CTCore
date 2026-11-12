@@ -1520,7 +1520,8 @@ paths:
       summary: Dias sem aula da unidade e feriados sugeridos (RF-AGE-05). Coordenador e Administrador (`NO_CLASS_DAYS`).
       description: |
         Traz os dias da unidade cujo fim é hoje ou depois (fuso da unidade), por início, e `suggestions`: feriados nacionais dos próximos 12
-        meses (calculados no servidor) que ainda não viraram dia sem aula na unidade. Nada é gravado até a unidade confirmar. `unitId` ausente
+        meses (calculados no servidor), com `affectedLessons` e `dayId` (o dia da unidade que começa na data, se já foi confirmado; nulo senão); as
+        ignoradas na unidade não vêm. Nada é gravado até a unidade confirmar. `unitId` ausente
         escolhe a primeira unidade do alcance. `notice.status` é `NOT_NOTIFIED`, `SCHEDULED` ou `SENT` (o envio é da Sprint 09). Professor, Aluno e
         Responsável: 403; unidade fora do alcance do Administrador ou de outra organização: 404.
       security: [{ sessionCookie: [] }]
@@ -1557,6 +1558,24 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { description: 'Regra de negócio recusa o pedido (UNPROCESSABLE); `fields` traz o campo. Nada é gravado.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /no-class-days/ignored-holidays:
+    post:
+      summary: Ignora um feriado sugerido na unidade (RF-AGE-05). Coordenador e Administrador (`NO_CLASS_DAYS`).
+      description: |
+        Esconde a sugestão daquela unidade em `GET /no-class-days`; não tem desfazer na tela. Idempotente: repetir devolve 204 sem duplicar. A data
+        precisa ser um feriado dos próximos 12 meses (422 em `date`). Unidade fora do alcance do Administrador ou de outra organização: 404. Professor,
+        Aluno e Responsável: 403. Grava `no_class_day.holiday_ignored` (unidade e data, sem outro dado).
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/NoClassDayIgnoreInput' } } }
+      responses:
+        '204': { description: Feriado ignorado na unidade. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: 'A data não é um feriado sugerido dos próximos 12 meses (UNPROCESSABLE); `fields` traz `date`.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /no-class-days/preview:
     get:
       summary: Prévia das aulas que o dia sem aula cancelaria (RF-AGE-05). Coordenador e Administrador.
@@ -4569,14 +4588,15 @@ components:
         notice: { $ref: '#/components/schemas/NoClassDayNoticeInput' }
     NoClassDayNotice:
       type: object
-      required: [mode, sendAt, status]
+      required: [mode, sendAt, status, sentAt]
       properties:
         mode: { type: string, enum: [NONE, NOW, SCHEDULED] }
         sendAt: { type: string, format: date-time, nullable: true }
         status: { type: string, enum: [NOT_NOTIFIED, SCHEDULED, SENT] }
+        sentAt: { type: string, format: date-time, nullable: true, description: Instante do envio do comunicado do dia; nulo antes do envio. }
     NoClassDayItem:
       type: object
-      required: [id, unit, startsOn, endsOn, reason, origin, allClasses, classes, notice, cancelledLessons, canEdit]
+      required: [id, unit, startsOn, endsOn, reason, origin, allClasses, classes, notice, cancelledLessons, canEdit, unitsInBatch]
       properties:
         id: { type: string, format: uuid }
         unit: { $ref: '#/components/schemas/ClassRef' }
@@ -4589,11 +4609,20 @@ components:
         notice: { $ref: '#/components/schemas/NoClassDayNotice' }
         cancelledLessons: { type: integer }
         canEdit: { type: boolean, description: Dica; verdadeiro só se o início é depois de hoje. }
+        unitsInBatch: { type: integer, minimum: 1, description: Quantas unidades receberam o mesmo lançamento (1 para dia antigo ou de uma unidade). }
     NoClassDaySuggestion:
       type: object
-      required: [code, date]
+      required: [code, date, affectedLessons, dayId]
       properties:
         code: { type: string, enum: [NEW_YEAR, GOOD_FRIDAY, TIRADENTES, LABOUR_DAY, INDEPENDENCE, APARECIDA, ALL_SOULS, REPUBLIC, BLACK_AWARENESS, CHRISTMAS] }
+        date: { type: string, format: date }
+        affectedLessons: { type: integer, minimum: 0, description: Aulas da unidade na data que o dia cancelaria (ou já cancelou); cancelamento à mão não conta. }
+        dayId: { type: string, format: uuid, nullable: true, description: Dia sem aula da unidade que começa na data; nulo se ainda não foi confirmado. }
+    NoClassDayIgnoreInput:
+      type: object
+      required: [unitId, date]
+      properties:
+        unitId: { type: string, format: uuid }
         date: { type: string, format: date }
     NoClassDayList:
       type: object

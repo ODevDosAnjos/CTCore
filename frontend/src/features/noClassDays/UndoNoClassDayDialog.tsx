@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { deleteDay, type NoClassDayItem } from "./useNoClassDays";
 import { Banner } from "@/components/ui/banner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // RF-AGE-05: desfazer um dia futuro. "Avisar as turmas" só vai para a auditoria até a Sprint 09; a unidade desfaz só o seu dia.
 export function UndoNoClassDayDialog({ item, period, onClose, onDone }: { item: NoClassDayItem; period: string; onClose: () => void; onDone: () => void }) {
@@ -27,26 +28,26 @@ export function UndoNoClassDayDialog({ item, period, onClose, onDone }: { item: 
   }
 
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("noClassDays.undoDialog.title")}>
-      <div className="flex flex-col gap-3">
-        <p>{t("noClassDays.undoDialog.summary", { period, reason: item.reason })}</p>
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
-          {t("noClassDays.undoDialog.notify")}
-        </label>
-        {error && (
-          <Banner tone="danger">
-            {error}
-          </Banner>
-        )}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
+    <Modal
+      open
+      size="sm"
+      onOpenChange={(o) => !o && !busy && onClose()}
+      title={t("noClassDays.undoDialog.title")}
+      footer={
+        <>
+          <Button variant="secondary" className="min-h-11" onClick={onClose} disabled={busy}>
             {t("common.cancel")}
           </Button>
-          <Button className="min-h-11" onClick={() => void confirm()} disabled={busy}>
+          <Button variant="dangerSolid" className="min-h-11" onClick={() => void confirm()} disabled={busy}>
             {t("noClassDays.undoDialog.confirm")}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <p>{t("noClassDays.undoDialog.summary", { period, reason: item.reason })}</p>
+        <Checkbox label={t("noClassDays.undoDialog.notify")} checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+        {error && <Banner tone="danger">{error}</Banner>}
       </div>
     </Modal>
   );

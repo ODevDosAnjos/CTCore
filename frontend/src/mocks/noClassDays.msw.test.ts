@@ -38,7 +38,7 @@ describe("no-class-days x OpenAPI (RF-AGE-05, CA18)", () => {
     expect((await send("GET", "?unitId=00000000-0000-0000-0000-0000000009ff")).status).toBe(404);
   });
 
-  it("lista no formato do contrato e sugere feriados que somem ao confirmar", async () => {
+  it("lista no formato do contrato e sugere feriados que ficam como confirmados", async () => {
     await login("ana@exemplo.com");
     const view = await (await send("GET", "")).json();
     expect(keys(view)).toEqual([...schemas.NoClassDayList.required].sort());
@@ -55,7 +55,36 @@ describe("no-class-days x OpenAPI (RF-AGE-05, CA18)", () => {
     expect(created.notice.status).toBe("NOT_NOTIFIED");
     const after = await (await send("GET", "")).json();
     expect(after.days).toHaveLength(1);
-    expect(after.suggestions.map((s: { date: string }) => s.date)).not.toContain(first.date);
+    expect(after.suggestions.find((s: { date: string }) => s.date === first.date).dayId).toBe(created.id);
+  });
+
+  it("(#474) sugestão traz aulas afetadas e dayId; confirmado fica com dayId e unitsInBatch 1", async () => {
+    await login("ana@exemplo.com");
+    const first = (await (await send("GET", "")).json()).suggestions[0];
+    expect(first.dayId).toBeNull();
+    expect(typeof first.affectedLessons).toBe("number");
+    const [made] = await (await send("POST", "", day({ startsOn: first.date, endsOn: first.date, holiday: true }))).json();
+    expect(made.unitsInBatch).toBe(1);
+    expect(made.notice.sentAt).toBeNull();
+    const again = (await (await send("GET", "")).json()).suggestions.find((s: { date: string }) => s.date === first.date);
+    expect(again.dayId).toBe(made.id);
+  });
+
+  it("(#474) POST /ignored-holidays: 204 idempotente, some da lista; 422, 404, 403 e 401", async () => {
+    expect(openapi.paths["/no-class-days/ignored-holidays"].post.responses["204"]).toBeDefined();
+    const ignore = (body: unknown) => send("POST", "/ignored-holidays", body);
+    expect((await ignore({ unitId: UNIT, date: "2026-01-01" })).status).toBe(401);
+    await login("ana@exemplo.com");
+    const date = (await (await send("GET", "")).json()).suggestions[0].date;
+    expect((await ignore({ unitId: UNIT, date })).status).toBe(204);
+    expect((await ignore({ unitId: UNIT, date })).status).toBe(204);
+    expect((await (await send("GET", "")).json()).suggestions.map((s: { date: string }) => s.date)).not.toContain(date);
+    const notHoliday = await ignore({ unitId: UNIT, date: addDays(todayIso(), 1) === date ? addDays(todayIso(), 2) : addDays(todayIso(), 1) });
+    expect(notHoliday.status).toBe(422);
+    expect((await notHoliday.json()).fields[0].field).toBe("date");
+    expect((await ignore({ unitId: "00000000-0000-0000-0000-0000000009ff", date })).status).toBe(404);
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000012");
+    expect((await ignore({ unitId: UNIT, date })).status).toBe(403);
   });
 
   it("prévia traz as aulas por unidade e o POST seguinte cancela o mesmo número, sem gravar antes", async () => {

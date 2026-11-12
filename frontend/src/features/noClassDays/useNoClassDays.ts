@@ -16,9 +16,10 @@ export interface NoClassDayItem {
   origin: "HOLIDAY" | "COORDINATOR" | "UNIT";
   allClasses: boolean;
   classes: Choice[];
-  notice: { mode: NoticeMode; sendAt: string | null; status: "NOT_NOTIFIED" | "SCHEDULED" | "SENT" };
+  notice: { mode: NoticeMode; sendAt: string | null; status: "NOT_NOTIFIED" | "SCHEDULED" | "SENT"; sentAt: string | null };
   cancelledLessons: number;
   canEdit: boolean;
+  unitsInBatch: number;
 }
 
 export type NoticeMode = "NONE" | "NOW" | "SCHEDULED";
@@ -26,6 +27,8 @@ export type NoticeMode = "NONE" | "NOW" | "SCHEDULED";
 export interface Suggestion {
   code: string;
   date: string;
+  affectedLessons: number;
+  dayId: string | null;
 }
 
 export interface NoClassDayList {
@@ -61,6 +64,7 @@ export interface Preview {
 export const createDay = (body: NoClassDayInput) => api<NoClassDayItem[]>("/no-class-days", { method: "POST", body });
 export const updateDay = (id: string, body: NoClassDayInput) => api<NoClassDayItem>(`/no-class-days/${id}`, { method: "PUT", body });
 export const deleteDay = (id: string, notify: boolean) => api<void>(`/no-class-days/${id}?notify=${notify}`, { method: "DELETE" });
+export const ignoreHoliday = (unitId: string, date: string) => api<void>("/no-class-days/ignored-holidays", { method: "POST", body: { unitId, date } });
 
 type Done = { key: string; data?: NoClassDayList; failure?: "forbidden" | "error"; last?: NoClassDayList };
 

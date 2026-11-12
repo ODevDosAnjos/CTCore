@@ -12,6 +12,7 @@ abstract class AgendaBase extends OrganizationBase {
     @AfterEach
     void clean() {
         adminJdbc().update("delete from lesson");
+        adminJdbc().update("delete from no_class_day_ignored_holiday");
         adminJdbc().update("delete from no_class_day");
         adminJdbc().update("delete from training_class_assistant");
         adminJdbc().update("delete from training_class_schedule");
