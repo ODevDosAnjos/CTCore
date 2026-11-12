@@ -127,6 +127,11 @@ Regressão: `npm run test:cov` (frontend) → 2276 passam, 9 falham: 2 eram do i
 Desvios (parte D): `agenda-aula-avulsa` continua com `limiteCanvas` (0,52, medido a 47,5%) porque passa de 30%; o CA14 pedia sem limite, mas aceita limite com motivo; o caso `aula-editar-seguintes` não tem aula com `followingEdited` > 0 no MSW (semear uma edição mudaria as referências da agenda), então o alerta amarelo de aulas alteradas à mão fica coberto só pelo teste (CA5) e não pelo print; o limite dos seis casos não cita uma issue que o remova, porque a divergência é o fundo do fluxo (gaveta atrás) e dados do MSW, e não há issue aberta para isso; sugerir ao dono.
 Referências visuais: regeradas `agenda-aula-avulsa-{1440,390}-{claro,escuro}.png`, `agenda-painel-professor-390-{claro,escuro}.png` (rodapé em duas linhas) e novas `aula-cancelar`, `aula-editar`, `aula-editar-seguintes`, `aula-corrigir`, `aula-avisar-turma` (`-{1440,390}-{claro,escuro}.png`), todas em `frontend/visual/referencias/`.
 
+### Correção da entrega
+- e2e `comunicados.spec.ts` ("Cancelamento de aula com aviso à turma") procurava o link da página antiga; agora usa o botão "Avisar turma", a janela e "Enviar agora" — arquivos: `frontend/e2e/comunicados.spec.ts` — prova: `npx playwright test e2e/comunicados.spec.ts` → 1 passou.
+- visual `agenda-painel 390 claro/escuro` (0,01 de pixels diferentes) — referências regeradas no container — arquivos: `frontend/visual/referencias/agenda-painel-390-claro.png`, `agenda-painel-390-escuro.png` — prova: `npm run test:visual:docker -- --update-snapshots -g "agenda-painel"` → 8 passaram.
+Referências visuais: `agenda-painel-390-claro.png`, `agenda-painel-390-escuro.png`.
+
 ## Verificação
 
 ### Rodada 1 — CORRIGIR_CODIGO — 2026-11-11, estado 78c37d826e049ffd6f3499ae02f253e5842a0f77
@@ -183,7 +188,26 @@ Achados:
 ## Entrega
 
 - **O que muda:** painel da aula, editar (esta aula e as seguintes), cancelar, corrigir professor, avisar turma (janela sobre a agenda, com Enviar agora e Agendar; envio por `POST /announcements`) e Nova aula avulsa, no visual do canvas, em 1440 e 390 px, claro e escuro. Contrato (`docs/openapi.yaml`), especificação 06 e MSW atualizados no mesmo PR.
-- **Verificação:** rodada 3 OK, estado `77cb8c23b8141944fa622538d8441612c3e1329c` (o diff até o commit só toca este arquivo). `visual:canvas -- --exige`: 127 comparadas, 0 reprovadas. Vitest, typecheck e lint sem erro; ITs `AgendaLesson*IT` e contrato sem falha na rodada 2.
+- **Verificação:** rodada 4 OK, estado `c60a70aecc0b8793e597324dce4e7e1a6ca85472` (o diff até o commit só toca este arquivo e as correções de CI). `visual:canvas -- --exige`: 127 comparadas, 0 reprovadas (rodada 3). Vitest, typecheck e lint sem erro; e2e agenda e comunicados passam; ITs `AgendaLesson*IT` e contrato sem falha na rodada 2.
 - **Decisões:** D6 (avisar turma passa de página para janela sobre a agenda; a página continua para os outros usos; Agendar mostra data e hora no lugar de outra janela). Autonomia 4 para as divergências de canvas.
 - **Limitações:** seis `limiteCanvas` (`agenda-aula-avulsa` 0,52; `aula-cancelar` 0,60; `aula-editar` 0,58; `aula-editar-seguintes` 0,58; `aula-corrigir` 0,68; `aula-avisar-turma` 0,56), todos citando a #560, cujo "Pronto quando" traz a remoção. Canvas só a 1440 px nos casos da agenda, e o alerta de `followingEdited` fica fora do print (registrado na #560).
 - **Regressão:** a regressão completa local (`verify`, `test:cov`, `e2e:full`) não foi rodada nesta fase, porque a base não avançou e a rodada 3 não a repetiu; o `ci-gate` do PR roda `verify`, `test:cov` e `e2e` e é a prova de merge.
+- **Falhas no CI do commit a554fe9 (run 43129917888, PR #561), corrigidas neste commit:**
+  - `e2e` (`frontend/e2e/comunicados.spec.ts`, "Cancelamento de aula com aviso à turma"): `locator.click: Test timeout of 30000ms exceeded` esperando `getByRole('link', { name: 'Avisar turma' })`. O teste procurava o link da página antiga; a janela da D6 é um botão. Trocado para `getByRole("button")`, `dialog` "Avisar turma" e "Enviar agora".
+  - `visual` (`visual/telas.visual.ts`, `agenda-painel 390 claro` e `escuro`): `toHaveScreenshot` com 1454 e 1476 pixels diferentes (0,01). Referências `frontend/visual/referencias/agenda-painel-390-*.png` regeradas no container (`-- --update-snapshots -g "agenda-painel"`, 8 passam); só as duas desta tela mudaram.
+
+### Rodada 4 — OK — 2026-11-11, estado c60a70aecc0b8793e597324dce4e7e1a6ca85472
+
+Verificação da correção da entrega (falhas do CI do PR #561). Diff desde o commit a554fe9: `frontend/e2e/comunicados.spec.ts`, duas referências `agenda-painel-390-{claro,escuro}.png` e este arquivo.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA13 | PASSOU (mantido da rodada 3, reexecutado) | vitest agenda, announcements, visual/casos: 10 arquivos, 249 passam; `npm run typecheck` e `npm run lint` sem erro |
+| CA8 (fluxo Avisar turma ponta a ponta) | PASSOU | `npx playwright test e2e/comunicados.spec.ts`: 1 passou (botão, janela "Avisar turma", "Enviar agora") |
+| CA12/CA13 (agenda e2e) | PASSOU | `npx playwright test e2e/agenda.spec.ts`: 2 passaram |
+| CA14 | PASSOU (mantido da rodada 3) | `agenda-painel` 390 claro/escuro: `npm run test:visual:docker -- -g "agenda-painel"` 8 passaram com as referências regeradas; só as referências do painel desta tela mudaram |
+
+Comandos: os acima. Achados do CI (e2e e visual) resolvidos. Back-end e regressão completa não rodados de novo: nada mudou neles; o `ci-gate` do PR é a prova de merge.
+Achados obrigatórios: nenhum.
+Achados:
+- sugestão — manter na descrição do PR os seis `limiteCanvas` (#560) e que o canvas das janelas é só 1440 px.
