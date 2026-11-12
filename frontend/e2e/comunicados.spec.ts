@@ -21,14 +21,14 @@ test("@critical Cancelamento de aula com aviso à turma", async ({ page }) => {
   await cancel.getByRole("button", { name: "Cancelar aula" }).click();
   await expect(page.getByText("Aviso pronto")).toBeVisible();
 
-  await page.getByRole("link", { name: "Avisar turma" }).click();
-  await expect(page.getByRole("heading", { name: "Novo comunicado", level: 1 })).toBeVisible();
-  await expect(page.getByLabel("Destino")).toHaveValue(/^CLASS:/);
-  await expect(page.getByLabel("Tipo")).toHaveValue("CANCELED_CLASS");
-  await expect(page.getByLabel("Título")).toHaveValue("Aula cancelada");
-  await expect(page.getByLabel("Texto")).toHaveValue(/Jiu-Jitsu Adulto do dia \d{2}\/\d{2}\/\d{4}, às \d{2}:\d{2}, foi cancelada/);
-  await expect(page.getByText(/^Este aviso vai para \d+ pessoas$/)).toBeVisible();
-  await page.getByRole("button", { name: "Enviar comunicado" }).click();
+  await page.getByRole("button", { name: "Avisar turma" }).click();
+  const notice = page.getByRole("dialog", { name: "Avisar turma" });
+  await expect(notice.getByLabel("Destino")).toHaveValue(/^Turma Jiu-Jitsu Adulto/);
+  await expect(notice.getByLabel("Tipo")).toHaveValue("CANCELED_CLASS");
+  await expect(notice.getByLabel("Título")).toHaveValue("Aula cancelada");
+  await expect(notice.getByLabel("Texto")).toHaveValue(/Jiu-Jitsu Adulto do dia \d{2}\/\d{2}\/\d{4}, às \d{2}:\d{2}, foi cancelada/);
+  await expect(notice.getByText(/^Vai para \d+ pessoas?/)).toBeVisible();
+  await notice.getByRole("button", { name: "Enviar agora" }).click();
 
   await expect(page.getByRole("heading", { name: "Comunicados", level: 1 })).toBeVisible();
   await expect(page.getByText("Comunicado enviado.")).toBeVisible();

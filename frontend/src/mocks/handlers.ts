@@ -714,6 +714,8 @@ const lessonView = (id: string) => {
       canCancel,
       canViewClass: false,
       followingEdited: 0,
+      followingCount: 0,
+      followingUntil: null,
     };
     return { detail, klass: null, today };
   }
@@ -726,6 +728,13 @@ const lessonView = (id: string) => {
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const { canEdit, canCancel, ...lesson } = applyEdit(mockLesson(c, unit, m[2], slot[0], slot[1], slot[2], today));
   if (role === "TEACHER" && !teachesLesson(c, lesson.teacher.id)) return error(404, "NOT_FOUND", "Não encontrado.");
+  // RF-AGE-02: aulas da série nas próximas 12 semanas (a atual conta 1) e a data da última.
+  const following: string[] = [];
+  for (let i = 1; i <= 84; i++) {
+    const day = new Date(`${m[2]}T12:00:00Z`);
+    day.setUTCDate(day.getUTCDate() + i);
+    if (c.schedule.some(([d]) => d === ((day.getUTCDay() + 6) % 7) + 1)) following.push(day.toISOString().slice(0, 10));
+  }
   const detail = {
     ...lesson,
     visibilityClass: null,
@@ -737,6 +746,8 @@ const lessonView = (id: string) => {
     canViewClass: role !== "TEACHER",
     // RN-AGE-04: edições à mão (ainda agendadas) das aulas seguintes da turma, que "esta e as seguintes" substituiria.
     followingEdited: [...lessonEdits.entries()].filter(([key, e]) => key.startsWith(`${c.id}-`) && !e.cancelCode && key.slice(c.id.length + 1, c.id.length + 11) > m[2]).length,
+    followingCount: following.length + 1,
+    followingUntil: following.length ? following[following.length - 1] : m[2],
   };
   return { detail, klass: c, today };
 };

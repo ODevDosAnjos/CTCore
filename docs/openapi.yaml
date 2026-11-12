@@ -4487,7 +4487,7 @@ components:
         trialClasses: { type: integer, minimum: 0, description: Aulas experimentais marcadas; 0 até a Sprint 18. }
     LessonDetail:
       type: object
-      required: [id, date, startsAt, endsAt, status, cancelReason, cancelReasonCode, class, title, visibilityClass, unit, modality, teacher, head, substitute, activeStudents, trialClasses, groupLink, canEdit, canCancel, canViewClass, followingEdited]
+      required: [id, date, startsAt, endsAt, status, cancelReason, cancelReasonCode, class, title, visibilityClass, unit, modality, teacher, head, substitute, activeStudents, trialClasses, groupLink, canEdit, canCancel, canViewClass, followingEdited, followingCount, followingUntil]
       properties:
         id: { type: string, format: uuid }
         date: { type: string, format: date }
@@ -4511,6 +4511,8 @@ components:
         canCancel: { type: boolean }
         canViewClass: { type: boolean, description: Verdadeiro só para quem gerencia turmas (`CLASSES_MANAGE`). }
         followingEdited: { type: integer, minimum: 0, description: "Aulas seguintes da turma, ainda agendadas, alteradas à mão ou com substituto gravado, que editar \"esta e as seguintes\" (RN-AGE-04) atingiria: data e horário mudam, e as com substituto mantêm o substituto; 0 na aula avulsa." }
+        followingCount: { type: integer, minimum: 0, description: "Aulas da turma ainda não iniciadas e não canceladas que editar \"esta e as seguintes\" gravaria, contando a atual (mesmo corte de `followingEdited`); 0 na aula avulsa." }
+        followingUntil: { type: string, format: date, nullable: true, description: "Data da última dessas aulas (a da própria aula, se não há seguintes); nula na aula avulsa." }
     LessonCreateInput:
       type: object
       required: [unitId, title, modalityId, date, startsAt, endsAt, teacherId]
