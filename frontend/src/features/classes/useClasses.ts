@@ -24,22 +24,22 @@ export interface TrainingClass {
 }
 
 // Query da tela (RNF-27) -> GET /classes. A ordem "name" ou "-name" vira sort=name,asc|desc; erro sobe com o status (403 vira "sem permissão").
-export async function fetchClasses(q: Query): Promise<Page<TrainingClass>> {
+export async function fetchClasses(q: Query, unitId?: string): Promise<Page<TrainingClass> & { counts: { active: number; inactive: number } }> {
   const p = new URLSearchParams({ page: String(q.pagina), size: String(q.tamanho) });
   if (q.q) p.set("q", q.q);
   if (q.ordem) p.set("sort", q.ordem.startsWith("-") ? "name,desc" : "name,asc");
   for (const [k, v] of Object.entries(q.filtros)) p.set(k, v);
-  const data = await api<{ items: TrainingClass[]; total: number }>(`/classes?${p}`);
-  return { rows: data.items, total: data.total };
+  if (unitId) p.set("unitId", unitId);
+  const data = await api<{ items: TrainingClass[]; total: number; counts: { active: number; inactive: number } }>(`/classes?${p}`);
+  return { rows: data.items, total: data.total, counts: data.counts };
 }
 
 // Opções dos filtros. Falha deixa a opção vazia; a lista de turmas segue.
 export function useClassFilterOptions() {
-  const [options, setOptions] = useState<{ modalities: Choice[]; teachers: Choice[]; ageRanges: Choice[]; units: Choice[] }>({
+  const [options, setOptions] = useState<{ modalities: Choice[]; teachers: Choice[]; ageRanges: Choice[] }>({
     modalities: [],
     teachers: [],
     ageRanges: [],
-    units: [],
   });
   useEffect(() => {
     let alive = true;
@@ -47,9 +47,8 @@ export function useClassFilterOptions() {
       api<(Choice & { active: boolean })[]>("/modalities"),
       api<{ items: Choice[] }>("/teachers?size=100"),
       api<{ items: Choice[] }>("/age-ranges"),
-      api<{ units: Choice[] }>("/units/reachable"),
     ]).then(
-      ([m, t, a, u]) => alive && setOptions({ modalities: m.filter((x) => x.active), teachers: t.items, ageRanges: a.items, units: u.units }),
+      ([m, t, a]) => alive && setOptions({ modalities: m.filter((x) => x.active), teachers: t.items, ageRanges: a.items }),
       () => undefined,
     );
     return () => {
@@ -62,9 +61,10 @@ export function useClassFilterOptions() {
 // Espelha ClassDetail do OpenAPI (RF-TUR-02): a linha da lista mais link do grupo, próxima aula, alunos e a regra de desativação.
 export interface ClassDetail extends TrainingClass {
   groupLink: string | null;
-  nextClass: { date: string; startsAt: string; endsAt: string } | null;
-  students: { id: string; name: string; primary: boolean }[];
-  deactivation: { allowed: boolean; blockingStudents: number };
+  nextClass: { date: string; startsAt: string; endsAt: string; teacher: Choice } | null;
+  students: { id: string; name: string; primary: boolean; belt: string | null; beltColor: string | null; beltSecondaryColor: string | null; degree: number }[];
+  deactivation: { allowed: boolean; blockingStudents: number; blockingList: { id: string; name: string; modality: string }[] };
+  lastChange: { at: string; by: string | null } | null;
 }
 
 type Loaded = { tick: number; id: string; klass?: ClassDetail; failure?: "forbidden" | "notFound" | "error" };

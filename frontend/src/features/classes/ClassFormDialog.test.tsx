@@ -39,15 +39,16 @@ const detail = (over: Partial<ClassDetail> = {}): ClassDetail => ({
   status: "ACTIVE",
   groupLink: "https://chat.example.com/grupo",
   nextClass: null,
+  lastChange: { at: "2026-10-01T15:00:00Z", by: "Ana Souza" },
   students: [],
-  deactivation: { allowed: true, blockingStudents: 0 },
+  deactivation: { allowed: true, blockingStudents: 0, blockingList: [] },
   ...over,
 });
 
 let sent: { method: string; url: string; body: Record<string, unknown> }[];
 let current: ClassDetail;
 
-function setup(opts: { role?: string; path?: string; klass?: ClassDetail; optionsResponse?: () => Response | Promise<Response> } = {}) {
+function setup(opts: { role?: string; path?: string; klass?: ClassDetail; optionsResponse?: () => Response | Promise<Response>; single?: boolean } = {}) {
   const role = opts.role ?? "COORDINATOR";
   const path = opts.path ?? "/turmas";
   sent = [];
@@ -55,7 +56,7 @@ function setup(opts: { role?: string; path?: string; klass?: ClassDetail; option
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
-    http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: [{ id: "u1", name: "Centro", shortName: "c" }] })),
+    http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: opts.single ? [{ id: "u1", name: "Centro", shortName: "c" }] : [{ id: "u1", name: "Centro", shortName: "c" }, { id: "u2", name: "Norte", shortName: "n" }] })),
     http.get("/api/v1/modalities", () => HttpResponse.json([])),
     http.get("/api/v1/teachers", () => HttpResponse.json({ items: [], page: 1, size: 100, total: 0 })),
     http.get("/api/v1/age-ranges", () => HttpResponse.json({ items: [] })),
@@ -102,7 +103,7 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     setup();
     const dialog = await openNew(user);
     await within(dialog).findByLabelText("Nome da turma");
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     for (const text of ["Informe o nome, de 2 a 80 caracteres.", "Escolha a unidade.", "Escolha a modalidade.", "Escolha o professor titular.", "Marque ao menos um dia com horário."]) {
       expect(within(dialog).getByText(text)).toBeInTheDocument();
     }
@@ -112,10 +113,12 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     await user.selectOptions(within(dialog).getByLabelText("Unidade"), "Centro");
     await user.selectOptions(within(dialog).getByLabelText("Modalidade"), "Judô");
     await user.selectOptions(within(dialog).getByLabelText("Professor titular"), "Ana Souza");
-    await user.click(within(dialog).getByRole("checkbox", { name: "João Lima" }));
-    await user.click(within(dialog).getByRole("checkbox", { name: "Sexta-feira" }));
+    await user.type(within(dialog).getByLabelText("Professores auxiliares"), "joão");
+    await user.click(within(dialog).getByRole("button", { name: "João Lima" }));
+    await user.click(within(dialog).getByRole("button", { name: "Adicionar horário" }));
+    await user.selectOptions(within(dialog).getByLabelText("Dia do horário de Segunda-feira"), "Sexta-feira");
     await user.type(within(dialog).getByLabelText("Capacidade"), "25");
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
 
     expect(await screen.findByRole("heading", { name: "Muay Thai Noite" })).toBeInTheDocument();
     expect(sent).toEqual([
@@ -150,12 +153,12 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     await user.type(within(dialog).getByLabelText("Nome da turma"), "Judô Norte");
     await user.selectOptions(within(dialog).getByLabelText("Modalidade"), "Judô");
     await user.selectOptions(within(dialog).getByLabelText("Professor titular"), "Marcos Dias");
-    await user.click(within(dialog).getByRole("checkbox", { name: "Segunda-feira" }));
+    await user.click(within(dialog).getByRole("button", { name: "Adicionar horário" }));
     await user.clear(within(dialog).getByLabelText("Término de Segunda-feira"));
     await user.type(within(dialog).getByLabelText("Término de Segunda-feira"), "18:00");
     await user.type(within(dialog).getByLabelText("Capacidade"), "0");
-    await user.type(within(dialog).getByLabelText("Link do grupo"), "javascript:alert(1)");
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.type(within(dialog).getByLabelText("Link do grupo de WhatsApp (opcional)"), "javascript:alert(1)");
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     expect(within(dialog).getByText("O término deve ser depois do início.")).toBeInTheDocument();
     expect(within(dialog).getByText("Informe um número de 1 a 200.")).toBeInTheDocument();
     expect(within(dialog).getByText("Informe um link começando com http:// ou https://.")).toBeInTheDocument();
@@ -170,22 +173,22 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
       await user.selectOptions(within(dialog).getByLabelText("Unidade"), "Centro");
       await user.selectOptions(within(dialog).getByLabelText("Modalidade"), "Judô");
       await user.selectOptions(within(dialog).getByLabelText("Professor titular"), "Ana Souza");
-      await user.click(within(dialog).getByRole("checkbox", { name: "Sexta-feira" }));
+      await user.click(within(dialog).getByRole("button", { name: "Adicionar horário" }));
     };
     server.use(http.post("/api/v1/classes", () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "headTeacherId", message: "professor inativo" }] }, { status: 400 })));
     const dialog = await openNew(user);
     await fill(dialog);
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     expect(await within(dialog).findByText("professor inativo")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Professor titular")).toHaveAttribute("aria-invalid", "true");
 
     server.use(http.post("/api/v1/classes", () => HttpResponse.json({ code: "CONFLICT", fields: [{ field: "name", message: "já existe uma turma ativa com este nome na unidade" }] }, { status: 409 })));
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     expect(await within(dialog).findByText("já existe uma turma ativa com este nome na unidade")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Nome da turma")).toHaveAttribute("aria-invalid", "true");
 
     server.use(http.post("/api/v1/classes", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 })));
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     expect(await within(dialog).findByText("Não foi possível salvar. Nada foi alterado. Tente de novo.")).toBeInTheDocument();
   });
 
@@ -195,20 +198,26 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     const dialog = await openEdit(user);
     expect(await within(dialog).findByLabelText("Nome da turma")).toHaveValue("Jiu-Jitsu Adulto");
     expect(within(dialog).queryByRole("combobox", { name: "Unidade" })).toBeNull();
-    expect(within(dialog).getByText("Centro")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Modalidade")).toHaveValue("m1");
+    expect(within(dialog).getByRole("heading", { name: "Editar turma" })).toHaveClass("uppercase");
+    expect(within(dialog).getByText("Único na unidade.", { exact: false })).toBeInTheDocument();
+    expect(within(dialog).getByText(/Última alteração em .* por Ana/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Modalidade")).toHaveValue("Jiu-Jitsu");
+    expect(within(dialog).getByLabelText("Modalidade")).toHaveAttribute("readonly");
+    expect(within(dialog).getByText("A unidade não muda depois de criada.")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Faixa etária")).toHaveValue("r1");
     expect(within(dialog).getByLabelText("Capacidade")).toHaveValue(30);
     expect(within(dialog).getByLabelText("Professor titular")).toHaveValue("t1");
-    expect(within(dialog).getByRole("checkbox", { name: "João Lima" })).toBeChecked();
-    expect(within(dialog).getByLabelText("Link do grupo")).toHaveValue("https://chat.example.com/grupo");
+    expect(within(dialog).getByRole("button", { name: "Remover João Lima" })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Link do grupo de WhatsApp (opcional)")).toHaveValue("https://chat.example.com/grupo");
     expect(within(dialog).getByLabelText("Início de Segunda-feira")).toHaveValue("19:00");
     expect(within(dialog).queryByRole("checkbox", { name: "Avisar a turma" })).toBeNull();
+    expect(within(dialog).queryByText(/Você mudou os horários/)).toBeNull();
 
     const end = within(dialog).getByLabelText("Término de Segunda-feira");
     await user.clear(end);
     await user.type(end, "21:00");
     expect(within(dialog).getByRole("checkbox", { name: "Avisar a turma" })).toBeChecked();
+    expect(within(dialog).getByText("Você mudou os horários. As aulas futuras serão refeitas, menos as alteradas à mão.")).toBeInTheDocument();
     await user.clear(end);
     await user.type(end, "20:00");
     expect(within(dialog).queryByRole("checkbox", { name: "Avisar a turma" })).toBeNull();
@@ -217,7 +226,7 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     await user.click(within(dialog).getByRole("checkbox", { name: "Avisar a turma" }));
     await user.clear(within(dialog).getByLabelText("Nome da turma"));
     await user.type(within(dialog).getByLabelText("Nome da turma"), "Jiu-Jitsu Noite");
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     expect(await screen.findByRole("heading", { name: "Jiu-Jitsu Noite" })).toBeInTheDocument();
     expect(sent[0].body).toMatchObject({ name: "Jiu-Jitsu Noite", notifyClass: false, schedule: [{ weekday: 1, startsAt: "19:00", endsAt: "21:00" }], assistantIds: ["t2"] });
     expect(sent[0].body).not.toHaveProperty("unitId");
@@ -228,20 +237,82 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     setup({ path: "/turmas/c1" });
     const dialog = await openEdit(user);
     await within(dialog).findByLabelText("Nome da turma");
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
     await waitFor(() => expect(sent).toHaveLength(1));
     expect(sent[0].body).not.toHaveProperty("notifyClass");
   });
 
-  it("titular inativo atual não vem como escolha e o campo pede novo titular", async () => {
+  it("CA11: titular inativo abre a janela curta; escolhido outro titular, os demais campos aparecem", async () => {
     const user = userEvent.setup();
-    setup({ path: "/turmas/c1", klass: detail({ head: { id: "t9", name: "Inativo Silva" } }) });
+    setup({ path: "/turmas/c1", klass: detail({ head: { id: "t9", name: "Sérgio Lopes" } }) });
     const dialog = await openEdit(user);
     expect(await within(dialog).findByLabelText("Professor titular")).toHaveValue("");
-    expect(within(dialog).queryByRole("option", { name: "Inativo Silva" })).toBeNull();
-    expect(within(dialog).getByText("Inativo Silva não é mais um professor ativo desta unidade. Escolha um novo titular.")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    expect(within(dialog).getByText("Para salvar, troque o titular")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("option", { name: "Sérgio Lopes" })).toBeNull();
+    expect(within(dialog).getByText("Sérgio Lopes está inativo e não pode ser titular. Escolha outro professor que ensine Jiu-Jitsu na Centro.")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Modalidade")).toHaveAttribute("readonly");
+    expect(within(dialog).getByLabelText("Professores auxiliares")).toBeInTheDocument();
+    for (const hidden of ["Faixa etária", "Capacidade", "Link do grupo de WhatsApp (opcional)"]) expect(within(dialog).queryByLabelText(hidden)).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Adicionar horário" })).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
+    expect(within(dialog).getByLabelText("Professor titular")).toHaveAttribute("aria-invalid", "true");
     expect(sent).toEqual([]);
+
+    await user.selectOptions(within(dialog).getByLabelText("Professor titular"), "Ana Souza");
+    expect(within(dialog).getByLabelText("Capacidade")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0].body).toMatchObject({ headTeacherId: "t1" });
+  });
+
+  it("CA11: titular que deixou de ensinar a modalidade usa a frase 'não ensina'", async () => {
+    const user = userEvent.setup();
+    setup({ path: "/turmas/c1", klass: detail({ modality: { id: "m3", name: "Muay Thai" }, head: { id: "t1", name: "Ana Souza" } }) });
+    const dialog = await openEdit(user);
+    expect(await within(dialog).findByText("Ana Souza não ensina Muay Thai na Centro. Escolha outro professor que a ensine.")).toBeInTheDocument();
+  });
+
+  it("criação com uma unidade no escopo: o campo Unidade não aparece e o corpo leva a unidade do escopo", async () => {
+    const user = userEvent.setup();
+    setup({ single: true });
+    const dialog = await openNew(user);
+    await within(dialog).findByLabelText("Nome da turma");
+    expect(within(dialog).queryByLabelText("Unidade")).toBeNull();
+    await user.type(within(dialog).getByLabelText("Nome da turma"), "Judô Centro");
+    await user.selectOptions(within(dialog).getByLabelText("Modalidade"), "Judô");
+    await user.selectOptions(within(dialog).getByLabelText("Professor titular"), "Ana Souza");
+    await user.click(within(dialog).getByRole("button", { name: "Adicionar horário" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar turma" }));
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0].body).toMatchObject({ unitId: "u1" });
+  });
+
+  it("CA10: auxiliares filtram por nome entre os professores da modalidade, sem o titular; chips removem", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await openNew(user);
+    await user.selectOptions(await within(dialog).findByLabelText("Unidade"), "Centro");
+    await user.selectOptions(within(dialog).getByLabelText("Modalidade"), "Judô");
+    await user.selectOptions(within(dialog).getByLabelText("Professor titular"), "Ana Souza");
+    const search = within(dialog).getByLabelText("Professores auxiliares");
+    await user.type(search, "a");
+    expect(within(dialog).queryByRole("button", { name: "Ana Souza" })).toBeNull();
+    await user.clear(search);
+    await user.type(search, "lim");
+    await user.click(within(dialog).getByRole("button", { name: "João Lima" }));
+    await user.click(within(dialog).getByRole("button", { name: "Remover João Lima" }));
+    expect(within(dialog).queryByRole("button", { name: "Remover João Lima" })).toBeNull();
+  });
+
+  it("horários: dia repetido não é oferecido e a lixeira remove a linha", async () => {
+    const user = userEvent.setup();
+    setup({ path: "/turmas/c1" });
+    const dialog = await openEdit(user);
+    await user.click(within(dialog).getByRole("button", { name: "Adicionar horário" }));
+    const second = within(dialog).getByLabelText("Dia do horário de Terça-feira");
+    expect(within(second).queryByRole("option", { name: "Segunda-feira" })).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: "Remover horário de Terça-feira" }));
+    expect(within(dialog).queryByLabelText("Dia do horário de Terça-feira")).toBeNull();
   });
 
   it("opções: com erro oferece Tentar de novo; carregando mostra Carregando; 403 mostra sem permissão", async () => {

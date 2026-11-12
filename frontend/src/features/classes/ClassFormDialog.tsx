@@ -1,73 +1,92 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { Link2, Plus, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LastChange } from "@/components/LastChange";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { Text } from "@/features/units/Text";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, Input, Select } from "@/components/ui/field";
+import { useUnitScope } from "@/features/units/UnitScopeProvider";
 import { ApiError } from "@/lib/api";
 import { createClass, updateClass, useClassOptions, type ClassDetail, type ClassInput, type ClassOptions } from "./useClasses";
-import { Select, Input } from "@/components/ui/field";
-import { Banner } from "@/components/ui/banner";
 
-type Field = "unit" | "name" | "modality" | "ageRange" | "schedule" | "capacity" | "head" | "assistants" | "link" | "form";
-type Errors = Partial<Record<Field, string>>;
-type Day = { on: boolean; from: string; to: string };
+type FieldName = "unit" | "name" | "modality" | "ageRange" | "schedule" | "capacity" | "head" | "assistants" | "link" | "form";
+type Errors = Partial<Record<FieldName, string>>;
+type Row = { key: number; weekday: number; from: string; to: string };
 // Campo do servidor -> campo da tela.
-const FIELD: Record<string, Field> = { unitId: "unit", name: "name", modalityId: "modality", ageRangeId: "ageRange", schedule: "schedule", capacity: "capacity", headTeacherId: "head", assistantIds: "assistants", groupLink: "link" };
-const F = { unit: "unit", modality: "modality", ageRange: "ageRange", schedule: "schedule", head: "head", assistants: "assistants" } as const;
+const FIELD: Record<string, FieldName> = { unitId: "unit", name: "name", modalityId: "modality", ageRangeId: "ageRange", schedule: "schedule", capacity: "capacity", headTeacherId: "head", assistantIds: "assistants", groupLink: "link" };
 const DAYS = [1, 2, 3, 4, 5, 6, 7];
-const select = "min-h-11";
+const FORM_ID = "class-form";
 
 // RF-TUR-03: criação (sem `klass`) e edição da turma. O servidor reconfere tudo (alcance, unicidade do nome, titular ativo).
 export function ClassFormDialog({ open, klass, onClose, onSaved }: { open: boolean; klass?: ClassDetail; onClose: () => void; onSaved: (saved: ClassDetail) => void }) {
   const { t } = useTranslation();
   const loaded = useClassOptions(open);
+  const [footer, setFooter] = useState<HTMLElement | null>(null);
   if (!open) return null;
   return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={t(klass ? "classes.form.editTitle" : "classes.form.newTitle")}>
+    <Modal
+      open
+      size="lg"
+      scrim="canvas"
+      onOpenChange={(o) => !o && onClose()}
+      title={t(klass ? "classes.form.editTitle" : "classes.form.newTitle")}
+      footer={loaded.options ? <div ref={setFooter} className="flex flex-1 flex-wrap items-center justify-between gap-2" /> : undefined}
+    >
       {loaded.status === "loading" && <LoadingState />}
       {loaded.status === "forbidden" && <ForbiddenState />}
       {loaded.status === "error" && <ErrorState onRetry={loaded.retry} />}
-      {loaded.options && <Form key={klass?.id ?? "new"} options={loaded.options} klass={klass} onClose={onClose} onSaved={onSaved} />}
+      {loaded.options && <Form key={klass?.id ?? "new"} options={loaded.options} klass={klass} footer={footer} onClose={onClose} onSaved={onSaved} />}
     </Modal>
   );
 }
 
-const initialDays = (klass?: ClassDetail): Record<number, Day> =>
-  Object.fromEntries(DAYS.map((d) => {
-    const s = klass?.schedule.find((x) => x.weekday === d);
-    return [d, { on: !!s, from: s?.startsAt ?? "19:00", to: s?.endsAt ?? "20:00" }];
-  }));
+let rowKey = 0;
+const initialRows = (klass?: ClassDetail): Row[] => (klass?.schedule ?? []).map((s) => ({ key: ++rowKey, weekday: s.weekday, from: s.startsAt, to: s.endsAt }));
+const byDay = (rows: Row[]) => [...rows].sort((a, b) => a.weekday - b.weekday).map((r) => ({ weekday: r.weekday, startsAt: r.from, endsAt: r.to }));
 
-function Form({ options, klass, onClose, onSaved }: { options: ClassOptions; klass?: ClassDetail; onClose: () => void; onSaved: (saved: ClassDetail) => void }) {
+function Form({ options, klass, footer, onClose, onSaved }: { options: ClassOptions; klass?: ClassDetail; footer: HTMLElement | null; onClose: () => void; onSaved: (saved: ClassDetail) => void }) {
   const { t } = useTranslation();
-  const [unitId, setUnitId] = useState(klass?.unit.id ?? (options.units.length === 1 ? options.units[0].id : ""));
+  const scope = useUnitScope();
+  // Na criação a unidade vem do escopo da barra; o campo só aparece com "todas" (ou escopo fora das opções).
+  const scoped = options.units.find((u) => u.id === scope.selected);
+  const [unitId, setUnitId] = useState(klass?.unit.id ?? scoped?.id ?? (options.units.length === 1 ? options.units[0].id : ""));
   const unit = options.units.find((u) => u.id === unitId);
   const [name, setName] = useState(klass?.name ?? "");
   const [ageRangeId, setAgeRangeId] = useState(klass?.ageRange?.id ?? "");
-  const [days, setDays] = useState(() => initialDays(klass));
+  const [rows, setRows] = useState(() => initialRows(klass));
   const [capacity, setCapacity] = useState(klass?.capacity?.toString() ?? "");
-  // Titular inativo (ou que saiu da unidade) não é escolha: o campo volta vazio e pede um novo (RN-PRO-05).
   const [modalityId, setModalityId] = useState(klass?.modality.id ?? "");
   const unitTeachers = unit?.teachers ?? [];
   const teachers = unitTeachers.filter((x) => x.modalityIds.includes(modalityId));
+  // Titular inativo (ou que saiu da unidade/modalidade) não é escolha: o campo volta vazio e pede um novo (RN-PRO-05).
   const headGone = !!klass && !teachers.some((x) => x.id === klass.head.id);
   const headCannotTeach = headGone && unitTeachers.some((x) => x.id === klass?.head.id);
   const [headId, setHeadId] = useState(headGone ? "" : (klass?.head.id ?? ""));
   const [assistants, setAssistants] = useState(() => (klass?.assistants ?? []).map((a) => a.id).filter((id) => teachers.some((x) => x.id === id)));
+  const [query, setQuery] = useState("");
   const [link, setLink] = useState(klass?.groupLink ?? "");
   const [notify, setNotify] = useState(true);
-  const [errors, setErrors] = useState<Errors>(headGone ? { head: t(headCannotTeach ? "classes.form.headCannotTeach" : "classes.form.headGone", { name: klass.head.name }) } : {});
+  const [errors, setErrors] = useState<Errors>(
+    headGone && klass
+      ? { head: t(headCannotTeach ? "classes.form.headCannotTeach" : "classes.form.headGone", { name: klass.head.name, modality: klass.modality.name, unit: klass.unit.name }) }
+      : {},
+  );
   const [busy, setBusy] = useState(false);
 
-  const schedule = DAYS.filter((d) => days[d].on).map((d) => ({ weekday: d, startsAt: days[d].from, endsAt: days[d].to }));
+  const schedule = byDay(rows);
   const changed = !!klass && JSON.stringify(schedule) !== JSON.stringify(klass.schedule);
+  // R14: com o titular fora, só Nome, Modalidade, titular e auxiliares aparecem até escolher outro.
+  const compact = !!klass && headGone && !headId;
 
   function pickUnit(id: string) {
     setUnitId(id);
     const next = options.units.find((u) => u.id === id);
-    if (!next?.modalities.some((m) => m.id === modalityId)) setModalityId("");
     const modalityKept = !!next?.modalities.some((m) => m.id === modalityId);
+    if (!modalityKept) setModalityId("");
     const can = (tid: string) => modalityKept && !!next?.teachers.some((x) => x.id === tid && x.modalityIds.includes(modalityId));
     if (!can(headId)) setHeadId("");
     setAssistants((a) => a.filter(can));
@@ -81,9 +100,10 @@ function Form({ options, klass, onClose, onSaved }: { options: ClassOptions; kla
     setAssistants((a) => a.filter(teaches));
   }
 
-  function setDay(d: number, patch: Partial<Day>) {
-    setDays((all) => ({ ...all, [d]: { ...all[d], ...patch } }));
-  }
+  const setRow = (key: number, patch: Partial<Row>) => setRows((all) => all.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  // Um horário por dia (RF-TUR-03): o dia já usado não é oferecido nas outras linhas.
+  const freeDays = DAYS.filter((d) => !rows.some((r) => r.weekday === d));
+  const addRow = () => freeDays.length && setRows((all) => [...all, { key: ++rowKey, weekday: freeDays[0], from: "19:00", to: "20:00" }]);
 
   function validate(): Errors {
     const found: Errors = {};
@@ -92,6 +112,7 @@ function Form({ options, klass, onClose, onSaved }: { options: ClassOptions; kla
     if (n.length < 2 || n.length > 80) found.name = t("classes.form.nameInvalid");
     if (!modalityId) found.modality = t("classes.form.modalityRequired");
     if (!headId) found.head = t("classes.form.headRequired");
+    if (compact) return found;
     if (schedule.length === 0) found.schedule = t("classes.form.scheduleRequired");
     else if (schedule.some((s) => !s.startsAt || !s.endsAt || s.endsAt <= s.startsAt)) found.schedule = t("classes.form.scheduleOrder");
     const cap = capacity.trim();
@@ -130,152 +151,221 @@ function Form({ options, klass, onClose, onSaved }: { options: ClassOptions; kla
     }
   }
 
-  const err = (field: Field) => errors[field] && (
-    <p id={`class-${field}-erro`} className="text-sm text-danger-foreground">
-      {errors[field]}
-    </p>
-  );
-  const props = (field: Field) => ({ id: `class-${field}`, "aria-invalid": errors[field] ? (true as const) : undefined, "aria-describedby": errors[field] ? `class-${field}-erro` : undefined });
+  const matches = query.trim()
+    ? teachers.filter((x) => x.id !== headId && !assistants.includes(x.id) && x.name.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR")))
+    : [];
+  const nameOf = (id: string) => unitTeachers.find((x) => x.id === id)?.name ?? klass?.assistants.find((a) => a.id === id)?.name ?? "";
 
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-3"
-      aria-busy={busy}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!busy) void submit();
-      }}
-    >
-      <Text label={t("classes.form.name")} value={name} onChange={setName} error={errors.name} autoComplete="off" />
-      <div>
-        {klass ? (
-          <>
-            <span className="block text-sm font-medium">{t("classes.form.unit")}</span>
-            <p className="min-h-11 py-2">{klass.unit.name}</p>
-          </>
-        ) : (
-          <>
-            <label htmlFor="class-unit" className="block text-sm font-medium">
-              {t("classes.form.unit")}
-            </label>
-            <Select {...props(F.unit)} className={select} value={unitId} onChange={(e) => pickUnit(e.target.value)}>
-            <option value="">{t("classes.form.choose")}</option>
-            {options.units.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-            </Select>
-          </>
+    <>
+      <form
+        id={FORM_ID}
+        noValidate
+        className="flex flex-col gap-4"
+        aria-busy={busy}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!busy) void submit();
+        }}
+      >
+        {compact && <p className="text-sm text-muted-foreground">{t("classes.form.headSwap")}</p>}
+        {!klass && !scoped && (
+          <Field label={t("classes.form.unit")} error={errors.unit}>
+            {(c) => (
+              <Select {...c} className="min-h-11" value={unitId} onChange={(e) => pickUnit(e.target.value)}>
+                <option value="">{t("classes.form.choose")}</option>
+                {options.units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
         )}
-        {err(F.unit)}
-      </div>
-      <div>
-        <label htmlFor="class-modality" className="block text-sm font-medium">
-          {t("classes.form.modality")}
-        </label>
-        <Select {...props(F.modality)} className={select} value={modalityId} onChange={(e) => pickModality(e.target.value)}>
-          <option value="">{t("classes.form.choose")}</option>
-          {(unit?.modalities ?? []).map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </Select>
-        {err(F.modality)}
-      </div>
-      <div>
-        <label htmlFor="class-ageRange" className="block text-sm font-medium">
-          {t("classes.form.ageRange")}
-        </label>
-        <Select {...props(F.ageRange)} className={select} value={ageRangeId} onChange={(e) => setAgeRangeId(e.target.value)}>
-          <option value="">{t("classes.form.noAgeRange")}</option>
-          {options.ageRanges.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </Select>
-        {err(F.ageRange)}
-      </div>
-      <fieldset aria-describedby={errors.schedule ? "class-schedule-erro" : undefined}>
-        <legend className="text-sm font-medium">{t("classes.form.schedule")}</legend>
-        {DAYS.map((d) => {
-          const day = t(`classes.weekdaysLong.${d}`);
-          return (
-            <div key={d} className="flex flex-wrap items-center gap-2">
-              <label className="flex min-h-11 min-w-40 items-center gap-2">
-                <input type="checkbox" checked={days[d].on} onChange={(e) => setDay(d, { on: e.target.checked })} />
-                {day}
-              </label>
-              {days[d].on && (
-                <>
-                  <label className="flex items-center gap-1 text-sm">
-                    {t("classes.form.from", { day })}
-                    <Input type="time" className="min-h-11" value={days[d].from} onChange={(e) => setDay(d, { from: e.target.value })} />
-                  </label>
-                  <label className="flex items-center gap-1 text-sm">
-                    {t("classes.form.to", { day })}
-                    <Input type="time" className="min-h-11" value={days[d].to} onChange={(e) => setDay(d, { to: e.target.value })} />
-                  </label>
-                </>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label={t("classes.form.name")} error={errors.name} hint={t("classes.form.nameHelp")}>
+            {(c) => <Input {...c} value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />}
+          </Field>
+          <Field label={t("classes.form.modality")} error={errors.modality} hint={klass ? t("classes.form.unitFixed") : undefined}>
+            {(c) =>
+              klass ? (
+                <Input {...c} value={klass.modality.name} readOnly />
+              ) : (
+                <Select {...c} className="min-h-11" value={modalityId} onChange={(e) => pickModality(e.target.value)}>
+                  <option value="">{t("classes.form.choose")}</option>
+                  {(unit?.modalities ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </Select>
+              )
+            }
+          </Field>
+          {!compact && (
+            <Field label={t("classes.form.ageRange")} error={errors.ageRange}>
+              {(c) => (
+                <Select {...c} className="min-h-11" value={ageRangeId} onChange={(e) => setAgeRangeId(e.target.value)}>
+                  <option value="">{t("classes.form.noAgeRange")}</option>
+                  {options.ageRanges.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </Select>
               )}
+            </Field>
+          )}
+        </div>
+        {!compact && (
+          <fieldset aria-describedby={errors.schedule ? "class-schedule-erro" : undefined} className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-medium">{t("classes.form.schedule")}</legend>
+            {rows.length > 0 && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground">
+                    <th className="pb-1 font-medium">{t("classes.form.day")}</th>
+                    <th className="pb-1 font-medium">{t("classes.form.start")}</th>
+                    <th className="pb-1 font-medium">{t("classes.form.end")}</th>
+                    <th className="pb-1">
+                      <span className="sr-only">{t("classes.form.removeColumn")}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const day = t(`classes.weekdaysLong.${r.weekday}`);
+                    return (
+                      <tr key={r.key}>
+                        <td className="py-1 pr-2">
+                          <Select className="min-h-11" aria-label={t("classes.form.dayOf", { day })} value={r.weekday} onChange={(e) => setRow(r.key, { weekday: Number(e.target.value) })}>
+                            {DAYS.filter((d) => d === r.weekday || freeDays.includes(d)).map((d) => (
+                              <option key={d} value={d}>
+                                {t(`classes.weekdaysLong.${d}`)}
+                              </option>
+                            ))}
+                          </Select>
+                        </td>
+                        <td className="py-1 pr-2">
+                          <Input type="time" className="min-h-11" aria-label={t("classes.form.from", { day })} value={r.from} onChange={(e) => setRow(r.key, { from: e.target.value })} />
+                        </td>
+                        <td className="py-1 pr-2">
+                          <Input type="time" className="min-h-11" aria-label={t("classes.form.to", { day })} value={r.to} onChange={(e) => setRow(r.key, { to: e.target.value })} />
+                        </td>
+                        <td className="py-1">
+                          <Button type="button" variant="ghost" size="icon" aria-label={t("classes.form.removeRow", { day })} onClick={() => setRows((all) => all.filter((x) => x.key !== r.key))}>
+                            <Trash2 aria-hidden />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+            {errors.schedule && (
+              <p id="class-schedule-erro" className="text-xs text-danger-foreground">
+                {errors.schedule}
+              </p>
+            )}
+            <div>
+              <Button type="button" variant="secondary" className="min-h-11" disabled={freeDays.length === 0} onClick={addRow}>
+                <Plus aria-hidden />
+                {t("classes.form.addRow")}
+              </Button>
             </div>
-          );
-        })}
-        {err(F.schedule)}
-      </fieldset>
-      {changed && (
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
-          {t("classes.form.notify")}
-        </label>
-      )}
-      <Text label={t("classes.form.capacity")} type="number" inputMode="numeric" value={capacity} onChange={setCapacity} error={errors.capacity} help={t("classes.form.capacityHelp")} />
-      <div>
-        <label htmlFor="class-head" className="block text-sm font-medium">
-          {t("classes.form.head")}
-        </label>
-        <Select {...props(F.head)} className={select} value={headId} onChange={(e) => setHeadId(e.target.value)}>
-          <option value="">{t("classes.form.choose")}</option>
-          {teachers.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </Select>
-        {err(F.head)}
-        <p className="text-sm text-muted-foreground">{t("classes.form.teachersHelp")}</p>
-      </div>
-      <fieldset aria-describedby={errors.assistants ? "class-assistants-erro" : undefined}>
-        <legend className="text-sm font-medium">{t("classes.form.assistants")}</legend>
-        {teachers.filter((x) => x.id !== headId).map((x) => (
-          <label key={x.id} className="flex min-h-11 items-center gap-2">
-            <input
-              type="checkbox"
-              checked={assistants.includes(x.id)}
-              onChange={(e) => setAssistants((a) => (e.target.checked ? [...a, x.id] : a.filter((y) => y !== x.id)))}
-            />
-            {x.name}
-          </label>
-        ))}
-        {err(F.assistants)}
-      </fieldset>
-      <Text label={t("classes.form.link")} value={link} onChange={setLink} error={errors.link} autoComplete="off" inputMode="url" />
-      {errors.form && (
-        <Banner tone="danger">
-          {errors.form}
-        </Banner>
-      )}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
-          {t("common.cancel")}
-        </Button>
-        <Button type="submit" className="min-h-11" disabled={busy}>
-          {t("classes.form.save")}
-        </Button>
-      </div>
-    </form>
+            {changed && (
+              <>
+                <Banner tone="info">{t("classes.form.scheduleChanged")}</Banner>
+                <Checkbox label={t("classes.form.notify")} checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+              </>
+            )}
+          </fieldset>
+        )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {!compact && (
+            <Field label={t("classes.form.capacity")} error={errors.capacity} hint={t("classes.form.capacityHelp")}>
+              {(c) => <Input {...c} type="number" inputMode="numeric" value={capacity} onChange={(e) => setCapacity(e.target.value)} />}
+            </Field>
+          )}
+          <Field label={t("classes.form.head")} error={errors.head} hint={t("classes.form.teachersHelp")}>
+            {(c) => (
+              <Select {...c} className="min-h-11" value={headId} onChange={(e) => setHeadId(e.target.value)}>
+                <option value="">{t("classes.form.choose")}</option>
+                {teachers.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label={t("classes.form.assistants")} error={errors.assistants}>
+            {(c) => (
+              <div className="flex flex-col gap-2">
+                <Input {...c} className="min-h-11" value={query} placeholder={t("classes.form.assistantsSearch")} autoComplete="off" onChange={(e) => setQuery(e.target.value)} />
+                {matches.length > 0 && (
+                  <ul className="flex flex-col rounded-md border border-input bg-card">
+                    {matches.map((x) => (
+                      <li key={x.id}>
+                        <button
+                          type="button"
+                          className="w-full min-h-11 px-3 text-left text-sm hover:bg-surface-soft"
+                          onClick={() => {
+                            setAssistants((a) => [...a, x.id]);
+                            setQuery("");
+                          }}
+                        >
+                          {x.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {assistants.length > 0 && (
+                  <ul className="flex flex-wrap gap-2" aria-label={t("classes.form.assistantsChosen")}>
+                    {assistants.map((id) => (
+                      <li key={id} className="inline-flex items-center gap-1 rounded-full border border-input bg-card py-1 pl-3 pr-1 text-sm">
+                        {nameOf(id)}
+                        <button type="button" className="inline-flex size-6 items-center justify-center rounded-full hover:bg-surface-soft" aria-label={t("classes.form.removeAssistant", { name: nameOf(id) })} onClick={() => setAssistants((a) => a.filter((y) => y !== id))}>
+                          <X aria-hidden className="size-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </Field>
+        </div>
+        {!compact && (
+          <Field label={t("classes.form.link")} error={errors.link} hint={t("classes.form.linkHelp")}>
+            {(c) => (
+              <div className="relative">
+                <Link2 aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input {...c} className="pl-9" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" inputMode="url" />
+              </div>
+            )}
+          </Field>
+        )}
+        {errors.form && <Banner tone="danger">{errors.form}</Banner>}
+      </form>
+      {footer &&
+        createPortal(
+          <>
+            {klass ? <LastChange value={klass.lastChange} /> : <span />}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" className="min-h-11" onClick={onClose} disabled={busy}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" form={FORM_ID} className="min-h-11" disabled={busy}>
+                {t("classes.form.save")}
+              </Button>
+            </div>
+          </>,
+          footer,
+        )}
+    </>
   );
 }

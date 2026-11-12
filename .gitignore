@@ -34,3 +34,4 @@ docs/auditoria/imagens/
 
 # Capturas da comparação com o canvas (por item); ficam só na máquina
 .capturas/
+logs/

@@ -567,11 +567,11 @@ const SIMPLE_BELTS = [
 ];
 const TEACHER_JOAO = "00000000-0000-0000-0000-000000000502";
 const TEACHER_MARCOS = "00000000-0000-0000-0000-000000000503";
-export type MockClass = { scenario?: { activeStudents: number; roster: { id: string; name: string; primary: boolean }[] }; id: string; name: string; unitId: string; modalityId: string; ageRange: string | null; schedule: [number, string, string][]; head: string; assistants: string[]; capacity: number | null; status: string; groupLink?: string; blocking?: number };
+export type MockClass = { scenario?: { activeStudents: number; roster: { id: string; name: string; primary: boolean }[] }; id: string; name: string; unitId: string; modalityId: string; ageRange: string | null; schedule: [number, string, string][]; head: string; assistants: string[]; capacity: number | null; status: string; groupLink?: string; blocking?: number; blockers?: { id: string; name: string; modality: string }[]; lastChange?: MockLastChange };
 // groupLink só no detalhe; `blocking` (alunos com a turma como principal) é só do simulado: o servidor só o traz com a matrícula (Sprint 07).
 const initialClasses = (): MockClass[] => [
-  { id: "00000000-0000-0000-0000-000000000601", name: "Jiu-Jitsu Adulto", unitId: ADMIN_UNIT, modalityId: modalityCatalog[3].id, ageRange: "Adulto", schedule: [[1, "19:00", "20:00"], [3, "19:00", "20:00"]], head: TEACHER_ANA, assistants: [TEACHER_JOAO], capacity: 30, status: "ACTIVE", groupLink: "https://chat.example.com/jiu-jitsu-adulto" },
-  { id: "00000000-0000-0000-0000-000000000602", name: "Judô Infantil", unitId: ADMIN_UNIT, modalityId: modalityCatalog[4].id, ageRange: "Infantil", schedule: [[2, "18:00", "19:00"], [4, "18:00", "19:00"]], head: TEACHER_JOAO, assistants: [], capacity: 20, status: "ACTIVE", blocking: 2 },
+  { id: "00000000-0000-0000-0000-000000000601", name: "Jiu-Jitsu Adulto", unitId: ADMIN_UNIT, modalityId: modalityCatalog[3].id, ageRange: "Adulto", schedule: [[1, "19:00", "20:00"], [3, "19:00", "20:00"]], head: TEACHER_ANA, assistants: [TEACHER_JOAO], capacity: 30, status: "ACTIVE", groupLink: "https://chat.example.com/jiu-jitsu-adulto", lastChange: { at: "2026-09-20T13:05:00Z", by: "Carla Mendes" } },
+  { id: "00000000-0000-0000-0000-000000000602", name: "Judô Infantil", unitId: ADMIN_UNIT, modalityId: modalityCatalog[4].id, ageRange: "Infantil", schedule: [[2, "18:00", "19:00"], [4, "18:00", "19:00"]], head: TEACHER_JOAO, assistants: [], capacity: 20, status: "ACTIVE", blocking: 22, blockers: [{ id: "00000000-0000-0000-0000-0000000008a1", name: "Davi Nogueira", modality: "Judô" }, { id: "00000000-0000-0000-0000-0000000008a2", name: "Nicolas Pereira", modality: "Judô" }] },
   { id: "00000000-0000-0000-0000-000000000603", name: "Boxe Noturno", unitId: UNIT_NORTE, modalityId: modalityCatalog[0].id, ageRange: null, schedule: [[5, "20:00", "21:30"]], head: TEACHER_MARCOS, assistants: [], capacity: null, status: "INACTIVE" },
 ];
 let mockClasses = initialClasses();
@@ -594,13 +594,29 @@ const classRow = (c: MockClass) => {
     status: c.status,
   };
 };
-// RF-TUR-02: painel; alunos e próxima aula vazios até a matrícula e a agenda (D1).
+// RF-TUR-02: painel; alunos e próxima aula vazios até a matrícula e a agenda (D1). Faixa e graus por aluno: o quinto de cada cinco não tem graduação.
+const classBlockers = (c: MockClass) => (c.blockers ?? []).slice(0, 5).map(({ id, name, modality }) => ({ id, name, modality }));
+// Próxima aula pela grade da turma, a partir de agora (só turma ativa); o professor é o titular.
+const nextClassOf = (c: MockClass) => {
+  if (c.status !== "ACTIVE") return null;
+  const now = new Date();
+  const today = todayLocal();
+  const clock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  for (let i = 0; i < 8; i++) {
+    const date = addDays(today, i);
+    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay() || 7;
+    const slot = c.schedule.find(([d, from]) => d === weekday && (i > 0 || from > clock));
+    if (slot) return { date, startsAt: slot[1], endsAt: slot[2], teacher: { id: c.head, name: mockTeachers.find((t) => t.id === c.head)!.name } };
+  }
+  return null;
+};
 const classDetail = (c: MockClass) => ({
   ...classRow(c),
   groupLink: c.groupLink ?? null,
-  nextClass: null,
-  students: c.scenario?.roster ?? [],
-  deactivation: { allowed: c.status === "ACTIVE" && !c.blocking, blockingStudents: c.blocking ?? 0 },
+  nextClass: nextClassOf(c),
+  students: (c.scenario?.roster ?? []).map((s, i) => ({ ...s, ...(SIMPLE_BELTS[i % 5] ?? { belt: null, beltColor: null, beltSecondaryColor: null, degree: 0 }) })),
+  deactivation: { allowed: c.status === "ACTIVE" && !c.blocking, blockingStudents: c.blocking ?? 0, blockingList: classBlockers(c) },
+  lastChange: c.lastChange ?? null,
 });
 // Quem chama: 401 sem sessão, 403 sem CLASSES_MANAGE, 404 fora do alcance (Administrador) ou inexistente.
 // RF-AGE-01: a aula de uma turma numa data (o id junta turma, data e início). Hoje é dia sem aula; a de quarta do Jiu-Jitsu é substituição.
@@ -2747,8 +2763,11 @@ export const routes: Route[] = [
       const teacherId = p.get("teacherId");
       const ageRangeId = p.get("ageRangeId");
       const unitId = p.get("unitId");
-      const found = mockClasses
-        .filter((c) => role === "COORDINATOR" || c.unitId === ADMIN_UNIT)
+      const inReach = mockClasses.filter((c) => role === "COORDINATOR" || c.unitId === ADMIN_UNIT);
+      // Contagem do subtítulo: alcance e unidade escolhida, sem os demais filtros.
+      const inScope = inReach.filter((c) => !unitId || c.unitId === unitId);
+      const counts = { active: inScope.filter((c) => c.status === "ACTIVE").length, inactive: inScope.filter((c) => c.status === "INACTIVE").length };
+      const found = inReach
         .map((c) => classRow(c))
         .filter((c) => teacherKey(c.name).includes(q) && (!status || c.status === status))
         .filter((c) => !modalityId || c.modality.id === modalityId)
@@ -2757,7 +2776,7 @@ export const routes: Route[] = [
         .filter((c) => !weekday || c.schedule.some((s) => s.weekday === Number(weekday)))
         .filter((c) => !unitId || c.unit.id === unitId)
         .sort((a, b) => a.name.localeCompare(b.name) * (p.get("sort") === "name,desc" ? -1 : 1));
-      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length });
+      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length, counts });
     },
   },
   {
@@ -3057,7 +3076,7 @@ export const routes: Route[] = [
       const made = classFromInput(body, found.unitId, found);
       if (made instanceof Response) return made;
       const changed = JSON.stringify(found.schedule) !== JSON.stringify(made.schedule);
-      Object.assign(found, made);
+      Object.assign(found, made, { lastChange: changedNow() });
       return HttpResponse.json({ ...classDetail(found), scheduleChanged: changed });
     },
   },
@@ -3357,9 +3376,11 @@ export const routes: Route[] = [
       if (found.blocking) {
         return error(409, "HAS_PRIMARY_STUDENTS", "A turma não pode ser desativada enquanto houver alunos com ela como turma principal.", [
           { field: "primaryStudents", message: String(found.blocking) },
+          ...classBlockers(found).map((b) => ({ field: "student", message: `${b.name} · ${b.modality}` })),
         ]);
       }
       found.status = "INACTIVE";
+      found.lastChange = changedNow();
       return HttpResponse.json(classDetail(found));
     },
   },

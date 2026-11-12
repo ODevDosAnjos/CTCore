@@ -115,6 +115,8 @@ class TrainingClassDetailIT extends OrganizationBase {
         assertThat(next.get("date").asText()).isEqualTo(today.plusDays(5).toString());
         assertThat(next.get("startsAt").asText()).isEqualTo("19:00");
         assertThat(next.get("endsAt").asText()).isEqualTo("20:00");
+        assertThat(next.get("teacher").get("id").asText()).isEqualTo(head.toString());
+        assertThat(next.get("teacher").get("name").asText()).isEqualTo("Ana");
     }
 
     @Test
@@ -143,6 +145,8 @@ class TrainingClassDetailIT extends OrganizationBase {
         assertThat(d.get("students")).isEmpty();
         assertThat(d.get("deactivation").get("allowed").asBoolean()).isTrue();
         assertThat(d.get("deactivation").get("blockingStudents").asInt()).isZero();
+        assertThat(d.get("deactivation").get("blockingList")).isEmpty();
+        assertThat(d.get("lastChange").isNull()).isTrue();
         assertThat(r.getContentAsString()).doesNotContainIgnoringCase("presen").doesNotContainIgnoringCase("attend").doesNotContainIgnoringCase("frequen");
         UUID bare = klass(t, t.unitId(), "Sem grupo", teacher(t, "Dani", t.unitId()), null);
         assertThat(body(get(bare, who(t, Role.COORDINATOR))).get("groupLink").isNull()).isTrue();
@@ -185,13 +189,20 @@ class TrainingClassDetailIT extends OrganizationBase {
         UUID other = UUID.randomUUID();
         assertThat(TrainingClasses.isPrimary(id, id)).isTrue();
         assertThat(TrainingClasses.isPrimary(id, other)).isFalse();
-        var students = List.of(new TrainingClasses.Student(UUID.randomUUID(), "Principal", TrainingClasses.isPrimary(id, id)),
-                new TrainingClasses.Student(UUID.randomUUID(), "Outro horário", TrainingClasses.isPrimary(id, other)));
-        doReturn(students).when(classes).students(any());
+        var students = List.of(new TrainingClasses.Student(UUID.randomUUID(), "Principal", TrainingClasses.isPrimary(id, id), "Azul", "#1E40AF", null, 2),
+                new TrainingClasses.Student(UUID.randomUUID(), "Outro horário", TrainingClasses.isPrimary(id, other), null, null, null, 0));
+        doReturn(students).when(classes).students(any(), any());
         doReturn(students.size()).when(classes).activeStudents(any());
         var d = body(get(id, who(t, Role.COORDINATOR)));
         assertThat(d.get("activeStudents").asInt()).isEqualTo(2);
         assertThat(d.get("students").findValues("primary").stream().map(JsonNode::asBoolean)).containsExactly(true, false);
+        var first = d.get("students").get(0);
+        assertThat(first.get("belt").asText()).isEqualTo("Azul");
+        assertThat(first.get("beltColor").asText()).isEqualTo("#1E40AF");
+        assertThat(first.get("degree").asInt()).isEqualTo(2);
+        var second = d.get("students").get(1);
+        assertThat(second.get("belt").isNull()).isTrue();
+        assertThat(second.get("degree").asInt()).isZero();
     }
 
     @Test
@@ -204,6 +215,7 @@ class TrainingClassDetailIT extends OrganizationBase {
         assertThat(r.getStatus()).isEqualTo(200);
         assertThat(body(r).get("status").asText()).isEqualTo("INACTIVE");
         assertThat(body(r).get("deactivation").get("allowed").asBoolean()).isFalse();
+        assertThat(body(get(id, c)).get("lastChange").get("at").isTextual()).isTrue();
         var list = body(call(MockMvcRequestBuilders.get("/api/v1/classes?status=INACTIVE"), c).getResponse());
         assertThat(list.get("items")).hasSize(1);
         assertThat(list.get("items").get(0).get("id").asText()).isEqualTo(id.toString());
@@ -221,15 +233,20 @@ class TrainingClassDetailIT extends OrganizationBase {
         var t = tenant();
         UUID id = klass(t, t.unitId(), "Judô", teacher(t, "Ana", t.unitId()), null);
         doReturn(3).when(classes).primaryStudents(any());
+        doReturn(List.of(new TrainingClasses.Blocker(UUID.randomUUID(), "Davi Nogueira", "Jiu-Jitsu"), new TrainingClasses.Blocker(UUID.randomUUID(), "Nicolas Pereira", "Judô")))
+                .when(classes).primaryStudentList(any(), org.mockito.ArgumentMatchers.anyInt());
         var c = who(t, Role.COORDINATOR);
         var r = deactivate(id, c);
         assertThat(r.getStatus()).isEqualTo(409);
-        assertThat(r.getContentAsString()).contains("HAS_PRIMARY_STUDENTS").contains("3");
+        assertThat(r.getContentAsString()).contains("HAS_PRIMARY_STUDENTS").contains("3")
+                .contains("\"field\":\"student\"").contains("Davi Nogueira · Jiu-Jitsu").contains("Nicolas Pereira · Judô");
         assertThat(adminJdbc().queryForObject("select status from training_class where id = ?", String.class, id)).isEqualTo("ACTIVE");
         assertThat(audits(t)).isZero();
         var d = body(get(id, c)).get("deactivation");
         assertThat(d.get("allowed").asBoolean()).isFalse();
         assertThat(d.get("blockingStudents").asInt()).isEqualTo(3);
+        assertThat(d.get("blockingList").findValuesAsText("name")).containsExactly("Davi Nogueira", "Nicolas Pereira");
+        assertThat(d.get("blockingList").get(0).get("modality").asText()).isEqualTo("Jiu-Jitsu");
     }
 
     @Test

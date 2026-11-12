@@ -237,8 +237,14 @@ class TrainingClassIT extends OrganizationBase {
         var admin = who(t, Role.ADMINISTRATOR);
         assertThat(names(body(get("", admin)).get("items"))).containsExactly("Minha");
         assertThat(body(get("?unitId=" + second, admin)).get("items")).isEmpty();
+        assertThat(body(get("", admin)).get("counts").get("active").asInt()).isEqualTo(1);
+        assertThat(body(get("?unitId=" + second, admin)).get("counts").get("active").asInt()).isZero();
+        assertThat(body(get("", who(t, Role.COORDINATOR))).get("counts").get("active").asInt()).isEqualTo(2);
+        assertThat(body(get("?unitId=" + second + "&q=nada&status=INACTIVE", who(t, Role.COORDINATOR))).get("counts").get("active").asInt()).isEqualTo(1);
         assertThat(body(get("?unitId=" + t.unitId(), admin)).get("total").asInt()).isEqualTo(1);
         assertThat(body(get("", who(t, Role.COORDINATOR))).get("total").asInt()).isEqualTo(2);
+        klass(t, t.unitId(), "Antiga", modality("Judô"), null, null, head, "INACTIVE");
+        assertThat(body(get("", who(t, Role.COORDINATOR))).get("counts").get("inactive").asInt()).isEqualTo(1);
         for (Role role : new Role[] {Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) {
             assertThat(get("", who(t, role)).getStatus()).as(role.name()).isEqualTo(403);
         }
@@ -264,6 +270,7 @@ class TrainingClassIT extends OrganizationBase {
         assertThat(items.get(0).get("id").asText()).isEqualTo(ca.toString());
         assertThat(body(get("?unitId=" + b.unitId(), who(a, Role.COORDINATOR))).get("items")).isEmpty();
         assertThat(body(get("?teacherId=" + headB, who(a, Role.COORDINATOR))).get("items")).isEmpty();
+        assertThat(body(get("", who(a, Role.COORDINATOR))).get("counts").get("active").asInt()).isEqualTo(1);
 
         for (String table : new String[] {"training_class", "training_class_schedule", "training_class_assistant"}) {
             try (Connection app = DriverManager.getConnection(POSTGRES.getJdbcUrl(), "ctcore_app", "synthetic_runtime"); Statement sql = app.createStatement()) {

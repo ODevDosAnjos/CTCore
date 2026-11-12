@@ -17,6 +17,7 @@ export type Caso = {
   matricula?: boolean; // #443: antes do print, matricula o aluno fictício na turma do Professor (o MSW começa sem matrículas)
   oferta?: boolean; // #469: antes do print, a Unidade Centro passa a oferecer Jiu-Jitsu (o MSW começa sem modalidade ligada nas unidades)
   dias?: boolean; // #474: antes do print, lança os dias sem aula e ignora os feriados que o canvas mostra (o MSW começa sem dias)
+  titularInativo?: boolean; // #475: antes do print, a turma 607 (Jiu-Jitsu Manhã) responde com o titular inativo; só no caso, sem mexer no cenário compartilhado
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
 };
@@ -132,9 +133,11 @@ export const casos: Caso[] = [
   { nome: "professor-inativar", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorInativar", passos: [{ clicar: "Inativar" }], limiteCanvas: { valor: 0.45, motivo: "fundo: a ação nasce no painel, então a janela abre sobre a gaveta do professor e o canvas a mostra sobre a lista; dados do mock diferem do canvas (medido a 41,3% na #470; a #553 remove este limite)" } },
   { nome: "professor-modalidade-recusa", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorModalidadeRecusa", passos: [{ clicar: "Editar" }, { clicar: "Judô", papel: "checkbox" }], limiteCanvas: { valor: 0.55, motivo: "janela e fundo: o canvas mostra uma janela curta (Nome, Unidades, modalidades) sobre a lista, e o sistema reaproveita o formulário completo (R9) sobre a gaveta do painel (medido a 51,9% na #470; a #553 remove este limite)" } },
   { nome: "portal-revogar-imagem", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalRevogarImagem", passos: [{ clicar: "Revogar" }], limiteCanvas: { valor: 0.85, motivo: "fundo: a janela confere com o canvas; a página atrás (Minhas informações) é mais longa que a do canvas (medido na #451; a #498 trata a tela e remove esta exceção)" } },
-  { nome: "turma-desativar", rota: "/turmas/00000000-0000-0000-0000-000000000602", perfil: ana, canvas: "TurmaDesativar", passos: [{ clicar: "Desativar" }], limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: o canvas lista nomes de alunos na recusa e o contrato só traz a contagem; atrás, a gaveta da turma e a lista de turmas têm outro conteúdo (medido a 70,2% na #463; a #475 trata a tela e remove esta exceção)" } },
-  { nome: "turma-nova", rota: "/turmas", perfil: ana, canvas: "TurmaEditar", passos: [{ clicar: "Nova turma" }], limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #475 trata a tela e remove esta exceção)" } },
-  { nome: "turma-painel", rota: "/turmas/00000000-0000-0000-0000-000000000601", perfil: ana, canvas: "TurmaPainel", limiteCanvas: { valor: 0.45, motivo: "gaveta: o conteúdo interno difere do canvas (faixa e graus dos alunos, avatar, próxima aula, dados novos) e a lista atrás tem outras linhas (medido a 43,6% na #463; a #475 trata a tela e remove esta exceção)" } },
+  { nome: "turma-desativar", rota: "/turmas/00000000-0000-0000-0000-000000000602", perfil: ana, canvas: "TurmaDesativar", passos: [{ clicar: "Desativar" }] },
+  { nome: "turma-nova", rota: "/turmas", perfil: ana, canvas: "TurmaEditar", passos: [{ clicar: "Nova turma" }] },
+  { nome: "turma-editar", rota: "/turmas/00000000-0000-0000-0000-000000000601", perfil: ana, canvas: "TurmaEditar", passos: [{ clicar: "Editar" }, { preencher: ["Término de Segunda-feira", "21:00"] }] },
+  { nome: "turma-titular-inativo", rota: "/turmas/00000000-0000-0000-0000-000000000607", perfil: ana, canvas: "TurmaTitularInativo", titularInativo: true, passos: [{ clicar: "Editar" }] },
+  { nome: "turma-painel", rota: "/turmas/00000000-0000-0000-0000-000000000601", perfil: ana, canvas: "TurmaPainel" },
   { nome: "agenda-aula-avulsa", rota: "/agenda", perfil: ana, canvas: "AulaAvulsa", passos: [{ clicar: "Nova aula avulsa" }], limiteCanvas: { valor: 0.52, motivo: "medido a 47,5%: fundo: a agenda atrás tem outra semana e outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
   // Janelas da aula (#473). Hoje no teste é 29/10/2026: a futura é a de segunda, 02/11; a concluída, a de quarta, 28/10; a cancelada, a da Judô Infantil de hoje. GMAulaPainel, GMAulaCancelar e GMAulaEditar têm 360 px (D5 da #435).
   { nome: "aula-cancelar", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AulaCancelar", passos: [{ clicar: "Cancelar aula" }], limiteCanvas: { valor: 0.6, motivo: "medido a 55,9%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
@@ -214,7 +217,7 @@ export const semCaso: Record<string, string[]> = {
     "AlunoInativar", "AlunoReativar",
     "AlunoAnonimizar",
     "PedidoEncerramentoRecusar",
-    "TurmaTitularInativo", "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
+    "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "CobrancaPainel", "SomenteLeitura", "EstadoErro", "PagamentoRegistrar",
     "Renegociar", "Estornar", "ExportarMensalidades", "ComprovanteVarias", "BeneficioEncerrar",
     "PlanoDesativar", "BeneficioSubstituir", "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
