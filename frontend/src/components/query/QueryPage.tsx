@@ -33,6 +33,7 @@ export function QueryPage<T>({
   header,
   defaultFilters = {},
   onRowClick,
+  rowClassName,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
@@ -61,6 +62,8 @@ export function QueryPage<T>({
   defaultFilters?: Record<string, string>;
   /** Linha da tabela clicável (o link do nome continua sendo o alvo do teclado). */
   onRowClick?: (row: T) => void;
+  /** Classe extra da linha da tabela (ex.: esmaecer o que está desativado). */
+  rowClassName?: (row: T) => string | undefined;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -155,7 +158,7 @@ export function QueryPage<T>({
       <>
         {!(cardsOnly && narrow) && (
           <div className={cards && !cardsOnly ? "hidden md:block" : undefined}>
-            <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} onRowClick={onRowClick} order={ordem} onOrder={(o) => set({ ordem: o })} />
+            <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} onRowClick={onRowClick} rowClassName={rowClassName} order={ordem} onOrder={(o) => set({ ordem: o })} />
           </div>
         )}
         {cards && (!cardsOnly || narrow) && (

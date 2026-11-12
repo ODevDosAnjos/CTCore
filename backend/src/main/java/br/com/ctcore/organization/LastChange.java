@@ -11,7 +11,7 @@ public record LastChange(OffsetDateTime at, String by) {
     static final List<String> UNIT_ACTIONS = List.of("unit.update", "unit.short_name.update", "unit.deactivated");
 
     /** Chamar dentro da transação com escopo da organização (RLS); sem registro devolve nulo. */
-    static LastChange find(JdbcClient jdbc, UUID organizationId, String entityType, UUID entityId, List<String> actions) {
+    public static LastChange find(JdbcClient jdbc, UUID organizationId, String entityType, UUID entityId, List<String> actions) {
         return jdbc.sql("""
                 select a.occurred_at, coalesce(nullif(btrim(c.name), ''), c.email)
                 from audit_log a left join account c on c.id = a.actor_id

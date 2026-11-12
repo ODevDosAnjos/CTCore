@@ -1642,7 +1642,7 @@ paths:
         Ordenada por nome e depois id (`sort=name`). O Coordenador vê todas as unidades; o Administrador, as dele (`unitId` fora do alcance
         devolve lista vazia). Professor, Aluno e Responsável recebem 403. Sem `status` traz `ACTIVE` e `INACTIVE`. `q` ignora acento e
         maiúsculas; `teacherId` casa titular e auxiliar; `weekday` vai de 1 (segunda) a 7 (domingo); os filtros combinam (E).
-        `activeStudents` conta alunos distintos com modalidade ativa na turma, principal ou outro horário; `overCapacity` só avisa (RN-TUR-02). A resposta não traz link do grupo nem contato.
+        `activeStudents` conta alunos distintos com modalidade ativa na turma, principal ou outro horário; `overCapacity` só avisa (RN-TUR-02). A resposta não traz link do grupo nem contato. `counts.active` e `counts.inactive` trazem as turmas ativas e desativadas do alcance e da unidade escolhida, sem os demais filtros.
       security: [{ sessionCookie: [] }]
       parameters:
         - { name: q, in: query, required: false, schema: { type: string } }
@@ -1744,7 +1744,7 @@ paths:
       summary: Desativa a turma (RN-TUR-03). Coordenador e Administrador.
       description: |
         Só muda `status` para `INACTIVE`; nada é apagado e a turma continua na lista e no painel. Com aluno que a tem como turma principal,
-        409 `HAS_PRIMARY_STUDENTS` com `primaryStudents` em `fields`; turma já desativada, 409. Sem corpo. Mesmo alcance do painel.
+        409 `HAS_PRIMARY_STUDENTS` com `primaryStudents` em `fields` e até 5 campos `student` (`message` = "Nome · Modalidade", por nome); turma já desativada, 409. Sem corpo. Mesmo alcance do painel.
         Grava `class.deactivated`, sem dado pessoal.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
@@ -1757,7 +1757,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: Turma já desativada, ou `HAS_PRIMARY_STUDENTS` (`fields[0]` = `primaryStudents`).
+          description: Turma já desativada, ou `HAS_PRIMARY_STUDENTS` (`fields[0]` = `primaryStudents`, seguido de até 5 `student`).
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /teachers:
     get:
@@ -4664,25 +4664,37 @@ components:
       allOf:
         - $ref: '#/components/schemas/ClassRow'
         - type: object
-          required: [groupLink, nextClass, students, deactivation]
+          required: [groupLink, nextClass, students, deactivation, lastChange]
           properties:
+            lastChange: { $ref: '#/components/schemas/LastChange' }
             groupLink: { type: string, nullable: true, description: URL do grupo; a tela só a abre se for http ou https. }
             nextClass:
               type: object
               nullable: true
               description: Primeira aula não cancelada que ainda não terminou (fuso da unidade); nulo se não houver.
-              required: [date, startsAt, endsAt]
+              required: [date, startsAt, endsAt, teacher]
               properties:
                 date: { type: string, format: date }
                 startsAt: { type: string, example: '19:00' }
                 endsAt: { type: string, example: '20:00' }
+                teacher: { $ref: '#/components/schemas/ClassRef' }
             students: { type: array, items: { $ref: '#/components/schemas/ClassStudent' } }
             deactivation:
               type: object
-              required: [allowed, blockingStudents]
+              required: [allowed, blockingStudents, blockingList]
               properties:
                 allowed: { type: boolean }
                 blockingStudents: { type: integer, minimum: 0, description: Alunos com esta turma como principal. }
+                blockingList:
+                  type: array
+                  description: Até 5 desses alunos, por nome, com a modalidade.
+                  items:
+                    type: object
+                    required: [id, name, modality]
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string }
+                      modality: { type: string }
             scheduleChanged: { type: boolean, description: 'Só nas respostas de PUT /classes/{id}; verdadeiro quando o conjunto de horários mudou.' }
     ClassInput:
       type: object
@@ -4761,17 +4773,29 @@ components:
               maxAge: { type: integer, nullable: true }
     ClassStudent:
       type: object
-      required: [id, name, primary]
+      required: [id, name, primary, belt, beltColor, beltSecondaryColor, degree]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         primary: { type: boolean, description: Falso quando a turma é outro horário do aluno (RN-TUR-04). }
+        belt: { type: string, nullable: true, description: Faixa atual do aluno na modalidade da turma; nulo sem graduação. }
+        beltColor: { type: string, nullable: true }
+        beltSecondaryColor: { type: string, nullable: true }
+        degree: { type: integer, minimum: 0, description: 0 sem graduação. }
     ClassList:
       allOf:
         - $ref: '#/components/schemas/Page'
         - type: object
+          required: [counts]
           properties:
             items: { type: array, items: { $ref: '#/components/schemas/ClassRow' } }
+            counts:
+              type: object
+              required: [active, inactive]
+              description: Turmas ativas e desativadas do alcance de quem chama e da unidade escolhida, sem os demais filtros.
+              properties:
+                active: { type: integer, minimum: 0 }
+                inactive: { type: integer, minimum: 0 }
     PlanRow:
       type: object
       required: [id, unit, modality, name, valueCents, weeklyFrequency, validOtherUnits, studentsUsing, status]

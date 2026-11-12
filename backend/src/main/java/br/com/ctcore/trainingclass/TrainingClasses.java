@@ -4,11 +4,11 @@ import br.com.ctcore.api.error.ApiStatusException;
 import br.com.ctcore.api.error.ApiValidationException;
 import br.com.ctcore.api.error.ErrorCode;
 import br.com.ctcore.api.page.PageRequest;
-import br.com.ctcore.api.page.PageResponse;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.identity.Role;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.modality.Modalities;
+import br.com.ctcore.organization.LastChange;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class TrainingClasses {
     static final Set<String> SORT = Set.of("name");
+    static final int BLOCKERS = 5;
     private static final Set<String> STATUSES = Set.of("ACTIVE", "INACTIVE");
 
     public record Filter(String q, UUID modalityId, UUID teacherId, UUID ageRangeId, Integer weekday, UUID unitId, String status) {}
@@ -48,25 +49,31 @@ public class TrainingClasses {
     public record Row(UUID id, String name, Ref unit, Ref modality, AgeRangeRef ageRange, List<Slot> schedule, Ref head,
             List<Ref> assistants, int activeStudents, Integer capacity, boolean overCapacity, String status) {}
 
-    public record NextClass(String date, String startsAt, String endsAt) {}
+    public record NextClass(String date, String startsAt, String endsAt, Ref teacher) {}
 
-    public record Student(UUID id, String name, boolean primary) {}
+    public record Student(UUID id, String name, boolean primary, String belt, String beltColor, String beltSecondaryColor, int degree) {}
 
-    public record Deactivation(boolean allowed, int blockingStudents) {}
+    public record Blocker(UUID id, String name, String modality) {}
+
+    public record Deactivation(boolean allowed, int blockingStudents, List<Blocker> blockingList) {}
+
+    public record Counts(long active, long inactive) {}
+
+    public record ClassList(List<Row> items, int page, int size, long total, Counts counts) {}
 
     public record Detail(UUID id, String name, String status, Ref unit, Ref modality, AgeRangeRef ageRange, List<Slot> schedule, Ref head,
             List<Ref> assistants, Integer capacity, int activeStudents, boolean overCapacity, String groupLink, NextClass nextClass,
             List<Student> students, Deactivation deactivation,
-            @JsonInclude(JsonInclude.Include.NON_NULL) Boolean scheduleChanged) {
+            LastChange lastChange, @JsonInclude(JsonInclude.Include.NON_NULL) Boolean scheduleChanged) {
         Detail withScheduleChanged(boolean changed) {
             return new Detail(id, name, status, unit, modality, ageRange, schedule, head, assistants, capacity, activeStudents, overCapacity,
-                    groupLink, nextClass, students, deactivation, changed);
+                    groupLink, nextClass, students, deactivation, lastChange, changed);
         }
     }
 
     private record Head(UUID id, String name, Ref unit, Ref modality, AgeRangeRef ageRange, Ref head, Integer capacity, String status) {}
 
-    private record Loaded(long total, List<Head> heads, Map<UUID, List<Slot>> schedule, Map<UUID, List<Ref>> assistants, Map<UUID, Integer> students) {}
+    private record Loaded(long total, long active, long inactive, List<Head> heads, Map<UUID, List<Slot>> schedule, Map<UUID, List<Ref>> assistants, Map<UUID, Integer> students) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -80,14 +87,14 @@ public class TrainingClasses {
         this.permissions = permissions;
     }
 
-    public PageResponse<Row> list(AccountPrincipal who, Filter f, PageRequest page) {
+    public ClassList list(AccountPrincipal who, Filter f, PageRequest page) {
         requireAccess(who);
         String st = f.status() == null || f.status().isBlank() ? null : f.status().strip().toUpperCase(Locale.ROOT);
         if (st != null && !STATUSES.contains(st)) throw new ApiValidationException("status", "valor inválido");
         if (f.weekday() != null && (f.weekday() < 1 || f.weekday() > 7)) throw new ApiValidationException("weekday", "deve ser de 1 a 7");
         boolean admin = who.role() == Role.ADMINISTRATOR;
         Set<UUID> reach = who.units() == null ? Set.of() : who.units();
-        if (admin && (reach.isEmpty() || f.unitId() != null && !reach.contains(f.unitId()))) return PageResponse.of(List.of(), page, 0);
+        if (admin && (reach.isEmpty() || f.unitId() != null && !reach.contains(f.unitId()))) return new ClassList(List.of(), page.page(), page.size(), 0, new Counts(0, 0));
 
         StringBuilder where = new StringBuilder("c.organization_id = :org");
         Map<String, Object> params = new HashMap<>();
@@ -144,14 +151,22 @@ public class TrainingClasses {
             children(who.organizationId(), ids, schedule, assistants);
             Map<UUID, Integer> counts = new HashMap<>();
             heads.forEach(h -> counts.put(h.id(), activeStudents(h.id())));
-            return new Loaded(total, heads, schedule, assistants, counts);
+            // Contagem do subtítulo: alcance e unidade escolhida, sem os demais filtros.
+            String scope = "c.organization_id = :org" + (f.unitId() != null ? " and c.unit_id = :unit" : "") + (admin ? " and c.unit_id in (:reach)" : "");
+            Map<String, Object> scopeParams = new HashMap<>();
+            scopeParams.put("org", who.organizationId());
+            if (f.unitId() != null) scopeParams.put("unit", f.unitId());
+            if (admin) scopeParams.put("reach", reach);
+            long[] byStatus = jdbc.sql("select count(*) filter (where c.status = 'ACTIVE'), count(*) filter (where c.status = 'INACTIVE') from training_class c where " + scope)
+                    .params(scopeParams).query((rs, n) -> new long[] {rs.getLong(1), rs.getLong(2)}).single();
+            return new Loaded(total, byStatus[0], byStatus[1], heads, schedule, assistants, counts);
         });
         List<Row> rows = loaded.heads().stream().map(h -> {
             int students = loaded.students().get(h.id());
             return new Row(h.id(), h.name(), h.unit(), h.modality(), h.ageRange(), loaded.schedule().getOrDefault(h.id(), List.of()), h.head(),
                     loaded.assistants().getOrDefault(h.id(), List.of()), students, h.capacity(), overCapacity(students, h.capacity()), h.status());
         }).toList();
-        return PageResponse.of(rows, page, loaded.total());
+        return new ClassList(rows, page.page(), page.size(), loaded.total(), new Counts(loaded.active(), loaded.inactive()));
     }
 
     /** Horários (por dia) e auxiliares das turmas; roda dentro da transação da organização. */
@@ -200,29 +215,44 @@ public class TrainingClasses {
             children(who.organizationId(), List.of(id), schedule, assistants);
             int students = activeStudents(id);
             int blocking = primaryStudents(id);
+            LastChange last = LastChange.find(jdbc, who.organizationId(), "training_class", id, List.of("class.created", "class.updated", "class.deactivated"));
             return new Detail(h.id(), h.name(), h.status(), h.unit(), h.modality(), h.ageRange(), schedule.getOrDefault(id, List.of()), h.head(),
                     assistants.getOrDefault(id, List.of()), h.capacity(), students, overCapacity(students, h.capacity()), groupLink, nextClass(id),
-                    students(id), new Deactivation(h.status().equals("ACTIVE") && blocking == 0, blocking), null);
+                    students(id, h.modality().id()), new Deactivation(h.status().equals("ACTIVE") && blocking == 0, blocking, primaryStudentList(id, BLOCKERS)), last, null);
         });
     }
 
     /** RF-TUR-02: primeira aula não cancelada que ainda não terminou, pelo relógio no fuso da unidade; nula se não houver. */
     NextClass nextClass(UUID classId) {
-        return jdbc.sql("select l.lesson_date, l.starts_at, l.ends_at from lesson l join unit u on u.id = l.unit_id and u.organization_id = l.organization_id "
+        return jdbc.sql("select l.lesson_date, l.starts_at, l.ends_at, t.id, t.name from lesson l join unit u on u.id = l.unit_id and u.organization_id = l.organization_id "
+                + "join teacher t on t.organization_id = l.organization_id and t.id = l.teacher_id "
                 + "where l.class_id = :id and not l.cancelled and (l.lesson_date + l.ends_at) > (cast(:now as timestamptz) at time zone u.timezone) "
                 + "order by l.lesson_date, l.starts_at limit 1")
                 .param("id", classId).param("now", java.time.OffsetDateTime.ofInstant(clock.instant(), java.time.ZoneOffset.UTC))
                 .query((rs, n) -> new NextClass(rs.getObject(1, LocalDate.class).toString(), rs.getObject(2, LocalTime.class).toString(),
-                        rs.getObject(3, LocalTime.class).toString()))
+                        rs.getObject(3, LocalTime.class).toString(),
+                        new Ref(rs.getObject(4, UUID.class), rs.getString(5))))
                 .optional().orElse(null);
     }
 
     /** Alunos ativos da turma (principal ou outro horário), com a marca de turma principal (RN-TUR-04). Roda na transação da organização. */
-    List<Student> students(UUID classId) {
-        return jdbc.sql("select s.id, s.name, m.primary_class_id = :class from enrollment_modality m join student s on s.organization_id = m.organization_id "
-                + "and s.id = m.student_id where m.status = 'ACTIVE' and (m.primary_class_id = :class or exists (select 1 from enrollment_modality_class o "
+    List<Student> students(UUID classId, UUID modalityId) {
+        return jdbc.sql("select s.id, s.name, m.primary_class_id = :class, g.name, g.color, g.secondary_color, coalesce(g.degree, 0) "
+                + "from enrollment_modality m join student s on s.organization_id = m.organization_id and s.id = m.student_id "
+                + "left join lateral (select gl.name, gl.color, gl.secondary_color, sg.degree from student_graduation sg join graduation_level gl on gl.id = sg.level_id "
+                + "where sg.organization_id = s.organization_id and sg.student_id = s.id and sg.modality_id = :modality "
+                + "order by sg.achieved_on desc nulls last, sg.created_at desc limit 1) g on true where m.status = 'ACTIVE' and (m.primary_class_id = :class or exists (select 1 from enrollment_modality_class o "
                 + "where o.organization_id = m.organization_id and o.modality_row_id = m.id and o.class_id = :class)) order by s.name_key, s.name, s.id")
-                .param("class", classId).query((rs, n) -> new Student(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3))).list();
+                .param("class", classId).param("modality", modalityId)
+                .query((rs, n) -> new Student(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getInt(7))).list();
+    }
+
+    /** RN-TUR-03: os primeiros alunos (por nome) que têm a turma como principal, com a modalidade. Roda na transação da organização. */
+    List<Blocker> primaryStudentList(UUID classId, int limit) {
+        return jdbc.sql("select s.id, s.name, md.name from enrollment_modality m join student s on s.organization_id = m.organization_id and s.id = m.student_id "
+                + "join modality md on md.id = m.modality_id where m.primary_class_id = :class and m.status = 'ACTIVE' order by s.name_key, s.name, s.id limit :limit")
+                .param("class", classId).param("limit", limit)
+                .query((rs, n) -> new Blocker(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3))).list();
     }
 
     /** Alunos ativos que têm esta turma como principal (RN-TUR-03). */

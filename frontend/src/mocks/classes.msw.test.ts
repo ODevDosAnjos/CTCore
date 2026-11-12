@@ -20,7 +20,9 @@ describe("turmas x OpenAPI (RF-TUR-01, CA11)", () => {
   it("Coordenador: envelope e linha no formato do contrato, sem link do grupo, ordenadas por nome", async () => {
     await login("ana@exemplo.com");
     const data = await (await list()).json();
-    expect(Object.keys(data).sort()).toEqual(["items", "page", "size", "total"]);
+    expect(Object.keys(data).sort()).toEqual(["counts", "items", "page", "size", "total"]);
+    expect(data.counts).toEqual({ active: 2, inactive: 1 });
+    expect(openapi.components.schemas.ClassList.allOf[1].properties.counts.required).toEqual(["active", "inactive"]);
     expect(data).toMatchObject({ page: 1, size: 25, total: 3 });
     expect(names(data)).toEqual(["Boxe Noturno", "Jiu-Jitsu Adulto", "Judô Infantil"]);
     const schema = openapi.components.schemas.ClassRow;
@@ -43,6 +45,9 @@ describe("turmas x OpenAPI (RF-TUR-01, CA11)", () => {
     expect((await list("?status=XYZ")).status).toBe(400);
     expect((await list("?size=10")).status).toBe(400);
     expect((await (await list("?page=2")).json()).items).toEqual([]);
+    // counts.active ignora os demais filtros e segue a unidade escolhida.
+    expect((await (await list("?status=INACTIVE&q=boxe")).json()).counts).toEqual({ active: 2, inactive: 1 });
+    expect((await (await list("?unitId=00000000-0000-0000-0000-000000000022")).json()).counts).toEqual({ active: 0, inactive: 1 });
   });
 
   it("Administrador só vê as turmas da unidade dele; Professor e portal recebem 403", async () => {
@@ -76,8 +81,8 @@ describe("painel da turma x OpenAPI (RF-TUR-02, CA10)", () => {
     const schema = openapi.components.schemas.ClassDetail;
     const required = [...openapi.components.schemas.ClassRow.required, ...schema.allOf[1].required].sort();
     expect(Object.keys(data).sort()).toEqual(required);
-    expect(data).toMatchObject({ name: "Jiu-Jitsu Adulto", groupLink: "https://chat.example.com/jiu-jitsu-adulto", nextClass: null, students: [] });
-    expect(data.deactivation).toEqual({ allowed: true, blockingStudents: 0 });
+    expect(data).toMatchObject({ name: "Jiu-Jitsu Adulto", groupLink: "https://chat.example.com/jiu-jitsu-adulto", nextClass: expect.objectContaining({ teacher: expect.objectContaining({ name: expect.any(String) }) }), students: [], lastChange: null });
+    expect(data.deactivation).toEqual({ allowed: true, blockingStudents: 0, blockingList: [] });
     expect((await (await detail(JUDO)).json()).groupLink).toBeNull();
     expect((await detail("00000000-0000-0000-0000-0000000009ff")).status).toBe(404);
   });
@@ -86,11 +91,17 @@ describe("painel da turma x OpenAPI (RF-TUR-02, CA10)", () => {
     await login("ana@exemplo.com");
     const blocked = await deactivate(JUDO);
     expect(blocked.status).toBe(409);
-    expect(await blocked.json()).toMatchObject({ code: "HAS_PRIMARY_STUDENTS", fields: [{ field: "primaryStudents", message: "2" }] });
-    expect((await (await detail(JUDO)).json()).deactivation).toEqual({ allowed: false, blockingStudents: 2 });
+    expect(await blocked.json()).toMatchObject({ code: "HAS_PRIMARY_STUDENTS", fields: [
+      { field: "primaryStudents", message: "22" },
+      { field: "student", message: "Davi Nogueira · Judô" },
+      { field: "student", message: "Nicolas Pereira · Judô" },
+    ] });
+    const guarded = (await (await detail(JUDO)).json()).deactivation;
+    expect(guarded).toMatchObject({ allowed: false, blockingStudents: 22 });
+    expect(guarded.blockingList.map((b: { name: string }) => b.name)).toEqual(["Davi Nogueira", "Nicolas Pereira"]);
     const ok = await deactivate(JJ);
     expect(ok.status).toBe(200);
-    expect(await ok.json()).toMatchObject({ status: "INACTIVE", deactivation: { allowed: false } });
+    expect(await ok.json()).toMatchObject({ status: "INACTIVE", deactivation: { allowed: false }, lastChange: { by: expect.any(String) } });
     expect((await deactivate(JJ)).status).toBe(409);
     expect((await deactivate(BOXE)).status).toBe(409);
   });

@@ -22,15 +22,15 @@ test("@critical Coordenador filtra a lista de turmas", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Turmas", level: 1 })).toBeVisible();
   await expect(page.getByText("Jiu-Jitsu Adulto")).toBeVisible();
   await expect(page.getByText("Judô Infantil")).toBeVisible();
-  await expect(page.getByText("Boxe Noturno")).toBeVisible();
 
-  await page.getByLabel("Dia").selectOption("2");
+  await page.getByRole("button", { name: /^Dia/ }).click();
+  await page.getByRole("option", { name: "Terça-feira" }).click();
   await expect(page.getByText("Judô Infantil")).toBeVisible();
   await expect(page.getByText("Jiu-Jitsu Adulto")).toHaveCount(0);
 
-  await page.getByLabel("Modalidade").selectOption({ label: "Judô" });
+  await page.getByRole("button", { name: /^Modalidade/ }).click();
+  await page.getByRole("option", { name: "Judô" }).click();
   await expect(page.getByText("Judô Infantil")).toBeVisible();
-  await expect(page.getByText("Boxe Noturno")).toHaveCount(0);
 });
 
 // RF-TUR-02: o Coordenador entra no painel de uma turma da lista, desativa e vê o selo "Desativada".
@@ -47,7 +47,7 @@ test("@critical Coordenador abre e desativa uma turma", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Abrir grupo" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Desativar" })).toBeEnabled();
   await page.getByRole("button", { name: "Desativar" }).click();
-  await page.getByRole("dialog", { name: /^Desativar / }).getByRole("button", { name: "Desativar" }).click();
+  await page.getByRole("dialog", { name: "Desativar turma" }).getByRole("button", { name: "Desativar turma" }).click();
   await expect(page.getByText("Turma desativada.")).toBeVisible();
   await expect(drawer.getByText("Desativada", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Desativar" })).toBeDisabled();
@@ -66,14 +66,14 @@ test("@critical Coordenador cria uma turma", async ({ page }) => {
   await page.getByRole("button", { name: "Nova turma" }).click();
   const dialog = page.getByRole("dialog", { name: "Nova turma" });
   await dialog.getByLabel("Nome da turma").fill("Muay Thai Noite");
-  await dialog.getByLabel("Unidade").selectOption({ label: "Unidade Centro" });
   await dialog.getByLabel("Modalidade").selectOption({ label: "Judô" });
   await dialog.getByLabel("Professor titular").selectOption({ label: "João Pereira" });
-  await dialog.getByRole("checkbox", { name: "Sexta-feira" }).check();
-  await dialog.getByRole("button", { name: "Salvar" }).click();
+  await dialog.getByRole("button", { name: "Adicionar horário" }).click();
+  await dialog.getByLabel("Dia do horário de Segunda-feira").selectOption({ label: "Sexta-feira" });
+  await dialog.getByRole("button", { name: "Salvar turma" }).click();
 
   await expect(page.getByRole("heading", { name: "Muay Thai Noite" })).toBeVisible();
-  await expect(page.getByText("Sexta-feira, 19:00–20:00")).toBeVisible();
+  await expect(page.getByText("Sex · 19h–20h").first()).toBeVisible();
 });
 
 // #458 CA6: a 360 px a lista vira cartões e não há rolagem lateral.
@@ -99,10 +99,10 @@ test("Desativar turma com bloqueio a 360 px sem rolagem lateral", async ({ page 
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/turmas/00000000-0000-0000-0000-000000000602");
-  await page.getByRole("button", { name: "Desativar", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Desativar Judô Infantil" });
-  await expect(dialog.getByText("2 alunos com esta turma como principal")).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Ver alunos" })).toBeVisible();
+  await page.getByRole("button", { name: "Desativar turma", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Desativar turma" });
+  await expect(dialog.getByText("Ainda há alunos com esta turma como principal")).toBeVisible();
+  await expect(dialog.getByText("Davi Nogueira · Judô")).toBeVisible();
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
 });
 

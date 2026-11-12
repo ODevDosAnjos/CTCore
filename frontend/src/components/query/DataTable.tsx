@@ -18,6 +18,7 @@ export function DataTable<T>({
   selected = [],
   onSelectionChange,
   onRowClick,
+  rowClassName,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -29,6 +30,8 @@ export function DataTable<T>({
   onSelectionChange?: (keys: string[]) => void;
   /** Clique na linha (fora de links e botões); o teclado usa o link da própria linha. */
   onRowClick?: (row: T) => void;
+  /** Classe extra da linha (ex.: esmaecer o que está desativado). */
+  rowClassName?: (row: T) => string | undefined;
 }) {
   const { t } = useTranslation();
   const desc = order.startsWith("-");
@@ -78,7 +81,7 @@ export function DataTable<T>({
           {rows.map((r) => (
             <tr
               key={rowKey(r)}
-              className={cn("h-[52px] border-t border-divider hover:bg-surface-soft", onRowClick && "cursor-pointer")}
+              className={cn("h-[52px] border-t border-divider hover:bg-surface-soft", onRowClick && "cursor-pointer", rowClassName?.(r))}
               onClick={onRowClick && ((e) => !(e.target as HTMLElement).closest("a,button,input") && onRowClick(r))}
             >
               {selectable && (

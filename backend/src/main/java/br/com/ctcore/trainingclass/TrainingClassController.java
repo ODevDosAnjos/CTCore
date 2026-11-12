@@ -1,7 +1,6 @@
 package br.com.ctcore.trainingclass;
 
 import br.com.ctcore.api.page.PageRequest;
-import br.com.ctcore.api.page.PageResponse;
 import br.com.ctcore.identity.AccountPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
@@ -32,7 +31,7 @@ class TrainingClassController {
     }
 
     @GetMapping
-    PageResponse<TrainingClasses.Row> list(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) String q,
+    TrainingClasses.ClassList list(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) String q,
             @RequestParam(required = false) UUID modalityId, @RequestParam(required = false) UUID teacherId,
             @RequestParam(required = false) UUID ageRangeId, @RequestParam(required = false) Integer weekday,
             @RequestParam(required = false) UUID unitId, @RequestParam(required = false) String status,

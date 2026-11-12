@@ -8,6 +8,7 @@ import br.com.ctcore.audit.AuditEntry;
 import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.isolation.OrganizationTransactions;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,7 +40,9 @@ public class TrainingClassDeactivation {
             if (before.status().equals("INACTIVE")) throw new ApiStatusException(ErrorCode.CONFLICT);
             int blocking = classes.primaryStudents(id);
             if (blocking > 0) {
-                throw new ApiStatusException(ErrorCode.HAS_PRIMARY_STUDENTS, List.of(new ApiError.Field("primaryStudents", String.valueOf(blocking))));
+                List<ApiError.Field> fields = new ArrayList<>(List.of(new ApiError.Field("primaryStudents", String.valueOf(blocking))));
+                classes.primaryStudentList(id, TrainingClasses.BLOCKERS).forEach(b -> fields.add(new ApiError.Field("student", b.name() + " · " + b.modality())));
+                throw new ApiStatusException(ErrorCode.HAS_PRIMARY_STUDENTS, fields);
             }
             jdbc.sql("update training_class set status = 'INACTIVE' where id = :id and organization_id = :org")
                     .param("id", id).param("org", who.organizationId()).update();
