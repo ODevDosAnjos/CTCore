@@ -47,6 +47,14 @@ class NoClassDayController {
         return write.create(who, body, request.getRemoteAddr());
     }
 
+    record IgnoreHoliday(UUID unitId, String date) {}
+
+    @PostMapping("/ignored-holidays")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void ignoreHoliday(@AuthenticationPrincipal AccountPrincipal who, @RequestBody IgnoreHoliday body, HttpServletRequest request) {
+        write.ignoreHoliday(who, body.unitId(), body.date(), request.getRemoteAddr());
+    }
+
     @PutMapping("/{id}")
     NoClassDays.Item update(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, @RequestBody NoClassDays.Input body,
             HttpServletRequest request) {

@@ -48,9 +48,49 @@ class NoClassDayReadIT extends NoClassDayBase {
         assertThat(d.get("notice").get("status").asText()).isEqualTo("NOT_NOTIFIED");
         assertThat(d.get("cancelledLessons").asInt()).isEqualTo(1);
         assertThat(d.get("canEdit").asBoolean()).isTrue();
+        assertThat(d.get("unitsInBatch").asInt()).isEqualTo(1);
+        assertThat(d.get("notice").get("sentAt").isNull()).isTrue();
         var dates = v.get("suggestions").findValuesAsText("date");
-        assertThat(dates).isNotEmpty().doesNotContain(holiday.toString()).isSorted();
+        assertThat(dates).isNotEmpty().contains(holiday.toString()).isSorted();
         assertThat(v.get("suggestions").get(0).get("code").asText()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("CA10: sugestão traz dayId do dia confirmado e as aulas afetadas; ignorada não vem; sentAt vem do comunicado")
+    void suggestionDetails() throws Exception {
+        var t = tenant();
+        var coord = who(t, Role.COORDINATOR);
+        var hs = Holidays.next12Months(TODAY);
+        LocalDate confirmed = hs.get(0).date();
+        LocalDate open = hs.get(1).date();
+        LocalDate hidden = hs.get(2).date();
+        UUID ana = teacher(t, "Ana", null);
+        UUID c = klass(t, "Judô", modality(t, "Judô"), ana, "ACTIVE");
+        UUID day = UUID.randomUUID();
+        day(t, day, confirmed, confirmed, "Feriado");
+        UUID byDay = lesson(t, c, ana, confirmed, "19:00", "20:00", true, false);
+        adminJdbc().update("update lesson set no_class_day_id = ? where id = ?", day, byDay);
+        lesson(t, c, ana, confirmed, "21:00", "22:00", true, false); // cancelada à mão: não conta
+        lesson(t, c, ana, open, "19:00", "20:00", false, false);
+        lesson(t, c, ana, open, "20:00", "21:00", false, false);
+        lesson(t, c, ana, open, "21:00", "22:00", true, false); // à mão
+        adminJdbc().update("insert into no_class_day_ignored_holiday (organization_id, unit_id, holiday_date) values (?, ?, ?)", t.orgId(), t.unitId(), hidden);
+        UUID author = coord.accountId();
+        adminJdbc().update("insert into announcement (id, organization_id, unit_id, target_kind, type, title, body, scheduled_for, sent_at, recipient_count, author_account_id, no_class_day_id) "
+                + "values (gen_random_uuid(), ?, ?, 'UNIT', 'NO_CLASS_DAY', 'Aviso', 'Corpo', '2026-01-02T09:00:00Z', '2026-01-02T10:00:00Z', 3, ?, ?)", t.orgId(), t.unitId(), author, day);
+
+        JsonNode v = body(get(PATH, coord), 200);
+        JsonNode sc = null, so = null;
+        for (JsonNode s : v.get("suggestions")) {
+            if (s.get("date").asText().equals(confirmed.toString())) sc = s;
+            if (s.get("date").asText().equals(open.toString())) so = s;
+        }
+        assertThat(v.get("suggestions").findValuesAsText("date")).doesNotContain(hidden.toString());
+        assertThat(sc.get("dayId").asText()).isEqualTo(day.toString());
+        assertThat(sc.get("affectedLessons").asInt()).isEqualTo(1);
+        assertThat(so.get("dayId").isNull()).isTrue();
+        assertThat(so.get("affectedLessons").asInt()).isEqualTo(2);
+        assertThat(v.get("days").get(0).get("notice").get("sentAt").asText()).startsWith("2026-01-02T10:00");
     }
 
     @Test

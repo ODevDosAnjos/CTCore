@@ -16,6 +16,7 @@ export type Caso = {
   fullPage?: boolean;
   matricula?: boolean; // #443: antes do print, matricula o aluno fictício na turma do Professor (o MSW começa sem matrículas)
   oferta?: boolean; // #469: antes do print, a Unidade Centro passa a oferecer Jiu-Jitsu (o MSW começa sem modalidade ligada nas unidades)
+  dias?: boolean; // #474: antes do print, lança os dias sem aula e ignora os feriados que o canvas mostra (o MSW começa sem dias)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
 };
@@ -65,7 +66,7 @@ export const casos: Caso[] = [
   { nome: "professores", rota: "/professores", perfil: ana, canvas: "Professores" },
   { nome: "agenda", rota: "/agenda", perfil: ana, canvas: "Agenda" },
   { nome: "agenda-painel", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AgendaPainel", matricula: true },
-  { nome: "dias-sem-aula", rota: "/dias-sem-aula", perfil: ana, canvas: "DiasSemAula" },
+  { nome: "dias-sem-aula", rota: "/dias-sem-aula", perfil: ana, canvas: "DiasSemAula", dias: true },
   { nome: "turmas", rota: "/turmas", perfil: ana, canvas: "Turmas" },
   { nome: "planos", rota: "/planos", perfil: ana, canvas: "Planos" },
   { nome: "beneficios", rota: "/beneficios", perfil: ana, canvas: "BeneficiosLista" },
@@ -141,7 +142,7 @@ export const casos: Caso[] = [
   { nome: "aula-editar-seguintes", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AulaEditarSeguintes", passos: [{ clicar: "Editar" }, { clicar: "Esta e as seguintes", papel: "radio" }], limiteCanvas: { valor: 0.58, motivo: "medido a 53,6%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
   { nome: "aula-corrigir", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-10-28-19:00", perfil: ana, canvas: "AulaCorrigir", passos: [{ clicar: "Corrigir professor" }], limiteCanvas: { valor: 0.68, motivo: "medido a 63,3%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
   { nome: "aula-avisar-turma", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000602-2026-10-29-18:00", perfil: ana, canvas: "AulaAvisarTurma", passos: [{ clicar: "Avisar turma" }], limiteCanvas: { valor: 0.56, motivo: "medido a 51,8%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
-  { nome: "dia-sem-aula-novo", rota: "/dias-sem-aula", perfil: ana, canvas: "DiaSemAulaNovo", passos: [{ clicar: "Novo dia sem aula" }], limiteCanvas: { valor: 0.60, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #474 trata a tela e remove esta exceção)" } },
+  { nome: "dia-sem-aula-novo", rota: "/dias-sem-aula", perfil: ana, canvas: "DiaSemAulaNovo", dias: true, passos: [{ clicar: "Novo dia sem aula" }, { preencher: ["De *", "2026-12-24"] }, { preencher: ["Até (opcional)", "2027-01-03"] }, { preencher: ["Motivo *", "Recesso de fim de ano"] }] },
   // Planos, alunos, matrícula, benefícios e termos (#421). Janelas abrem pelos passos.
   // Sem caso: trocar turma/plano, transferir, encerrar e passos da matrícula (id gerado ou fluxo longo no MSW); GM* são as mesmas telas a 390 px (D1).
   { nome: "planos-lista", rota: "/planos/lista", perfil: ana, canvas: "PlanosRegras", limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #480 trata a tela e remove esta exceção)" } },

@@ -91,12 +91,14 @@ public class NoClassDayWrite {
             for (UnitCtx u : p.units()) requireFree(org, u.id(), p.start(), p.end(), null);
             String origin = p.holiday() ? "HOLIDAY" : who.role() == Role.COORDINATOR ? "COORDINATOR" : "UNIT";
             List<Item> out = new ArrayList<>();
+            UUID batch = UUID.randomUUID();
+            Map<UUID, UnitCtx> created = new LinkedHashMap<>();
             for (UnitCtx u : p.units()) {
                 UUID id = UUID.randomUUID();
-                jdbc.sql("insert into no_class_day (id, organization_id, unit_id, starts_on, ends_on, reason, origin, notice_status, notice_mode, notice_at, created_by) "
-                        + "values (:id, :org, :unit, :s, :e, :reason, :origin, :status, :mode, :at, :by)").param("id", id).param("org", org)
+                jdbc.sql("insert into no_class_day (id, organization_id, unit_id, starts_on, ends_on, reason, origin, notice_status, notice_mode, notice_at, created_by, batch_id) "
+                        + "values (:id, :org, :unit, :s, :e, :reason, :origin, :status, :mode, :at, :by, :batch)").param("id", id).param("org", org)
                         .param("unit", u.id()).param("s", p.start()).param("e", p.end()).param("reason", p.reason()).param("origin", origin)
-                        .param("status", noticeStatus(p.mode())).param("mode", p.mode()).param("at", at(p.sendAt())).param("by", who.accountId()).update();
+                        .param("status", noticeStatus(p.mode())).param("mode", p.mode()).param("at", at(p.sendAt())).param("by", who.accountId()).param("batch", batch).update();
                 saveClasses(org, id, p.classIds());
                 int cancelled = cancel(org, id, origin, p.reason(), days.affected(org, u, p.start(), p.end(), p.classIds()));
                 announcements.noClassDayNotice(org, who.accountId(), new DayNotice(id, u.id(), p.start(), p.end(), p.reason(), p.classIds(), p.mode(), p.sendAt()));
@@ -110,9 +112,37 @@ public class NoClassDayWrite {
                 next.put("noticeAt", p.sendAt() == null ? null : p.sendAt().toString());
                 next.put("cancelledLessons", cancelled);
                 audit.record(new AuditEntry(actor(who), "no_class_day.created", "no_class_day", id.toString(), u.id(), null, next, null, ip));
-                out.add(days.items(who, u, "and d.id = :id", Map.of("id", id), days.today(u)).get(0));
+                created.put(id, u);
             }
+            // depois do laço: unitsInBatch conta os dias do lançamento, que só existem todos ao fim
+            created.forEach((id, u) -> out.add(days.items(who, u, "and d.id = :id", Map.of("id", id), days.today(u)).get(0)));
             return out;
+        });
+    }
+
+    /** R10, R11: esconde o feriado sugerido só naquela unidade. Idempotente; só feriado dos próximos 12 meses (422 em {@code date}). */
+    public void ignoreHoliday(AccountPrincipal who, UUID unitId, String rawDate, String ip) {
+        transactions.execute(() -> {
+            days.requireManage(who);
+            if (unitId == null) throw new ApiValidationException("unitId", "obrigatório");
+            if (rawDate == null || rawDate.isBlank()) throw new ApiValidationException("date", "obrigatório");
+            LocalDate date;
+            try {
+                date = LocalDate.parse(rawDate);
+            } catch (DateTimeParseException e) {
+                throw new ApiValidationException("date", "data inválida, use yyyy-MM-dd");
+            }
+            UnitCtx u = days.unit(who, unitId);
+            if (Holidays.next12Months(days.today(u)).stream().noneMatch(h -> h.date().equals(date))) {
+                throw new ApiStatusException(ErrorCode.UNPROCESSABLE, List.of(new ApiError.Field("date", "não é um feriado sugerido")));
+            }
+            int added = jdbc.sql("insert into no_class_day_ignored_holiday (organization_id, unit_id, holiday_date, created_by) values (:org, :unit, :date, :by) "
+                    + "on conflict do nothing").param("org", who.organizationId()).param("unit", u.id()).param("date", date).param("by", who.accountId()).update();
+            if (added > 0) {
+                audit.record(new AuditEntry(actor(who), "no_class_day.holiday_ignored", "no_class_day_ignored_holiday", date.toString(), u.id(), null,
+                        Map.of("date", date.toString()), null, ip));
+            }
+            return null;
         });
     }
 

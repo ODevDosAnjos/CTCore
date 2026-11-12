@@ -47,12 +47,12 @@ public class NoClassDays {
 
     public record Input(List<UUID> unitIds, String startsOn, String endsOn, String reason, Boolean holiday, List<UUID> classIds, NoticeInput notice) {}
 
-    public record Notice(String mode, String sendAt, String status) {}
+    public record Notice(String mode, String sendAt, String status, String sentAt) {}
 
     public record Item(UUID id, Ref unit, String startsOn, String endsOn, String reason, String origin, boolean allClasses, List<Ref> classes,
-            Notice notice, int cancelledLessons, boolean canEdit) {}
+            Notice notice, int cancelledLessons, boolean canEdit, int unitsInBatch) {}
 
-    public record Suggestion(String code, String date) {}
+    public record Suggestion(String code, String date, int affectedLessons, UUID dayId) {}
 
     public record View(List<Ref> units, Ref unit, List<Item> days, List<Suggestion> suggestions) {}
 
@@ -215,12 +215,22 @@ public class NoClassDays {
             UnitCtx u = unit(who, unit.id());
             LocalDate today = today(u);
             List<Item> days = items(who, u, "and d.ends_on >= :today", Map.of("today", today), today);
-            Set<LocalDate> taken = new LinkedHashSet<>();
-            for (Item d : days) taken.add(LocalDate.parse(d.startsOn()));
-            List<Suggestion> suggestions = Holidays.next12Months(today).stream().filter(h -> !taken.contains(h.date()))
-                    .map(h -> new Suggestion(h.code(), h.date().toString())).toList();
+            Map<LocalDate, UUID> dayByStart = new LinkedHashMap<>();
+            for (Item d : days) dayByStart.putIfAbsent(LocalDate.parse(d.startsOn()), d.id());
+            Set<LocalDate> ignored = new LinkedHashSet<>(jdbc.sql("select holiday_date from no_class_day_ignored_holiday where organization_id = :org and unit_id = :unit")
+                    .param("org", org).param("unit", u.id()).query((rs, n) -> rs.getObject(1, LocalDate.class)).list());
+            List<Suggestion> suggestions = Holidays.next12Months(today).stream().filter(h -> !ignored.contains(h.date()))
+                    .map(h -> new Suggestion(h.code(), h.date().toString(), affectedCount(org, u, h.date(), dayByStart.get(h.date())), dayByStart.get(h.date()))).toList();
             return new View(units, unit, days, suggestions);
         });
+    }
+
+    /** Aulas do feriado: as que ainda seriam canceladas (RN-AGE-10) mais as que o dia já cancelou; cancelamento à mão não conta. */
+    private int affectedCount(UUID org, UnitCtx u, LocalDate date, UUID dayId) {
+        LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), u.zone());
+        return jdbc.sql("select count(*) from lesson l where l.organization_id = :org and l.unit_id = :unit and l.lesson_date = :date "
+                + "and ((not l.cancelled and (l.lesson_date + l.ends_at) > cast(:now as timestamp)) or (cast(:day as uuid) is not null and l.no_class_day_id = :day))")
+                .param("org", org).param("unit", u.id()).param("date", date).param("now", now).param("day", dayId).query(Integer.class).single();
     }
 
     static String status(String stored) {
@@ -235,8 +245,10 @@ public class NoClassDays {
     List<Item> items(AccountPrincipal who, UnitCtx u, String extra, Map<String, Object> params, LocalDate today) {
         UUID org = who.organizationId();
         return jdbc.sql("select d.id, d.starts_on, d.ends_on, d.reason, d.origin, d.notice_mode, d.notice_at, d.notice_status, "
-                + "(select count(*) from lesson l where l.no_class_day_id = d.id and l.cancelled) from no_class_day d "
-                + "where d.organization_id = :org and d.unit_id = :unit " + extra + " order by d.starts_on, d.id")
+                + "(select count(*) from lesson l where l.no_class_day_id = d.id and l.cancelled), "
+                + "(select max(a.sent_at) from announcement a where a.organization_id = d.organization_id and a.no_class_day_id = d.id), "
+                + "(case when d.batch_id is null then 1 else (select count(*) from no_class_day b where b.organization_id = d.organization_id and b.batch_id = d.batch_id) end) "
+                + "from no_class_day d where d.organization_id = :org and d.unit_id = :unit " + extra + " order by d.starts_on, d.id")
                 .param("org", org).param("unit", u.id()).params(params).query((rs, n) -> {
                     UUID id = rs.getObject(1, UUID.class);
                     LocalDate start = rs.getObject(2, LocalDate.class);
@@ -244,9 +256,11 @@ public class NoClassDays {
                             + "and c.organization_id = x.organization_id where x.no_class_day_id = :id and x.organization_id = :org order by c.name_key, c.id")
                             .param("id", id).param("org", org).query((r, i) -> new Ref(r.getObject(1, UUID.class), r.getString(2))).list();
                     OffsetDateTime at = rs.getObject(7, OffsetDateTime.class);
+                    OffsetDateTime sent = rs.getObject(10, OffsetDateTime.class);
                     return new Item(id, u.ref(), start.toString(), rs.getObject(3, LocalDate.class).toString(), rs.getString(4), rs.getString(5),
-                            classes.isEmpty(), classes, new Notice(rs.getString(6), at == null ? null : at.toInstant().toString(), status(rs.getString(8))),
-                            rs.getInt(9), start.isAfter(today));
+                            classes.isEmpty(), classes, new Notice(rs.getString(6), at == null ? null : at.toInstant().toString(), status(rs.getString(8)),
+                                    sent == null ? null : sent.toInstant().toString()),
+                            rs.getInt(9), start.isAfter(today), rs.getInt(11));
                 }).list();
     }
 

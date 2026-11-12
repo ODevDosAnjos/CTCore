@@ -171,6 +171,7 @@ export const resetMockSession = () => {
   lessonEdits.clear();
   mockAdhoc = [];
   mockNoClassDays = [];
+  mockIgnoredHolidays = [];
   teacherContacts = initialTeacherContacts();
   teacherResends = 0;
   mockStudents = initialStudents();
@@ -610,7 +611,9 @@ const lessonEdits = new Map<string, LessonEdit>();
 export type MockAdhoc = { id: string; unitId: string; title: string; modalityId: string; date: string; startsAt: string; endsAt: string; teacherId: string; visibilityClassId: string | null };
 let mockAdhoc: MockAdhoc[] = [];
 // RF-AGE-05: dias sem aula lançados no simulado. As aulas deles não têm linha própria: nascem canceladas pelo dia que as cobre (como o gerador do servidor).
-type MockDay = { id: string; unitId: string; startsOn: string; endsOn: string; reason: string; origin: "HOLIDAY" | "COORDINATOR" | "UNIT"; classIds: string[]; noticeMode: string; noticeAt: string | null };
+type MockDay = { id: string; unitId: string; startsOn: string; endsOn: string; reason: string; origin: "HOLIDAY" | "COORDINATOR" | "UNIT"; classIds: string[]; noticeMode: string; noticeAt: string | null; batchId?: string; sentAt?: string };
+// RF-AGE-05 (#474): feriados que a unidade ignorou ("Ignorar" não tem desfazer na tela).
+let mockIgnoredHolidays: { unitId: string; date: string }[] = [];
 let mockNoClassDays: MockDay[] = [];
 const coveringDay = (unitId: string, date: string, classId: string | null, today: string) =>
   mockNoClassDays.find((d) => d.unitId === unitId && date >= today && date >= d.startsOn && date <= d.endsOn && (d.classIds.length === 0 || (classId !== null && d.classIds.includes(classId))));
@@ -788,9 +791,10 @@ const dayItem = (d: MockDay, today: string) => ({
   origin: d.origin,
   allClasses: d.classIds.length === 0,
   classes: d.classIds.map((id) => mockClasses.find((c) => c.id === id)!).map((c) => ({ id: c.id, name: c.name })),
-  notice: { mode: d.noticeMode, sendAt: d.noticeAt, status: d.noticeMode === "SCHEDULED" ? "SCHEDULED" : "NOT_NOTIFIED" },
+  notice: { mode: d.noticeMode, sendAt: d.noticeAt, status: d.sentAt ? "SENT" : d.noticeMode === "SCHEDULED" ? "SCHEDULED" : "NOT_NOTIFIED", sentAt: d.sentAt ?? null },
   cancelledLessons: dayLessons(d.unitId, d.startsOn, d.endsOn, d.classIds, today).length,
   canEdit: d.startsOn > today,
+  unitsInBatch: d.batchId ? mockNoClassDays.filter((x) => x.batchId === d.batchId).length : 1,
 });
 // Valida como o servidor (400, 404 de unidade, 422/404 de turma) e devolve as unidades já resolvidas ou a resposta de erro.
 const dayPlan = (b: DayBody, unitIds: string[], full: boolean) => {
@@ -3229,12 +3233,15 @@ export const routes: Route[] = [
       if (!unit) return HttpResponse.json({ units: refs, unit: null, days: [], suggestions: [] });
       const today = todayLocal();
       const mine = mockNoClassDays.filter((d) => d.unitId === unit.id && d.endsOn >= today).sort((a, b) => a.startsOn.localeCompare(b.startsOn));
-      const taken = new Set(mine.map((d) => d.startsOn));
+      const byStart = new Map(mine.map((d) => [d.startsOn, d]));
+      const ignored = new Set(mockIgnoredHolidays.filter((i) => i.unitId === unit.id).map((i) => i.date));
       return HttpResponse.json({
         units: refs,
         unit: { id: unit.id, name: unit.name },
         days: mine.map((d) => dayItem(d, today)),
-        suggestions: nextHolidays(today).filter((h) => !taken.has(h.date)),
+        suggestions: nextHolidays(today)
+          .filter((h) => !ignored.has(h.date))
+          .map((h) => ({ ...h, affectedLessons: dayLessons(unit.id, h.date, h.date, byStart.get(h.date)?.classIds ?? [], today).length, dayId: byStart.get(h.date)?.id ?? null })),
       });
     },
   },
@@ -3266,7 +3273,9 @@ export const routes: Route[] = [
       if (plan instanceof Response) return plan;
       if (plan.units.some((id) => dayClash(id, b.startsOn!, b.endsOn!))) return dayConflict();
       const mode = b.notice?.mode ?? "NONE";
+      const batchId = crypto.randomUUID();
       const made: MockDay[] = plan.units.map((unitId) => ({
+        batchId,
         id: crypto.randomUUID(),
         unitId,
         startsOn: b.startsOn!,
@@ -3279,6 +3288,22 @@ export const routes: Route[] = [
       }));
       mockNoClassDays = [...mockNoClassDays, ...made];
       return HttpResponse.json(made.map((d) => dayItem(d, plan.today)), { status: 201 });
+    },
+  },
+  {
+    // RF-AGE-05 (#474): esconde o feriado sugerido só na unidade; idempotente (204); a data precisa ser feriado dos próximos 12 meses (422 em `date`).
+    method: "post",
+    path: "/no-class-days/ignored-holidays",
+    resolver: async ({ request }) => {
+      const denied = dayAccess();
+      if (denied) return denied;
+      const b = (await request.json().catch(() => ({}))) as { unitId?: string; date?: string };
+      if (!b.unitId) return classBad("unitId", "obrigatório");
+      if (!b.date || !/^\d{4}-\d{2}-\d{2}$/.test(b.date) || Number.isNaN(Date.parse(`${b.date}T12:00:00Z`))) return classBad("date", "data inválida, use yyyy-MM-dd");
+      if (!dayReach().some((u) => u.id === b.unitId)) return error(404, "NOT_FOUND", "Não encontrado.");
+      if (!nextHolidays(todayLocal()).some((h) => h.date === b.date)) return error(422, "UNPROCESSABLE", "Os dados estão corretos, mas a regra não permite esta operação.", [{ field: "date", message: "não é um feriado sugerido" }]);
+      if (!mockIgnoredHolidays.some((i) => i.unitId === b.unitId && i.date === b.date)) mockIgnoredHolidays.push({ unitId: b.unitId, date: b.date });
+      return new HttpResponse(null, { status: 204 });
     },
   },
   {
