@@ -65,7 +65,12 @@ class AgendaLessonIT extends AgendaBase {
         adminJdbc().update("update lesson set substitute = true where id = ?", covered); // RN-AGE-04: substituto gravado conta como alterada à mão
         var coord = who(t, Role.COORDINATOR);
         assertThat(ok(current, coord).get("followingEdited").asInt()).isEqualTo(3);
+        // RF-AGE-02: a atual + as 4 futuras agendadas (a cancelada, a passada e a de outra turma ficam fora); a data é a da última
+        assertThat(ok(current, coord).get("followingCount").asInt()).isEqualTo(5);
+        assertThat(ok(current, coord).get("followingUntil").asText()).isEqualTo(TODAY.plusDays(42).toString());
         assertThat(ok(lesson(t, c, ana, TODAY.plusDays(40), "19:00", "20:00", false, false), coord).get("followingEdited").asInt()).isEqualTo(1);
+        assertThat(ok(covered, coord).get("followingCount").asInt()).isEqualTo(1);
+        assertThat(ok(covered, coord).get("followingUntil").asText()).isEqualTo(TODAY.plusDays(42).toString());
         assertThat(get(current, who(tenant(), Role.COORDINATOR)).getStatus()).isEqualTo(404);
     }
 

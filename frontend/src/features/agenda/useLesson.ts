@@ -11,6 +11,8 @@ export interface LessonDetail extends AgendaLesson {
   groupLink: string | null;
   canViewClass: boolean;
   followingEdited: number;
+  followingCount: number;
+  followingUntil: string | null;
 }
 
 type Done = {

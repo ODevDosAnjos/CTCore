@@ -55,6 +55,8 @@ const detail = (over: Partial<LessonDetail> = {}): LessonDetail => ({
   canCancel: true,
   canViewClass: true,
   followingEdited: 0,
+  followingCount: 0,
+  followingUntil: null,
   ...over,
 });
 
@@ -84,6 +86,8 @@ function setup(opts: Opts = {}) {
         units: [{ id: "u1", name: "Centro", shortName: "c" }],
       }),
     ),
+    http.get("/api/v1/announcements/templates", () => HttpResponse.json({ templates: { CANCELED_CLASS: { title: "Aula cancelada", body: "A aula de {turma} foi cancelada." }, TEACHER_CHANGE: { title: "Troca de professor", body: "Novo professor." }, SCHEDULE_CHANGE: { title: "Mudança de horário", body: "Novo horário." }, NO_CLASS_DAY: { title: "Dia sem aula", body: "Sem aula." }, GENERAL: { title: "Aviso geral", body: "" } } })),
+    http.post("/api/v1/announcements/preview", () => HttpResponse.json({ recipients: 5, portal: 5, email: 4, whatsapp: null, channels: ["PORTAL"] })),
     http.get("/api/v1/students/simple", ({ request }) => {
       asked.push(new URL(request.url).searchParams.get("lessonId") ?? "");
       return HttpResponse.json([{ id: "s9", name: "Bia Lima", photoUrl: null, belt: null, beltColor: null, beltSecondaryColor: null, degree: 0, blocked: false }]);
@@ -126,10 +130,7 @@ describe("LessonPanelPage", () => {
     expect(group).toHaveAttribute("href", "https://chat.whatsapp.com/abc");
     expect(group).toHaveAttribute("target", "_blank");
     expect(within(drawer).getByRole("link", { name: "Ver turma" })).toHaveAttribute("href", "/turmas/c1");
-    expect(await screen.findByRole("link", { name: "Avisar turma" })).toHaveAttribute(
-      "href",
-      "/comunicados/novo?classId=c1&type=GENERAL&date=2026-03-10&time=19%3A00",
-    );
+    expect(await screen.findByRole("button", { name: "Avisar turma" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Editar aula" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Cancelar aula" })).toBeEnabled();
   });
@@ -312,7 +313,7 @@ describe("LessonPanelPage", () => {
       fireEvent.change(within(dialog).getByLabelText("Início"), { target: { value: "18:30" } });
       await user.selectOptions(within(dialog).getByLabelText("Professor da aula"), "t2");
       await user.click(within(dialog).getByRole("radio", { name: /Esta e as seguintes/ }));
-      await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+      await user.click(within(dialog).getByRole("button", { name: "Salvar aula" }));
       expect((await screen.findAllByText("Substituição")).length).toBeGreaterThan(0);
       expect(screen.queryByRole("dialog", { name: "Editar aula" })).toBeNull();
       expect(sent).toEqual([
@@ -321,20 +322,45 @@ describe("LessonPanelPage", () => {
       expect(screen.getByText("Terça, 10/03/2026 · 18h30–20h · Centro")).toBeInTheDocument();
     });
 
-    it("RN-AGE-04: com esta e as seguintes a janela avisa quantas aulas já alteradas à mão serão substituídas", async () => {
+    it("CA10: editar trocando o professor com Avisar a turma ligado abre o comunicado Troca de professor; desligado, só salva", async () => {
       const user = userEvent.setup();
       setup();
       stubTeachers();
-      stateful(detail(), detail({ followingEdited: 2 }));
+      stateful(detail({ substitute: true, head: teachers[0], teacher: teachers[1] }));
       await ready();
       await user.click(screen.getByRole("button", { name: "Editar aula" }));
       const dialog = await screen.findByRole("dialog", { name: "Editar aula" });
       await screen.findByRole("option", { name: "João Pereira" });
-      expect(within(dialog).queryByRole("status")).toBeNull();
-      await user.click(within(dialog).getByRole("radio", { name: /Esta e as seguintes/ }));
-      expect(within(dialog).getByRole("status")).toHaveTextContent("2 aulas seguintes já foram alteradas à mão e serão atingidas por esta edição: data e horário mudam, e o substituto, nas que já têm, fica.");
-      await user.click(within(dialog).getByRole("radio", { name: /Só esta aula/ }));
-      expect(within(dialog).queryByRole("status")).toBeNull();
+      await user.selectOptions(within(dialog).getByLabelText("Professor da aula"), "t2");
+      await user.click(within(dialog).getByRole("switch", { name: "Avisar a turma" }));
+      await user.click(within(dialog).getByRole("button", { name: "Salvar aula" }));
+      const notice = await screen.findByRole("dialog", { name: "Avisar turma" }, { timeout: 5000 });
+      expect(await within(notice).findByLabelText("Tipo", undefined, { timeout: 5000 })).toHaveValue("TEACHER_CHANGE");
+      expect(within(notice).getByLabelText("Destino")).toHaveValue("Turma Jiu-Jitsu Adulto");
+    });
+
+    it("CA10: editar sem Avisar a turma só salva", async () => {
+      const user = userEvent.setup();
+      setup();
+      stubTeachers();
+      stateful(detail({ startsAt: "18:30" }));
+      await ready();
+      await user.click(screen.getByRole("button", { name: "Editar aula" }));
+      const dialog = await screen.findByRole("dialog", { name: "Editar aula" });
+      await screen.findByRole("option", { name: "João Pereira" });
+      fireEvent.change(within(dialog).getByLabelText("Início"), { target: { value: "18:30" } });
+      await user.click(within(dialog).getByRole("button", { name: "Salvar aula" }));
+      await screen.findByText("Terça, 10/03/2026 · 18h30–20h · Centro");
+      expect(screen.queryByRole("dialog", { name: "Avisar turma" })).toBeNull();
+    });
+
+    it("CA12: o rodapé tem Avisar turma e Ver turma antes de Editar e Cancelar aula no celular", async () => {
+      setup({ width: 390 });
+      await ready();
+      const footer = screen.getByRole("button", { name: "Avisar turma" }).parentElement!;
+      expect(footer).toHaveClass("grid-cols-2");
+      const order = (name: string, role: "button" | "link" = "button") => screen.getByRole(role, { name }).className.match(/(?:^| )order-([0-9])/)![1];
+      expect([order("Avisar turma"), order("Ver turma", "link"), order("Editar aula"), order("Cancelar aula")]).toEqual(["1", "2", "3", "4"]);
     });
 
     it("CA11: 409 e 422 aparecem na janela; fica aberta", async () => {
@@ -349,7 +375,7 @@ describe("LessonPanelPage", () => {
       );
       await user.click(screen.getByRole("button", { name: "Editar aula" }));
       await screen.findByRole("option", { name: "João Pereira" });
-      await user.click(screen.getByRole("button", { name: "Salvar" }));
+      await user.click(screen.getByRole("button", { name: "Salvar aula" }));
       expect(await screen.findByText(/já existe aula da turma neste dia e horário/)).toBeInTheDocument();
       server.use(
         http.put("/api/v1/agenda/lessons/:id", () =>
@@ -359,7 +385,7 @@ describe("LessonPanelPage", () => {
           ),
         ),
       );
-      await user.click(screen.getByRole("button", { name: "Salvar" }));
+      await user.click(screen.getByRole("button", { name: "Salvar aula" }));
       expect(await screen.findByText("Professor não ensina a modalidade.")).toBeInTheDocument();
       expect(screen.getByRole("dialog", { name: "Editar aula" })).toBeInTheDocument();
     });
@@ -372,7 +398,7 @@ describe("LessonPanelPage", () => {
       await user.click(screen.getByRole("button", { name: "Editar aula" }));
       await screen.findByRole("option", { name: "João Pereira" });
       fireEvent.change(screen.getByLabelText("Término"), { target: { value: "18:00" } });
-      await user.click(screen.getByRole("button", { name: "Salvar" }));
+      await user.click(screen.getByRole("button", { name: "Salvar aula" }));
       expect(await screen.findByText(/o término depois do início/)).toBeInTheDocument();
     });
 
@@ -392,20 +418,22 @@ describe("LessonPanelPage", () => {
       expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
     });
 
-    it("CA11: aula concluída só corrige o professor, com motivo", async () => {
+    it("CA7: aula concluída abre Corrigir professor, com motivo, sem data nem hora", async () => {
       const user = userEvent.setup();
       setup({ lesson: detail({ status: "COMPLETED", canCancel: false }) });
       stubTeachers();
       const sent = stateful(detail({ status: "COMPLETED", canCancel: false, teacher: teachers[1], substitute: true, head: teachers[0] }), detail({ status: "COMPLETED", canCancel: false }));
       await ready();
-      await user.click(screen.getByRole("button", { name: "Editar aula" }));
+      expect(screen.queryByRole("button", { name: "Editar aula" })).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Corrigir professor" }));
+      const dialog = await screen.findByRole("dialog", { name: "Corrigir professor" });
       await screen.findByRole("option", { name: "João Pereira" });
-      expect(screen.getByLabelText("Data")).toBeDisabled();
-      await user.selectOptions(screen.getByLabelText("Professor da aula"), "t2");
-      await user.click(screen.getByRole("button", { name: "Salvar" }));
-      expect(await screen.findByText("Informe o motivo da correção.")).toBeInTheDocument();
-      await user.type(screen.getByLabelText("Motivo da correção"), "Troca registrada");
-      await user.click(screen.getByRole("button", { name: "Salvar" }));
+      expect(within(dialog).queryByLabelText("Data")).toBeNull();
+      await user.selectOptions(within(dialog).getByLabelText("Professor que deu a aula"), "t2");
+      await user.click(within(dialog).getByRole("button", { name: "Salvar correção" }));
+      expect(await within(dialog).findByText("Informe o motivo da correção.")).toBeInTheDocument();
+      await user.type(within(dialog).getByLabelText(/Motivo/), "Troca registrada");
+      await user.click(within(dialog).getByRole("button", { name: "Salvar correção" }));
       expect((await screen.findAllByText("Substituição")).length).toBeGreaterThan(0);
       expect(sent).toEqual([
         { scope: "THIS", date: "2026-03-10", startsAt: "19:00", endsAt: "20:00", teacherId: "t2", reason: "Troca registrada" },
@@ -421,15 +449,15 @@ describe("LessonPanelPage", () => {
       await ready();
       await user.click(screen.getByRole("button", { name: "Cancelar aula" }));
       const dialog = await screen.findByRole("dialog", { name: "Cancelar aula" });
-      expect(within(dialog).getByRole("checkbox", { name: "Portal (sempre)" })).toBeDisabled();
+      expect(within(dialog).getByRole("checkbox", { name: "Portal" })).toBeDisabled();
       await user.click(within(dialog).getByRole("button", { name: "Cancelar aula" }));
       expect(await within(dialog).findByText("Escolha o motivo.")).toBeInTheDocument();
       await user.click(within(dialog).getByRole("radio", { name: "Outro" }));
       await user.click(within(dialog).getByRole("button", { name: "Cancelar aula" }));
       expect(await within(dialog).findByText(/Informe o motivo, em até 200/)).toBeInTheDocument();
-      await user.type(within(dialog).getByLabelText("Qual o motivo?"), "Chuva forte");
+      await user.type(within(dialog).getByLabelText(/Escreva o motivo/), "Chuva forte");
       await user.click(within(dialog).getByRole("checkbox", { name: "E-mail" }));
-      await user.click(within(dialog).getByRole("checkbox", { name: /WhatsApp/ }));
+      await user.click(within(dialog).getByRole("checkbox", { name: "WhatsApp" }));
       await user.click(within(dialog).getByRole("button", { name: "Cancelar aula" }));
       expect(await screen.findByText("Aviso pronto")).toBeInTheDocument();
       expect(sent).toEqual([{ reason: "OTHER", reasonText: "Chuva forte", channels: ["EMAIL", "WHATSAPP"] }]);
@@ -438,7 +466,10 @@ describe("LessonPanelPage", () => {
         screen.getByText("A aula de Jiu-Jitsu Adulto de 10/03/2026, das 19:00 às 20:00, foi cancelada. Motivo: Chuva forte."),
       ).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Cancelar aula" })).toBeNull();
-      expect(await screen.findByRole("link", { name: "Avisar turma" })).toHaveAttribute("href", expect.stringContaining("type=CANCELED_CLASS"));
+      await user.click(await screen.findByRole("button", { name: "Avisar turma" }));
+      const notice = await screen.findByRole("dialog", { name: "Avisar turma" }, { timeout: 5000 });
+      expect(await within(notice).findByLabelText("Tipo", undefined, { timeout: 5000 })).toHaveValue("CANCELED_CLASS");
+      expect(within(notice).getByLabelText("Destino")).toHaveValue("Turma Jiu-Jitsu Adulto");
     });
 
     it("CA11: motivo por código é traduzido; sem grupo não há WhatsApp; 409 aparece na janela", async () => {
@@ -456,7 +487,7 @@ describe("LessonPanelPage", () => {
       await user.click(within(dialog).getByRole("radio", { name: "Feriado" }));
       await user.click(within(dialog).getByRole("button", { name: "Cancelar aula" }));
       expect(await within(dialog).findByText(/já concluída ou cancelada/)).toBeInTheDocument();
-      await user.click(within(dialog).getByRole("button", { name: "Manter aula" }));
+      await user.click(within(dialog).getAllByRole("button", { name: "Voltar" }).at(-1)!);
       expect(screen.queryByRole("dialog", { name: "Cancelar aula" })).toBeNull();
     });
 

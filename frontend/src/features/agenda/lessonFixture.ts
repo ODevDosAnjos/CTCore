@@ -1,0 +1,30 @@
+import type { LessonDetail } from "./useLesson";
+
+// Aula de teste das janelas da aula (terça, 10/03/2026).
+export const lessonFixture = (over: Partial<LessonDetail> = {}): LessonDetail => ({
+  id: "les1",
+  date: "2026-03-10",
+  startsAt: "19:00",
+  endsAt: "20:00",
+  status: "SCHEDULED",
+  cancelReason: null,
+  cancelReasonCode: null,
+  class: { id: "c1", name: "Jiu-Jitsu Kids" },
+  title: null,
+  unit: { id: "u1", name: "Centro" },
+  modality: { id: "m1", name: "Jiu-Jitsu" },
+  teacher: { id: "t1", name: "Ana Souza" },
+  visibilityClass: null,
+  head: null,
+  substitute: false,
+  activeStudents: 14,
+  trialClasses: 0,
+  groupLink: "https://chat.whatsapp.com/abc",
+  canEdit: true,
+  canCancel: true,
+  canViewClass: true,
+  followingEdited: 0,
+  followingCount: 0,
+  followingUntil: null,
+  ...over,
+});

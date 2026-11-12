@@ -57,6 +57,8 @@ const panel = (over: Partial<LessonDetail> = {}): LessonDetail => ({
   groupLink: null,
   canViewClass: false,
   followingEdited: 0,
+  followingCount: 0,
+  followingUntil: null,
   ...over,
 });
 
@@ -73,6 +75,8 @@ function setup(opts: { role?: string; width?: number; view?: AgendaData; classes
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: [{ id: "u1", name: "Centro", shortName: "c" }] })),
     http.get("/api/v1/agenda", () => HttpResponse.json(opts.view ?? agenda())),
     http.get("/api/v1/agenda/lessons/:id", () => HttpResponse.json(opts.lesson ?? panel())),
+    http.get("/api/v1/announcements/templates", () => HttpResponse.json({ templates: { CANCELED_CLASS: { title: "Aula cancelada", body: "A aula de {turma} foi cancelada." }, TEACHER_CHANGE: { title: "Troca de professor", body: "Novo professor." }, SCHEDULE_CHANGE: { title: "Mudança de horário", body: "Novo horário." }, NO_CLASS_DAY: { title: "Dia sem aula", body: "Sem aula." }, GENERAL: { title: "Aviso geral", body: "" } } })),
+    http.post("/api/v1/announcements/preview", () => HttpResponse.json({ recipients: 5, portal: 5, email: 4, whatsapp: null, channels: ["PORTAL"] })),
     http.get("/api/v1/classes", () => (opts.classes ? opts.classes() : HttpResponse.json({ items: [{ id: "c1", name: "Judô Infantil" }], page: 1, size: 100, total: 1 }))),
     http.post("/api/v1/agenda/lessons", async ({ request }) => {
       posted = await request.json();
@@ -96,8 +100,8 @@ const open = async (user: User) => {
   return screen.findByRole("dialog", { name: "Nova aula avulsa" });
 };
 const fill = async (user: User, dialog: HTMLElement) => {
-  await within(dialog).findByLabelText("Título");
-  await user.type(within(dialog).getByLabelText("Título"), "Seminário de quedas");
+  await within(dialog).findByLabelText(/^Título/);
+  await user.type(within(dialog).getByLabelText(/^Título/), "Seminário de quedas");
   await user.selectOptions(within(dialog).getByLabelText("Modalidade"), "m1");
   await user.type(within(dialog).getByLabelText("Início"), "10:00");
   await user.type(within(dialog).getByLabelText("Término"), "11:30");
@@ -115,13 +119,47 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
     expect(posted).toEqual({ unitId: "u1", title: "Seminário de quedas", modalityId: "m1", date: todayIso(), startsAt: "10:00", endsAt: "11:30", teacherId: "t1" });
   });
 
+  it("CA11: título obrigatório, Modalidade e Professor, Data/Início/Término, Quem vê em cartões, observação em breve e Avisar os alunos", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await open(user);
+    await within(dialog).findByLabelText(/^Título/);
+    for (const l of ["Modalidade", "Professor", "Data", "Início", "Término"]) expect(within(dialog).getByLabelText(l)).toBeInTheDocument();
+    expect(within(dialog).getByText("Aparece para todos os alunos de Centro")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Escolha a turma")).toBeNull();
+    expect(within(dialog).getByRole("button", { name: "Observação para a equipe (opcional)" })).toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).getByText("Abre o comunicado \"Aviso geral\" pronto")).toBeInTheDocument();
+  });
+
+  it("CA10: Avisar os alunos ligado abre o comunicado Aviso geral para a unidade", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await open(user);
+    await fill(user, dialog);
+    await user.click(within(dialog).getByRole("switch", { name: "Avisar os alunos" }));
+    await user.click(within(dialog).getByRole("button", { name: "Criar aula" }));
+    const notice = await screen.findByRole("dialog", { name: "Avisar turma" }, { timeout: 5000 });
+    expect(await within(notice).findByLabelText("Tipo", undefined, { timeout: 5000 })).toHaveValue("GENERAL");
+    expect(within(notice).getByLabelText("Destino")).toHaveValue("Unidade Centro");
+    await user.click(within(notice).getByRole("button", { name: "Cancelar" }));
+  });
+
+  it("CA10: Avisar os alunos desligado só salva", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await open(user);
+    await fill(user, dialog);
+    await user.click(within(dialog).getByRole("button", { name: "Criar aula" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("CA10: escolher uma turma envia visibilityClassId", async () => {
     const user = userEvent.setup();
     setup();
     const dialog = await open(user);
     await fill(user, dialog);
     await user.click(await within(dialog).findByLabelText("Uma turma"));
-    await user.selectOptions(within(dialog).getByLabelText("Turma"), "c1");
+    await user.selectOptions(within(dialog).getByLabelText("Escolha a turma"), "c1");
     await user.click(within(dialog).getByRole("button", { name: "Criar aula" }));
     await waitFor(() => expect(posted).toMatchObject({ visibilityClassId: "c1" }));
   });
@@ -130,7 +168,7 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
     const user = userEvent.setup();
     setup({ create: () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "title", message: "de 1 a 80 caracteres" }] }, { status: 400 }) });
     const dialog = await open(user);
-    await within(dialog).findByLabelText("Título");
+    await within(dialog).findByLabelText(/^Título/);
     await user.click(within(dialog).getByRole("button", { name: "Criar aula" }));
     expect(await within(dialog).findByText("Informe o título, em até 80 caracteres.")).toBeInTheDocument();
     expect(within(dialog).getByText("Escolha a modalidade.")).toBeInTheDocument();
@@ -170,7 +208,7 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
     const retry = await within(dialog).findByRole("button", { name: "Tentar de novo" });
     fail = false;
     await user.click(retry);
-    expect(await within(dialog).findByLabelText("Todas as turmas da unidade")).toBeChecked();
+    expect(await within(dialog).findByLabelText(/^Todas as turmas da unidade/)).toBeChecked();
     expect(within(dialog).queryByLabelText("Uma turma")).toBeNull();
   });
 
@@ -178,7 +216,7 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
     const user = userEvent.setup();
     setup({ role: "TEACHER", classes: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     const dialog = await open(user);
-    expect(await within(dialog).findByLabelText("Todas as turmas da unidade")).toBeChecked();
+    expect(await within(dialog).findByLabelText(/^Todas as turmas da unidade/)).toBeChecked();
     expect(within(dialog).queryByLabelText("Uma turma")).toBeNull();
   });
 
@@ -208,7 +246,7 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
     setDevicePrefersDark(dark);
     setup({ width: 360 });
     const dialog = await open(user);
-    await within(dialog).findByLabelText("Título");
+    await within(dialog).findByLabelText(/^Título/);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth || 360);
     expect(await axeViolations(document.body)).toEqual([]);
   });
@@ -238,8 +276,8 @@ describe("RF-AGE-04: Nova aula avulsa", () => {
     await user.click(screen.getByRole("button", { name: "Editar aula" }));
     const dialog = await screen.findByRole("dialog", { name: "Editar aula" });
     await within(dialog).findByLabelText("Professor da aula");
-    expect(within(dialog).getByText("Seminário de quedas")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Só esta aula")).toBeInTheDocument();
-    expect(within(dialog).queryByLabelText(/Esta e as seguintes/)).toBeNull();
+    expect(within(dialog).getByText(/Seminário de quedas/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: /Só esta aula/ })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("radio", { name: /Esta e as seguintes/ })).toBeNull();
   });
 });

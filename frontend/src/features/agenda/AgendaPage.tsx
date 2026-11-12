@@ -12,6 +12,7 @@ import { addDays, mondayOf, rangeLabel, todayIso, weekDays } from "./agendaDates
 import { AgendaDayList } from "./AgendaDayList";
 import { AgendaFilters, type FilterValues } from "./AgendaFilters";
 import { AgendaWeekGrid } from "./AgendaWeekGrid";
+import { AnnounceLessonDialog, type LessonNotice } from "@/features/announcements/AnnounceLessonDialog";
 import { NewLessonDialog } from "./NewLessonDialog";
 import { useAgenda } from "./useAgenda";
 import { PageHeader } from "@/components/ui/page-header";
@@ -37,6 +38,7 @@ function Content() {
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(params.get("semana") ?? "") ? params.get("semana")! : today;
   const setAnchor = (iso: string) => setParams(iso === today ? {} : { semana: iso }, { replace: true });
   const [creating, setCreating] = useState(false);
+  const [notice, setNotice] = useState<LessonNotice | null>(null);
   const { permissions } = usePermissions();
   const { state } = useSession();
   const teacherView = state.status === "ready" && state.session.links.find((l) => l.id === state.session.activeLinkId)?.role === "TEACHER";
@@ -119,8 +121,21 @@ function Content() {
         </div>
       )}
       {creating && canCreate && (
-        <NewLessonDialog unit={view!.unit!} modalities={view!.modalities} teachers={view!.teachers} onClose={() => setCreating(false)} onSaved={retry} />
+        <NewLessonDialog unit={view!.unit!} modalities={view!.modalities} teachers={view!.teachers} onClose={() => setCreating(false)} onSaved={(created, notify) => {
+            retry();
+            // R10: "Avisar os alunos" abre o comunicado "Aviso geral" para a turma de visibilidade ou, sem ela, para a unidade.
+            if (notify)
+              setNotice({
+                target: created.visibilityClass ? { kind: "CLASS", classId: created.visibilityClass.id, name: created.visibilityClass.name, hasGroup: !!created.groupLink } : { kind: "UNIT", unitId: created.unit.id, name: created.unit.name },
+                date: created.date,
+                time: created.startsAt,
+                cancelled: false,
+                type: "GENERAL",
+              });
+          }}
+        />
       )}
+      <AnnounceLessonDialog notice={notice} onClose={() => setNotice(null)} />
       {status === "loading" && <LoadingState />}
       {status === "error" && <ErrorState onRetry={retry} />}
       {status === "ready" && data && isNarrow && <AgendaDayList data={data} day={anchor} onStep={(n) => setAnchor(addDays(anchor, n))} teacherView={teacherView} onNew={canCreate ? () => setCreating(true) : undefined} />}

@@ -100,6 +100,8 @@ class AgendaLessonAdhocIT extends AgendaBase {
         assertThat(d.get("head").isNull()).isTrue();
         assertThat(d.get("canViewClass").asBoolean()).isFalse();
         assertThat(d.get("activeStudents").asInt()).isZero();
+        assertThat(d.get("followingCount").asInt()).isZero(); // RF-AGE-02: avulsa não tem seguintes
+        assertThat(d.get("followingUntil").isNull()).isTrue();
         String after = adminJdbc().queryForObject("select after_data::text from audit_log where action = 'lesson.created' and entity_id = ?", String.class,
                 d.get("id").asText());
         assertThat(after).contains(judo.toString(), ana.toString(), "10:00");

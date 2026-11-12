@@ -7,6 +7,7 @@ import { Banner } from "@/components/ui/banner";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import { AnnounceLessonDialog, type LessonNotice } from "@/features/announcements/AnnounceLessonDialog";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { PersonAvatar } from "@/components/ui/person-row";
 import { useSession } from "@/features/auth/SessionProvider";
@@ -14,7 +15,8 @@ import { usePermissions } from "@/features/permissions/usePermissions";
 import { StudentSimpleList } from "@/features/students/StudentSimpleList";
 import { br, hourLabel, weekday } from "./agendaDates";
 import { CancelLessonDialog } from "./CancelLessonDialog";
-import { EditLessonDialog } from "./EditLessonDialog";
+import { CorrectTeacherDialog } from "./CorrectTeacherDialog";
+import { EditLessonDialog, type EditSaved } from "./EditLessonDialog";
 import { cancelReasonText, lessonName } from "./LessonCard";
 import { useLesson, type LessonDetail } from "./useLesson";
 
@@ -67,48 +69,48 @@ function DrawerShell({ title, subtitle, footer, children }: { title?: string; su
   );
 }
 
-function Panel({ lesson, onChanged }: { lesson: LessonDetail; onChanged: () => void }) {
+const noticeOf = (lesson: LessonDetail, over: Partial<LessonNotice> = {}): LessonNotice => ({
+  target: { kind: "CLASS", classId: lesson.class?.id ?? "", name: lesson.class?.name ?? "", hasGroup: !!lesson.groupLink },
+  date: lesson.date,
+  time: lesson.startsAt,
+  cancelled: lesson.status === "CANCELLED",
+  type: lesson.status === "CANCELLED" ? "CANCELED_CLASS" : "GENERAL",
+  ...over,
+});
+
+function Panel({ lesson, onChanged, onNotice }: { lesson: LessonDetail; onChanged: () => void; onNotice: (n: LessonNotice) => void }) {
   const { t } = useTranslation();
   const { search } = useLocation();
-  const [dialog, setDialog] = useState<"edit" | "cancel">();
+  const [dialog, setDialog] = useState<"edit" | "correct" | "cancel">();
   const group = safeLink(lesson.groupLink);
   const cancelled = lesson.status === "CANCELLED";
+  const completed = lesson.status === "COMPLETED";
   const { permissions } = usePermissions();
   const { state } = useSession();
   const role = state.status === "ready" ? state.session.links.find((l) => l.id === state.session.activeLinkId)?.role : undefined;
   const teacherRecord = role === "TEACHER" && !!permissions ? permissions.STUDENT_RECORD !== "NONE" : undefined;
   const canNotify = !!permissions && permissions.ANNOUNCEMENTS !== "NONE" && !!lesson.class;
-  // RF-COM-02: abre o comunicado já preenchido (aula cancelada ou aviso geral), com a turma, a data e o horário.
-  const noticeLink = `/comunicados/novo?${new URLSearchParams({ classId: lesson.class?.id ?? "", type: cancelled ? "CANCELED_CLASS" : "GENERAL", date: lesson.date, time: lesson.startsAt })}`;
   const day = t(`agenda.weekdaysLong.${weekday(lesson.date)}`).split("-")[0];
   const reason = cancelled ? cancelReasonText(lesson, t) : null;
+  // Até 640 px: Avisar turma e Ver turma na primeira linha, Editar e Cancelar aula na segunda (D8); depois, uma linha só.
   const footer = (
-    <div className="flex w-full flex-wrap items-center gap-2">
-      {canNotify ? (
-        <Button variant="whatsapp" className="min-h-11" asChild>
-          <Link to={noticeLink}>
-            <MessageCircle aria-hidden="true" />
-            {t("agenda.panel.notify")}
-          </Link>
-        </Button>
-      ) : (
-        <Button variant="whatsapp" className="min-h-11" disabled>
-          <MessageCircle aria-hidden="true" />
-          {t("agenda.panel.notify")}
-        </Button>
-      )}
+    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <Button variant="whatsapp" className="order-1 h-11 w-full sm:w-auto" disabled={!canNotify} onClick={() => onNotice(noticeOf(lesson))}>
+        <MessageCircle aria-hidden="true" />
+        {t("agenda.panel.notify")}
+      </Button>
       {lesson.canEdit && (
-        <Button variant="secondary" className="min-h-11" onClick={() => setDialog("edit")}>
-          {t("agenda.panel.edit")}
+        <Button variant="secondary" className="order-3 h-11 w-full sm:order-2 sm:w-auto" onClick={() => setDialog(completed ? "correct" : "edit")}>
+          {t(completed ? "agenda.panel.correct" : "agenda.panel.edit")}
         </Button>
       )}
       {lesson.canViewClass && lesson.class && (
-        <Button variant="secondary" className="min-h-11" asChild>
+        <Button variant="secondary" className="order-2 h-11 w-full sm:order-3 sm:w-auto" asChild>
           <Link to={`/turmas/${lesson.class.id}`}>{t("agenda.panel.viewClass")}</Link>
         </Button>
       )}
       {lesson.canCancel && (
-        <Button variant="danger" className="ml-auto min-h-11" onClick={() => setDialog("cancel")}>
+        <Button variant="danger" className="order-4 h-11 w-full sm:ml-auto sm:w-auto" onClick={() => setDialog("cancel")}>
           {t("agenda.panel.cancel")}
         </Button>
       )}
@@ -177,18 +179,28 @@ function Panel({ lesson, onChanged }: { lesson: LessonDetail; onChanged: () => v
             />
           </section>
         )}
-        <EditLessonDialog lesson={dialog === "edit" ? lesson : null} onClose={() => setDialog(undefined)} onSaved={onChanged} />
+        <EditLessonDialog lesson={dialog === "edit" ? lesson : null} onClose={() => setDialog(undefined)} onSaved={(info: EditSaved) => {
+            onChanged();
+            // R10: "Avisar a turma" abre o comunicado pronto depois de salvar.
+            if (info.notify && lesson.class) onNotice(noticeOf(lesson, { cancelled: false, date: info.date, time: info.startsAt, type: info.teacherChanged ? "TEACHER_CHANGE" : info.timeChanged ? "SCHEDULE_CHANGE" : "GENERAL" }));
+          }}
+        />
+        <CorrectTeacherDialog lesson={dialog === "correct" ? lesson : null} onClose={() => setDialog(undefined)} onSaved={onChanged} />
         <CancelLessonDialog lesson={dialog === "cancel" ? lesson : null} onClose={() => setDialog(undefined)} onSaved={onChanged} />
       </div>
     </DrawerShell>
   );
 }
 
-function Content() {
+function Body({ onNotice }: { onNotice: (n: LessonNotice) => void }) {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const api = useLesson(id);
-  if (api.status === "loading") {
+  // Ao recarregar depois de salvar, a gaveta fica com a aula anterior: se ela sumisse, uma janela aberta por cima (Avisar turma) perderia o foco.
+  const [kept, setKept] = useState<LessonDetail>();
+  if (api.lesson && api.lesson !== kept) setKept(api.lesson);
+  const shown = api.lesson ?? (api.status === "loading" && kept?.id === id ? kept : undefined);
+  if (api.status === "loading" && !shown) {
     return (
       <DrawerShell>
         <LoadingState />
@@ -209,14 +221,25 @@ function Content() {
       </DrawerShell>
     );
   }
-  if (!api.lesson) {
+  if (!shown) {
     return (
       <DrawerShell>
         <ErrorState onRetry={api.retry} />
       </DrawerShell>
     );
   }
-  return <Panel lesson={api.lesson} onChanged={api.retry} />;
+  return <Panel lesson={shown} onChanged={api.retry} onNotice={onNotice} />;
+}
+
+// O aviso fica fora do painel: recarregar a aula desmonta o painel, e a janela precisa continuar aberta.
+function Content() {
+  const [notice, setNotice] = useState<LessonNotice | null>(null);
+  return (
+    <>
+      <Body onNotice={setNotice} />
+      <AnnounceLessonDialog notice={notice} onClose={() => setNotice(null)} />
+    </>
+  );
 }
 
 // RF-AGE-02: painel da aula em gaveta sobre a agenda (a página-base vem da rota-pai); a barreira de dados é o servidor.
