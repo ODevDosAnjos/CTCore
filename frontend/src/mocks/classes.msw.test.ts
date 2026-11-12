@@ -81,7 +81,7 @@ describe("painel da turma x OpenAPI (RF-TUR-02, CA10)", () => {
     const schema = openapi.components.schemas.ClassDetail;
     const required = [...openapi.components.schemas.ClassRow.required, ...schema.allOf[1].required].sort();
     expect(Object.keys(data).sort()).toEqual(required);
-    expect(data).toMatchObject({ name: "Jiu-Jitsu Adulto", groupLink: "https://chat.example.com/jiu-jitsu-adulto", nextClass: expect.objectContaining({ teacher: expect.objectContaining({ name: expect.any(String) }) }), students: [], lastChange: null });
+    expect(data).toMatchObject({ name: "Jiu-Jitsu Adulto", groupLink: "https://chat.example.com/jiu-jitsu-adulto", nextClass: expect.objectContaining({ teacher: expect.objectContaining({ name: expect.any(String) }) }), students: [], lastChange: { at: "2026-09-20T13:05:00Z", by: "Carla Mendes" } });
     expect(data.deactivation).toEqual({ allowed: true, blockingStudents: 0, blockingList: [] });
     expect((await (await detail(JUDO)).json()).groupLink).toBeNull();
     expect((await detail("00000000-0000-0000-0000-0000000009ff")).status).toBe(404);

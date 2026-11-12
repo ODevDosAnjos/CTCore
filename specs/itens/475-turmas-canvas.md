@@ -154,10 +154,10 @@ Achados:
 
 **Divergências para o PR.**
 - D10 (barra de unidade e itens de menu M1) fica com outras issues da 10.5.
-- Cabeçalho da lista: o canvas usa cartão com borda e cabeçalho em caixa normal; o `DataTable` compartilhado mostra caixa alta sem cartão (igual a Professores). Tratar no componente base, não nesta tela.
-- Painel: o canvas põe Próxima aula, Professores, Capacidade e Grupo em duas colunas e o sistema em uma; ícones em Editar, Avisar turma e Abrir grupo ausentes; selos acima do nome no canvas e ao lado no sistema; link do grupo sem sublinhado e vermelho do canvas.
-- Caso `turma-editar`: o rodapé mostra "Ainda sem alterações" porque o dado do caso não traz `lastChange`. Sugestão da verificação ainda não aplicada no caso visual.
+- Cabeçalho da lista: o canvas usa cartão com borda e cabeçalho em caixa normal; o `DataTable` compartilhado mostra caixa alta sem cartão (igual a Professores). Fica com a #567 (componente base Tabela); a tela passa no limite padrão, sem `limiteCanvas`.
+- Painel: o canvas põe Próxima aula, Professores, Capacidade e Grupo em duas colunas e o sistema em uma; faltam ícones nos botões; selos acima do nome no canvas e ao lado no sistema; link do grupo sem o estilo do canvas. Fica com a #566; o caso passa no limite padrão, sem `limiteCanvas`.
+- Caso `turma-editar`: o rodapé mostrava "Ainda sem alterações" por falta de `lastChange` no mock. Resolvido neste PR: a turma Jiu-Jitsu Adulto do mock traz "20/09/2026 10h05 por Carla Mendes", como o canvas; referências `turma-editar-*` regeradas.
 
 **Decisões.** Sem `limiteCanvas` nas telas de turma. Dados do canvas (próxima aula, 31/30, titular inativo) entram no MSW, com override só no caso `turma-titular-inativo`.
 
-**Limitações.** As divergências do painel e do cabeçalho acima seguem abertas nesta entrega, listadas no PR.
+**Limitações.** As divergências do painel e do cabeçalho seguem abertas nesta entrega e têm issue própria na Sprint 10.5: #566 (painel) e #567 (cabeçalho do `DataTable`), cada uma com a correção no "Pronto quando".
