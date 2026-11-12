@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/format";
 import { ChargePreviewRows } from "./ChargePreviewRows";
 import { PERIODS, useChargePreview } from "./useChargePreview";
 import { PageHeader } from "@/components/ui/page-header";
+import { AdvanceChargesDialog } from "./AdvanceChargesDialog";
 
 
 function Content() {
@@ -19,6 +20,7 @@ function Content() {
   const { permissions } = usePermissions();
   const [days, setDays] = useState<number>(10);
   const [picked, setPicked] = useState("");
+  const [advancing, setAdvancing] = useState(false);
   // R10: com "todas as unidades" a rota não tem o que consultar; a pessoa escolhe uma da lista ao alcance.
   const all = scope.selected === ALL;
   const unitId = all ? picked || null : scope.selected;
@@ -85,8 +87,14 @@ function Content() {
         <Button asChild variant="outline" className="min-h-11">
           <Link to="/cobrancas">{t("charges.preview.back")}</Link>
         </Button>
+        {permissions?.COLLECTIONS === "FULL" && (
+          <Button type="button" className="min-h-11" onClick={() => setAdvancing(true)}>
+            {t("charges.advance.open")}
+          </Button>
+        )}
       </div>
       {body}
+      {advancing && <AdvanceChargesDialog onClose={() => setAdvancing(false)} onDone={reload} />}
     </div>
   );
 }

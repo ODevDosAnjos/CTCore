@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ForbiddenState } from "@/components/states";
 import { buttonVariants } from "@/components/ui/button";
@@ -17,16 +17,18 @@ export function AreaUnavailablePage({ bare = false }: { bare?: boolean }) {
   if (bare || !role)
     return (
       <main className="mx-auto w-full max-w-md px-4 py-10">
-        <AreaUnavailableState withChoose />
+        <AreaUnavailableState role={role} withChoose />
       </main>
     );
-  const content = <AreaUnavailableState />;
+  const content = <AreaUnavailableState role={role} />;
   return <AreaUnavailableShell role={role}>{content}</AreaUnavailableShell>;
 }
 
 // A casca já traz o botão de trocar organização ou área; sem casca, ele vem aqui.
-function AreaUnavailableState({ withChoose = false }: { withChoose?: boolean }) {
+// Em Financeiro › Cobranças o canvas (EstadoSemAcesso) traz o texto próprio da área e "Voltar ao Início"; o Professor ganha "Ver minhas turmas".
+function AreaUnavailableState({ role, withChoose = false }: { role?: string; withChoose?: boolean }) {
   const { t } = useTranslation();
+  const finance = useLocation().pathname.startsWith("/cobrancas");
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => title.current?.focus(), []);
   return (
@@ -36,11 +38,18 @@ function AreaUnavailableState({ withChoose = false }: { withChoose?: boolean }) 
         level={1}
         titleRef={title}
         title={t("areaUnavailable.title")}
-        text={t("areaUnavailable.text")}
+        text={t(finance ? "areaUnavailable.financeText" : "areaUnavailable.text")}
         action={
-          <Link to="/" className={buttonVariants({ size: "lg", className: "w-full" })}>
-            {t("areaUnavailable.home")}
-          </Link>
+          <>
+            <Link to="/" className={buttonVariants({ size: "lg", className: "w-full" })}>
+              {t(finance ? "areaUnavailable.financeHome" : "areaUnavailable.home")}
+            </Link>
+            {role === "TEACHER" && (
+              <Link to="/turmas" className={buttonVariants({ size: "lg", variant: "outline", className: "w-full" })}>
+                {t("areaUnavailable.classes")}
+              </Link>
+            )}
+          </>
         }
       />
       {withChoose && (

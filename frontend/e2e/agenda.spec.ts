@@ -83,7 +83,7 @@ test("Janelas avulsas a 360 px sem rolagem lateral", async ({ page }) => {
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
   await dlg.getByRole("button", { name: "Cancelar" }).click();
   await open(page, "/cobrancas");
-  await page.getByRole("button", { name: "Nova cobrança avulsa" }).click();
+  await page.getByRole("button", { name: "Nova cobrança", exact: true }).click();
   const c = page.getByRole("dialog", { name: "Nova cobrança avulsa" });
   await expect(c.getByRole("button", { name: "Criar cobrança" })).toBeVisible();
   expect((await c.boundingBox())!.width).toBeLessThanOrEqual(360);

@@ -56,6 +56,12 @@ describe("lista de cobranças x OpenAPI (RF-COB-01, #72, CA21)", () => {
     const after = await (await send("GET", `/charges?quick=PAID_MONTH`)).json();
     expect(after.items[0]).toMatchObject({ id, status: "PAID", payment: { method: "CASH" } });
     expect(after.counts.paidMonth).toBe(1);
+    // #476: valor pago, Todas, Pago e Em aberto do filtro, nos campos do contrato.
+    expect(after.items[0].payment.amountCents).toBe(20000);
+    expect(after.items[0].daysLate).toBeNull();
+    expect(after.counts.all).toBeGreaterThanOrEqual(1);
+    expect(Object.keys(after.totals).sort()).toEqual([...openapi.components.schemas.ChargeList.allOf[1].properties.totals.required].sort());
+    expect(after.totals).toMatchObject({ paidCents: 20000, openCents: 0 });
     const byAmount = await (await send("GET", "/charges?sort=amount,asc&q=nao-existe")).json();
     expect(byAmount.total).toBe(0);
   });

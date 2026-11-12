@@ -37,14 +37,16 @@ public class Charges {
 
     public record Named(UUID id, String name) {}
 
-    public record PaymentRef(String method, OffsetDateTime paidAt) {}
+    public record PaymentRef(String method, OffsetDateTime paidAt, long amountCents) {}
 
+    /** {@code daysLate}: dias entre o vencimento e hoje (data do fuso da unidade); nulo fora de OVERDUE. */
     public record Row(UUID id, StudentRef student, Named unit, String type, Named modality, LocalDate referenceMonth, String description, long amountCents,
-            LocalDate dueOn, String status, PaymentRef payment) {}
+            LocalDate dueOn, String status, PaymentRef payment, Integer daysLate) {}
 
-    public record Counts(long overdue, long dueToday, long inReview, long paidMonth) {}
+    public record Counts(long overdue, long dueToday, long inReview, long paidMonth, long all) {}
 
-    public record Totals(long count, long amountCents) {}
+    /** {@code paidCents}: só PAID e PAID_LATE; {@code openCents}: PENDING, DUE_TODAY, OVERDUE e IN_REVIEW (cancelada, renegociada e estornada não somam). */
+    public record Totals(long count, long amountCents, long paidCents, long openCents) {}
 
     public record ChargeList(List<Row> items, int page, int size, long total, Counts counts, Totals totals) {}
 
@@ -121,7 +123,7 @@ public class Charges {
             boolean admin = who.role() == Role.ADMINISTRATOR;
             Set<UUID> reach = who.units() == null ? Set.of() : who.units();
             if (admin && (reach.isEmpty() || f.unitId() != null && !reach.contains(f.unitId()))) {
-                return new ChargeList(List.of(), page.page(), page.size(), 0, new Counts(0, 0, 0, 0), new Totals(0, 0));
+                return new ChargeList(List.of(), page.page(), page.size(), 0, new Counts(0, 0, 0, 0, 0), new Totals(0, 0, 0, 0));
             }
             Map<String, Object> params = new HashMap<>();
             params.put("org", org);
@@ -137,8 +139,8 @@ public class Charges {
             }
             // D4: as contagens dos atalhos valem só para o alcance e a unidade.
             Counts counts = jdbc.sql("select count(*) filter (where " + SITUATION + " = 'OVERDUE'), count(*) filter (where " + SITUATION + " = 'DUE_TODAY'), "
-                    + "count(*) filter (where c.status = 'IN_REVIEW'), count(*) filter (where " + PAID_MONTH + ")" + FROM + "where " + scope).params(params)
-                    .query((rs, n) -> new Counts(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4))).single();
+                    + "count(*) filter (where c.status = 'IN_REVIEW'), count(*) filter (where " + PAID_MONTH + "), count(*)" + FROM + "where " + scope).params(params)
+                    .query((rs, n) -> new Counts(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5))).single();
 
             StringBuilder where = new StringBuilder(scope);
             if (f.q() != null && !f.q().isBlank()) {
@@ -176,8 +178,10 @@ public class Charges {
                 params.put("class", f.classId());
             }
 
-            Totals totals = jdbc.sql("select count(*), coalesce(sum(c.amount_cents), 0)" + FROM + "where " + where).params(params)
-                    .query((rs, n) -> new Totals(rs.getLong(1), rs.getLong(2))).single();
+            Totals totals = jdbc.sql("select count(*), coalesce(sum(c.amount_cents), 0), "
+                    + "coalesce(sum(c.amount_cents) filter (where " + SITUATION + " in ('PAID', 'PAID_LATE')), 0), "
+                    + "coalesce(sum(c.amount_cents) filter (where " + SITUATION + " in ('PENDING', 'DUE_TODAY', 'OVERDUE', 'IN_REVIEW')), 0)" + FROM + "where " + where)
+                    .params(params).query((rs, n) -> new Totals(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4))).single();
             var sort = page.sort() == null ? new PageRequest.Sort("dueOn", true) : page.sort();
             params.put("limit", page.size());
             params.put("offset", page.offset());
@@ -188,7 +192,7 @@ public class Charges {
     }
 
     static final String COLUMNS = "c.id, s.id, s.name, s.photo, u.id, u.name, c.type, md.id, md.name, c.reference_month, c.description, c.amount_cents, c.due_on, "
-            + SITUATION + ", p.method, p.paid_at";
+            + SITUATION + ", p.method, p.paid_at, p.amount_cents, (case when " + SITUATION + " = 'OVERDUE' then " + today("u") + " - c.due_on end)";
 
     private Row map(java.sql.ResultSet rs, int n) throws java.sql.SQLException {
         UUID modality = rs.getObject(8, UUID.class);
@@ -196,7 +200,7 @@ public class Charges {
         return new Row(rs.getObject(1, UUID.class), new StudentRef(rs.getObject(2, UUID.class), rs.getString(3), students.photoUrl(rs.getString(4))),
                 new Named(rs.getObject(5, UUID.class), rs.getString(6)), rs.getString(7), modality == null ? null : new Named(modality, rs.getString(9)),
                 rs.getObject(10, LocalDate.class), rs.getString(11), rs.getLong(12), rs.getObject(13, LocalDate.class), rs.getString(14),
-                method == null ? null : new PaymentRef(method, rs.getObject(16, OffsetDateTime.class)));
+                method == null ? null : new PaymentRef(method, rs.getObject(16, OffsetDateTime.class), rs.getLong(17)), rs.getObject(18, Integer.class));
     }
 
     /** A linha da lista de uma cobrança (situação calculada hoje); chamar dentro da transação da organização. */

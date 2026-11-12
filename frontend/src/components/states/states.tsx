@@ -51,11 +51,13 @@ export function ErrorState({
   retryLabel,
   variant,
   title,
+  text,
   secondary,
 }: {
   onRetry: () => void;
   retryLabel?: string;
   title?: string;
+  text?: string;
   secondary?: ReactNode;
 } & Card) {
   const { t } = useTranslation();
@@ -66,7 +68,7 @@ export function ErrorState({
         tone="danger"
         icon={TriangleAlert}
         title={title ?? t("states.errorTitle")}
-        text={t("states.errorText")}
+        text={text ?? t("states.errorText")}
         actions={
           <>
             <Button icon={<RefreshCw />} onClick={onRetry}>

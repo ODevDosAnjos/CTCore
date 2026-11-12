@@ -34,6 +34,9 @@ export function QueryPage<T>({
   defaultFilters = {},
   onRowClick,
   rowClassName,
+  errorTitle,
+  errorText,
+  errorSecondary,
 }: {
   columns: Column<T>[];
   fetchPage: (q: Query) => Promise<Page<T>>;
@@ -64,6 +67,10 @@ export function QueryPage<T>({
   onRowClick?: (row: T) => void;
   /** Classe extra da linha da tabela (ex.: esmaecer o que está desativado). */
   rowClassName?: (row: T) => string | undefined;
+  /** Textos e ação extra do cartão de erro do canvas (ex.: "Falar com o suporte"); só valem com `canvasStates`. */
+  errorTitle?: string;
+  errorText?: string;
+  errorSecondary?: ReactNode;
 }) {
   const { t } = useTranslation();
   const { get, set, clear } = useQueryParams();
@@ -135,7 +142,7 @@ export function QueryPage<T>({
         <TableSkeleton columns={columns} />
       );
   else if (state.s === "loading") body = <LoadingState variant={variant} />;
-  else if (state.s === "error") body = <ErrorState variant={variant} onRetry={() => setTick((n) => n + 1)} />;
+  else if (state.s === "error") body = <ErrorState variant={variant} title={errorTitle} text={errorText} secondary={errorSecondary} onRetry={() => setTick((n) => n + 1)} />;
   else if (state.s === "forbidden") body = <ForbiddenState variant={variant} />;
   else if (state.data!.total === 0 && hasFilter)
     body = (

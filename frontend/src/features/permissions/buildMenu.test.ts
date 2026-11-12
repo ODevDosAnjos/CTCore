@@ -60,6 +60,15 @@ describe("buildMenu", () => {
     expect(settings.icon).toBe("Settings");
   });
 
+  it("A1 (#476): com o catálogo real, Cobranças aparece disponível (não Em breve) para Coordenador e Administrador, e some para o Professor", () => {
+    for (const role of ["COORDINATOR", "ADMINISTRATOR"]) {
+      const item = buildMenu(mockPermissions(role), t, menuCatalog).flatMap((g) => g.items).find((i) => i.id === "collections");
+      expect(item).toMatchObject({ href: "/cobrancas" });
+      expect(item).not.toHaveProperty("disabled");
+    }
+    expect(buildMenu(mockPermissions("TEACHER"), t, menuCatalog).flatMap((g) => g.items).map((i) => i.id)).not.toContain("collections");
+  });
+
   it("#437: sem COLLECTIONS ou ANNOUNCEMENTS o item correspondente não aparece", () => {
     const p = { ...mockPermissions("COORDINATOR"), COLLECTIONS: "NONE" as const, ANNOUNCEMENTS: "NONE" as const };
     const ids = buildMenu(p, t).flatMap((g) => g.items.map((i) => i.id));

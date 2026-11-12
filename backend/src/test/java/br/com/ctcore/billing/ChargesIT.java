@@ -185,7 +185,7 @@ class ChargesIT extends OrganizationBase {
         var l = list(who(t, Role.COORDINATOR), none());
 
         assertThat(l.items().get(0).amountCents()).isEqualTo(12000);
-        assertThat(l.totals()).isEqualTo(new Charges.Totals(1, 12000));
+        assertThat(l.totals()).isEqualTo(new Charges.Totals(1, 12000, 0, 12000));
         assertThat(json.writeValueAsString(l.items().get(0))).doesNotContain("interest", "fine", "juros", "multa");
     }
 
@@ -201,7 +201,7 @@ class ChargesIT extends OrganizationBase {
 
         assertThat(descriptions(list(admin, none()))).containsExactly("a");
         assertThat(list(admin, with("unit", b)).items()).isEmpty();
-        assertThat(list(admin, with("unit", b)).counts()).isEqualTo(new Charges.Counts(0, 0, 0, 0));
+        assertThat(list(admin, with("unit", b)).counts()).isEqualTo(new Charges.Counts(0, 0, 0, 0, 0));
         assertThat(list(admin, with("unit", t.unitId())).items()).hasSize(1);
         var nobody = new AccountPrincipal(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), t.orgId(), Role.ADMINISTRATOR, Set.of());
         assertThat(list(nobody, none()).total()).isZero();
@@ -279,11 +279,11 @@ class ChargesIT extends OrganizationBase {
         charge(t, b, s, "6", "ONE_OFF", "2026-10-01", 0, 900, "OPEN", null, null);
 
         var page2 = list(c, new Charges.Filter(null, t.unitId(), null, null, null, "OVERDUE", "ONE_OFF", null, null), PageRequest.of(2, 25, null, Charges.SORT_FIELDS));
-        assertThat(page2.totals()).isEqualTo(new Charges.Totals(3, 30000));
+        assertThat(page2.totals()).isEqualTo(new Charges.Totals(3, 30000, 0, 30000));
         assertThat(page2.items()).isEmpty();
         assertThat(page2.total()).isEqualTo(3);
-        assertThat(page2.counts()).isEqualTo(new Charges.Counts(3, 1, 1, 0));
-        assertThat(list(c, none()).counts()).isEqualTo(new Charges.Counts(4, 1, 1, 0));
+        assertThat(page2.counts()).isEqualTo(new Charges.Counts(3, 1, 1, 0, 5));
+        assertThat(list(c, none()).counts()).isEqualTo(new Charges.Counts(4, 1, 1, 0, 6));
     }
 
     @Test
@@ -303,6 +303,42 @@ class ChargesIT extends OrganizationBase {
         var second = list(c, none(), PageRequest.of(2, 25, null, Charges.SORT_FIELDS));
         assertThat(second.items()).hasSize(3);
         assertThat(second.total()).isEqualTo(28);
+    }
+
+    @Test
+    @DisplayName("CA12, CA13: dias de atraso pela data do fuso da unidade, valor pago, contagem Todas e totais Pago e Em aberto sem cancelada, renegociada e estornada")
+    void daysAndPaidOpenTotals() {
+        Tenant t = tenant();
+        UUID auckland = unit(t, "Pacific/Auckland");
+        var c = who(t, Role.COORDINATOR);
+        UUID s = student(t, t.unitId(), "Ivo");
+        open(t, s, "atraso", "2026-09-20", 0);
+        open(t, s, "hoje", "2026-10-15", 0);
+        charge(t, auckland, s, "nz", "ONE_OFF", "2026-10-15", 0, 100, "OPEN", null, null);
+        charge(t, t.unitId(), s, "paga", "ONE_OFF", "2026-10-10", 0, 18090, "PAID", "2026-10-10T15:00:00Z", null);
+        charge(t, t.unitId(), s, "paga-tarde", "ONE_OFF", "2026-10-01", 0, 5000, "PAID", "2026-10-12T15:00:00Z", null);
+        charge(t, t.unitId(), s, "conf", "ONE_OFF", "2026-10-10", 0, 700, "IN_REVIEW", null, null);
+        charge(t, t.unitId(), s, "cancelada", "ONE_OFF", "2026-10-10", 0, 9000, "CANCELED", null, null);
+        charge(t, t.unitId(), s, "reneg", "ONE_OFF", "2026-10-10", 0, 9000, "RENEGOTIATED", null, null);
+        charge(t, t.unitId(), s, "estornada", "ONE_OFF", "2026-10-10", 0, 9000, "REFUNDED", null, null);
+
+        var l = list(c, none(), PageRequest.of(null, 50, null, Charges.SORT_FIELDS));
+
+        var byName = new HashMap<String, Charges.Row>();
+        l.items().forEach(r -> byName.put(r.description(), r));
+        assertThat(byName.get("atraso").daysLate()).isEqualTo(25);
+        assertThat(byName.get("nz").daysLate()).isEqualTo(1);
+        assertThat(byName.get("hoje").daysLate()).isNull();
+        assertThat(byName.get("paga").daysLate()).isNull();
+        assertThat(byName.get("paga").payment().amountCents()).isEqualTo(18090);
+        assertThat(byName.get("atraso").payment()).isNull();
+        assertThat(l.counts().all()).isEqualTo(9);
+        assertThat(l.totals().paidCents()).isEqualTo(23090);
+        assertThat(l.totals().openCents()).isEqualTo(10000 + 10000 + 100 + 700);
+        assertThat(l.totals().amountCents()).isEqualTo(23090 + 20800 + 27000);
+        var onlyOpen = list(c, with("status", "OVERDUE"));
+        assertThat(onlyOpen.totals().paidCents()).isZero();
+        assertThat(onlyOpen.counts().all()).isEqualTo(9);
     }
 
     @Test

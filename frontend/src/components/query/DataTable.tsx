@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export type Column<T> = { key: string; label: string; sortable?: boolean; numeric?: boolean; render: (row: T) => ReactNode };
+/** `hideLabel`: o título da coluna só para leitor de tela (ex.: a coluna do menu "..." da linha). */
+export type Column<T> = { key: string; label: string; sortable?: boolean; numeric?: boolean; hideLabel?: boolean; render: (row: T) => ReactNode };
 
 // ordem: "nome" (crescente) ou "-nome" (decrescente). Só recebe a página atual.
 // Com `selectable`, `selected` guarda as chaves marcadas (`rowKey`) e `onSelectionChange` recebe a nova lista.
@@ -70,6 +71,8 @@ export function DataTable<T>({
                     {c.label}
                     {c.key === sortKey && (desc ? <ArrowDown aria-hidden="true" /> : <ArrowUp aria-hidden="true" />)}
                   </button>
+                ) : c.hideLabel ? (
+                  <span className="sr-only">{c.label}</span>
                 ) : (
                   c.label
                 )}
@@ -112,8 +115,8 @@ export function TableSkeleton<T>({ columns, rows = 8 }: { columns: Column<T>[]; 
         <thead className="bg-surface-soft text-xs uppercase text-muted-foreground">
           <tr>
             {columns.map((c) => (
-              <th key={c.key} scope="col" className="px-3 py-2">
-                {c.label}
+              <th key={c.key} scope="col" className={cn("px-3 py-2", c.numeric && "text-right")}>
+                {c.hideLabel ? null : c.label}
               </th>
             ))}
           </tr>
