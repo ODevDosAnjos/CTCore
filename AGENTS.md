@@ -49,7 +49,7 @@ Respostas pré-aprovadas pelo dono, para o agente rodar sem ninguém responder p
 1. Quando houver opção recomendada numa decisão técnica ou de processo, escolher a recomendada, registrar a escolha e o motivo no arquivo do item e na descrição do PR, e seguir.
 2. `NAO_CONFERIDO` por falta de ferramenta local ou de ambiente: aceitar o resultado do CI do PR como prova, registrar no arquivo do item e seguir.
 3. Comparação com o canvas feita pelo teste visual com MSW e pela comparação da #435, com capturas em `.capturas/<ID>/`, é prova válida para o verificador.
-4. Divergência com o canvas que outra issue da Sprint 10.5 vai resolver: usar `limiteCanvas` com motivo, citar a issue e acrescentar a remoção no "Pronto quando" dela.
+4. Divergência com o canvas que outra issue da Sprint 10.5 vai resolver: se o caso reprova no limite padrão do `visual:canvas`, usar `limiteCanvas` com motivo, citar a issue e acrescentar a remoção no "Pronto quando" dela; se o caso passa no limite padrão, não usar `limiteCanvas`: basta a issue da Sprint 10.5 com a correção e uma verificação que não dependa só desse limite no "Pronto quando", citada no PR e no arquivo do item.
 5. Teste instável: rodar de novo até 2 vezes. Se passar, seguir e anotar no PR. Se falhar de novo, abrir uma issue com a etiqueta `técnica` e seguir.
 6. Com o CI verde, o agente faz o merge sozinho.
 
