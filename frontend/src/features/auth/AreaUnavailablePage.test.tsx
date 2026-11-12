@@ -47,6 +47,20 @@ describe("AreaUnavailablePage", () => {
     expect(screen.getByRole("link", { name: "Ir para o Início" })).toHaveAttribute("href", "/");
   });
 
+  it("CA10 (#476): Professor em /cobrancas vê o texto da área, Voltar ao Início e Ver minhas turmas dentro do menu e da barra; fora de Cobranças vale o texto geral", async () => {
+    const { unmount } = setup(one, "/cobrancas");
+    await screen.findByRole("heading", { level: 1, name: TITLE });
+    expect(await screen.findByRole("navigation", { name: "Menu principal" })).toBeInTheDocument();
+    expect(screen.getByText(/^Valores e cobranças ficam com a gestão da unidade./)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar ao Início" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Ver minhas turmas" })).toHaveAttribute("href", "/turmas");
+    unmount();
+    setup(one);
+    await screen.findByRole("heading", { level: 1, name: TITLE });
+    expect(screen.queryByText(/Valores e cobranças/)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir para o Início" })).toBeInTheDocument();
+  });
+
   it("CA5: Professor vê o estado dentro do menu e da barra do app", async () => {
     setup(one);
     await screen.findByRole("heading", { name: TITLE });

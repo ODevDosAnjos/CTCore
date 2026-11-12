@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import { WhatsAppButton } from "@/components/whatsapp";
 
 export interface Contact {
@@ -31,5 +32,16 @@ export function SupportContact({ contact, title }: { contact: Contact; title?: s
       )}
       <WhatsAppButton phone={contact.whatsapp} />
     </section>
+  );
+}
+
+/** Botão "Falar com o suporte" dos estados de erro: abre o e-mail do suporte da plataforma. */
+export function SupportLink() {
+  const { t } = useTranslation();
+  const email = platformContact().email;
+  return (
+    <Button asChild variant="secondary">
+      <a href={`mailto:${email}`}>{t("states.support")}</a>
+    </Button>
   );
 }

@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -37,6 +37,11 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         const head = ((await (await fetch("/api/v1/teachers?size=100&status=INACTIVE")).json()) as { items: { id: string }[] }).items[0];
         (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/classes/00000000-0000-0000-0000-000000000607", status: 200, body: { ...base, id: "00000000-0000-0000-0000-000000000607", name: "Jiu-Jitsu Manhã", head: { id: head.id, name: "Sérgio Lopes" }, assistants: [] } });
       });
+    }
+    if (falha) {
+      // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate((f) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: f.path, status: f.status, body: { code: "INTERNAL", message: "Erro", fields: [], traceId: "t" } }), falha);
     }
     if (dias) {
       // #474: a Coordenação lança os dias do canvas (recesso em duas unidades, graduação, Finados) e ignora os feriados que sobram, para a tela ter as 4 sugestões e os lançados do canvas
@@ -107,7 +112,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

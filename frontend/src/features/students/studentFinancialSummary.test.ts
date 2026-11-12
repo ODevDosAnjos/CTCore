@@ -3,9 +3,9 @@ import { group, summarize } from "./studentFinancialSummary";
 
 const row = (over: Partial<ChargeRow>): ChargeRow => ({
   id: "c", student: { id: "s", name: "A", photoUrl: null }, unit: { id: "u", name: "U" }, type: "MONTHLY", modality: null, referenceMonth: null, description: null,
-  amountCents: 16000, dueOn: "2026-10-10", status: "PENDING", payment: null, ...over,
+  amountCents: 16000, dueOn: "2026-10-10", status: "PENDING", payment: null, daysLate: null, ...over,
 });
-const paid = (n: number, at: string) => Array.from({ length: n }, (_, i) => row({ id: `p${i}`, amountCents: 17000, status: "PAID", payment: { method: "PIX_MP", paidAt: at } }));
+const paid = (n: number, at: string) => Array.from({ length: n }, (_, i) => row({ id: `p${i}`, amountCents: 17000, status: "PAID", payment: { method: "PIX_MP", paidAt: at, amountCents: 17000 } }));
 // 04/11/2026 12:00 no fuso da unidade.
 const now = new Date("2026-11-04T15:00:00Z");
 

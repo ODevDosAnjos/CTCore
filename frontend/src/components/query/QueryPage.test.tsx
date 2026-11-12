@@ -199,6 +199,25 @@ describe("QueryPage com canvasStates (#464)", () => {
     expect(await screen.findByText("Aluno 0")).toBeInTheDocument();
   });
 
+  it("#476: o cartão de erro leva título, texto e a ação extra da tela", async () => {
+    window.history.replaceState(null, "", "/");
+    render(
+      <QueryPage
+        columns={columns}
+        fetchPage={() => Promise.reject(new Error("x"))}
+        rowKey={(r) => r.id}
+        canvasStates
+        errorTitle="Não foi possível carregar as cobranças"
+        errorText="A conexão caiu."
+        errorSecondary={<a href="mailto:suporte@exemplo.test">Falar com o suporte</a>}
+      />,
+    );
+    expect(await screen.findByRole("heading", { name: "Não foi possível carregar as cobranças" })).toBeInTheDocument();
+    expect(screen.getByText("A conexão caiu.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Falar com o suporte" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
   it("vazio, sem permissão e carregando em cartão", async () => {
     withStates(() => Promise.resolve({ rows: [], total: 0 }));
     expect(await screen.findByRole("heading", { name: "Nada por aqui ainda" })).toHaveClass("uppercase");

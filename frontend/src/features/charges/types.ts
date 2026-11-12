@@ -19,7 +19,9 @@ export interface ChargeRow {
   amountCents: number;
   dueOn: string;
   status: ChargeSituation;
-  payment: { method: PaymentMethod; paidAt: string } | null;
+  payment: { method: PaymentMethod; paidAt: string; amountCents: number } | null;
+  /** Dias de atraso (data do fuso da unidade); nulo fora de OVERDUE. */
+  daysLate: number | null;
 }
 
 export interface ChargeList {
@@ -27,8 +29,8 @@ export interface ChargeList {
   page: number;
   size: number;
   total: number;
-  counts: { overdue: number; dueToday: number; inReview: number; paidMonth: number };
-  totals: { count: number; amountCents: number };
+  counts: { overdue: number; dueToday: number; inReview: number; paidMonth: number; all: number };
+  totals: { count: number; amountCents: number; paidCents: number; openCents: number };
 }
 
 // Espelha ChargeDetail do OpenAPI (RF-COB-02). Valores em centavos; `reminders` é o histórico de lembretes (RF-COB-06).

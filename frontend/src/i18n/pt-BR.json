@@ -38,7 +38,10 @@
   "areaUnavailable": {
     "title": "Esta área não está disponível para o seu perfil",
     "text": "Se você acha que deveria ter acesso, fale com o Administrador da sua unidade.",
-    "home": "Ir para o Início"
+    "home": "Ir para o Início",
+    "financeText": "Valores e cobranças ficam com a gestão da unidade. Se você precisa de alguma informação daqui, fale com a Administração da sua unidade.",
+    "financeHome": "Voltar ao Início",
+    "classes": "Ver minhas turmas"
   },
   "chooseLink": {
     "title": "Escolher organização e área",
@@ -194,6 +197,7 @@
     "emptyTitle": "Nada por aqui ainda",
     "emptyText": "Quando houver itens, eles aparecem nesta lista.",
     "retry": "Tentar de novo",
+    "support": "Falar com o suporte",
     "forbiddenTitle": "Você não tem acesso",
     "forbiddenText": "Seu perfil não permite ver esta tela. Fale com quem administra a sua academia."
   },
@@ -2409,9 +2413,12 @@
   "charges": {
     "showResults": "Ver {{count}} cobranças",
     "title": "Cobranças",
-    "intro": "Cobranças das unidades ao seu alcance, com a situação calculada pela data da unidade.",
+    "subtitle": "Unidade {{unit}} · sem juros, multa ou pagamento parcial · taxas do meio de pagamento repassadas ao aluno",
+    "subtitleAll": "Todas as unidades · sem juros, multa ou pagamento parcial · taxas do meio de pagamento repassadas ao aluno",
+    "search": "Aluno, CPF ou referência",
+    "export": "Exportar CSV",
     "creation": {
-      "open": "Nova cobrança avulsa",
+      "open": "Nova cobrança",
       "title": "Nova cobrança avulsa",
       "effect": "Cria uma cobrança única (kimono, exame, seminário). Ela não conta como mensalidade e é paga como qualquer cobrança.",
       "search": "Buscar aluno pelo nome (mínimo 2 letras)",
@@ -2455,7 +2462,28 @@
       }
     },
     "reference": "{{modality}} · {{month}}",
-    "totals": "{{count}} cobranças somando {{amount}}",
+    "footer": "{{count}} de {{total}} cobranças",
+    "footerSum": "{{amount}}",
+    "footerPaidOpen": "Pago {{paid}} · Em aberto {{open}}",
+    "footerLate_one": "{{count}} cobrança em atraso",
+    "footerLate_other": "{{count}} cobranças em atraso",
+    "methodValue": "{{method}} · {{amount}}",
+    "late_one": "{{count}} dia",
+    "late_other": "{{count}} dias",
+    "dueLate": "venceu {{date}} · {{days}}",
+    "dueOn": "vencimento {{date}}",
+    "mobileSubtitle_one": "{{month}} · {{count}} cobrança",
+    "mobileSubtitle_other": "{{month}} · {{count}} cobranças",
+    "seeOverdue": "Ver atrasados",
+    "errorTitle": "Não foi possível carregar as cobranças",
+    "errorText": "A conexão caiu no meio do caminho. Nada foi alterado. Se continuar, fale com o suporte.",
+    "menu": {
+      "label": "Ações da cobrança de {{student}}: {{reference}}",
+      "open": "Abrir cobrança",
+      "pay": "Registrar pagamento",
+      "cancel": "Cancelar cobrança",
+      "renegotiate": "Renegociar"
+    },
     "columns": {
       "student": "Aluno",
       "unit": "Unidade",
@@ -2463,7 +2491,8 @@
       "amount": "Valor",
       "dueOn": "Vencimento",
       "status": "Situação",
-      "method": "Meio"
+      "method": "Meio",
+      "actions": "Ações"
     },
     "quick": {
       "label": "Atalhos de cobrança",
@@ -2476,18 +2505,12 @@
       "withCount": "{{label}} ({{count}})"
     },
     "filters": {
-      "from": "Vencimento de",
-      "to": "Vencimento até",
+      "period": "Período",
+      "allPeriods": "Todo o período",
       "status": "Situação",
-      "allStatuses": "Todas as situações",
       "type": "Tipo",
-      "allTypes": "Todos os tipos",
-      "unit": "Unidade",
-      "allUnits": "Todas as unidades",
       "modality": "Modalidade",
-      "allModalities": "Todas as modalidades",
-      "class": "Turma",
-      "allClasses": "Todas as turmas"
+      "class": "Turma"
     },
     "status": {
       "PENDING": "Pendente",

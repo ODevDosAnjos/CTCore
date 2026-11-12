@@ -981,7 +981,8 @@ const chargeRowView = (c: MockCharge, today: string) => {
     id: c.id, student: { id: student.id, name: student.name, photoUrl: student.photoUrl }, unit: { id: c.unitId, name: units.find((u) => u.id === c.unitId)?.name ?? "" }, type: c.type,
     modality: row ? { id: row.modalityId, name: modalityCatalog.find((m) => m.id === row.modalityId)?.name ?? "" } : null,
     referenceMonth: c.referenceMonth, description: c.description, amountCents: c.amountCents, dueOn: c.dueOn, status: chargeSituation(c, today),
-    payment: receipt ? { method: receipt.method ?? "CASH", paidAt: receipt.paidAt } : null,
+    payment: receipt ? { method: receipt.method ?? "CASH", paidAt: receipt.paidAt, amountCents: receipt.amountCents } : null,
+    daysLate: chargeSituation(c, today) === "OVERDUE" ? Math.round((Date.parse(today) - Date.parse(c.dueOn)) / 86_400_000) : null,
   };
 };
 // RF-COB-02 (#73): motivo obrigatório, sem espaços nas pontas, até 200; devolve a mensagem de erro ou null.
@@ -3977,7 +3978,7 @@ export const routes: Route[] = [
       if (studentId && !mockStudents.some((s) => s.id === studentId && studentInReach(s))) return error(404, "NOT_FOUND", "Não encontrado.");
       if ((unitId && !units.some((u) => u.id === unitId)) || (modalityId && !modalityCatalog.some((m) => m.id === modalityId)) || (classId && !mockClasses.some((c) => c.id === classId))) return error(404, "NOT_FOUND", "Não encontrado.");
       if (role === "ADMINISTRATOR" && unitId && unitId !== ADMIN_UNIT)
-        return HttpResponse.json({ items: [], page, size, total: 0, counts: { overdue: 0, dueToday: 0, inReview: 0, paidMonth: 0 }, totals: { count: 0, amountCents: 0 } });
+        return HttpResponse.json({ items: [], page, size, total: 0, counts: { overdue: 0, dueToday: 0, inReview: 0, paidMonth: 0, all: 0 }, totals: { count: 0, amountCents: 0, paidCents: 0, openCents: 0 } });
       const today = isoDay(new Date());
       const rowOf = (c: MockCharge) => ({
         c, row: mockEnrollments[c.studentId]?.modalities.find((m) => m.id === c.modalityRowId), name: mockStudents.find((s) => s.id === c.studentId)!.name,
@@ -3987,7 +3988,7 @@ export const routes: Route[] = [
       const inScope = mockCharges.filter((c) => (role === "COORDINATOR" || c.unitId === ADMIN_UNIT) && (!unitId || c.unitId === unitId)).map(rowOf);
       const paidMonth = (r: Entry) => (r.view.status === "PAID" || r.view.status === "PAID_LATE") && r.receipt?.paidAt.slice(0, 7) === today.slice(0, 7);
       const count = (st: string) => inScope.filter((r) => r.view.status === st).length;
-      const counts = { overdue: count("OVERDUE"), dueToday: count("DUE_TODAY"), inReview: count("IN_REVIEW"), paidMonth: inScope.filter(paidMonth).length };
+      const counts = { overdue: count("OVERDUE"), dueToday: count("DUE_TODAY"), inReview: count("IN_REVIEW"), paidMonth: inScope.filter(paidMonth).length, all: inScope.length };
       const q = teacherKey((p.get("q") ?? "").trim());
       const from = p.get("from");
       const to = p.get("to");
@@ -4005,7 +4006,13 @@ export const routes: Route[] = [
           const by = sortField === "amount" ? a.c.amountCents - b.c.amountCents : sortField === "student" ? teacherKey(a.name).localeCompare(teacherKey(b.name)) : a.c.dueOn.localeCompare(b.c.dueOn);
           return (sortDir === "asc" ? by : -by) || a.c.id.localeCompare(b.c.id);
         });
-      const totals = { count: found.length, amountCents: found.reduce((sum, r) => sum + r.c.amountCents, 0) };
+      const sumOf = (statuses: string[]) => found.filter((r) => statuses.includes(r.view.status)).reduce((sum, r) => sum + r.c.amountCents, 0);
+      const totals = {
+        count: found.length,
+        amountCents: found.reduce((sum, r) => sum + r.c.amountCents, 0),
+        paidCents: sumOf(["PAID", "PAID_LATE"]),
+        openCents: sumOf(["PENDING", "DUE_TODAY", "OVERDUE", "IN_REVIEW"]),
+      };
       return HttpResponse.json({ items: found.slice((page - 1) * size, page * size).map((r) => r.view), page, size, total: found.length, counts, totals });
     },
   },

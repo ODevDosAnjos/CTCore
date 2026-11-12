@@ -30,6 +30,19 @@ describe("cenário de cobranças (#449)", () => {
     }
   });
 
+  it("#476: dias de atraso só em atraso, valor pago, Todas e os totais Pago e Em aberto do filtro", async () => {
+    const body = await get("/charges?size=100");
+    const items = body.items as { status: string; amountCents: number; daysLate: number | null; payment: { amountCents: number } | null }[];
+    expect(items.filter((c) => c.daysLate !== null).map((c) => c.status)).toEqual(items.filter((c) => c.status === "OVERDUE").map(() => "OVERDUE"));
+    expect(items.filter((c) => c.status === "OVERDUE").map((c) => c.daysLate)).toEqual(expect.arrayContaining([25, 59]));
+    expect(items.filter((c) => c.payment).every((c) => c.payment!.amountCents > 0)).toBe(true);
+    expect(body.counts.all).toBe(body.total);
+    const sum = (statuses: string[]) => items.filter((c) => statuses.includes(c.status)).reduce((s, c) => s + c.amountCents, 0);
+    expect(body.totals.paidCents).toBe(sum(["PAID", "PAID_LATE"]));
+    expect(body.totals.openCents).toBe(sum(["PENDING", "DUE_TODAY", "OVERDUE", "IN_REVIEW"]));
+    expect(body.totals.paidCents + body.totals.openCents).toBeLessThan(body.totals.amountCents);
+  });
+
   it("CA9: 5 em atraso com último lembrete; bloqueada e bloqueia em 2 dias", async () => {
     const body = await get("/charges/overdue");
     expect(body.total).toBe(5);

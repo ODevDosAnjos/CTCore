@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { App } from "@/App";
+import { enrollmentOf, modalityRow } from "@/features/students/enrollmentFixtures";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
 import { gate } from "@/test/gate";
@@ -282,4 +283,44 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("CA3 (D1): Gerar próximas mensalidades abre a janela e, ao concluir, a prévia recarrega; quem só consulta não vê o botão", async () => {
+    const user = userEvent.setup();
+    setup();
+    server.use(
+      http.get("/api/v1/students", () => HttpResponse.json({ items: [{ id: "s1", name: "Maria Lima" }], page: 1, size: 25, total: 1 })),
+      http.get("/api/v1/students/s1/enrollment", () => HttpResponse.json(enrollmentOf([modalityRow()]))),
+      http.post("/api/v1/students/:id/modalities/:row/charges/advance", () =>
+        HttpResponse.json([{ id: "c9", modalityRowId: "m1", type: "MONTHLY", unitId: "u1", referenceMonth: "2099-12-01", dueOn: "2099-12-05", toleranceDays: 0, amountCents: 20000 }], { status: 201 }),
+      ),
+    );
+    await ready();
+    await screen.findByText("Total previsto");
+    const before = calls.length;
+    await user.click(screen.getByRole("button", { name: "Gerar próximas mensalidades" }));
+    await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "li");
+    await user.selectOptions(await screen.findByLabelText("Aluno"), "s1");
+    await user.selectOptions(await screen.findByLabelText("Modalidade"), "m1");
+    await user.type(screen.getByLabelText("Quantidade de mensalidades (1 a 12)"), "1");
+    await user.click(screen.getByRole("button", { name: "Gerar mensalidades" }));
+    expect(await screen.findByText(/1 mensalidade criada/)).toBeInTheDocument();
+    await waitFor(() => expect(calls.length).toBeGreaterThan(before));
+  });
+
+  it("CA3: Esc fecha a janela de gerar mensalidades sem gerar nada", async () => {
+    const user = userEvent.setup();
+    setup();
+    await ready();
+    await screen.findByText("Total previsto");
+    await user.click(screen.getByRole("button", { name: "Gerar próximas mensalidades" }));
+    await screen.findByRole("dialog", { name: "Gerar próximas mensalidades" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("CA3: com cobranças só de consulta, a Prévia não oferece Gerar próximas mensalidades", async () => {
+    setup({ level: "READ" });
+    await ready();
+    await screen.findByText("Total previsto");
+    expect(screen.queryByRole("button", { name: "Gerar próximas mensalidades" })).not.toBeInTheDocument();
+  });
 });

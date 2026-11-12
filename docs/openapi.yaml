@@ -5444,7 +5444,7 @@ components:
       description: Situação calculada na leitura pela data do fuso da unidade (RF-COB-01).
     ChargeRow:
       type: object
-      required: [id, student, unit, type, modality, referenceMonth, description, amountCents, dueOn, status, payment]
+      required: [id, student, unit, type, modality, referenceMonth, description, amountCents, dueOn, status, payment, daysLate]
       properties:
         id: { type: string, format: uuid }
         student:
@@ -5462,14 +5462,16 @@ components:
         amountCents: { type: integer, format: int64, minimum: 0, description: Valor final gravado; sem juros nem multa (RN-COB-07). }
         dueOn: { type: string, format: date }
         status: { $ref: '#/components/schemas/ChargeSituation' }
+        daysLate: { type: integer, nullable: true, minimum: 1, description: Dias entre o vencimento e hoje (data do fuso da unidade); nulo fora de OVERDUE. }
         payment:
           type: object
           nullable: true
-          required: [method, paidAt]
+          required: [method, paidAt, amountCents]
           description: Pagamento confirmado, quando há.
           properties:
             method: { type: string, enum: [PIX_MP, CREDIT_CARD, DEBIT_CARD, BOLETO, PIX_KEY, CASH, CARD_MACHINE, TRANSFER] }
             paidAt: { type: string, format: date-time }
+            amountCents: { type: integer, format: int64, minimum: 0, description: Valor pago em centavos. }
     ChargeCancelInput:
       type: object
       required: [reason]
@@ -5714,20 +5716,23 @@ components:
             items: { type: array, items: { $ref: '#/components/schemas/ChargeRow' } }
             counts:
               type: object
-              required: [overdue, dueToday, inReview, paidMonth]
+              required: [overdue, dueToday, inReview, paidMonth, all]
               description: Contagens dos quatro atalhos sobre o alcance e a unidade escolhida, sem os demais filtros.
               properties:
                 overdue: { type: integer, minimum: 0 }
                 dueToday: { type: integer, minimum: 0 }
                 inReview: { type: integer, minimum: 0 }
                 paidMonth: { type: integer, minimum: 0 }
+                all: { type: integer, minimum: 0, description: Todas as cobranças do alcance e da unidade (aba Todas). }
             totals:
               type: object
-              required: [count, amountCents]
+              required: [count, amountCents, paidCents, openCents]
               description: Quantidade e soma em centavos de tudo o que está filtrado, não só da página.
               properties:
                 count: { type: integer, minimum: 0 }
                 amountCents: { type: integer, format: int64, minimum: 0 }
+                paidCents: { type: integer, format: int64, minimum: 0, description: Soma das pagas (PAID e PAID_LATE) do filtro. }
+                openCents: { type: integer, format: int64, minimum: 0, description: "Soma das abertas (PENDING, DUE_TODAY, OVERDUE e IN_REVIEW) do filtro; cancelada, renegociada e estornada não somam." }
     StudentRef:
       type: object
       required: [id, name, photoUrl]

@@ -21,7 +21,7 @@ const session = (role: string): SessionView => ({
 });
 const row = (over: Partial<ChargeRow> = {}): ChargeRow => ({
   id: "c1", student: { id: "s1", name: "Ana Souza", photoUrl: null }, unit: { id: "u1", name: "Centro" }, type: "MONTHLY", modality: { id: "m1", name: "Jiu-Jitsu" },
-  referenceMonth: "2026-03-01", description: null, amountCents: 12000, dueOn: "2026-03-05", status: "OVERDUE", payment: null, ...over,
+  referenceMonth: "2026-03-01", description: null, amountCents: 12000, dueOn: "2026-03-05", status: "OVERDUE", payment: null, daysLate: null, ...over,
 });
 const detail = (over: Partial<ChargeDetail> = {}): ChargeDetail => ({
   charge: row(), toleranceDays: 5,
@@ -30,7 +30,7 @@ const detail = (over: Partial<ChargeDetail> = {}): ChargeDetail => ({
   actions: { cancel: true, renegotiate: true, registerPayment: false, sendReminder: false, refund: false }, ...over,
 });
 const paidDetail = detail({
-  charge: row({ status: "PAID", payment: { method: "CASH", paidAt: "2026-03-04T15:00:00Z" } }),
+  charge: row({ status: "PAID", payment: { method: "CASH", paidAt: "2026-03-04T15:00:00Z", amountCents: 12000 } }),
   payments: [{ id: "p1", amountCents: 12000, method: "CASH", origin: "MANAGEMENT", paidAt: "2026-03-04T15:00:00Z", registeredBy: { id: "a", name: "Bia Admin" }, observation: "No balcão", status: "CONFIRMED", receipt: { number: 7, code: "ABC123" } }],
   actions: { cancel: false, renegotiate: false, registerPayment: false, sendReminder: false, refund: false },
 });

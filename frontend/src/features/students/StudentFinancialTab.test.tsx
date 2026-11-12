@@ -25,10 +25,10 @@ const record: StudentRecord = {
 };
 const charge = (over: Partial<ChargeRow> = {}): ChargeRow => ({
   id: "c1", student: { id: "s1", name: "Ana Souza", photoUrl: null }, unit: { id: "u1", name: "Centro" }, type: "MONTHLY", modality: { id: "m1", name: "Jiu-Jitsu" },
-  referenceMonth: "2026-03-01", description: null, amountCents: 12000, dueOn: "2026-03-05", status: "OVERDUE", payment: null, ...over,
+  referenceMonth: "2026-03-01", description: null, amountCents: 12000, dueOn: "2026-03-05", status: "OVERDUE", payment: null, daysLate: null, ...over,
 });
-const paid = charge({ id: "c2", referenceMonth: "2026-02-01", dueOn: "2026-02-05", status: "PAID", payment: { method: "PIX_MP", paidAt: "2026-02-04T12:00:00Z" } });
-const list = (items: ChargeRow[]) => ({ items, page: 1, size: 100, total: items.length, counts: { overdue: 0, dueToday: 0, inReview: 0, paidMonth: 0 }, totals: { count: items.length, amountCents: 0 } });
+const paid = charge({ id: "c2", referenceMonth: "2026-02-01", dueOn: "2026-02-05", status: "PAID", payment: { method: "PIX_MP", paidAt: "2026-02-04T12:00:00Z", amountCents: 12000 } });
+const list = (items: ChargeRow[]) => ({ items, page: 1, size: 100, total: items.length, counts: { overdue: 0, dueToday: 0, inReview: 0, paidMonth: 0, all: 0 }, totals: { count: items.length, amountCents: 0, paidCents: 0, openCents: 0 } });
 
 let queries: string[];
 
