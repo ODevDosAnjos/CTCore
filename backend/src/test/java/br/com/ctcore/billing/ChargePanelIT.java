@@ -27,6 +27,7 @@ class ChargePanelIT extends ChargeActionsBase {
                 id, t.orgId(), t.unitId(), s, row, plan, benefit);
         assertThat(ok(send(HttpMethod.POST, "/charges/" + id + "/payments", "{\"method\":\"CASH\",\"observation\":\"balcão\"}", admin), 201).get("receipt")).isNotNull();
 
+        adminJdbc().update("update student set email = 'pagador@example.com' where id = ?", s);
         JsonNode d = ok(send(HttpMethod.GET, "/charges/" + id, null, admin), 200);
         assertThat(d.get("charge").get("status").asText()).isIn("PAID", "PAID_LATE");
         assertThat(d.get("composition").get("planCents").asLong()).isEqualTo(15000);
@@ -35,6 +36,8 @@ class ChargePanelIT extends ChargeActionsBase {
         assertThat(d.get("composition").get("amountCents").asLong()).isEqualTo(13500);
         assertThat(d.get("composition").get("plan").get("id").asText()).isEqualTo(plan.toString());
         assertThat(d.get("payer").get("kind").asText()).isEqualTo("STUDENT");
+        assertThat(d.get("payer").get("email").asText()).isEqualTo("pagador@example.com");
+        assertThat(d.get("createdOn").asText()).isEqualTo(LocalDate.now(java.time.ZoneId.of(adminJdbc().queryForObject("select timezone from unit where id = ?", String.class, t.unitId()))).toString());
         assertThat(d.get("payments")).hasSize(1);
         JsonNode p = d.get("payments").get(0);
         assertThat(p.get("method").asText()).isEqualTo("CASH");

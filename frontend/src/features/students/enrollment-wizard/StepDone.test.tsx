@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { SessionProvider } from "@/features/auth/SessionProvider";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { StepDone } from "./StepDone";
 import type { EnrollmentConcluded } from "./types";
@@ -25,7 +26,9 @@ function setup(r: EnrollmentConcluded, payNow = false, collections = "FULL") {
   const onRecord = vi.fn();
   render(
     <ThemeProvider>
-      <StepDone name="Ana Souza" detail={{ email: "ana@aluno.example" } as never} result={r} payNow={payNow} onBack={onBack} onRecord={onRecord} />
+      <SessionProvider>
+        <StepDone name="Ana Souza" detail={{ email: "ana@aluno.example" } as never} result={r} payNow={payNow} onBack={onBack} onRecord={onRecord} />
+      </SessionProvider>
     </ThemeProvider>,
   );
   return { onBack, onRecord };

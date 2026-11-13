@@ -254,11 +254,29 @@ describe("ChargesPage (RF-COB-01)", () => {
     const menu = screen.getByRole("button", { name: "Ações da cobrança de Ana Souza: Jiu-Jitsu · 03/2026" });
     expect(menu).toHaveAttribute("aria-expanded", "false");
     await user.click(menu);
-    expect(screen.getByRole("menuitem", { name: "Registrar pagamento" })).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("menuitem", { name: "Cancelar cobrança" })).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("menuitem", { name: "Renegociar" })).toHaveAttribute("aria-disabled", "true");
+    for (const name of ["Registrar pagamento", "Cancelar cobrança", "Renegociar"]) expect(screen.getByRole("menuitem", { name })).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByRole("menuitem", { name: "Estornar" })).toHaveAttribute("aria-disabled", "true");
     await user.click(screen.getByRole("menuitem", { name: "Abrir cobrança" }));
     expect(await screen.findByText("Cobrança não encontrada.")).toBeInTheDocument();
+  });
+
+  it("CA17 (R10): o menu da linha abre as janelas só em cobrança em aberto e recarrega a lista ao concluir", async () => {
+    const user = userEvent.setup();
+    server.use(http.post("/api/v1/charges/c1/cancel", () => HttpResponse.json({})));
+    setup();
+    await screen.findAllByText("Ana Souza");
+    const joao = screen.getByRole("button", { name: "Ações da cobrança de João Pereira: Jiu-Jitsu · 03/2026" });
+    await user.click(joao);
+    expect(screen.getByRole("menuitem", { name: "Cancelar cobrança" })).toHaveAttribute("aria-disabled", "true");
+    await user.click(joao);
+    const before = calls.length;
+    await user.click(screen.getByRole("button", { name: "Ações da cobrança de Ana Souza: Jiu-Jitsu · 03/2026" }));
+    await user.click(screen.getByRole("menuitem", { name: "Cancelar cobrança" }));
+    const dialog = await screen.findByRole("dialog", { name: "Cancelar cobrança" });
+    await user.type(within(dialog).getByRole("textbox", { name: /Motivo/ }), "Duplicada");
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar cobrança" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(calls.length).toBeGreaterThan(before));
   });
 
   it("CA10: Professor não vê Cobranças no menu e a rota o leva a Sem acesso", async () => {
@@ -391,10 +409,11 @@ describe("botões de criação (RF-COB-07, CA1, CA2)", () => {
     const before = calls.length;
     await user.click(screen.getByRole("button", { name: "Nova cobrança" }));
     await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "an");
-    await user.selectOptions(await screen.findByLabelText("Aluno"), "s1");
-    await user.type(await screen.findByLabelText("Descrição"), "Kimono");
-    await user.type(screen.getByLabelText("Valor"), "10000");
-    fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: "2099-01-10" } });
+    await user.click(await screen.findByRole("button", { name: "Ana Souza" }));
+    const form = within(screen.getByRole("dialog"));
+    await user.type(await form.findByLabelText(/Descrição/), "Kimono");
+    await user.type(form.getByLabelText(/^Valor/), "10000");
+    fireEvent.change(form.getByLabelText(/^Vencimento/), { target: { value: "2099-01-10" } });
     await user.click(screen.getByRole("button", { name: "Criar cobrança" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(calls.length).toBeGreaterThan(before));

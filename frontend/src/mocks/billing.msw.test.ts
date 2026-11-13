@@ -104,4 +104,22 @@ describe("cobrança, pagamento e recibo x OpenAPI (RN-COB-12, RN-COB-16, #71)", 
     expect(new Set(list.map((c: { referenceMonth: string }) => c.referenceMonth)).size).toBe(3);
     expect((await send("POST", `/students/${MINOR}/modalities/00000000-0000-0000-0000-00000000dead/charges/advance`, { count: 1 })).status).toBe(404);
   });
+
+  it("prévia da geração adiantada (RN-COB-06): só leitura, no formato do contrato, com total; count inválido 400, modalidade desconhecida 404", async () => {
+    await login("ana@exemplo.com");
+    await conclude();
+    const rowId = (await (await send("GET", `/students/${MINOR}/enrollment`)).json()).modalities[0].id;
+    const path = `/students/${MINOR}/modalities/${rowId}/charges/advance/preview`;
+    expect(Object.keys(openapi.paths["/students/{id}/modalities/{modalityRowId}/charges/advance/preview"].get.responses)).toEqual(expect.arrayContaining(["200", "400", "403", "404", "422"]));
+    expect((await send("GET", `${path}?count=0`)).status).toBe(400);
+    expect((await send("GET", `${path}?count=13`)).status).toBe(400);
+    const before = (await (await send("GET", `/charges?studentId=${MINOR}`)).json()).total;
+    const preview = await (await send("GET", `${path}?count=3`)).json();
+    expect(Object.keys(preview).sort()).toEqual([...openapi.components.schemas.AdvancePreview.required].sort());
+    expect(preview.items).toHaveLength(3);
+    expect(Object.keys(preview.items[0]).sort()).toEqual([...openapi.components.schemas.AdvancePreview.properties.items.items.required].sort());
+    expect(preview.totalCents).toBe(preview.items.reduce((sum: number, x: { amountCents: number }) => sum + x.amountCents, 0));
+    expect((await (await send("GET", `/charges?studentId=${MINOR}`)).json()).total).toBe(before);
+    expect((await send("GET", `/students/${MINOR}/modalities/00000000-0000-0000-0000-00000000dead/charges/advance/preview?count=1`)).status).toBe(404);
+  });
 });

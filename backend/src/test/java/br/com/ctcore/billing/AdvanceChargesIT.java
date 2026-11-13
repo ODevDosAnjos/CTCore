@@ -133,6 +133,47 @@ class AdvanceChargesIT extends OrganizationBase {
         assertThat(charges(free) + charges(ended)).isZero();
     }
 
+
+    private MockHttpServletResponse preview(UUID row, String count, AccountPrincipal who) throws Exception {
+        return call(MockMvcRequestBuilders.get("/api/v1/students/" + student(row) + "/modalities/" + row + "/charges/advance/preview" + count), who).getResponse();
+    }
+
+    @Test
+    @DisplayName("CA21 (RN-COB-06): a prévia de 3 meses traz referência, vencimento, valor e total, pula o mês já gerado, não grava nem audita; 400 e 422 como o advance")
+    void previewReadsOnly() throws Exception {
+        var t = tenant();
+        var admin = account(t, Role.ADMINISTRATOR);
+        UUID row = row(t, 20000);
+        JsonNode body = json.readTree(preview(row, "?count=3", admin).getContentAsString());
+        assertThat(body.get("items")).hasSize(3);
+        assertThat(body.get("items").get(0).get("referenceMonth").asText()).isEqualTo("2026-11-01");
+        assertThat(body.get("items").get(2).get("dueOn").asText()).isEqualTo("2027-01-15");
+        assertThat(body.get("items").get(1).get("amountCents").asLong()).isEqualTo(20000);
+        assertThat(body.get("totalCents").asLong()).isEqualTo(60000);
+        assertThat(charges(row)).isZero();
+        assertThat(adminJdbc().queryForObject("select count(*) from audit_log where action = 'charge.advance_generated' and organization_id = ?", Long.class, t.orgId())).isZero();
+        assertThat(adminJdbc().queryForObject("select next_charge_ref from enrollment_modality where id = ?", java.time.LocalDate.class, row)).isEqualTo(java.time.LocalDate.parse("2026-11-01"));
+        for (String bad : new String[] {"?count=0", "?count=13", ""}) assertThat(preview(row, bad, admin).getStatus()).as(bad).isEqualTo(400);
+        UUID ended = row(t, 20000);
+        adminJdbc().update("update enrollment_modality set status = 'ENDED', ended_at = now() where id = ?", ended);
+        assertThat(preview(ended, "?count=1", admin).getStatus()).isEqualTo(422);
+    }
+
+    @Test
+    @DisplayName("CA21: a prévia dá 403 a Professor, Aluno e Responsável, 401 sem sessão e 404 para outra organização, unidade sem alcance ou modalidade inexistente")
+    void previewIsolation() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        UUID row = row(t, 20000);
+        assertThat(preview(row, "?count=1", null).getStatus()).isEqualTo(401);
+        for (Role role : new Role[] {Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) assertThat(preview(row, "?count=1", account(t, role)).getStatus()).as(role.name()).isEqualTo(403);
+        assertThat(preview(row, "?count=1", account(other, Role.ADMINISTRATOR)).getStatus()).isEqualTo(404);
+        var elsewhere = new AccountPrincipal(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), t.orgId(), Role.ADMINISTRATOR, Set.of(UUID.randomUUID()));
+        adminJdbc().update("insert into account (id, email, name, status) values (?, ?, 'Caixa', 'ACTIVE')", elsewhere.accountId(), "gen-" + elsewhere.accountId() + "@example.com");
+        assertThat(preview(row, "?count=1", elsewhere).getStatus()).isEqualTo(404);
+        assertThat(call(MockMvcRequestBuilders.get("/api/v1/students/" + student(row) + "/modalities/" + UUID.randomUUID() + "/charges/advance/preview?count=1"),
+                account(t, Role.ADMINISTRATOR)).getResponse().getStatus()).isEqualTo(404);
+    }
     @Test
     @DisplayName("CA17: Professor, Aluno e Responsável 403; sem sessão 401; outra organização ou unidade fora do alcance 404")
     void permissionsAndIsolation() throws Exception {

@@ -1011,9 +1011,9 @@ const chargeDetail = (c: MockCharge) => {
   const origin = c.originId ? mockCharges.find((x) => x.id === c.originId) : undefined;
   const open = c.status === "OPEN";
   return {
-    charge: chargeRowView(c, isoDay(new Date())), toleranceDays: c.toleranceDays,
+    charge: chargeRowView(c, isoDay(new Date())), createdOn: addDays(c.dueOn, -30), toleranceDays: c.toleranceDays,
     composition: { plan: plan ? { id: plan.id, name: plan.name } : null, planCents: plan?.valueCents ?? c.amountCents, benefitType: null, benefitCents: 0, amountCents: c.amountCents },
-    payer: { id: student.id, name: student.name, kind: "STUDENT" },
+    payer: { id: student.id, name: student.name, kind: "STUDENT", email: student.email ?? null },
     origin: origin ? refOf(origin) : null,
     replacedBy: c.status === "RENEGOTIATED" ? mockCharges.filter((x) => x.renegotiationId === c.renegotiationId && x.originId).map(refOf) : [],
     reason: c.reason ?? null, canceledAt: c.canceledAt ?? null, canceledBy: c.canceledAt ? { id: session.account.id, name: session.account.name } : null,
@@ -4333,6 +4333,27 @@ export const routes: Route[] = [
       cancelMock(c, (body.reason as string).trim());
       mockCharges.push(c);
       return HttpResponse.json({ chargeId: c.id, referenceMonth: found.ref });
+    },
+  },
+  {
+    // RN-COB-06 (#477): prévia da geração adiantada, somente leitura; mesmas regras do POST.
+    method: "get",
+    path: "/students/{id}/modalities/{modalityRowId}/charges/advance/preview",
+    resolver: ({ request, params }) => {
+      const found = studentFor(params.id as string);
+      if (found instanceof Response) return found;
+      const row = mockEnrollments[found.id]?.modalities.find((m) => m.id === params.modalityRowId);
+      if (!row) return error(404, "NOT_FOUND", "Não encontrado.");
+      const count = Number(new URL(request.url).searchParams.get("count"));
+      if (!Number.isInteger(count) || count < 1 || count > 12) return studentBad("count", "de 1 a 12");
+      const plan = mockPlans.find((p) => p.id === row.planId)!;
+      if (row.status !== "ACTIVE" || plan.valueCents === 0) return rule("modalityRowId", "modalidade encerrada ou de valor zero");
+      const last = mockCharges.filter((c) => c.modalityRowId === row.id).map((c) => c.referenceMonth!).sort().pop() ?? firstOfMonth(isoDay(new Date()));
+      const items = Array.from({ length: count }, (_, i) => {
+        const ref = isoDay(new Date(Date.UTC(Number(last.slice(0, 4)), Number(last.slice(5, 7)) + i, 1)));
+        return { referenceMonth: ref, dueOn: `${ref.slice(0, 8)}${String(row.dueDay).padStart(2, "0")}`, amountCents: plan.valueCents };
+      });
+      return HttpResponse.json({ items, totalCents: items.reduce((sum, x) => sum + x.amountCents, 0) });
     },
   },
   {

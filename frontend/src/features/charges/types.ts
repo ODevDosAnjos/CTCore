@@ -64,6 +64,8 @@ export interface ChargeReminder {
 }
 export interface ChargeDetail {
   charge: ChargeRow;
+  /** Data em que a cobrança foi gerada (fuso da unidade). */
+  createdOn: string;
   toleranceDays: number;
   composition: {
     plan: { id: string; name: string } | null;
@@ -72,7 +74,7 @@ export interface ChargeDetail {
     benefitCents: number;
     amountCents: number;
   };
-  payer: { id: string; name: string; kind: "STUDENT" | "GUARDIAN" };
+  payer: { id: string; name: string; kind: "STUDENT" | "GUARDIAN"; email: string | null };
   origin: ChargeRef | null;
   replacedBy: ChargeRef[];
   reason: string | null;
@@ -131,6 +133,11 @@ export interface OneOffInput {
   description: string;
   amountCents: number;
   dueOn: string;
+}
+// Espelha AdvancePreview do OpenAPI (RN-COB-06): o que a geração adiantada criaria, calculado no servidor.
+export interface AdvancePreview {
+  items: { referenceMonth: string; dueOn: string; amountCents: number }[];
+  totalCents: number;
 }
 export interface ChargeCreated {
   id: string;

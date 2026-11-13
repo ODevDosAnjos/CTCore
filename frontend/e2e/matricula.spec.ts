@@ -183,8 +183,8 @@ test("@critical Matrícula com primeira cobrança", async ({ page }) => {
   await expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
   await charges.getByRole("button", { name: "Registrar pagamento" }).click();
   const dialog = page.getByRole("dialog", { name: "Registrar pagamento" });
-  await dialog.getByLabel("Meio de pagamento").selectOption({ label: "Dinheiro" });
-  await dialog.getByRole("button", { name: "Confirmar pagamento" }).click();
+  await dialog.getByRole("radio", { name: "Dinheiro" }).check();
+  await dialog.getByRole("button", { name: "Registrar pagamento" }).click();
   await expect(dialog.getByText("Recibo número 1")).toBeVisible();
   await expect(dialog.getByText(/Código de conferência: [A-Z0-9]{16}/)).toBeVisible();
   await dialog.getByRole("button", { name: "Fechar" }).first().click();

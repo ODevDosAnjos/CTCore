@@ -1,6 +1,6 @@
 import { useRef, type ReactNode, type RefObject } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ export function Drawer({
   badge,
   lead,
   scrim,
+  mobileTitle,
   subtitle,
   children,
   footer,
@@ -24,11 +25,13 @@ export function Drawer({
   onOpenChange: (open: boolean) => void;
   title: string;
   /** Linha pequena acima do título (ex.: "Turma"). */
-  eyebrow?: string;
+  eyebrow?: ReactNode;
   /** Selo ao lado do título. */
   badge?: ReactNode;
   /** "canvas": fundo mais claro, como no canvas de Professores. */
   scrim?: "canvas";
+  /** Celular: barra com seta de voltar e este título; o título grande vira só texto para leitor de tela. */
+  mobileTitle?: string;
   /** Avatar antes do título (painel de pessoa). */
   lead?: ReactNode;
   /** Linhas abaixo do título, como o subtítulo e os selos de uma pessoa. */
@@ -54,18 +57,28 @@ export function Drawer({
           }}
           className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-full flex-col overflow-hidden border-l bg-card shadow-panel sm:w-[min(560px,100%)]"
         >
+          {mobileTitle && (
+            <div className="flex items-center gap-2 border-b border-divider px-4 py-3 sm:hidden">
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="icon" aria-label={t("common.back")}>
+                  <ArrowLeft aria-hidden="true" />
+                </Button>
+              </Dialog.Close>
+              <span aria-hidden="true" className="font-heading text-xl font-semibold">{mobileTitle}</span>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-2 border-b border-divider px-6 py-4">
             {lead}
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               {eyebrow && <span className="text-xs text-muted-foreground">{eyebrow}</span>}
               <div className="flex flex-wrap items-center gap-2">
-                <Dialog.Title className="break-words font-heading text-[28px] font-semibold uppercase leading-none">{title}</Dialog.Title>
+                <Dialog.Title className={cn("break-words font-heading text-[28px] font-semibold uppercase leading-none", mobileTitle && "max-sm:sr-only")}>{title}</Dialog.Title>
                 {badge}
               </div>
               {subtitle}
             </div>
             <Dialog.Close asChild>
-              <Button variant="ghost" size="icon" aria-label={t("common.close")}>
+              <Button variant="ghost" size="icon" className={mobileTitle ? "max-sm:hidden" : undefined} aria-label={t("common.close")}>
                 <X aria-hidden="true" />
               </Button>
             </Dialog.Close>
