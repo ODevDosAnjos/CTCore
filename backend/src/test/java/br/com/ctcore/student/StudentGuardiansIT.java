@@ -147,7 +147,7 @@ class StudentGuardiansIT extends OrganizationBase {
         String b = create(t, who, second);
         assertThat(count("select count(*) from guardian")).isEqualTo(1);
         assertThat(count("select count(*) from account where lower(email) = 'r1@ficticia.example'")).isEqualTo(1);
-        assertThat(count("select count(*) from email_message where template = 'INVITE'")).isEqualTo(1);
+        assertThat(count("select count(*) from email_message where lower(to_email) = 'r1@ficticia.example' and template = 'INVITE'")).isEqualTo(1);
         assertThat(count("select count(*) from student_guardian where student_id = ?::uuid", b)).isEqualTo(1);
 
         long students = count("select count(*) from student");
