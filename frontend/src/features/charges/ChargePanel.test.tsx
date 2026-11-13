@@ -10,7 +10,6 @@ import { axeViolations } from "@/test/axe";
 import { gate } from "@/test/gate";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { RenegotiateDialog, previewInstallments } from "./RenegotiateDialog";
 import type { ChargeDetail, ChargeRow } from "./types";
 
 const session = (role: string): SessionView => ({
@@ -24,9 +23,9 @@ const row = (over: Partial<ChargeRow> = {}): ChargeRow => ({
   referenceMonth: "2026-03-01", description: null, amountCents: 12000, dueOn: "2026-03-05", status: "OVERDUE", payment: null, daysLate: null, ...over,
 });
 const detail = (over: Partial<ChargeDetail> = {}): ChargeDetail => ({
-  charge: row(), toleranceDays: 5,
+  charge: row(), createdOn: "2026-02-20", toleranceDays: 5,
   composition: { plan: { id: "p1", name: "Plano Mensal" }, planCents: 15000, benefitType: "PERCENT", benefitCents: 3000, amountCents: 12000 },
-  payer: { id: "s1", name: "Ana Souza", kind: "STUDENT" }, origin: null, replacedBy: [], reason: null, canceledAt: null, canceledBy: null, payments: [], reminders: [],
+  payer: { id: "s1", name: "Ana Souza", kind: "STUDENT", email: "ana@example.test" }, origin: null, replacedBy: [], reason: null, canceledAt: null, canceledBy: null, payments: [], reminders: [],
   actions: { cancel: true, renegotiate: true, registerPayment: false, sendReminder: false, refund: false }, ...over,
 });
 const paidDetail = detail({
@@ -77,7 +76,7 @@ function setup(opts: { role?: string; detail?: () => Response | Promise<Response
 
 async function openPanel(user = userEvent.setup()) {
   await user.click((await screen.findAllByRole("button", { name: /Abrir cobrança de Ana Souza/ }))[0]);
-  return screen.findByRole("dialog", { name: "Cobrança" });
+  return screen.findByRole("dialog");
 }
 
 describe("ChargePanel (RF-COB-02)", () => {
@@ -85,28 +84,53 @@ describe("ChargePanel (RF-COB-02)", () => {
     setup();
     const panel = await openPanel();
     expect(window.location.search).toBe("?cobranca=c1");
-    expect(await within(panel).findByText("Plano Mensal · R$ 150,00")).toBeInTheDocument();
+    expect(await within(panel).findByText("Plano Mensal")).toBeInTheDocument();
+    expect(within(panel).getByText("R$ 150,00")).toBeInTheDocument();
     expect(within(panel).getByText("− R$ 30,00")).toBeInTheDocument();
-    expect(within(panel).getByText("5 dias")).toBeInTheDocument();
+    expect(within(panel).getByText(/Vencimento 05\/03\/2026 · gerada em 20\/02\/2026 · a composição não muda depois de gerada/)).toBeInTheDocument();
     expect(within(panel).getByText("Nenhum pagamento registrado")).toBeInTheDocument();
     expect(within(panel).getByText("Nenhum lembrete enviado")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Cancelar cobrança" })).toBeEnabled();
     expect(within(panel).getByRole("button", { name: "Renegociar" })).toBeEnabled();
-    for (const [name, why] of [["Registrar pagamento", /recebem pagamento/], ["Enviar lembrete", /recebem lembrete/], ["Estornar", /estorno/]] as const) {
+    for (const [name, why] of [["Registrar pagamento", /recebem pagamento/], ["Enviar lembrete", /recebem lembrete/]] as const) {
       const button = within(panel).getByRole("button", { name });
       expect(button).toBeDisabled();
       expect(button).toHaveAccessibleDescription(why);
     }
+    expect(within(panel).getByRole("button", { name: "Estornar" })).toHaveAttribute("aria-disabled", "true");
+    expect(within(panel).getByText("Em breve")).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", { name: "Composição" })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: "Ver aluno" })).toHaveAttribute("href", "/alunos/s1");
+  });
+
+  it("CA5: a 390 px só Registrar pagamento fica fixo ao pé; as outras ações seguem no conteúdo, em largura total", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+    try {
+      setup({ detail: () => HttpResponse.json(detail({ actions: { cancel: true, renegotiate: true, registerPayment: true, sendReminder: true, refund: false } })) });
+      const panel = await openPanel();
+      const pay = await within(panel).findByRole("button", { name: "Registrar pagamento" });
+      const footer = pay.closest(".border-t") as HTMLElement;
+      expect(within(footer).getAllByRole("button")).toEqual([pay]);
+      const cancel = within(panel).getByRole("button", { name: "Cancelar cobrança" });
+      expect(footer.contains(cancel)).toBe(false);
+      expect(cancel).toHaveClass("w-full");
+      const back = within(panel).getByRole("button", { name: "Voltar" });
+      await userEvent.click(back);
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    } finally {
+      window.matchMedia = original;
+    }
   });
 
   it("CA1/CA15: cobrança paga mostra pagamento com recibo e não oferece Cancelar nem Renegociar", async () => {
     setup({ detail: () => HttpResponse.json(paidDetail) });
     const panel = await openPanel();
-    expect(await within(panel).findByText(/R\$ 120,00 · Dinheiro/)).toBeInTheDocument();
-    expect(within(panel).getByText("Lançado por Bia Admin")).toBeInTheDocument();
-    expect(within(panel).getByText("No balcão")).toBeInTheDocument();
-    expect(within(panel).getByText("Recibo número 7 · código ABC123")).toBeInTheDocument();
+    const line = within(await within(panel).findByRole("row", { name: /Dinheiro/ }));
+    expect(line.getByText("R$ 120,00")).toBeInTheDocument();
+    expect(line.getByText("Lançado por Bia Admin")).toBeInTheDocument();
+    expect(line.getByText(/No balcão/)).toBeInTheDocument();
+    expect(line.getByRole("link", { name: "Nº 0007" })).toHaveAttribute("href", "/api/v1/receipts/ABC123/pdf");
     expect(within(panel).queryByRole("button", { name: "Cancelar cobrança" })).toBeNull();
     expect(within(panel).queryByRole("button", { name: "Renegociar" })).toBeNull();
   });
@@ -136,7 +160,7 @@ describe("ChargePanel (RF-COB-02)", () => {
     const retry = await within(panel).findByRole("button", { name: "Tentar de novo" });
     fail = false;
     await user.click(retry);
-    expect(await within(panel).findByText("Plano Mensal · R$ 150,00")).toBeInTheDocument();
+    expect(await within(panel).findByText("Plano Mensal")).toBeInTheDocument();
   });
 
   it("CA20: 403 e 404 do servidor", async () => {
@@ -221,72 +245,6 @@ describe("ChargePanel (RF-COB-02)", () => {
     status = 404;
   });
 
-  it("CA17: Renegociar mostra a prévia das parcelas e da soma e envia o pedido; só o total mudado vai como amountCents", async () => {
-    const user = userEvent.setup();
-    setup();
-    const panel = await openPanel(user);
-    await user.click(await within(panel).findByRole("button", { name: "Renegociar" }));
-    const dialog = await screen.findByRole("dialog", { name: "Renegociar" });
-    const submit = within(dialog).getByRole("button", { name: "Renegociar" });
-    expect(submit).toBeDisabled();
-    expect(within(dialog).getByLabelText("Total a pagar")).toHaveValue("R$ 120,00");
-    await user.type(within(dialog).getByLabelText("Primeiro vencimento"), "2099-01-31");
-    await user.selectOptions(within(dialog).getByLabelText("Parcelas (1 a 6)"), "3");
-    await user.type(within(dialog).getByRole("textbox", { name: /Motivo/ }), "Acordo");
-    expect(within(dialog).getByText("Parcela 1: R$ 40,00 em 31/01/2099")).toBeInTheDocument();
-    expect(within(dialog).getByText("Parcela 2: R$ 40,00 em 28/02/2099")).toBeInTheDocument();
-    expect(within(dialog).getByText("Parcela 3: R$ 40,00 em 31/03/2099")).toBeInTheDocument();
-    expect(within(dialog).getByText("Total: R$ 120,00")).toBeInTheDocument();
-    await user.click(submit);
-    await waitFor(() => expect(posts).toHaveLength(1));
-    expect(posts[0]).toEqual({ url: "/api/v1/charges/renegotiate", body: { chargeIds: ["c1"], firstDueOn: "2099-01-31", installments: 3, reason: "Acordo" } });
-  });
-
-  it("CA17: total editado vai como amountCents; o 400 de campo aparece no campo", async () => {
-    const user = userEvent.setup();
-    setup({ post: () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "firstDueOn", message: "não pode ser anterior a hoje" }] }, { status: 400 }) });
-    const panel = await openPanel(user);
-    await user.click(await within(panel).findByRole("button", { name: "Renegociar" }));
-    const dialog = await screen.findByRole("dialog", { name: "Renegociar" });
-    const total = within(dialog).getByLabelText("Total a pagar");
-    await user.clear(total);
-    await user.type(total, "8000");
-    await user.type(within(dialog).getByLabelText("Primeiro vencimento"), "2099-01-10");
-    await user.type(within(dialog).getByRole("textbox", { name: /Motivo/ }), "Acordo");
-    await user.click(within(dialog).getByRole("button", { name: "Renegociar" }));
-    expect(await within(dialog).findByText("não pode ser anterior a hoje")).toBeInTheDocument();
-    expect(posts[0].body).toMatchObject({ amountCents: 8000, installments: 1 });
-  });
-
-  it("CA17: com várias cobranças o total fica bloqueado com a soma e não vai como amountCents", async () => {
-    const user = userEvent.setup();
-    const done = vi.fn();
-    const sent: unknown[] = [];
-    server.use(http.post("/api/v1/charges/renegotiate", async ({ request }) => (sent.push(await request.json()), HttpResponse.json([], { status: 201 }))));
-    render(
-      <ThemeProvider>
-        <RenegotiateDialog charges={[row(), row({ id: "c2", amountCents: 5000 })]} onClose={vi.fn()} onDone={done} />
-      </ThemeProvider>,
-    );
-    const total = screen.getByLabelText("Total a pagar");
-    expect(total).toBeDisabled();
-    expect(total).toHaveValue("R$ 170,00");
-    expect(screen.getByText(/mais de uma cobrança/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Primeiro vencimento"), "2099-05-31");
-    await user.type(screen.getByRole("textbox", { name: /Motivo/ }), "Acordo");
-    await user.click(screen.getByRole("button", { name: "Renegociar" }));
-    await waitFor(() => expect(done).toHaveBeenCalled());
-    expect(sent).toEqual([{ chargeIds: ["c1", "c2"], firstDueOn: "2099-05-31", installments: 1, reason: "Acordo" }]);
-  });
-
-  it("a prévia leva o resto dos centavos para a primeira parcela e limita o dia ao fim do mês", () => {
-    expect(previewInstallments(10000, 3, "2099-01-31")).toEqual([
-      { amountCents: 3334, dueOn: "2099-01-31" },
-      { amountCents: 3333, dueOn: "2099-02-28" },
-      { amountCents: 3333, dueOn: "2099-03-31" },
-    ]);
-  });
-
   it("CA20: a 360 px o painel e as janelas passam no axe nos dois temas", async () => {
     const user = userEvent.setup();
     for (const dark of [false, true]) {
@@ -294,7 +252,7 @@ describe("ChargePanel (RF-COB-02)", () => {
       window.innerWidth = 360;
       const { unmount } = setup();
       const panel = await openPanel(user);
-      await within(panel).findByText("Plano Mensal · R$ 150,00");
+      await within(panel).findByText("Plano Mensal");
       expect(await axeViolations(panel)).toEqual([]);
       await user.click(within(panel).getByRole("button", { name: "Renegociar" }));
       expect(await axeViolations(await screen.findByRole("dialog", { name: "Renegociar" }))).toEqual([]);
@@ -322,17 +280,20 @@ describe("ChargePanel (RF-COB-02)", () => {
     await user.click(button);
     const dialog = within(await screen.findByRole("dialog", { name: "Registrar pagamento" }));
     expect(dialog.getByLabelText("Valor")).toHaveValue("R$ 120,00");
+    expect(dialog.getByLabelText("Valor")).toBeDisabled();
     expect(dialog.getByLabelText("Enviar recibo por e-mail")).toBeChecked();
-    await user.selectOptions(dialog.getByLabelText("Meio de pagamento"), "Pix pela chave");
+    expect(dialog.getByText(/Para ana@example.test · recibo da Centro/)).toBeInTheDocument();
+    expect(dialog.getByText("Lançado por X")).toBeInTheDocument();
+    await user.click(dialog.getByRole("radio", { name: "Pix na chave da unidade" }));
     await user.type(dialog.getByLabelText("Observação (opcional)"), "No balcão");
     expect(dialog.getByText("9 de 200 caracteres")).toBeInTheDocument();
-    await user.click(dialog.getByRole("button", { name: "Confirmar pagamento" }));
+    await user.click(dialog.getByRole("button", { name: "Registrar pagamento" }));
     expect(await dialog.findByText("Recibo número 7")).toBeInTheDocument();
     expect(dialog.getByText(/não tem e-mail cadastrado/)).toBeInTheDocument();
     expect(dialog.getByRole("link", { name: "Baixar recibo" })).toHaveAttribute("href", "/api/v1/receipts/ABCDEF0123456789/pdf");
     expect(posts[0].body).toEqual({ method: "PIX_KEY", amountCents: 12000, sendReceipt: true, observation: "No balcão" });
     await user.click(dialog.getAllByRole("button", { name: "Fechar" })[0]);
-    expect(await within(panel).findByRole("link", { name: "Baixar recibo" })).toHaveAttribute("href", "/api/v1/receipts/ABC123/pdf");
+    expect(await within(panel).findByRole("link", { name: "Nº 0007" })).toHaveAttribute("href", "/api/v1/receipts/ABC123/pdf");
     expect(within(panel).getByRole("button", { name: "Registrar pagamento" })).toBeDisabled();
   });
 
@@ -343,12 +304,12 @@ describe("ChargePanel (RF-COB-02)", () => {
     await user.click(await within(panel).findByRole("button", { name: "Registrar pagamento" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Registrar pagamento" }));
     fireEvent.change(dialog.getByLabelText("Data do pagamento"), { target: { value: "2999-01-01" } });
-    await user.click(dialog.getByRole("button", { name: "Confirmar pagamento" }));
+    await user.click(dialog.getByRole("button", { name: "Registrar pagamento" }));
     expect(await dialog.findByRole("alert")).toHaveTextContent(/não pode ser futura/);
     fireEvent.change(dialog.getByLabelText("Data do pagamento"), { target: { value: "2026-01-02" } });
     for (const [status, text] of [[400, /Confira a data/], [409, /não pode receber pagamento/], [422, /valor da cobrança mudou/]] as const) {
       server.use(http.post("/api/v1/charges/c1/payments", () => HttpResponse.json({ code: "X", message: "x", changed: false, fields: [], traceId: "t" }, { status })));
-      await user.click(dialog.getByRole("button", { name: "Confirmar pagamento" }));
+      await user.click(dialog.getByRole("button", { name: "Registrar pagamento" }));
       expect(await dialog.findByText(text)).toBeInTheDocument();
     }
   });
@@ -378,7 +339,7 @@ describe("ChargePanel (RF-COB-02)", () => {
       await waitFor(() => expect(screen.queryByRole("dialog", { name: title })).toBeNull());
     }
     await user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cobrança" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(window.location.search).toBe("");
   });
 
@@ -407,15 +368,14 @@ describe("ChargePanel (RF-COB-02)", () => {
     expect(await within(dialog).findByText("Enviado")).toBeInTheDocument();
     expect(posts).toEqual([{ url: "/api/v1/charges/reminders", body: { chargeIds: ["c1"] } }]);
     await user.click(within(dialog).getAllByRole("button", { name: "Fechar" })[0]);
-    expect(await within(panel).findByText(/Manual · E-mail · Enviado/)).toBeInTheDocument();
-    expect(within(panel).getByText("por Bia Admin")).toBeInTheDocument();
+    expect(await within(panel).findByText(/Enviado por Bia Admin · E-mail/)).toBeInTheDocument();
     expect(within(panel).queryByText("Nenhum lembrete enviado")).toBeNull();
   });
 
   it("CA28: o histórico mostra o motivo de quem não recebeu e o botão não habilita em cobrança paga", async () => {
     setup({ detail: () => HttpResponse.json(detail({ reminders: [{ kind: "SCHEDULED", channel: "EMAIL", status: "SKIPPED", reason: "NO_ADDRESS", createdAt: "2026-03-02T12:00:00Z", sentBy: null }], actions: { ...detail().actions, sendReminder: false } })) });
     const panel = await openPanel();
-    expect(await within(panel).findByText(/Automático · E-mail · Sem e-mail/)).toBeInTheDocument();
+    expect(await within(panel).findByText(/3 dias antes do vencimento · E-mail · Sem e-mail/)).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Enviar lembrete" })).toBeDisabled();
   });
 

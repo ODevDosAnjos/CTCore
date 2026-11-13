@@ -289,6 +289,9 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     server.use(
       http.get("/api/v1/students", () => HttpResponse.json({ items: [{ id: "s1", name: "Maria Lima" }], page: 1, size: 25, total: 1 })),
       http.get("/api/v1/students/s1/enrollment", () => HttpResponse.json(enrollmentOf([modalityRow()]))),
+      http.get("/api/v1/students/:id/modalities/:row/charges/advance/preview", () =>
+        HttpResponse.json({ items: [{ referenceMonth: "2099-12-01", dueOn: "2099-12-05", amountCents: 20000 }], totalCents: 20000 }),
+      ),
       http.post("/api/v1/students/:id/modalities/:row/charges/advance", () =>
         HttpResponse.json([{ id: "c9", modalityRowId: "m1", type: "MONTHLY", unitId: "u1", referenceMonth: "2099-12-01", dueOn: "2099-12-05", toleranceDays: 0, amountCents: 20000 }], { status: 201 }),
       ),
@@ -298,10 +301,10 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     const before = calls.length;
     await user.click(screen.getByRole("button", { name: "Gerar próximas mensalidades" }));
     await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "li");
-    await user.selectOptions(await screen.findByLabelText("Aluno"), "s1");
+    await user.click(await screen.findByRole("button", { name: "Maria Lima" }));
     await user.selectOptions(await screen.findByLabelText("Modalidade"), "m1");
-    await user.type(screen.getByLabelText("Quantidade de mensalidades (1 a 12)"), "1");
-    await user.click(screen.getByRole("button", { name: "Gerar mensalidades" }));
+    await user.click(screen.getByRole("radio", { name: "1" }));
+    await user.click(await screen.findByRole("button", { name: "Gerar 1 mensalidade" }));
     expect(await screen.findByText(/1 mensalidade criada/)).toBeInTheDocument();
     await waitFor(() => expect(calls.length).toBeGreaterThan(before));
   });

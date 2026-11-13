@@ -36,7 +36,7 @@ Gerar, acompanhar e receber o que os alunos devem à unidade. Os meios online e 
 - **RN-COB-03.** Valor = plano menos o benefício válido na data da geração, nunca abaixo de zero. A composição fica guardada e não muda se o plano ou o benefício mudarem depois.
 - **RN-COB-04.** Não geram mensalidade: modalidade com bolsa de 100%, modalidade bloqueada, encerrada ou com encerramento solicitado. Valor final zero (bolsa de 100% ou desconto fixo igual ou maior que o plano) também não gera mensalidade, e o aluno continua ativo.
 - **RN-COB-05.** A geração é idempotente: nunca existem duas mensalidades da mesma modalidade da matrícula para o mesmo mês de referência.
-- **RN-COB-06.** Pagamento adiantado: o Administrador gera as próximas N mensalidades de uma modalidade. A geração automática pula meses já gerados.
+- **RN-COB-06.** Pagamento adiantado: o Administrador gera as próximas N mensalidades de uma modalidade. A geração automática pula meses já gerados. Antes de gerar, o painel mostra a prévia (referência, vencimento e valor de cada mensalidade e o total), calculada pelo servidor sem gravar nada.
 - **RN-COB-07.** Não existem juros, multa nem pagamento parcial.
 
 ### Alterações
@@ -69,9 +69,9 @@ Gerar, acompanhar e receber o que os alunos devem à unidade. Os meios online e 
 ## Requisitos
 
 - **RF-COB-01.** Financeiro › Cobranças: subtítulo com a unidade (ou "Todas as unidades") e a regra "sem juros, multa ou pagamento parcial"; botões Recebimentos do dia, Prévia da geração, Exportar CSV ("Em breve" até a #151) e Nova cobrança; abas Todas, Em atraso, Vence hoje, Em conferência e Pagas no mês, cada uma com a contagem do alcance (a aba Todas conta tudo); colunas aluno com foto, referência (modalidade, mês e tipo), valor final, vencimento, situação (cor e texto, com os dias de atraso quando em atraso) e meio com o valor pago quando paga; filtros por período (mês), situação, tipo, modalidade e turma; rodapé com os totais do que está filtrado, incluindo Pago (pagas) e Em aberto (pendente, vence hoje, em atraso e em conferência; cancelada, renegociada e estornada não somam). "Gerar próximas mensalidades" fica na Prévia da geração.
-- **RF-COB-02.** Painel da cobrança: composição, vencimento, histórico de lembretes, pagamentos e recibos; ações Registrar pagamento, Enviar lembrete, Renegociar, Cancelar, Estornar (quando paga), Ver aluno. Enviar lembrete (Sprint 09) e Estornar (Sprint 11) aparecem desabilitados, com o motivo escrito, até os itens que os entregam.
+- **RF-COB-02.** Painel da cobrança: composição (que não muda depois de gerada), vencimento, data em que foi gerada, histórico de lembretes, pagamentos e recibos; ações Registrar pagamento, Enviar lembrete, Renegociar, Cancelar, Estornar (quando paga), Ver aluno. Enviar lembrete (Sprint 09) e Estornar (Sprint 11) aparecem desabilitados, com o motivo escrito, até os itens que os entregam.
 - **RF-COB-03.** Prévia da geração: próximas mensalidades por dia de vencimento, total previsto, diferença para o mês anterior, quem não será cobrado e por quê. Trocar o vencimento vale só para aquela mensalidade e dentro do mês de referência; cancelar grava a cobrança do mês como cancelada, com motivo, e ela não é recriada.
-- **RF-COB-04.** Registrar pagamento: meio, data, valor (igual ao da cobrança), observação, enviar recibo por e-mail.
+- **RF-COB-04.** Registrar pagamento: meio, data, valor (igual ao da cobrança), observação, enviar recibo por e-mail (mostra o e-mail do pagador; sem e-mail cadastrado o recibo não é enviado) e quem está lançando.
 - **RF-COB-05.** Em conferência: lista de comprovantes com imagem, aluno e valor; Confirmar ou Recusar.
 - **RF-COB-06.** Em atraso: dias de atraso, valor, último lembrete, dias até o bloqueio; seleção múltipla e "Enviar lembrete" (e-mail, e WhatsApp com mensagem pronta por aluno).
 - **RF-COB-07.** Nova cobrança avulsa e "Gerar próximas mensalidades" (adiantado).

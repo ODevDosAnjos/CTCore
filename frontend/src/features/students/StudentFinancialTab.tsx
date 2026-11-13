@@ -113,7 +113,7 @@ export function StudentFinancialTab({ charges, onChanged, onCharge }: { charges:
       {paying && (
         <RegisterPaymentDialog
           chargeId={paying.id}
-          label={reference(paying)}
+          charge={{ student: paying.student.name, label: reference(paying), dueOn: paying.dueOn, unitName: paying.unit.name }}
           amountCents={paying.amountCents}
           onPaid={() => setPaid(true)}
           onClose={() => {

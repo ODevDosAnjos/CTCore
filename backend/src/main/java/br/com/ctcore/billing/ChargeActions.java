@@ -43,7 +43,7 @@ public class ChargeActions {
 
     public record Composition(Named plan, long planCents, String benefitType, long benefitCents, long amountCents) {}
 
-    public record Payer(UUID id, String name, String kind) {}
+    public record Payer(UUID id, String name, String kind, String email) {}
 
     public record Receipt(int number, String code) {}
 
@@ -55,7 +55,7 @@ public class ChargeActions {
     public record ReminderView(String kind, String channel, String status, String reason, OffsetDateTime createdAt, Named sentBy) {}
 
 
-    public record Detail(Charges.Row charge, int toleranceDays, Composition composition, Payer payer, Ref origin, List<Ref> replacedBy, String reason, OffsetDateTime canceledAt,
+    public record Detail(Charges.Row charge, LocalDate createdOn, int toleranceDays, Composition composition, Payer payer, Ref origin, List<Ref> replacedBy, String reason, OffsetDateTime canceledAt,
             Named canceledBy, List<PaymentView> payments, List<ReminderView> reminders, Actions actions) {}
 
     public record RenegotiateInput(List<UUID> chargeIds, Long amountCents, String firstDueOn, Integer installments, String reason) {}
@@ -63,7 +63,8 @@ public class ChargeActions {
     private record Locked(UUID id, UUID unit, UUID student, UUID payer, UUID modalityRow, LocalDate reference, LocalDate dueOn, long amount, String status) {}
 
     private record Extra(int tolerance, String planName, UUID planId, long planCents, String benefitType, long benefitCents, UUID payerGuardian, String payerName,
-            UUID origin, String reason, OffsetDateTime canceledAt, UUID canceledBy, String canceledByName, String status, UUID renegotiation) {}
+            UUID origin, String reason, OffsetDateTime canceledAt, UUID canceledBy, String canceledByName, String status, UUID renegotiation, LocalDate createdOn,
+            String payerEmail) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -116,13 +117,15 @@ public class ChargeActions {
     private Detail read(UUID org, UUID id) {
         Charges.Row row = charges.one(org, id);
         Extra x = jdbc.sql("select c.tolerance_days, pl.name, c.plan_id, c.plan_cents, b.type, c.benefit_cents, c.payer_guardian_id, g.name, c.origin_charge_id, c.reason, "
-                + "c.canceled_at, c.canceled_by_account_id, a.name, c.status, c.renegotiation_id from charge c left join plan pl on pl.id = c.plan_id "
-                + "left join benefit b on b.id = c.benefit_id left join guardian g on g.id = c.payer_guardian_id left join account a on a.id = c.canceled_by_account_id "
+                + "c.canceled_at, c.canceled_by_account_id, a.name, c.status, c.renegotiation_id, (c.created_at at time zone u.timezone)::date, coalesce(pa.email, s.email) "
+                + "from charge c join unit u on u.organization_id = c.organization_id and u.id = c.unit_id join student s on s.organization_id = c.organization_id and s.id = c.student_id "
+                + "left join plan pl on pl.id = c.plan_id "
+                + "left join benefit b on b.id = c.benefit_id left join guardian g on g.id = c.payer_guardian_id left join account pa on pa.id = g.account_id left join account a on a.id = c.canceled_by_account_id "
                 + "where c.organization_id = :org and c.id = :id").param("org", org).param("id", id)
                 .query((rs, n) -> new Extra(rs.getInt(1), rs.getString(2), rs.getObject(3, UUID.class), rs.getLong(4), rs.getString(5), rs.getLong(6),
                         rs.getObject(7, UUID.class), rs.getString(8), rs.getObject(9, UUID.class), rs.getString(10), rs.getObject(11, OffsetDateTime.class),
-                        rs.getObject(12, UUID.class), rs.getString(13), rs.getString(14), rs.getObject(15, UUID.class))).single();
-        Payer payer = x.payerGuardian() == null ? new Payer(row.student().id(), row.student().name(), "STUDENT") : new Payer(x.payerGuardian(), x.payerName(), "GUARDIAN");
+                        rs.getObject(12, UUID.class), rs.getString(13), rs.getString(14), rs.getObject(15, UUID.class), rs.getObject(16, LocalDate.class), rs.getString(17))).single();
+        Payer payer = x.payerGuardian() == null ? new Payer(row.student().id(), row.student().name(), "STUDENT", x.payerEmail()) : new Payer(x.payerGuardian(), x.payerName(), "GUARDIAN", x.payerEmail());
         String refSql = "select id, type, reference_month, due_on, amount_cents, status from charge where organization_id = :org and ";
         Ref origin = x.origin() == null ? null : jdbc.sql(refSql + "id = :id").param("org", org).param("id", x.origin()).query(ChargeActions::ref).optional().orElse(null);
         // ponytail: uma parcela renegociada de novo perde o vínculo do grupo anterior (um só renegotiation_id); a origem segue pela cobrança de origem.
@@ -140,7 +143,7 @@ public class ChargeActions {
                 .param("org", org).param("id", id).query((rs, n) -> new ReminderView(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getObject(5, OffsetDateTime.class),
                         rs.getObject(6, UUID.class) == null ? null : new Named(rs.getObject(6, UUID.class), rs.getString(7)))).list();
         boolean open = "OPEN".equals(x.status());
-        return new Detail(row, x.tolerance(), new Composition(x.planId() == null ? null : new Named(x.planId(), x.planName()), x.planCents(), x.benefitType(), x.benefitCents(),
+        return new Detail(row, x.createdOn(), x.tolerance(), new Composition(x.planId() == null ? null : new Named(x.planId(), x.planName()), x.planCents(), x.benefitType(), x.benefitCents(),
                 row.amountCents()), payer, origin, replaced, x.reason(), x.canceledAt(),
                 x.canceledBy() == null ? null : new Named(x.canceledBy(), x.canceledByName()), payments, reminders, new Actions(open, open, open, open, false));
     }

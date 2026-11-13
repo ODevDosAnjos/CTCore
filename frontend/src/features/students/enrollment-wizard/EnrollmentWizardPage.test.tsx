@@ -318,8 +318,8 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     expect(await axeViolations(document.body)).toEqual([]);
     await user.click(await card.findByRole("button", { name: "Registrar pagamento" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Registrar pagamento" }));
-    await user.selectOptions(dialog.getByLabelText("Meio de pagamento"), "Pix pela chave");
-    await user.click(dialog.getByRole("button", { name: "Confirmar pagamento" }));
+    await user.click(dialog.getByRole("radio", { name: "Pix na chave da unidade" }));
+    await user.click(dialog.getByRole("button", { name: "Registrar pagamento" }));
     expect(await dialog.findByText("Recibo número 1")).toBeInTheDocument();
     const code = dialog.getByText(/Código de conferência: /).textContent!.split(": ")[1];
     expect(code).toHaveLength(16);
@@ -337,11 +337,12 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
     await user.click(await screen.findByRole("button", { name: "Registrar pagamento" }));
     server.use(http.post("/api/v1/charges/:id/payments", () => HttpResponse.json({ code: "CHARGE_NOT_PAYABLE", message: "x", changed: false, fields: [], traceId: "t" }, { status: 409 })));
-    await user.click(await screen.findByRole("button", { name: "Confirmar pagamento" }));
+    const dlg = within(await screen.findByRole("dialog", { name: "Registrar pagamento" }));
+    await user.click(dlg.getByRole("button", { name: "Registrar pagamento" }));
     expect(await screen.findByText(/não pode receber pagamento/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Confirmar pagamento" })).toBeEnabled();
+    expect(dlg.getByRole("button", { name: "Registrar pagamento" })).toBeEnabled();
     server.use(http.post("/api/v1/charges/:id/payments", () => HttpResponse.json({ code: "INTERNAL_ERROR", message: "x", changed: false, fields: [], traceId: "t" }, { status: 500 })));
-    await user.click(screen.getByRole("button", { name: "Confirmar pagamento" }));
+    await user.click(dlg.getByRole("button", { name: "Registrar pagamento" }));
     expect(await screen.findByText(/Não foi possível registrar o pagamento/)).toBeInTheDocument();
   });
 

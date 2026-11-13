@@ -248,6 +248,28 @@ public class MonthlyGeneration {
         });
     }
 
+    public record AdvanceLine(LocalDate referenceMonth, LocalDate dueOn, long amountCents) {}
+
+    public record AdvancePreview(List<AdvanceLine> items, long totalCents) {}
+
+    /** RN-COB-06: o que {@link #advance} gerará para {@code count} meses, sem gravar nem auditar; mesmas validações, 404 e 422. */
+    public AdvancePreview advancePreview(AccountPrincipal who, UUID studentId, UUID rowId, Integer count) {
+        if (permissions.effective(who).get(Permission.COLLECTIONS) == Access.NONE) throw new AccessDeniedException("Permission denied");
+        if (count == null || count < 1 || count > MAX_ADVANCE) throw new ApiValidationException("count", "de 1 a " + MAX_ADVANCE);
+        return transactions.execute(() -> {
+            var row = jdbc.sql("select unit_id, case when " + Charges.closing("em") + " then 'CLOSING' else status end from enrollment_modality em where id = :id and student_id = :student and organization_id = :org")
+                    .param("id", rowId).param("student", studentId).param("org", who.organizationId())
+                    .query((rs, n) -> new Object[] {rs.getObject(1, UUID.class), rs.getString(2)}).optional().orElseThrow(() -> new ApiStatusException(ErrorCode.NOT_FOUND));
+            UUID unit = (UUID) row[0];
+            if (permissions.grant(who, Permission.COLLECTIONS, unit) != Access.FULL) throw new ApiStatusException(ErrorCode.NOT_FOUND);
+            if (!"ACTIVE".equals(row[1])) throw new ApiStatusException(ErrorCode.UNPROCESSABLE);
+            Plan plan = plan(who.organizationId(), unit, today(unit), LocalDate.MAX, count, rowId, false);
+            if (plan.items().get(0).value().amountCents() == 0) throw new ApiStatusException(ErrorCode.UNPROCESSABLE);
+            List<AdvanceLine> lines = plan.items().stream().filter(p -> p.value().amountCents() > 0).map(p -> new AdvanceLine(p.ref(), p.dueOn(), p.value().amountCents())).toList();
+            return new AdvancePreview(lines, lines.stream().mapToLong(AdvanceLine::amountCents).sum());
+        });
+    }
+
     /** A primeira mensalidade ainda não gerada da modalidade, com a linha travada; 404 e 422 como em {@link #advance}. */
     private record Next(UUID unit, Plan plan) {
         Planned item() {

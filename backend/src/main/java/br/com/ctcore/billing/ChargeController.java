@@ -90,6 +90,13 @@ class ChargeController {
         return generation.advance(who, id, modalityRowId, input, request.getRemoteAddr());
     }
 
+    /** RN-COB-06: prévia das mensalidades adiantadas, somente leitura. */
+    @GetMapping("/api/v1/students/{id}/modalities/{modalityRowId}/charges/advance/preview")
+    MonthlyGeneration.AdvancePreview advancePreview(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, @PathVariable UUID modalityRowId,
+            @RequestParam(required = false) Integer count) {
+        return generation.advancePreview(who, id, modalityRowId, count);
+    }
+
     /** RN-COB-11: cobrança avulsa; 201 ao criar, 200 na repetição do mesmo requestId. */
     @PostMapping("/api/v1/students/{id}/charges")
     ResponseEntity<Charges.Row> createOneOff(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, @RequestBody OneOffCharges.Input input,

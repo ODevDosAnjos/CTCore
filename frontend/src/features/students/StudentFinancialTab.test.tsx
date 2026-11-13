@@ -95,7 +95,7 @@ describe("aba Financeiro da ficha (RF-COB-02, R14)", () => {
     const dialog = await openTab(user);
     await user.click(await within(dialog).findByRole("button", { name: /Registrar pagamento: Jiu-Jitsu · 03\/2026/ }));
     const pay = await screen.findByRole("dialog", { name: "Registrar pagamento" });
-    await user.click(within(pay).getByRole("button", { name: "Confirmar pagamento" }));
+    await user.click(within(pay).getByRole("button", { name: "Registrar pagamento" }));
     await within(pay).findByRole("status");
     await user.click(within(pay).getAllByRole("button", { name: "Fechar" }).at(-1)!);
     await waitFor(() => expect(queries).toHaveLength(2));
@@ -106,7 +106,7 @@ describe("aba Financeiro da ficha (RF-COB-02, R14)", () => {
     setup({ charges: () => HttpResponse.json(list([charge({ status: "IN_REVIEW" })])) });
     const dialog = await openTab(user);
     await user.click(await within(dialog).findByRole("button", { name: /Abrir: Jiu-Jitsu · 03\/2026/ }));
-    const panelCharge = await screen.findByRole("dialog", { name: "Cobrança" });
+    const panelCharge = await screen.findByRole("dialog", { name: /Jiu-Jitsu · 03\/2026/i });
     expect(within(panelCharge).queryByRole("link", { name: "Ver aluno" })).toBeNull();
   });
 

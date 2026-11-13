@@ -1,8 +1,9 @@
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CHAR_COUNTER_FIELD, CharCounter } from "@/components/CharCounter";
 import { MoneyField } from "@/components/fields/fields";
-import { Input } from "@/components/ui/field";
+import { DateField } from "@/components/ui/date-field";
+import { Field, Input } from "@/components/ui/field";
+import { PersonRow } from "@/components/ui/person-row";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { useStudentModalities } from "@/features/benefits/GrantBenefitDialog";
 import { ModalityDialog, PickSelect } from "@/features/students/ModalityPickers";
@@ -17,7 +18,6 @@ const MAX_CENTS = 10_000_000;
 export function OneOffChargeDialog({ onClose, onDone, student }: { onClose: () => void; onDone: () => void; student?: { id: string; name: string } }) {
   const { t } = useTranslation();
   const k = "charges.creation.";
-  const descriptionId = useId();
   const requestId = useRef(crypto.randomUUID());
   const [query, setQuery] = useState("");
   const [studentId, setStudentId] = useState(student?.id ?? "");
@@ -34,7 +34,7 @@ export function OneOffChargeDialog({ onClose, onDone, student }: { onClose: () =
   return (
     <ModalityDialog
       title={t(`${k}title`)}
-      effect={t(`${k}effect`)}
+      cancelLabel={t("common.cancel")}
       state="ready"
       size="sm"
       submitLabel={t(`${k}submit`)}
@@ -47,7 +47,12 @@ export function OneOffChargeDialog({ onClose, onDone, student }: { onClose: () =
       {(errors) => (
         <>
           {student ? (
-            <p className="text-sm font-medium">{student.name}</p>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">{t(`${k}student`)}</span>
+              <div className="rounded-md border border-input bg-card p-2">
+                <PersonRow name={student.name} size="sm" />
+              </div>
+            </div>
           ) : (
             <StudentSearch
             query={query}
@@ -73,20 +78,19 @@ export function OneOffChargeDialog({ onClose, onDone, student }: { onClose: () =
             <PickSelect label={t(`${k}unit`)} value={chosenUnit} onChange={setChosenUnit} options={units} error={errors.unitId} />
           )}
           {studentId && enrollment.status === "ready" && units.length === 1 && <p className="text-sm">{t(`${k}unitFixed`, { unit: units[0].name })}</p>}
-          <div>
-            <label htmlFor={descriptionId} className="block text-sm font-medium">
-              {t(`${k}description`)}
-            </label>
-            <CharCounter id={descriptionId} value={description} max={80} onChange={setDescription} rows={2} aria-invalid={errors.description ? true : undefined} className={CHAR_COUNTER_FIELD} />
+          <Field label={t(`${k}description`)} required hint={t(`${k}descriptionCount`, { count: description.length, max: 80 })} error={errors.description}>
+            {(c) => <Input {...c} value={description} maxLength={80} onChange={(e) => setDescription(e.target.value)} />}
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <MoneyField label={t(`${k}amount`)} required placeholder={t(`${k}amountPlaceholder`)} onChange={setAmount} />
+              {errors.amountCents && <p className="text-xs text-danger-foreground">{errors.amountCents}</p>}
+            </div>
+            <Field label={t(`${k}dueOn`)} required error={errors.dueOn}>
+              {(c) => <DateField {...c} iconLeft min={todayIso()} value={dueOn} onChange={(e) => setDueOn(e.target.value)} />}
+            </Field>
           </div>
-          {errors.description && <p className="text-sm text-danger-foreground">{errors.description}</p>}
-          <MoneyField label={t(`${k}amount`)} onChange={setAmount} />
-          {errors.amountCents && <p className="text-sm text-danger-foreground">{errors.amountCents}</p>}
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            {t(`${k}dueOn`)}
-            <Input type="date" min={todayIso()} value={dueOn} onChange={(e) => setDueOn(e.target.value)} aria-invalid={errors.dueOn ? true : undefined} />
-          </label>
-          {errors.dueOn && <p className="text-sm text-danger-foreground">{errors.dueOn}</p>}
+          <p className="text-xs text-muted-foreground">{t(`${k}note`)}</p>
         </>
       )}
     </ModalityDialog>

@@ -102,7 +102,7 @@ export function StepDone({
       {paying && (
         <RegisterPaymentDialog
           chargeId={paying.id}
-          label={label(paying)}
+          charge={{ student: name, label: label(paying), dueOn: paying.dueOn }}
           amountCents={paying.amountCents}
           onClose={() => setPaying(undefined)}
           onPaid={(p) => setPaid((old) => ({ ...old, [paying.id]: p.receipt.number }))}

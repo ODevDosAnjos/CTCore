@@ -182,7 +182,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 475 | Turmas: lista, painel, editar, desativar e titular inativo no visual do canvas | issue #475 | Sprint 10.5 | #456, #457, #458, #459, #460, #461, #462, #463, #452 | agente | feito |
 | 569 | Técnica: construir e verificar rodam o teste visual do CI contra as referências commitadas antes do push | issue #569 | Sprint 10.5 | — | agente | feito |
 | 476 | Cobranças: lista, filtros, celular e estados no visual do canvas | issue #476 | Sprint 10.5 | #456, #457, #458, #459, #464, #450, #449 | agente | feito |
-| 477 | Painel da cobrança e janelas: registrar, renegociar, cancelar, nova avulsa e gerar próximas no visual do canvas | issue #477 | Sprint 10.5 | #460, #461, #463, #451, #450, #449 | agente | a fazer |
+| 477 | Painel da cobrança e janelas: registrar, renegociar, cancelar, nova avulsa e gerar próximas no visual do canvas | issue #477 | Sprint 10.5 | #460, #461, #463, #451, #450, #449 | agente | feito |
 | 478 | Em atraso, conferência de comprovantes e comprovante de várias cobranças no visual do canvas | issue #478 | Sprint 10.5 | #458, #459, #460, #461, #450, #449 | agente | a fazer |
 | 479 | Recebimentos do dia e Prévia da geração no visual do canvas | issue #479 | Sprint 10.5 | #458, #459, #464, #449 | agente | a fazer |
 | 480 | Planos e benefícios: resumo, tabela de planos, editar, desativar e reativar no visual do canvas | issue #480 | Sprint 10.5 | #458, #459, #460, #461, #451 | agente | a fazer |

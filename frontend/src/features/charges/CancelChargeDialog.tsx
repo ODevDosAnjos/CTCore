@@ -4,6 +4,7 @@ import { Modal } from "@/components/Modal";
 import { ReasonField } from "@/components/ReasonField";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
+import { SummaryBox } from "@/components/ui/summary-box";
 import { ApiError } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ChargeRow } from "./types";
@@ -45,7 +46,8 @@ export function CancelChargeDialog({ charge, onClose, onDone }: { charge: Charge
   }
 
   const what = charge.description ?? [charge.modality?.name, charge.referenceMonth && formatDate(charge.referenceMonth).slice(3)].filter(Boolean).join(" · ");
-  const line = [charge.student.name, what, formatCurrency(charge.amountCents), t("charges.cancel.due", { due: formatDate(charge.dueOn) })].filter(Boolean).join(" · ");
+  const kind = charge.type === "ONE_OFF" ? t("charges.cancel.oneOff") : "";
+  const line = [charge.student.name, what, kind, formatCurrency(charge.amountCents), t("charges.cancel.due", { due: formatDate(charge.dueOn) })].filter(Boolean).join(" · ");
 
   return (
     <Modal
@@ -65,11 +67,8 @@ export function CancelChargeDialog({ charge, onClose, onDone }: { charge: Charge
       }
     >
       <form id={formId} onSubmit={submit} noValidate className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1 rounded-md bg-surface-soft p-3 text-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("charges.cancel.block")}</span>
-          <span>{line}</span>
-        </div>
         {err.form && <Banner tone="danger">{err.form}</Banner>}
+        <SummaryBox label={t("charges.cancel.block")} items={[line]} />
         <ReasonField label={t("charges.actions.reason")} value={reason} onChange={setReason} note={t("charges.cancel.note")} error={err.fields.reason} />
       </form>
     </Modal>

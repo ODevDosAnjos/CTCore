@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { enrollmentOf, modalityRow } from "@/features/students/enrollmentFixtures";
@@ -37,11 +37,11 @@ function setup(opts: { post?: () => Response | Promise<Response>; modalities?: R
 
 const fill = async (user: ReturnType<typeof userEvent.setup>, description = "Kimono A2") => {
   await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "mar");
-  await user.selectOptions(await screen.findByLabelText("Aluno"), "s1");
+  await user.click(await screen.findByRole("button", { name: "Maria Lima" }));
   await screen.findByText("Unidade: Centro");
-  await user.type(screen.getByLabelText("Descrição"), description);
-  await user.type(screen.getByLabelText("Valor"), "25000");
-  fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: DUE } });
+  await user.type(screen.getByLabelText(/Descrição/), description);
+  await user.type(screen.getByLabelText(/Valor/), "25000");
+  fireEvent.change(screen.getByLabelText(/Vencimento/), { target: { value: DUE } });
 };
 
 describe("janela Nova cobrança avulsa (RN-COB-11, CA11, CA12, CA15)", () => {
@@ -66,14 +66,48 @@ describe("janela Nova cobrança avulsa (RN-COB-11, CA11, CA12, CA15)", () => {
     expect(sent[0].body.requestId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it("CA16: aberta pela ficha o aluno já vem confirmado, sem busca, e a nota do canvas aparece", async () => {
+    setup();
+    cleanup();
+    render(
+      <ThemeProvider>
+        <OneOffChargeDialog student={{ id: "s1", name: "Maria Lima" }} onClose={onClose} onDone={onDone} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText("Maria Lima")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscar aluno pelo nome (mínimo 2 letras)")).toBeNull();
+    expect(screen.getByText("Avulsa não conta para o bloqueio por atraso.")).toBeInTheDocument();
+    expect(screen.getByText("0 de 80 caracteres · aparece no portal e no recibo")).toBeInTheDocument();
+    expect(screen.queryByText(/Cria uma cobrança única/)).toBeNull();
+    await screen.findByText("Unidade: Centro");
+  });
+
+  it("CA15: valor zero ou acima de R$ 100.000,00 deixa Criar cobrança desabilitado", async () => {
+    const user = userEvent.setup();
+    setup();
+    await fill(user);
+    const submit = screen.getByRole("button", { name: "Criar cobrança" });
+    expect(submit).toBeEnabled();
+    const value = screen.getByLabelText(/Valor/);
+    await user.clear(value);
+    await user.type(value, "0");
+    expect(submit).toBeDisabled();
+    await user.clear(value);
+    await user.type(value, "10000001");
+    expect(submit).toBeDisabled();
+    await user.clear(value);
+    await user.type(value, "10000000");
+    expect(submit).toBeEnabled();
+  });
+
   it("com mais de uma unidade pede a escolha; sem escolher não envia", async () => {
     const user = userEvent.setup();
     setup({ modalities: [modalityRow(), modalityRow({ id: "m2", unit: { id: "u2", name: "Norte" } })] });
     await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "mar");
-    await user.selectOptions(await screen.findByLabelText("Aluno"), "s1");
-    await user.type(await screen.findByLabelText("Descrição"), "Exame");
-    await user.type(screen.getByLabelText("Valor"), "5000");
-    fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: DUE } });
+    await user.click(await screen.findByRole("button", { name: "Maria Lima" }));
+    await user.type(await screen.findByLabelText(/Descrição/), "Exame");
+    await user.type(screen.getByLabelText(/Valor/), "5000");
+    fireEvent.change(screen.getByLabelText(/Vencimento/), { target: { value: DUE } });
     expect(screen.getByRole("button", { name: "Criar cobrança" })).toBeDisabled();
     await user.selectOptions(screen.getByLabelText("Unidade"), "u2");
     await user.click(screen.getByRole("button", { name: "Criar cobrança" }));
@@ -84,9 +118,9 @@ describe("janela Nova cobrança avulsa (RN-COB-11, CA11, CA12, CA15)", () => {
     const user = userEvent.setup();
     setup();
     await fill(user, "x".repeat(85));
-    expect(screen.getByLabelText("Descrição")).toHaveValue("x".repeat(80));
-    expect(screen.getByText("80/80")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: "2000-01-01" } });
+    expect(screen.getByLabelText(/Descrição/)).toHaveValue("x".repeat(80));
+    expect(screen.getByText("80 de 80 caracteres · aparece no portal e no recibo")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Vencimento/), { target: { value: "2000-01-01" } });
     expect(screen.getByRole("button", { name: "Criar cobrança" })).toBeDisabled();
   });
 
@@ -101,8 +135,8 @@ describe("janela Nova cobrança avulsa (RN-COB-11, CA11, CA12, CA15)", () => {
     await user.click(screen.getByRole("button", { name: "Criar cobrança" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(text);
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Descrição")).toHaveValue("Kimono A2");
-    expect(screen.getByLabelText("Valor")).toHaveValue("R$ 250,00");
+    expect(screen.getByLabelText(/Descrição/)).toHaveValue("Kimono A2");
+    expect(screen.getByLabelText(/Valor/)).toHaveValue("R$ 250,00");
   });
 
   it("erro 400 do servidor aparece no campo", async () => {
@@ -133,10 +167,12 @@ describe("janela Nova cobrança avulsa (RN-COB-11, CA11, CA12, CA15)", () => {
     const user = userEvent.setup();
     setup({ modalities: [] });
     await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "mar");
-    await user.selectOptions(await screen.findByLabelText("Aluno"), "s1");
+    await user.click(await screen.findByRole("button", { name: "Maria Lima" }));
     expect(await screen.findByText("Este aluno não tem matrícula em nenhuma unidade.")).toBeInTheDocument();
     server.use(http.get("/api/v1/students/:id/enrollment", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 })));
-    await user.selectOptions(screen.getByLabelText("Aluno"), "s2");
+    await user.click(screen.getByRole("button", { name: /Trocar/ }));
+    await user.type(screen.getByLabelText("Buscar aluno pelo nome (mínimo 2 letras)"), "ma");
+    await user.click(await screen.findByRole("button", { name: "Mariana Costa" }));
     expect(await screen.findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
 

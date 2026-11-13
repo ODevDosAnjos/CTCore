@@ -39,19 +39,19 @@ test("@critical Registrar pagamento no balcão", async ({ page }) => {
 
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page, `/cobrancas?cobranca=${done.charges[0].id}`);
-  const panel = page.getByRole("dialog", { name: "Cobrança" });
+  const panel = page.getByRole("dialog").first();
   await panel.getByRole("button", { name: "Registrar pagamento" }).click();
   const dialog = page.getByRole("dialog", { name: "Registrar pagamento" });
   await expect(dialog.getByLabel("Valor")).toHaveValue("R$ 200,00");
-  await dialog.getByLabel("Meio de pagamento").selectOption({ label: "Pix pela chave" });
+  await dialog.getByRole("radio", { name: "Pix na chave da unidade" }).check();
   await dialog.getByLabel("Observação (opcional)").fill("Pago no balcão");
-  await dialog.getByRole("button", { name: "Confirmar pagamento" }).click();
+  await dialog.getByRole("button", { name: "Registrar pagamento" }).click();
   await expect(dialog.getByText("Recibo número 1")).toBeVisible();
   const code = (await dialog.getByText(/Código de conferência: [A-Z0-9]{16}/).innerText()).split(": ")[1];
   await expect(dialog.getByRole("link", { name: "Baixar recibo" })).toHaveAttribute("href", `/api/v1/receipts/${code}/pdf`);
   await dialog.getByRole("button", { name: "Fechar" }).first().click();
 
-  await expect(panel.getByRole("link", { name: "Baixar recibo" })).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Nº 0001" })).toHaveAttribute("href", `/api/v1/receipts/${code}/pdf`);
   await expect(panel.getByRole("button", { name: "Registrar pagamento" })).toBeDisabled();
   await expect(panel.getByText("Pago no balcão")).toBeVisible();
 

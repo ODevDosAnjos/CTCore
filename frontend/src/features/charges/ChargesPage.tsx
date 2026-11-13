@@ -92,7 +92,7 @@ function Content() {
       key: "actions",
       label: t("charges.columns.actions"),
       hideLabel: true,
-      render: (r) => <ChargeRowMenu label={t("charges.menu.label", { student: r.student.name, reference: reference(r) })} onOpen={() => open(r.id)} />,
+      render: (r) => <ChargeRowMenu row={r} label={t("charges.menu.label", { student: r.student.name, reference: reference(r) })} onOpen={() => open(r.id)} onDone={reload} />,
     },
   ];
   // Rodapé: "N de T cobranças", a soma do filtro e Pago / Em aberto (todos do filtro, não só da página). No celular, só na aba Em atraso.

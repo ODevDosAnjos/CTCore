@@ -1245,6 +1245,26 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { description: 'Modalidade encerrada ou de valor final zero (UNPROCESSABLE). Nada é gravado.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /students/{id}/modalities/{modalityRowId}/charges/advance/preview:
+    get:
+      summary: Prévia das próximas N mensalidades de uma modalidade (RN-COB-06). `COLLECTIONS` completo na unidade da modalidade.
+      description: |
+        Somente leitura: calcula no servidor o que `advance` geraria para o mesmo `count` (plano, benefício, vencimento e meses já gerados), sem gravar nem auditar.
+        Devolve só valores e datas. Modalidade encerrada ou de valor final zero: 422.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: modalityRowId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: count, in: query, required: true, schema: { type: integer, minimum: 1, maximum: 12 } }
+      responses:
+        '200':
+          description: As mensalidades que seriam criadas e o total.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdvancePreview' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: 'Modalidade encerrada ou de valor final zero (UNPROCESSABLE).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /students/{id}/modalities/{modalityRowId}/next-charge:
     patch:
       summary: Troca o vencimento da próxima mensalidade ainda não gerada (RN-COB-02). `COLLECTIONS` completo na unidade da modalidade.
@@ -4276,6 +4296,20 @@ components:
       required: [count]
       properties:
         count: { type: integer, minimum: 1, maximum: 12 }
+    AdvancePreview:
+      type: object
+      required: [items, totalCents]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [referenceMonth, dueOn, amountCents]
+            properties:
+              referenceMonth: { type: string, format: date }
+              dueOn: { type: string, format: date }
+              amountCents: { type: integer, format: int64 }
+        totalCents: { type: integer, format: int64 }
     OneOffInput:
       type: object
       required: [unitId, description, amountCents, dueOn]
@@ -5657,9 +5691,10 @@ components:
               result: { type: string, enum: [SENT, NO_ADDRESS, EMAIL_PROBLEM, NOT_OPEN, RECENT] }
     ChargeDetail:
       type: object
-      required: [charge, toleranceDays, composition, payer, origin, replacedBy, reason, canceledAt, canceledBy, payments, reminders, actions]
+      required: [charge, createdOn, toleranceDays, composition, payer, origin, replacedBy, reason, canceledAt, canceledBy, payments, reminders, actions]
       properties:
         charge: { $ref: '#/components/schemas/ChargeRow' }
+        createdOn: { type: string, format: date, description: "Data em que a cobrança foi gerada, no fuso da unidade." }
         toleranceDays: { type: integer, minimum: 0 }
         composition:
           type: object
@@ -5672,11 +5707,12 @@ components:
             amountCents: { type: integer, format: int64 }
         payer:
           type: object
-          required: [id, name, kind]
+          required: [id, name, kind, email]
           properties:
             id: { type: string, format: uuid }
             name: { type: string }
             kind: { type: string, enum: [STUDENT, GUARDIAN] }
+            email: { type: string, nullable: true, description: "E-mail do pagador (aluno ou responsável); null se não cadastrado." }
         origin: { allOf: [{ $ref: '#/components/schemas/ChargeRef' }], nullable: true, description: A cobrança que esta substituiu. }
         replacedBy: { type: array, items: { $ref: '#/components/schemas/ChargeRef' }, description: "As cobranças que substituíram esta, quando renegociada." }
         reason: { type: string, nullable: true, description: Motivo do cancelamento ou da renegociação. }
