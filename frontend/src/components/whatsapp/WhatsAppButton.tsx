@@ -4,7 +4,7 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import { isValidPhone, normalizePhone } from "@/components/fields/masks";
 import { useWhatsAppEnabled } from "./WhatsAppContext";
 
-type Props = { phone?: string; groupUrl?: string; message?: string; variant?: ButtonProps["variant"]; className?: string };
+type Props = { phone?: string; groupUrl?: string; message?: string; variant?: ButtonProps["variant"]; className?: string; /** Texto e nome acessível próprios (ex.: "Lembrete"); sem eles valem "WhatsApp" e "Abrir conversa no WhatsApp". */ label?: string; ariaLabel?: string };
 
 function href({ phone, groupUrl, message }: Props): string | null {
   if (groupUrl) return groupUrl.startsWith("https://chat.whatsapp.com/") ? groupUrl : null;
@@ -15,16 +15,16 @@ function href({ phone, groupUrl, message }: Props): string | null {
 }
 
 // Link wa.me ou convite de grupo, sem API. Some se o WhatsApp está desligado ou sem destino válido (RNF-42).
-export function WhatsAppButton({ variant = "outline", className, ...dest }: Props) {
+export function WhatsAppButton({ variant = "outline", className, label, ariaLabel, ...dest }: Props) {
   const { t } = useTranslation();
   const enabled = useWhatsAppEnabled();
   const link = enabled ? href(dest) : null;
   if (!link) return null;
   return (
     <Button asChild variant={variant} className={`min-h-11 min-w-11 ${className ?? ""}`}>
-      <a href={link} target="_blank" rel="noopener noreferrer" aria-label={t("whatsapp.open")}>
+      <a href={link} target="_blank" rel="noopener noreferrer" aria-label={ariaLabel ?? t("whatsapp.open")}>
         <MessageCircle aria-hidden="true" />
-        {t("whatsapp.label")}
+        {label ?? t("whatsapp.label")}
       </a>
     </Button>
   );

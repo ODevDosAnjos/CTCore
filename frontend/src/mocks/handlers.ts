@@ -1336,7 +1336,7 @@ const proofView = (p: MockPaymentProof) => {
   const student = mockStudents.find((s) => s.id === p.studentId)!;
   return {
     id: p.id, chargeId: p.chargeId, studentId: p.studentId, studentName: student.name, studentPhotoUrl: student.photoUrl, unitId: p.unitId, unit: units.find((u) => u.id === p.unitId)?.name ?? "",
-    reference: chargeReference(c), amountCents: c.amountCents, dueOn: c.dueOn, sentAt: p.sentAt, status: p.status, contentType: p.contentType, imageUrl: MOCK_LOGO, refusalReason: p.refusalReason, decidedAt: p.decidedAt,
+    reference: chargeReference(c), amountCents: c.amountCents, dueOn: c.dueOn, sentAt: p.sentAt, status: p.status, contentType: p.contentType, imageUrl: MOCK_LOGO, refusalReason: p.refusalReason, decidedAt: p.decidedAt, unitPixKey: unitPixKey(p.unitId) ?? null,
   };
 };
 // Portal: só Aluno e Responsável, termo em dia; cobrança de aluno fora da conta é 404.
@@ -4066,10 +4066,10 @@ export const routes: Route[] = [
         .map((c) => {
           const v = chargeRowView(c, today);
           const payer = payerOf(c.studentId);
-          const last = mockReminders.filter((r) => r.chargeId === c.id && r.status === "SENT").pop();
+          const last = mockReminders.filter((r) => r.chargeId === c.id).pop();
           return {
-            id: c.id, student: v.student, unit: v.unit, type: c.type, referenceMonth: c.referenceMonth, description: c.description, amountCents: c.amountCents, dueOn: c.dueOn,
-            daysLate: days(today, c.dueOn), daysToBlock: c.daysToBlock ?? null, lastReminder: last ? { at: last.createdAt, channel: last.channel } : null, payer: { name: payer.name, phone: payer.phone },
+            id: c.id, student: v.student, unit: v.unit, modality: v.modality, type: c.type, referenceMonth: c.referenceMonth, description: c.description, amountCents: c.amountCents, dueOn: c.dueOn,
+            daysLate: days(today, c.dueOn), daysToBlock: c.daysToBlock ?? null, lastReminder: last ? { at: last.createdAt, channel: last.channel, status: last.status, reason: last.reason } : null, payer: { name: payer.name, phone: payer.phone },
           };
         })
         .filter((r) => teacherKey(r.student.name).includes(q))
@@ -4077,7 +4077,7 @@ export const routes: Route[] = [
           const by = sortField === "amount" ? a.amountCents - b.amountCents : sortField === "student" ? teacherKey(a.student.name).localeCompare(teacherKey(b.student.name)) : a.daysLate - b.daysLate;
           return (sortDir === "asc" ? by : -by) || a.id.localeCompare(b.id);
         });
-      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length });
+      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length, totalCents: found.reduce((sum, r) => sum + r.amountCents, 0) });
     },
   },
   {

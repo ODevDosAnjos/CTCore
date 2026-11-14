@@ -18,6 +18,7 @@ export interface PaymentProof {
   imageUrl: string | null;
   refusalReason: string | null;
   decidedAt: string | null;
+  unitPixKey: string | null;
 }
 
 export interface PaymentProofConfirmed {

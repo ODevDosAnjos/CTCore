@@ -1,85 +1,123 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
-import type { TFunction } from "i18next";
-import type { Column } from "@/components/query/DataTable";
-import { QueryPage } from "@/components/query/QueryPage";
+import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { DataTable, type Column } from "@/components/query/DataTable";
+import { useBelowSm } from "@/components/query/useBelowSm";
+import { Person } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { StudentCell } from "@/features/charges/ChargeCards";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
-import { ConfirmProofDialog, RefuseProofDialog } from "./ProofDialogs";
-import { ProofImage } from "./ProofImage";
-import type { PaymentProof } from "./types";
-import { fetchPaymentProofs } from "./usePaymentProofs";
 import { PageHeader } from "@/components/ui/page-header";
+import { SupportLink } from "@/features/auth/SupportContact";
+import { ManagementLayout } from "@/features/permissions/ManagementLayout";
+import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
+import { formatCurrency } from "@/lib/format";
+import { groupProofs, type ProofGroup } from "./groupProofs";
+import { ConfirmProofDialog, RefuseProofDialog } from "./ProofDialogs";
+import { ProofFeatured } from "./ProofFeatured";
+import { ProofCard, useSentDay, type Decision } from "./ProofRows";
+import { ProofReviewDialog } from "./ProofReviewDialog";
+import type { PaymentProof } from "./types";
+import { fetchPendingProofs } from "./usePaymentProofs";
 
-type Decision = { proof: PaymentProof; mode: "confirm" | "refuse" };
-
-const student = (p: PaymentProof) => ({ student: { id: p.studentId, name: p.studentName, photoUrl: p.studentPhotoUrl } });
-
-function Actions({ p, onDecide }: { p: PaymentProof; onDecide: (d: Decision) => void }) {
-  const { t } = useTranslation();
-  return (
-    <span className="flex flex-wrap gap-2">
-      <Button className="min-h-11" aria-label={t("paymentProofs.actions.confirmFor", { student: p.studentName })} onClick={() => onDecide({ proof: p, mode: "confirm" })}>
-        {t("paymentProofs.actions.confirm")}
-      </Button>
-      <Button variant="outline" className="min-h-11" aria-label={t("paymentProofs.actions.refuseFor", { student: p.studentName })} onClick={() => onDecide({ proof: p, mode: "refuse" })}>
-        {t("paymentProofs.actions.refuse")}
-      </Button>
-    </span>
-  );
-}
-
-const columns = (t: TFunction, onDecide: (d: Decision) => void): Column<PaymentProof>[] => [
-  { key: "proof", label: t("paymentProofs.columns.proof"), render: (p) => <ProofImage proof={p} /> },
-  { key: "student", label: t("paymentProofs.columns.student"), render: (p) => <StudentCell row={student(p)} /> },
-  { key: "unit", label: t("paymentProofs.columns.unit"), render: (p) => p.unit },
-  { key: "reference", label: t("paymentProofs.columns.reference"), render: (p) => <span className="break-words">{p.reference}</span> },
-  { key: "amount", label: t("paymentProofs.columns.amount"), render: (p) => formatCurrency(p.amountCents) },
-  { key: "dueOn", label: t("paymentProofs.columns.dueOn"), render: (p) => formatDate(p.dueOn) },
-  { key: "sentAt", label: t("paymentProofs.columns.sentAt"), render: (p) => formatDateTime(p.sentAt) },
-  { key: "actions", label: t("paymentProofs.columns.actions"), render: (p) => <Actions p={p} onDecide={onDecide} /> },
-];
+type Load = { state: "loading" } | { state: "error" } | { state: "forbidden" } | { state: "ok"; proofs: PaymentProof[] };
 
 function Content() {
   const { t } = useTranslation();
-  const [decision, setDecision] = useState<Decision>();
+  const narrow = useBelowSm();
+  const day = useSentDay();
+  const scope = useUnitScope();
+  const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
+  const unitName = scope.selected && scope.selected !== ALL ? scope.units.find((u) => u.id === scope.selected)?.name : undefined;
   const [version, setVersion] = useState(0);
+  const [load, setLoad] = useState<Load>({ state: "loading" });
+  const [decision, setDecision] = useState<Decision>();
+  const [reviewing, setReviewing] = useState<ProofGroup>();
+  const reload = () => {
+    setLoad({ state: "loading" });
+    setVersion((n) => n + 1);
+  };
+
+  useEffect(() => {
+    if (scope.status === "loading") return;
+    let alive = true;
+    fetchPendingProofs(unitId).then(
+      (proofs) => alive && setLoad({ state: "ok", proofs }),
+      (e: { status?: number }) => alive && setLoad({ state: e?.status === 403 ? "forbidden" : "error" }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [version, unitId, scope.status]);
+
+  const groups = useMemo(() => (load.state === "ok" ? groupProofs(load.proofs) : []), [load]);
+  const handlers = { onDecide: setDecision, onReview: setReviewing };
+  const [featured, ...others] = groups;
+
+  const columns: Column<ProofGroup>[] = [
+    { key: "student", label: t("paymentProofs.columns.student"), render: (g) => <Person name={g.studentName} size="sm" /> },
+    { key: "reference", label: t("paymentProofs.columns.reference"), render: (g) => <span className="break-words">{g.label}</span> },
+    { key: "amount", label: t("paymentProofs.columns.amount"), numeric: true, render: (g) => <span className="whitespace-nowrap tabular-nums">{formatCurrency(g.totalCents)}</span> },
+    { key: "sentAt", label: t("paymentProofs.columns.sentAt"), render: (g) => day(g.sentAt) },
+    {
+      key: "actions",
+      label: t("paymentProofs.columns.actions"),
+      hideLabel: true,
+      render: (g) => (
+        <span className="flex justify-end">
+          <Button variant="outline" className="min-h-11" aria-label={t("paymentProofs.actions.reviewFor", { student: g.studentName })} onClick={() => setReviewing(g)}>
+            {t("paymentProofs.actions.review")}
+          </Button>
+        </span>
+      ),
+    },
+  ];
+
+  const scopeText = unitName ? t("paymentProofs.scopeUnit", { unit: unitName }) : t("paymentProofs.scopeAll");
+  const subtitle = narrow ? `${scopeText} · ${t("paymentProofs.mobileCount", { count: groups.length })}` : t("paymentProofs.subtitle", { count: groups.length });
+  let body;
+  if (load.state === "loading") body = <LoadingState variant="card" />;
+  else if (load.state === "error") body = <ErrorState variant="card" title={t("charges.errorTitle")} text={t("charges.errorText")} secondary={<SupportLink />} onRetry={reload} />;
+  else if (load.state === "forbidden") body = <ForbiddenState variant="card" />;
+  else if (groups.length === 0) body = <EmptyState variant="card" title={t("paymentProofs.emptyTitle")} text={t("paymentProofs.emptyText")} />;
+  else if (narrow)
+    body = (
+      <ul className="flex flex-col gap-3">
+        {groups.map((g) => (
+          <li key={g.key} className="rounded-md border p-3">
+            <ProofCard group={g} {...handlers} />
+          </li>
+        ))}
+      </ul>
+    );
+  else
+    body = (
+      <>
+        <ProofFeatured group={featured} {...handlers} />
+        {others.length > 0 && (
+          <section aria-labelledby="proofs-waiting" className="flex flex-col gap-3">
+            <h2 id="proofs-waiting" className="font-heading text-2xl font-semibold uppercase">
+              {t("paymentProofs.waiting")}
+            </h2>
+            <div className="overflow-hidden rounded-card border bg-card">
+              <DataTable columns={columns} rows={others} rowKey={(g) => g.key} order="" onOrder={() => {}} />
+            </div>
+          </section>
+        )}
+      </>
+    );
+
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("paymentProofs.title")} />
-      <p className="text-muted-foreground">{t("paymentProofs.intro")}</p>
-      <div>
-        <Button asChild variant="outline" className="min-h-11">
-          <Link to="/cobrancas">{t("paymentProofs.back")}</Link>
-        </Button>
-      </div>
-      <QueryPage
-        key={version}
-        search={false}
-        columns={columns(t, setDecision)}
-        fetchPage={fetchPaymentProofs}
-        rowKey={(p) => p.id}
-        texts={{ emptyTitle: t("paymentProofs.emptyTitle"), emptyText: t("paymentProofs.emptyText") }}
-        cards={(p) => (
-          <div className="flex flex-col gap-2 text-sm">
-            <StudentCell row={student(p)} />
-            <ProofImage proof={p} />
-            <p className="break-words">{t("paymentProofs.cardLine", { unit: p.unit, reference: p.reference })}</p>
-            <p>{t("paymentProofs.cardDates", { amount: formatCurrency(p.amountCents), dueOn: formatDate(p.dueOn), sentAt: formatDateTime(p.sentAt) })}</p>
-            <Actions p={p} onDecide={setDecision} />
-          </div>
-        )}
-      />
-      {decision?.mode === "confirm" && <ConfirmProofDialog proof={decision.proof} onClose={() => setDecision(undefined)} onDone={() => setVersion((n) => n + 1)} />}
-      {decision?.mode === "refuse" && <RefuseProofDialog proof={decision.proof} onClose={() => setDecision(undefined)} onDone={() => setVersion((n) => n + 1)} />}
+      <PageHeader title={t("paymentProofs.title")} subtitle={load.state === "ok" && groups.length > 0 ? subtitle : undefined} />
+      {!narrow && <p className="text-muted-foreground">{t("paymentProofs.intro")}</p>}
+      {body}
+      {decision?.mode === "confirm" && <ConfirmProofDialog proof={decision.proof} onClose={() => setDecision(undefined)} onDone={reload} />}
+      {decision?.mode === "refuse" && <RefuseProofDialog proof={decision.proof} onClose={() => setDecision(undefined)} onDone={reload} />}
+      {reviewing && <ProofReviewDialog group={reviewing} onClose={() => setReviewing(undefined)} onDone={reload} />}
     </div>
   );
 }
 
-// RF-COB-05: comprovantes de Pix na chave em conferência; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
+// RF-COB-05: comprovantes de Pix na chave em conferência; a barreira de dados é o servidor (403 vira "sem permissão" na própria tela).
 export function PaymentProofsPage() {
   return (
     <ManagementLayout activeId="collections">

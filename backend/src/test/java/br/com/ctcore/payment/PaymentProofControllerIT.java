@@ -106,6 +106,7 @@ class PaymentProofControllerIT extends PortalRequestBaseAccess {
         assertThat(list.get("total").asInt()).isEqualTo(1);
         assertThat(list.get("items").get(0).get("id").asText()).isEqualTo(id);
         assertThat(list.get("items").get(0).get("imageUrl").asText()).isNotBlank();
+        assertThat(list.get("items").get(0).get("unitPixKey").asText()).isEqualTo("+5511987654321");
         assertThat(list.get("items").get(0).get("studentName").asText()).isEqualTo("Aluno Um");
         assertThat(proofs("GET", "/" + id, admin, null).getStatus()).isEqualTo(200);
 

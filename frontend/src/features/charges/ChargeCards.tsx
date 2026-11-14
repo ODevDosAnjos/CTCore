@@ -5,33 +5,9 @@ import { StatusBadge as Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ChargeRow, ChargeSituation } from "./types";
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-
 export function StatusBadge({ status }: { status: ChargeSituation }) {
   const { t } = useTranslation();
   return <Badge status={status} label={t(`charges.status.${status}`)} />;
-}
-
-export function StudentCell({ row }: { row: Pick<ChargeRow, "student"> }) {
-  const { name, photoUrl } = row.student;
-  return (
-    <span className="flex items-center gap-2">
-      {photoUrl ? (
-        <img src={photoUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-      ) : (
-        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-          {initials(name)}
-        </span>
-      )}
-      <span className="min-w-0 break-words font-medium">{name}</span>
-    </span>
-  );
 }
 
 // Referência: mensalidade mostra modalidade e mês (MM/AAAA); as demais, a descrição ou o tipo.

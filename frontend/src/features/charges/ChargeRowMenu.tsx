@@ -32,11 +32,9 @@ export function ChargeRowMenu({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const reference = useReference();
-  const [dialog, setDialog] = useState<"pay" | "renegotiate" | "cancel">();
-  const [paid, setPaid] = useState(false);
+  const [dialog, setDialog] = useState<ChargeDialog>();
   const canAct = OPEN.includes(row.status);
-  const choose = (d: "pay" | "renegotiate" | "cancel") => {
+  const choose = (d: ChargeDialog) => {
     setOpen(false);
     setDialog(d);
   };
@@ -119,41 +117,38 @@ export function ChargeRowMenu({
       )}
       {/* As janelas vão para o fim da página, mas os eventos delas sobem pela árvore do React até a linha (que abriria o painel): este invólucro os segura. */}
       <div hidden onClick={(e) => e.stopPropagation()}>
-        {dialog === "pay" && (
-          <RegisterPaymentDialog
-            chargeId={row.id}
-            charge={{
-              student: row.student.name,
-              label: reference(row),
-              dueOn: row.dueOn,
-              unitName: row.unit.name,
-            }}
-            amountCents={row.amountCents}
-            onPaid={() => setPaid(true)}
-            onClose={() => {
-              setDialog(undefined);
-              if (paid) {
-                setPaid(false);
-                onDone();
-              }
-            }}
-          />
-        )}
-        {dialog === "renegotiate" && (
-          <RenegotiateDialog
-            charge={row}
-            onClose={() => setDialog(undefined)}
-            onDone={onDone}
-          />
-        )}
-        {dialog === "cancel" && (
-          <CancelChargeDialog
-            charge={row}
-            onClose={() => setDialog(undefined)}
-            onDone={onDone}
-          />
-        )}
+        <ChargeActionDialogs row={row} dialog={dialog} onClose={() => setDialog(undefined)} onDone={onDone} />
       </div>
     </div>
+  );
+}
+
+
+export type ChargeDialog = (typeof ACTIONS)[number];
+
+// As janelas das ações da linha (Registrar pagamento, Renegociar e Cancelar cobrança), usadas pelo menu da lista e pelos botões de Em atraso.
+export function ChargeActionDialogs({ row, dialog, onClose, onDone }: { row: ChargeRow; dialog?: ChargeDialog; onClose: () => void; onDone: () => void }) {
+  const reference = useReference();
+  const [paid, setPaid] = useState(false);
+  return (
+    <>
+      {dialog === "pay" && (
+        <RegisterPaymentDialog
+          chargeId={row.id}
+          charge={{ student: row.student.name, label: reference(row), dueOn: row.dueOn, unitName: row.unit.name }}
+          amountCents={row.amountCents}
+          onPaid={() => setPaid(true)}
+          onClose={() => {
+            onClose();
+            if (paid) {
+              setPaid(false);
+              onDone();
+            }
+          }}
+        />
+      )}
+      {dialog === "renegotiate" && <RenegotiateDialog charge={row} onClose={onClose} onDone={onDone} />}
+      {dialog === "cancel" && <CancelChargeDialog charge={row} onClose={onClose} onDone={onDone} />}
+    </>
   );
 }

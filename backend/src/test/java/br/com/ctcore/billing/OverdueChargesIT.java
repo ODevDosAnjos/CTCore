@@ -51,6 +51,27 @@ class OverdueChargesIT extends ChargeActionsBase {
         assertThat(items.get(1).get("payer").get("name").asText()).isEqualTo("adulto");
         assertThat(items.get(1).get("payer").get("phone").isNull()).isTrue();
         assertThat(items.get(0).get("lastReminder").isNull()).isTrue();
+        assertThat(items.get(0).get("modality").isNull()).isTrue();
+        assertThat(list.get("totalCents").asLong()).isEqualTo(40000);
+    }
+
+    @Test
+    @DisplayName("CA15: modality traz a modalidade da matrícula; totalCents soma o filtro inteiro, não só a página")
+    void modalityAndTotal() throws Exception {
+        Tenant t = tenant();
+        var admin = account(t, Role.ADMINISTRATOR);
+        UUID s = named(t, "modalidade");
+        UUID row = BillingFixtures.modality(adminJdbc(), t.orgId(), t.unitId(), s, 10, 16000);
+        UUID withModality = overdue(t, s, 9, 16000);
+        overdue(t, s, 8, 500);
+        adminJdbc().update("update charge set enrollment_modality_id = ? where id = ?", row, withModality);
+        String name = adminJdbc().queryForObject("select m.name from enrollment_modality em join modality m on m.id = em.modality_id where em.id = ?", String.class, row);
+        JsonNode page = ok(send(HttpMethod.GET, "/charges/overdue?sort=daysLate,desc", null, admin), 200);
+        assertThat(page.get("items")).hasSize(2);
+        assertThat(page.get("items").get(0).get("modality").get("name").asText()).isEqualTo(name);
+        assertThat(page.get("total").asInt()).isEqualTo(2);
+        assertThat(page.get("totalCents").asLong()).isEqualTo(16500);
+        assertThat(ok(send(HttpMethod.GET, "/charges/overdue?q=nada", null, admin), 200).get("totalCents").asLong()).isZero();
     }
 
     @Test
@@ -71,7 +92,7 @@ class OverdueChargesIT extends ChargeActionsBase {
     }
 
     @Test
-    @DisplayName("CA15: lastReminder traz o mais recente enviado e ignora os registrados como pulados")
+    @DisplayName("CA15: lastReminder traz o mais recente de qualquer resultado, com status e motivo (e-mail com problema)")
     void lastReminder() throws Exception {
         Tenant t = tenant();
         var admin = account(t, Role.ADMINISTRATOR);
@@ -84,7 +105,9 @@ class OverdueChargesIT extends ChargeActionsBase {
         JsonNode items = items("?sort=amount,asc", admin);
         assertThat(items.get(0).get("id").asText()).isEqualTo(with.toString());
         assertThat(items.get(0).get("lastReminder").get("channel").asText()).isEqualTo("SMS");
-        assertThat(items.get(0).get("lastReminder").get("at").asText()).startsWith("2026-10-02");
+        assertThat(items.get(0).get("lastReminder").get("at").asText()).startsWith("2026-10-03");
+        assertThat(items.get(0).get("lastReminder").get("status").asText()).isEqualTo("SKIPPED");
+        assertThat(items.get(0).get("lastReminder").get("reason").asText()).isEqualTo("SMS_LIMIT");
         assertThat(items.get(1).get("id").asText()).isEqualTo(without.toString());
         assertThat(items.get(1).get("lastReminder").isNull()).isTrue();
     }

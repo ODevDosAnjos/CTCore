@@ -46,6 +46,7 @@ describe("cenário de cobranças (#449)", () => {
   it("CA9: 5 em atraso com último lembrete; bloqueada e bloqueia em 2 dias", async () => {
     const body = await get("/charges/overdue");
     expect(body.total).toBe(5);
+    expect(body.totalCents).toBe(body.items.reduce((s: number, r: { amountCents: number }) => s + r.amountCents, 0));
     const days = body.items.map((r: { daysToBlock: number | null }) => r.daysToBlock);
     expect(days).toContain(0);
     expect(days).toContain(2);

@@ -11,5 +11,5 @@ export async function fetchOverdue(q: Query): Promise<Page<OverdueCharge>> {
   if (q.q) p.set("q", q.q);
   if (q.filtros.unitId) p.set("unitId", q.filtros.unitId);
   const data = await api<OverdueList>(`/charges/overdue?${p}`);
-  return { rows: data.items, total: data.total };
+  return { rows: data.items, total: data.total, counts: { totalCents: data.totalCents } };
 }
