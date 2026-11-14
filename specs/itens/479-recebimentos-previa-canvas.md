@@ -137,3 +137,28 @@ Achados:
 - **Divergências com o canvas (dados do MSW, não layout):** totais e quantidades (canvas: 132 mensalidades e R$ 22.600,00; 18 pagamentos e R$ 3.292,00); unidade Tijuca; "Bolsa de 100% até 12/2026" sem a data (a API não traz); ícones de Exportar CSV e de gerar; a janela de 30 dias do MSW mostra dois meses. Capturas em `.capturas/479/`.
 - **Achados não aplicados:** "1 mensalidades" sem plural no cartão do celular (`charges.preview.cardLine`); o botão "Ver alunos" usa `ghost`, sem conferência com o canvas.
 - **Regressão:** a base não avançou desde a verificação, então a regressão não foi rodada de novo. `test:cov` completo teve duas falhas fora do item, que passaram isoladas: `LoginPage.test.tsx` "trava com horário" (instabilidade já registrada na #563) e `EnrollmentWizardPage.test.tsx` "menor sem responsável" (#519). Um teste do item (CA16 da Prévia) falhou uma vez sob carga e passou a usar `getAllByRole`. Não rodado `mvnw verify` completo, só os IT do item e os de contrato.
+
+**Verificações do PR (#576, `51fc78d`, run 43632724000): `ci-gate` falhou (código 1).**
+- `backend`: `br.com.ctcore.communication.AnnouncementSendJobIT.sendsDueOnce:54`, `expected: 1 but was: 0` (log: `announcement send failed ... cause=IllegalStateException`). Teste fora deste item (comunicados).
+- `visual`: 4 falhas em `cobranca-antecipar` (1440 claro, 1440 escuro, 390 claro, 390 escuro), `toHaveScreenshot` com 19389 pixels diferentes (ratio 0.02) no 1440 claro. Caso de outro item (cobranças), não da tela de recebimentos/prévia.
+- Ação: rodar de novo o que falhou (`AnnouncementSendJobIT`, `cobranca-antecipar`) antes de corrigir código; se persistir, abrir issue de regressão. Sem mudança de código neste passo.
+
+### Correção da entrega
+
+- `cobranca-antecipar` (visual do CI) — causa real, não instabilidade: a janela "Gerar próximas mensalidades" abre sobre `/cobrancas/previa`, que este item reescreveu, então o fundo da referência mudou. Reproduzido localmente (`test:visual:docker -- -g "cobranca-antecipar"` → 4 falharam). Regerado só esse caso — arquivos: `frontend/visual/referencias/cobranca-antecipar-{390,1440}-{claro,escuro}.png` — prova: `test:visual:docker -- --update-snapshots -g "cobranca-antecipar"` e depois, sem update, `-g "cobranca-antecipar|cobrancas-recebimentos|cobrancas-previa"` → 12 passaram; `npm run visual:canvas -- --exige` → 135 comparadas, 0 reprovadas (o `limiteCanvas` do caso segue valendo).
+- `AnnouncementSendJobIT.sendsDueOnce` (backend do CI) — fora do item (comunicados). Rodado 2 vezes local: `mvnw verify -Dit.test=AnnouncementSendJobIT` → 2 testes passaram nas duas. Instável sob o CI (regra 5 do AGENTS.md): sem mudança de código; rodar o CI de novo, e se falhar outra vez abrir issue `técnica`.
+Referências visuais: `frontend/visual/referencias/cobranca-antecipar-{390,1440}-{claro,escuro}.png`
+Visual do CI: cobranca-antecipar → passou; cobrancas-recebimentos → passou; cobrancas-previa → passou
+Docker: imagens do compose e do projeto inalteradas; nada novo a remover.
+
+### Rodada 2 — OK — 2026-11-14, estado aa470a7318f1f0f52e0c1c1b048a6de3a78e08df
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA15 | PASSOU (mantido da rodada 1) | desde a rodada 1 só mudaram as 4 referências `cobranca-antecipar-{390,1440}-{claro,escuro}.png` e o arquivo do item; nenhum código |
+
+Comandos: `npm run test:visual:docker -- -g "cobranca-antecipar|cobrancas-recebimentos|cobrancas-previa"` (sem update) → 12 passaram; `npx vitest run src/features/charges --maxWorkers=2` → 14 arquivos, 135 passaram. Referência `cobranca-antecipar-1440-claro.png` aberta: a janela "Gerar próximas mensalidades" sobre a nova Prévia, sem divergência de layout inesperada. Backend e `AnnouncementSendJobIT` não foram tocados; instabilidade fora do item, tratada pela regra 5 (aceitar CI).
+Instáveis: `AnnouncementSendJobIT.sendsDueOnce` (1 falha no CI, 2 passes locais, registrado na Entrega).
+Achados:
+- sugestão, código, `charges.preview.cardLine` — "1 mensalidades" sem plural (mantida da rodada 1).
+- sugestão, código, `ChargePreviewRows.tsx` — "Ver alunos" em `ghost` (mantida da rodada 1).
