@@ -9,6 +9,8 @@ import br.com.ctcore.benefit.Benefits;
 import br.com.ctcore.billing.Repricing;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.modality.Modalities;
+import br.com.ctcore.organization.LastChange;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import br.com.ctcore.identity.Role;
@@ -43,6 +45,11 @@ public class Plans {
 
     public record Row(UUID id, Ref unit, Ref modality, String name, long valueCents, Integer weeklyFrequency, boolean validOtherUnits,
             int studentsUsing, String status) {}
+
+    public record ValuePoint(LocalDate startsOn, long valueCents, String changedBy) {}
+
+    public record Detail(UUID id, Ref unit, Ref modality, String name, long valueCents, Integer weeklyFrequency, boolean validOtherUnits,
+            int studentsUsing, String status, LastChange lastChange, LastChange deactivation, List<ValuePoint> valueHistory) {}
 
     /** Alcance da consulta: unitIds nulo = todas as unidades da organização. */
     record Scope(UUID organizationId, Set<UUID> unitIds) {}
@@ -136,6 +143,23 @@ public class Plans {
             Set<UUID> reach = reach(who, r.unit().id());
             if (reach != null && reach.isEmpty()) throw new ApiStatusException(ErrorCode.NOT_FOUND);
             return r;
+        });
+    }
+
+    /** RN-PLA-06: consulta do plano com última alteração, quem desativou e histórico de valor (mais novo primeiro). Só leitura. */
+    public Detail detail(AccountPrincipal who, UUID id) {
+        Row r = get(who, id);
+        return transactions.execute(() -> {
+            LastChange last = LastChange.find(jdbc, who.organizationId(), "plan", id,
+                    List.of("plan.created", "plan.updated", "plan.activated", "plan.deactivated"));
+            LastChange off = "INACTIVE".equals(r.status()) ? LastChange.find(jdbc, who.organizationId(), "plan", id, List.of("plan.deactivated")) : null;
+            List<ValuePoint> history = jdbc.sql("select h.starts_on, h.value_cents, coalesce(nullif(btrim(c.name), ''), c.email) "
+                    + "from plan_value_history h left join account c on c.id = h.created_by "
+                    + "where h.organization_id = :org and h.plan_id = :id order by h.starts_on desc, h.created_at desc")
+                    .param("org", who.organizationId()).param("id", id)
+                    .query((rs, n) -> new ValuePoint(rs.getObject(1, LocalDate.class), rs.getLong(2), rs.getString(3))).list();
+            return new Detail(r.id(), r.unit(), r.modality(), r.name(), r.valueCents(), r.weeklyFrequency(), r.validOtherUnits(), r.studentsUsing(),
+                    r.status(), last, off, history);
         });
     }
 

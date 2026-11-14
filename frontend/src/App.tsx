@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Route, Routes } from "react-router";
+import { Link, Navigate, Route, Routes } from "react-router";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage";
 import { AreaUnavailablePage } from "@/features/auth/AreaUnavailablePage";
@@ -36,7 +36,6 @@ import { TeacherPanelPage } from "@/features/teachers/TeacherPanelPage";
 import { ClassesPage } from "@/features/classes/ClassesPage";
 import { ClassPanelPage } from "@/features/classes/ClassPanelPage";
 import { PlansPage } from "@/features/plans/PlansPage";
-import { PlansTablePage } from "@/features/plans/PlansTablePage";
 import { BenefitsPage } from "@/features/benefits/BenefitsPage";
 import { AgendaPage } from "@/features/agenda/AgendaPage";
 import { LessonPanelPage } from "@/features/agenda/LessonPanelPage";
@@ -146,7 +145,7 @@ export function App() {
             <Route path="/turmas" element={<ClassesPage />} />
             <Route path="/turmas/:id" element={<ClassPanelPage />} />
             <Route path="/planos" element={<PlansPage />} />
-            <Route path="/planos/lista" element={<PlansTablePage />} />
+            <Route path="/planos/lista" element={<Navigate to="/planos" replace />} />
             <Route path="/beneficios" element={<BenefitsPage />} />
             <Route path="/alunos/nova-matricula" element={<EnrollmentWizardPage />} />
             <Route path="/alunos/:id?" element={<StudentsPage />} />

@@ -2283,6 +2283,19 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
   /plans/{id}:
+    get:
+      summary: Consulta o plano com última alteração, desativação e histórico de valor (RN-PLA-06). Coordenador e Administrador.
+      description: Mesma permissão e mesmo alcance de `PUT /plans/{id}`; só leitura, sem auditoria. `valueHistory` vai do mais novo para o mais antigo; `changedBy` é nulo nas linhas migradas. `deactivation` é nulo em plano ativo.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Plano.
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlanDetail' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
     put:
       summary: Altera o plano (RF-PLA-03). Coordenador e Administrador.
       description: |
@@ -4847,6 +4860,23 @@ components:
         validOtherUnits: { type: boolean }
         studentsUsing: { type: integer }
         status: { type: string, enum: [ACTIVE, INACTIVE] }
+    PlanDetail:
+      allOf:
+        - $ref: '#/components/schemas/PlanRow'
+        - type: object
+          required: [lastChange, deactivation, valueHistory]
+          properties:
+            lastChange: { $ref: '#/components/schemas/LastChange' }
+            deactivation: { $ref: '#/components/schemas/LastChange' }
+            valueHistory:
+              type: array
+              items:
+                type: object
+                required: [startsOn, valueCents, changedBy]
+                properties:
+                  startsOn: { type: string, format: date }
+                  valueCents: { type: integer, format: int64 }
+                  changedBy: { type: string, nullable: true }
     BenefitRow:
       type: object
       required: [id, student, unit, modality, type, value, reason, decidedBy, grantedBy, validUntil, status, high, monthlyValueCents]

@@ -147,6 +147,31 @@ const seedScenarios = () => {
   mockAnnouncements = [...mockAnnouncements, ...l.announcements];
   // "Vale nas outras unidades" (R16): o Jiu-Jitsu Livre do Centro.
   mockPlans = mockPlans.map((x) => (x.id === "00000000-0000-0000-0000-000000000602" ? { ...x, validOtherUnits: true } : x));
+  // Planos do canvas (#480): quatro ativos e um desativado na Unidade Sul (a Centro fica como está para não mudar as janelas de matrícula e troca de plano), com alunos, histórico e quem alterou.
+  const plan = (n: number, modalityIndex: number, name: string, valueCents: number, weeklyFrequency: 2 | 3 | null, validOtherUnits: boolean, status: "ACTIVE" | "INACTIVE"): MockPlan => ({
+    id: `00000000-0000-0000-0000-0000000006a${n}`, unitId: a.sul.id, unitName: a.sul.name, modalityIndex, name, valueCents, weeklyFrequency, validOtherUnits, status,
+  });
+  const canvasPlans = [
+    plan(1, 3, "Adulto 3x", 18000, 3, true, "ACTIVE"),
+    plan(2, 3, "Adulto livre", 22000, null, true, "ACTIVE"),
+    plan(3, 3, "Kids 2x", 15000, 2, false, "ACTIVE"),
+    plan(4, 11, "Adulto 2x", 16000, 2, false, "ACTIVE"),
+    plan(5, 3, "Adulto 2x (antigo)", 15000, 2, false, "INACTIVE"),
+  ];
+  mockPlans = [...mockPlans, ...canvasPlans];
+  const by = { carla: "Carla Mendes", marcos: "Marcos Leão" };
+  planExtras = {
+    [canvasPlans[0].id]: { students: 58, unpaid: 6, paidFuture: 2, lastChange: { at: "2026-09-12T14:30:00Z", by: by.marcos }, history: [{ startsOn: "2026-03-01", valueCents: 18000, changedBy: by.carla }, { startsOn: "2025-01-01", valueCents: 16000, changedBy: by.marcos }] },
+    [canvasPlans[1].id]: { students: 21, lastChange: { at: "2026-09-12T14:30:00Z", by: by.marcos } },
+    [canvasPlans[2].id]: { students: 22 },
+    [canvasPlans[3].id]: { students: 30 },
+    [canvasPlans[4].id]: {
+      students: 3,
+      lastChange: { at: "2026-08-01T12:00:00Z", by: by.carla },
+      deactivation: { at: "2026-08-01T12:00:00Z", by: by.carla },
+      history: [{ startsOn: "2025-03-01", valueCents: 15000, changedBy: by.carla }, { startsOn: "2024-01-01", valueCents: 13000, changedBy: by.marcos }],
+    },
+  };
 };
 export const scenariosEnabled = () => scenariosOn;
 // `termoFamilia`: os dois filhos de `familia@` chegam com o termo pendente ("1 de 2"); por padrão já aceitaram, para o portal abrir cheio.
@@ -167,6 +192,7 @@ export const resetMockSession = () => {
   mockTeachers = initialTeachers();
   mockClasses = initialClasses();
   mockPlans = initialPlans();
+  planExtras = {};
   benefitRows = initialBenefits();
   lessonEdits.clear();
   mockAdhoc = [];
@@ -352,6 +378,16 @@ const initialPlans = () => [
   { id: "00000000-0000-0000-0000-000000000604", unitId: ADMIN_UNIT, unitName: "Unidade Centro", modalityIndex: 4, name: "Judô Antigo", valueCents: 12000, weeklyFrequency: 2 as 2 | 3 | null, validOtherUnits: false as boolean, status: "INACTIVE" as "ACTIVE" | "INACTIVE" },
 ];
 let mockPlans = initialPlans();
+// RN-PLA-06: dados extras do plano que a consulta (GET /plans/{id}) mostra; fora do cenário ficam vazios.
+type PlanExtra = {
+  students?: number;
+  unpaid?: number;
+  paidFuture?: number;
+  history?: { startsOn: string; valueCents: number; changedBy: string | null }[];
+  lastChange?: { at: string; by: string | null } | null;
+  deactivation?: { at: string; by: string | null } | null;
+};
+let planExtras: Record<string, PlanExtra> = {};
 export type MockPlan = ReturnType<typeof initialPlans>[number];
 const planRow = ({ modalityIndex, unitName, unitId, ...x }: MockPlan) => ({
   id: x.id,
@@ -361,7 +397,7 @@ const planRow = ({ modalityIndex, unitName, unitId, ...x }: MockPlan) => ({
   valueCents: x.valueCents,
   weeklyFrequency: x.weeklyFrequency,
   validOtherUnits: x.validOtherUnits,
-  studentsUsing: 0,
+  studentsUsing: planExtras[x.id]?.students ?? 0,
   status: x.status,
 });
 // RF-BEN-01: benefícios fictícios (RN-BEN-06: alto = bolsa acima de 50% ou desconto acima de metade do plano); três na unidade do Administrador.
@@ -2916,7 +2952,7 @@ export const routes: Route[] = [
         plans: {
           active: values.length,
           inactive: active.length - values.length,
-          studentsUsing: 0,
+          studentsUsing: active.reduce((n, p) => n + (planExtras[p.id]?.students ?? 0), 0),
           minValueCents: values.length ? Math.min(...values) : null,
           maxValueCents: values.length ? Math.max(...values) : null,
         },
@@ -2940,6 +2976,24 @@ export const routes: Route[] = [
         units: units
           .filter((u) => u.active && (role === "COORDINATOR" || u.id === ADMIN_UNIT))
           .map((u) => ({ id: u.id, name: u.name, modalities: modalityCatalog.slice(0, 5) })),
+      });
+    },
+  },
+  {
+    // RN-PLA-06: consulta do plano com última alteração, desativação e histórico (mais novo primeiro); só leitura.
+    method: "get",
+    path: "/plans/{id}",
+    resolver: ({ params }) => {
+      const denied = planAccess();
+      if (denied) return denied;
+      const found = planFor(params.id as string);
+      if (found instanceof Response) return found;
+      const x = planExtras[found.id] ?? {};
+      return HttpResponse.json({
+        ...planRow(found),
+        lastChange: x.lastChange ?? null,
+        deactivation: found.status === "INACTIVE" ? (x.deactivation ?? null) : null,
+        valueHistory: x.history ?? [{ startsOn: "2026-01-01", valueCents: found.valueCents, changedBy: null }],
       });
     },
   },
@@ -2981,7 +3035,12 @@ export const routes: Route[] = [
       if (b.modalityId && b.modalityId !== modalityCatalog[found.modalityIndex].id) return planBad("modalityId", "a modalidade não muda");
       if (found.status === "INACTIVE") return error(409, "CONFLICT", "Os dados entram em conflito com algo que já existe.");
       if (planTaken(found.unitId, found.modalityIndex, fields.name, found.id)) return planConflict();
+      const before = found.valueCents;
+      const changed = fields.valueCents !== before;
       Object.assign(found, fields);
+      const x = (planExtras[found.id] ??= {});
+      if (changed) x.history = [{ startsOn: new Date().toISOString().slice(0, 10), valueCents: fields.valueCents, changedBy: session.account.name }, ...(x.history ?? [{ startsOn: "2026-01-01", valueCents: before, changedBy: null }])];
+      x.lastChange = { at: new Date().toISOString(), by: session.account.name };
       return HttpResponse.json(planRow(found));
     },
   },
@@ -2996,7 +3055,8 @@ export const routes: Route[] = [
       if (found instanceof Response) return found;
       const raw = new URL(request.url).searchParams.get("valueCents");
       if (!raw || !validCents(Number(raw))) return planBad("valueCents", "inteiro de 1 a 99999999 centavos");
-      return HttpResponse.json({ studentsAffected: 0, effectiveFrom: "NEXT_CHARGE", unpaidCharges: 0, paidFutureCharges: 0 });
+      const x = planExtras[found.id] ?? {};
+      return HttpResponse.json({ studentsAffected: x.students ?? 0, effectiveFrom: "NEXT_CHARGE", unpaidCharges: x.unpaid ?? 0, paidFutureCharges: x.paidFuture ?? 0 });
     },
   },
   {
@@ -3009,6 +3069,8 @@ export const routes: Route[] = [
       const found = planFor(params.id as string);
       if (found instanceof Response) return found;
       found.status = "INACTIVE";
+      const now = { at: new Date().toISOString(), by: session.account.name };
+      Object.assign((planExtras[found.id] ??= {}), { lastChange: now, deactivation: now });
       return HttpResponse.json(planRow(found));
     },
   },
@@ -3022,6 +3084,7 @@ export const routes: Route[] = [
       if (found instanceof Response) return found;
       if (found.status === "INACTIVE" && planTaken(found.unitId, found.modalityIndex, found.name, found.id)) return planConflict();
       found.status = "ACTIVE";
+      Object.assign((planExtras[found.id] ??= {}), { lastChange: { at: new Date().toISOString(), by: session.account.name }, deactivation: null });
       return HttpResponse.json(planRow(found));
     },
   },

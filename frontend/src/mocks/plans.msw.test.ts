@@ -133,3 +133,35 @@ describe("janela de plano x OpenAPI (RF-PLA-03, CA17)", () => {
     expect(openapi.paths["/plans/{id}"].delete).toBeUndefined(); // plano nunca é excluído (RN-PLA-06)
   });
 });
+
+describe("consulta do plano x OpenAPI (RN-PLA-06, #480)", () => {
+  const one = (id: string) => fetch(`/api/v1/plans/${id}`);
+
+  it("sem sessão 401; contrato declara o GET; Professor 403; id desconhecido 404", async () => {
+    expect((await one("00000000-0000-0000-0000-000000000601")).status).toBe(401);
+    expect(Object.keys(openapi.paths["/plans/{id}"].get.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "404"]));
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000013");
+    expect((await one("00000000-0000-0000-0000-000000000601")).status).toBe(403);
+    await login("ana@exemplo.com");
+    expect((await one(crypto.randomUUID())).status).toBe(404);
+  });
+
+  it("formato do contrato: PlanRow mais lastChange, deactivation e valueHistory; desativar e editar alimentam a consulta", async () => {
+    await login("ana@exemplo.com");
+    const plan = await (await one("00000000-0000-0000-0000-000000000601")).json();
+    const required = [...openapi.components.schemas.PlanRow.required, ...openapi.components.schemas.PlanDetail.allOf[1].required];
+    expect(Object.keys(plan).sort()).toEqual([...required].sort());
+    expect(plan).toMatchObject({ lastChange: null, deactivation: null });
+    expect(plan.valueHistory).toHaveLength(1);
+    await fetch("/api/v1/plans/00000000-0000-0000-0000-000000000601", {
+      method: "PUT",
+      headers: json,
+      body: JSON.stringify({ name: "Judô Mensal", valueCents: 17000, weeklyFrequency: 2, validOtherUnits: false }),
+    });
+    await fetch("/api/v1/plans/00000000-0000-0000-0000-000000000601/deactivate", { method: "POST" });
+    const after = await (await one("00000000-0000-0000-0000-000000000601")).json();
+    expect(after.valueHistory.map((h: { valueCents: number }) => h.valueCents)).toEqual([17000, 15000]);
+    expect(after.deactivation.by).toEqual(after.lastChange.by);
+    expect(after.status).toBe("INACTIVE");
+  });
+});

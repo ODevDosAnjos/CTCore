@@ -185,7 +185,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 477 | Painel da cobrança e janelas: registrar, renegociar, cancelar, nova avulsa e gerar próximas no visual do canvas | issue #477 | Sprint 10.5 | #460, #461, #463, #451, #450, #449 | agente | feito |
 | 478 | Em atraso, conferência de comprovantes e comprovante de várias cobranças no visual do canvas | issue #478 | Sprint 10.5 | #458, #459, #460, #461, #450, #449 | agente | feito |
 | 479 | Recebimentos do dia e Prévia da geração no visual do canvas | issue #479 | Sprint 10.5 | #458, #459, #464, #449 | agente | feito |
-| 480 | Planos e benefícios: resumo, tabela de planos, editar, desativar e reativar no visual do canvas | issue #480 | Sprint 10.5 | #458, #459, #460, #461, #451 | agente | a fazer |
+| 480 | Planos e benefícios: resumo, tabela de planos, editar, desativar e reativar no visual do canvas | issue #480 | Sprint 10.5 | #458, #459, #460, #461, #451 | agente | feito |
 | 481 | Benefícios: lista, conceder, encerrar e substituir no visual do canvas | issue #481 | Sprint 10.5 | #456, #457, #460, #461, #452 | agente | a fazer |
 | 482 | Organização: marca, regras da organização, contraste e transferir coordenação no visual do canvas | issue #482 | Sprint 10.5 | #453, #460, #461, #450 | agente | a fazer |
 | 483 | Unidade: abas Dados, Pagamentos, Lembretes, Links e Permissões do Professor no visual do canvas | issue #483 | Sprint 10.5 | #453, #458, #459, #450 | agente | a fazer |

@@ -18,6 +18,7 @@ export type Caso = {
   oferta?: boolean; // #469: antes do print, a Unidade Centro passa a oferecer Jiu-Jitsu (o MSW começa sem modalidade ligada nas unidades)
   dias?: boolean; // #474: antes do print, lança os dias sem aula e ignora os feriados que o canvas mostra (o MSW começa sem dias)
   titularInativo?: boolean; // #475: antes do print, a turma 607 (Jiu-Jitsu Manhã) responde com o titular inativo; só no caso, sem mexer no cenário compartilhado
+  planosCanvas?: boolean; // #480: antes de abrir a tela, a Coordenação enxerga só a unidade "Tijuca" com os quatro planos ativos e o desativado do canvas e o resumo 4 e 14 (o cenário compartilhado tem mais planos)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -70,7 +71,7 @@ export const casos: Caso[] = [
   { nome: "agenda-painel", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AgendaPainel", matricula: true },
   { nome: "dias-sem-aula", rota: "/dias-sem-aula", perfil: ana, canvas: "DiasSemAula", dias: true },
   { nome: "turmas", rota: "/turmas", perfil: ana, canvas: "Turmas" },
-  { nome: "planos", rota: "/planos", perfil: ana, canvas: "Planos" },
+  { nome: "planos", rota: "/planos", perfil: ana, canvas: "Planos", planosCanvas: true },
   { nome: "beneficios", rota: "/beneficios", perfil: ana, canvas: "BeneficiosLista" },
   { nome: "cobrancas", rota: "/cobrancas", perfil: ana, canvas: "Mensalidades", canvasEscuro: "CobrancasEscuro" },
   { nome: "cobrancas-erro", rota: "/cobrancas", perfil: ana, canvas: "EstadoErro", falha: { path: "/charges", status: 500 } },
@@ -152,8 +153,10 @@ export const casos: Caso[] = [
   { nome: "dia-sem-aula-novo", rota: "/dias-sem-aula", perfil: ana, canvas: "DiaSemAulaNovo", dias: true, passos: [{ clicar: "Novo dia sem aula" }, { preencher: ["De *", "2026-12-24"] }, { preencher: ["Até (opcional)", "2027-01-03"] }, { preencher: ["Motivo *", "Recesso de fim de ano"] }] },
   // Planos, alunos, matrícula, benefícios e termos (#421). Janelas abrem pelos passos.
   // Sem caso: trocar turma/plano, transferir, encerrar e passos da matrícula (id gerado ou fluxo longo no MSW); GM* são as mesmas telas a 390 px (D1).
-  { nome: "planos-lista", rota: "/planos/lista", perfil: ana, canvas: "PlanosRegras", limiteCanvas: { valor: 0.55, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #480 trata a tela e remove esta exceção)" } },
-  { nome: "plano-novo", rota: "/planos/lista", perfil: ana, canvas: "PlanosRegras", passos: [{ clicar: "Novo plano" }], limiteCanvas: { valor: 0.65, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #480 trata a tela e remove esta exceção)" } },
+  { nome: "plano-novo", rota: "/planos", perfil: ana, canvas: "PlanosRegras", passos: [{ clicar: "Novo plano" }], limiteCanvas: { valor: 0.6, motivo: "medido a 55,4%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
+  { nome: "plano-editar", rota: "/planos", perfil: ana, canvas: "PlanosRegras", passos: [{ clicar: "Editar o plano Adulto 3x" }, { preencher: ["Novo valor *", "19500"] }], aguardar: "#plan-form", limiteCanvas: { valor: 0.5, motivo: "medido a 44,8%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } }, // #480: com valor novo, como no canvas, para mostrar o aviso e as escolhas do reajuste
+  { nome: "plano-desativar", rota: "/planos", perfil: ana, canvas: "PlanoDesativar", passos: [{ clicar: "Editar o plano Adulto livre" }, { clicar: "Desativar plano" }], limiteCanvas: { valor: 0.7, motivo: "medido a 63,2%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
+  { nome: "plano-desativado", rota: "/planos", perfil: ana, canvas: "PlanoDesativado", passos: [{ clicar: "Editar o plano Adulto 2x \\(antigo\\)" }], aguardar: "#plan-history-title", limiteCanvas: { valor: 0.5, motivo: "medido a 45,4%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
   { nome: "beneficio-conceder", rota: "/beneficios", perfil: ana, canvas: "BeneficioConceder", passos: [{ clicar: "Conceder benefício" }], limiteCanvas: { valor: 0.60, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #481 trata a tela e remove esta exceção)" } },
   // Cobranças, comunicação, notificações e pedidos (#422). Janelas abrem pelos passos.
   // Sem caso: recusar pedido e recusar comprovante (o MSW não tem pedido nem comprovante em aberto), recibo público (o MSW começa sem recibo, o código nasce no pagamento), painel da cobrança, registrar pagamento, cancelar, alterar vencimento e renegociar (id gerado ou fluxo longo), lembrete (seleção em lote) e imagem do comprovante; GM* são as mesmas telas a 390 px (D1).
@@ -207,7 +210,7 @@ export const temas = [
 export const semCaso: Record<string, string[]> = {
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
-    "InicioCoordenador", "AguardandoAprovacao", "PlanoDesativado", "ComunicadoOrganizacao", "PermissoesTabela", "SuporteAcesso",
+    "InicioCoordenador", "AguardandoAprovacao", "ComunicadoOrganizacao", "PermissoesTabela", "SuporteAcesso",
     "PortalEmDia", "PortalMConfirmarModalidade", "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
   ],
   // tela de funcionalidade ainda sem rota em App.tsx (sprint futura)
@@ -227,7 +230,7 @@ export const semCaso: Record<string, string[]> = {
     "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "SomenteLeitura",
     "Estornar", "ExportarMensalidades", "BeneficioEncerrar",
-    "PlanoDesativar", "BeneficioSubstituir", "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
+    "BeneficioSubstituir", "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
     "PagamentosDesconectado", "ModalidadeDesativar", "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",

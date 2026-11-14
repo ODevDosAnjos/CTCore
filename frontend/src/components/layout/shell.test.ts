@@ -10,9 +10,9 @@ const walk = (dir: string): string[] =>
 
 describe("moldura da gestão (CA8)", () => {
   const pages = walk("src/features").filter((f) => /Page\.tsx$/.test(f) && readFileSync(f, "utf8").includes("<ManagementLayout"));
-  // O painel do professor (#470) e o da aula e a ficha do Professor (#472) viraram gaveta sobre a lista: quem tem a moldura é a lista.
+  // O painel do professor (#470) e o da aula e a ficha do Professor (#472) viraram gaveta sobre a lista: quem tem a moldura é a lista. A tabela de planos (#480) virou a própria tela de Planos e benefícios.
   it("encontra as páginas da gestão", () => {
-    expect(pages.length).toBeGreaterThanOrEqual(26);
+    expect(pages.length).toBeGreaterThanOrEqual(25);
   });
 
   it.each(pages)("%s usa PageHeader e nenhum <h1 próprio", (f) => {

@@ -54,6 +54,11 @@ class PlanController {
         return write.create(who, body, request.getRemoteAddr());
     }
 
+    @GetMapping("/{id}")
+    Plans.Detail detail(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id) {
+        return plans.detail(who, id);
+    }
+
     @PutMapping("/{id}")
     Plans.Row update(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, @RequestBody PlanWrite.Input body, HttpServletRequest request) {
         return write.update(who, id, body, request.getRemoteAddr());
