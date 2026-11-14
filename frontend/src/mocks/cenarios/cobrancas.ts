@@ -73,6 +73,10 @@ export function cobrancasCenario(ctx: CobrancasCtx, alunos: ReturnType<typeof al
     receipt(hojeCartao, "CARD_MACHINE", minutesAgo(60), ctx.by.ana),
     receipt(hojeBoleto, "BOLETO", minutesAgo(90), ctx.by.other),
     receipt(hojeDinheiro, "CASH", minutesAgo(120), ctx.by.other),
+    // #479: pagamentos do portal (sem lançador, com taxa repassada) para Recebimentos do dia; ficam em cobranças já pagas e não mudam a lista de cobranças.
+    ...[
+      [hojePix, "PIX_MP", 35, 49], [hojeCartao, "PIX_MP", 40, 49], [hojeBoleto, "CREDIT_CARD", 45, 120], [hojeDinheiro, "DEBIT_CARD", 50, 80], [hojePix, "BOLETO", 55, 349],
+    ].map(([c, method, m, fee]) => ({ ...receipt(c as MockCharge, method as string, minutesAgo(m as number), ctx.by.ana), by: undefined, feeCents: fee as number })),
   ];
 
   const reminder = (c: MockCharge, daysAgo: number): MockReminder => ({

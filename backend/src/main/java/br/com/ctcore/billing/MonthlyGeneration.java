@@ -53,11 +53,12 @@ public class MonthlyGeneration {
     public record Line(UUID studentId, String student, UUID modalityRowId, String modality, String plan, long discountCents, long amountCents, LocalDate referenceMonth,
             boolean adjustable) {}
 
-    public record Day(LocalDate dueOn, int count, long totalCents, List<Line> lines) {}
+    public record Day(LocalDate dueOn, LocalDate generatesOn, int count, long totalCents, long previousTotalCents, List<Line> lines) {}
 
     public record Skipped(UUID studentId, String student, String modality, LocalDate referenceMonth, String reason) {}
 
-    public record Preview(LocalDate until, List<Day> days, int count, long totalCents, long previousMonthTotalCents, List<Skipped> skipped) {}
+    public record Preview(LocalDate until, List<Day> days, int count, long totalCents, long previousMonthTotalCents, long alreadyGeneratedCents,
+            List<Skipped> skipped) {}
 
     public record Advance(Integer count) {}
 
@@ -191,7 +192,7 @@ public class MonthlyGeneration {
         int span = days == null ? HORIZON_DAYS : days;
         if (span < 1 || span > MAX_PREVIEW_DAYS) throw new ApiValidationException("days", "de 1 a " + MAX_PREVIEW_DAYS);
         if (permissions.grant(who, Permission.COLLECTIONS, unitId) == Access.NONE) {
-            return new Preview(LocalDate.now(clock).plusDays(span), List.of(), 0, 0, 0, List.of());
+            return new Preview(LocalDate.now(clock).plusDays(span), List.of(), 0, 0, 0, 0, List.of());
         }
         return transactions.execute(() -> {
             LocalDate today = today(unitId);
@@ -217,13 +218,22 @@ public class MonthlyGeneration {
             List<Day> daysList = new ArrayList<>();
             int count = 0;
             for (var e : byDay.entrySet()) {
-                daysList.add(new Day(e.getKey(), e.getValue().size(), e.getValue().stream().mapToLong(Line::amountCents).sum(), e.getValue()));
+                LocalDate dueOn = e.getKey();
+                // D8: mês anterior sem aquele dia (30 ou 31 em fevereiro) não tem comparação.
+                LocalDate previousDue = dueOn.minusMonths(1);
+                long previousDay = previousDue.getDayOfMonth() != dueOn.getDayOfMonth() ? 0 : jdbc.sql("select coalesce(sum(amount_cents), 0) from charge "
+                        + "where organization_id = :org and unit_id = :unit and type = 'MONTHLY' and due_on = :due and status <> 'CANCELED'")
+                        .param("org", who.organizationId()).param("unit", unitId).param("due", previousDue).query(Long.class).single();
+                daysList.add(new Day(dueOn, dueOn.minusDays(HORIZON_DAYS), e.getValue().size(), e.getValue().stream().mapToLong(Line::amountCents).sum(), previousDay, e.getValue()));
                 count += e.getValue().size();
             }
             long previous = first == null ? 0 : jdbc.sql("select coalesce(sum(amount_cents), 0) from charge where organization_id = :org and unit_id = :unit "
                     + "and type = 'MONTHLY' and reference_month = :ref and status <> 'CANCELED'")
                     .param("org", who.organizationId()).param("unit", unitId).param("ref", first.minusMonths(1)).query(Long.class).single();
-            return new Preview(until, daysList, count, total, previous, skipped);
+            long generated = jdbc.sql("select coalesce(sum(amount_cents), 0) from charge where organization_id = :org and unit_id = :unit "
+                    + "and type = 'MONTHLY' and due_on between :today and :until and status <> 'CANCELED'")
+                    .param("org", who.organizationId()).param("unit", unitId).param("today", today).param("until", until).query(Long.class).single();
+            return new Preview(until, daysList, count, total, previous, generated, skipped);
         });
     }
 

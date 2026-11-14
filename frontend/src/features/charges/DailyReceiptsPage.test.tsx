@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -7,7 +7,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { DailyReceipts } from "./types";
 
@@ -19,22 +19,21 @@ const session: SessionView = {
 };
 const ana = { id: "p1", name: "Ana Admin" };
 const data = (over: Partial<DailyReceipts> = {}): DailyReceipts => ({
-  date: "2026-10-20",
-  totalCents: 35000,
-  count: 3,
+  date: "2026-10-08",
+  totalCents: 41000,
+  count: 6,
   byMethod: [
-    { method: "CASH", count: 2, totalCents: 15000 },
-    { method: "PIX_KEY", count: 1, totalCents: 20000 },
+    { method: "PIX_MP", count: 1, totalCents: 10000, feePassedCents: 50 },
+    { method: "CREDIT_CARD", count: 1, totalCents: 8000, feePassedCents: 200 },
+    { method: "DEBIT_CARD", count: 1, totalCents: 3000, feePassedCents: 30 },
+    { method: "BOLETO", count: 1, totalCents: 1800, feePassedCents: 349 },
+    { method: "CASH", count: 2, totalCents: 18200, feePassedCents: 0 },
   ],
   byRegistrar: [
-    { registeredBy: ana, count: 2, totalCents: 15000 },
-    { registeredBy: null, count: 1, totalCents: 20000 },
+    { registeredBy: ana, count: 2, totalCents: 18200 },
+    { registeredBy: null, count: 4, totalCents: 22800 },
   ],
-  payments: [
-    { id: "a", paidAt: "2026-10-20T17:30:00Z", student: { id: "s3", name: "Carla" }, reference: "Kimono", method: "PIX_KEY", registeredBy: null, amountCents: 20000, receiptNumber: 3 },
-    { id: "b", paidAt: "2026-10-20T16:00:00Z", student: { id: "s2", name: "Bruno" }, reference: "Jiu-Jitsu · nov/2026", method: "CASH", registeredBy: ana, amountCents: 5000, receiptNumber: 2 },
-    { id: "c", paidAt: "2026-10-20T15:00:00Z", student: { id: "s1", name: "Aline" }, reference: "Kimono", method: "CASH", registeredBy: ana, amountCents: 10000, receiptNumber: 1 },
-  ],
+  payments: [],
   ...over,
 });
 
@@ -67,67 +66,95 @@ function setup(opts: { receipts?: () => Response | Promise<Response>; allUnits?:
 }
 
 const ready = () => screen.findByRole("heading", { name: "Recebimentos do dia", level: 1 });
+const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+const shift = (iso: string, d: number) => new Date(Date.parse(`${iso}T12:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10);
 
-describe("DailyReceiptsPage (RF-COB-08)", () => {
-  it("CA9: total, quantidade, tabela por meio, por lançador (com Pagamento online) e a lista do mais recente ao mais antigo", async () => {
+describe("DailyReceiptsPage (RF-COB-08, #479)", () => {
+  afterEach(() => setDeviceNarrow(false));
+
+  it("CA1, CA3: subtítulo com a data por extenso e a unidade; Dia anterior e Exportar CSV (Em breve); sem campo de data nem Voltar", async () => {
     setup();
     await ready();
-    await screen.findByText("Total recebido");
-    expect(screen.getByText("Total recebido").nextElementSibling).toHaveTextContent(/350,00/);
-    expect(screen.getByText("Pagamentos").nextElementSibling).toHaveTextContent("3");
-    const [byMethod, byRegistrar, list] = screen.getAllByRole("table");
-    expect(within(byMethod).getByText("Dinheiro").closest("tr")).toHaveTextContent(/2.*150,00/);
-    expect(within(byMethod).getByText("Pix pela chave").closest("tr")).toHaveTextContent(/1.*200,00/);
-    expect(within(byRegistrar).getByText("Ana Admin").closest("tr")).toHaveTextContent(/2.*150,00/);
-    expect(within(byRegistrar).getByText("Pagamento online").closest("tr")).toHaveTextContent(/1.*200,00/);
-    const rows = within(list).getAllByRole("row").slice(1);
-    expect(rows.map((r) => within(r).getAllByRole("cell")[1].textContent)).toEqual(["Carla", "Bruno", "Aline"]);
-    expect(rows[0]).toHaveTextContent("14h30");
-    expect(rows[1]).toHaveTextContent("Jiu-Jitsu · nov/2026");
-    expect(rows[1]).toHaveTextContent("Ana Admin");
-    expect(calls.at(-1)!.get("unitId")).toBe("u1");
-    expect(calls.at(-1)!.get("date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(screen.getByRole("link", { name: "Voltar às cobranças" })).toHaveAttribute("href", "/cobrancas");
+    expect(await screen.findByText(/sem abertura ou fechamento de caixa/)).toHaveTextContent(/^[A-Z][^ ,]+, \d{1,2} de [a-zç]+ de \d{4} · Centro · sem abertura/);
+    expect(screen.getByRole("button", { name: "Dia anterior" })).toBeInTheDocument();
+    const csv = screen.getByRole("button", { name: /Exportar CSV/ });
+    expect(csv).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText("Em breve")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Data")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Voltar às cobranças" })).toBeNull();
+    await screen.findByText("Total");
+    const before = calls.length;
+    await userEvent.setup().click(csv);
+    expect(calls).toHaveLength(before);
   });
 
-  it("CA9: trocar a data recarrega; com todas as unidades pede a unidade antes", async () => {
+  it("CA2: Dia anterior volta um dia, a rota recebe a data e aparece Próximo dia, que volta a hoje", async () => {
+    const user = userEvent.setup();
+    setup();
+    await ready();
+    await screen.findByText("Total");
+    expect(screen.queryByRole("button", { name: "Próximo dia" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Dia anterior" }));
+    await waitFor(() => expect(calls.at(-1)!.get("date")).toBe(shift(today(), -1)));
+    await user.click(await screen.findByRole("button", { name: "Próximo dia" }));
+    await waitFor(() => expect(calls.at(-1)!.get("date")).toBe(today()));
+    expect(screen.queryByRole("button", { name: "Próximo dia" })).toBeNull();
+  });
+
+  it("CA4, CA5, CA6: por meio com cartão somado, taxa e Total; por quem lançou com o portal; sem lista nem cartões de total", async () => {
+    setup();
+    await ready();
+    await screen.findByText("Total");
+    const [byMethod, byRegistrar] = screen.getAllByRole("table");
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(within(byMethod).getAllByRole("row").slice(1, -1).map((r) => within(r).getAllByRole("cell")[0].textContent)).toEqual(["Pix pelo portal", "Cartão pelo portal", "Boleto", "Dinheiro"]);
+    expect(within(byMethod).getByText("Cartão pelo portal").closest("tr")).toHaveTextContent(/2.*110,00.*2,30/);
+    expect(within(byMethod).getByText("Dinheiro").closest("tr")).toHaveTextContent(/2.*182,00.*—/);
+    expect(within(byMethod).getByText("Total").closest("tr")).toHaveTextContent(/6.*410,00.*6,29/);
+    expect(within(byRegistrar).getByText("Portal (aluno pagou)").closest("tr")).toHaveTextContent(/4.*228,00/);
+    expect(within(byRegistrar).getByText("Ana Admin").closest("tr")).toHaveTextContent(/2.*182,00/);
+    expect(screen.queryByText("Pagamentos do dia")).toBeNull();
+    expect(screen.queryByText("Total recebido")).toBeNull();
+  });
+
+  it("CA7: com todas as unidades pede a unidade; dia vazio, erro com nova tentativa e 403", async () => {
     const user = userEvent.setup();
     setup({ allUnits: true });
     await ready();
     expect(await screen.findByText("Escolha uma unidade", { selector: "p, h2, h3" })).toBeInTheDocument();
     expect(calls).toHaveLength(0);
     await user.selectOptions(screen.getByRole("combobox", { name: "Unidade" }), "u2");
-    await screen.findByText("Total recebido");
+    await screen.findByText("Total");
     expect(calls.at(-1)!.get("unitId")).toBe("u2");
-    fireEvent.change(screen.getByLabelText("Data"), { target: { value: "2026-01-10" } });
-    await waitFor(() => expect(calls.at(-1)!.get("date")).toBe("2026-01-10"));
   });
 
-  it("CA10: carregando, erro com tentar de novo e dia sem pagamento", async () => {
+  it("CA7: carregando, erro com tentar de novo e dia sem pagamento", async () => {
     const user = userEvent.setup();
     let mode: "error" | "empty" = "error";
     setup({ receipts: () => (mode === "error" ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json(data({ count: 0, totalCents: 0, byMethod: [], byRegistrar: [], payments: [] }))) });
     await ready();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
     mode = "empty";
     await user.click(retry);
     expect(await screen.findByText("Nenhum recebimento neste dia")).toBeInTheDocument();
   });
 
-  it("CA10: 403 da rota vira sem permissão", async () => {
+  it("CA7: 403 da rota vira sem permissão", async () => {
     setup({ receipts: () => HttpResponse.json({}, { status: 403 }) });
     await ready();
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
-  it("CA11: a 360 px com dados o axe não acusa violação nos dois temas", async () => {
+  it("CA13: a 360 px vira cartões, sem tabela, e o axe não acusa violação nos dois temas", async () => {
     for (const dark of [false, true]) {
-      setDevicePrefersDark(dark);
+      setDeviceNarrow(true, dark);
       window.innerWidth = 360;
       const { container, unmount } = setup();
       await ready();
-      await screen.findByText("Total recebido");
+      await screen.findByText("Total");
+      expect(screen.queryAllByRole("table")).toHaveLength(0);
+      expect(screen.getByText("Portal (aluno pagou)")).toBeInTheDocument();
       expect(await axeViolations(container)).toEqual([]);
       unmount();
     }

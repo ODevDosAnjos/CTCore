@@ -54,3 +54,15 @@ describe("recebimentos do dia x OpenAPI (RF-COB-08, #77)", () => {
     expect((await day(`?unitId=${CENTRO}`)).status).toBe(403);
   });
 });
+
+describe("recebimentos do dia: taxa repassada por meio (#479, CA15)", () => {
+  it("cada item de byMethod traz feePassedCents (zero nos manuais) e o contrato exige o campo", async () => {
+    expect(openapi.components.schemas.DailyReceipts.properties.byMethod.items.required).toContain("feePassedCents");
+    await login("ana@exemplo.com");
+    const done = await send("POST", `/students/${MINOR}/enrollment/conclude`, { modalities: [bjj], units: [{ unitId: CENTRO }] });
+    const [charge] = (await done.json()).charges;
+    await send("POST", `/charges/${charge.id}/payments`, { method: "CASH" });
+    const body = await (await day(`?unitId=${CENTRO}`)).json();
+    expect(body.byMethod[0]).toEqual({ method: "CASH", count: 1, totalCents: 20000, feePassedCents: 0 });
+  });
+});
