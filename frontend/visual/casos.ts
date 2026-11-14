@@ -78,8 +78,8 @@ export const casos: Caso[] = [
   { nome: "cobrancas-atrasados", rota: "/cobrancas/atrasados", perfil: ana, canvas: "Atrasados" },
   { nome: "cobrancas-conferencia", rota: "/cobrancas/conferencia", perfil: ana, canvas: "EmConferencia" },
   { nome: "cobrancas-conferencia-janela", rota: "/cobrancas/conferencia", perfil: ana, canvas: "ComprovanteVarias", passos: [{ clicar: "Conferir comprovante de Lucas" }], limiteCanvas: { valor: 0.60, motivo: "medido a 56,0%: dados e fundo: o canvas mostra a lista atrás sem o destaque, outra unidade e outro aluno; a estrutura da janela confere lado a lado (capturas em .capturas/478); removido pela #573" } },
-  { nome: "cobrancas-recebimentos", rota: "/cobrancas/recebimentos", perfil: ana, canvas: "RecebimentosDia" },
-  { nome: "cobrancas-previa", rota: "/cobrancas/previa", perfil: ana, canvas: "Fechamento" },
+  { nome: "cobrancas-recebimentos", rota: "/cobrancas/recebimentos", perfil: admin, canvas: "RecebimentosDia" },
+  { nome: "cobrancas-previa", rota: "/cobrancas/previa", perfil: admin, canvas: "Fechamento" },
   { nome: "pedidos", rota: "/pedidos", perfil: ana, canvas: "PedidosPortal" },
   { nome: "pedido-recusar", rota: "/pedidos", perfil: ana, canvas: "PedidoRecusar", passos: [{ clicar: "Recusar" }], limiteCanvas: { valor: 0.65, motivo: "medido a 59,1%: dados do mock (2 pedidos abertos, não 4) e a lista atrás diferem do canvas; contador N/500 do componente base (o canvas escreve N de 500); sem contagem na aba Aguardando aprovação (D3 e D5 da #471; removido pela #556)" } }, // #471: primeira linha (troca de turma); PedidoEncerramentoRecusar fica em semCaso (o encerramento não é a primeira linha)
   { nome: "pedido-trocar-turma", rota: "/alunos/00000000-0000-0000-0000-000000000701?pedido=00000000-0000-0000-0000-00000000f0c1", perfil: ana, canvas: "PedidoAprovadoFluxo", aguardar: '[role="dialog"]', limiteCanvas: { valor: 0.70, motivo: "medido a 60,6%: o canvas mostra a janela sobre a lista de Alunos e o sistema a abre sobre a ficha do aluno (gaveta); \"Pedido aprovado.\" em negrito no canvas; Outros horários e a nota do rodapé diferem (D8 da #471; removido pela #556)" } },

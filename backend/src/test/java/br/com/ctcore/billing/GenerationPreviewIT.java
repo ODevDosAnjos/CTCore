@@ -70,8 +70,9 @@ class GenerationPreviewIT extends OrganizationBase {
         UUID a = row(t, 8, 20000), b = row(t, 8, 15000), c = row(t, 10, 20000), d = row(t, 12, 30000), e = row(t, 15, 10000), full = row(t, 9, 20000), far = row(t, 20, 20000);
         BillingFixtures.benefit(adminJdbc(), t.orgId(), t.unitId(), student(c), c, "PERCENT", 25, null, "ACTIVE");
         BillingFixtures.benefit(adminJdbc(), t.orgId(), t.unitId(), student(full), full, "PERCENT", 100, null, "ACTIVE");
-        BillingFixtures.charge(adminJdbc(), t.orgId(), t.unitId(), student(a), a, LocalDate.parse("2026-09-01"), null, 10000, "OPEN");
-        BillingFixtures.charge(adminJdbc(), t.orgId(), t.unitId(), student(b), b, LocalDate.parse("2026-09-01"), null, 5000, "PAID");
+        UUID prevA = BillingFixtures.charge(adminJdbc(), t.orgId(), t.unitId(), student(a), a, LocalDate.parse("2026-09-01"), null, 10000, "OPEN");
+        UUID prevB = BillingFixtures.charge(adminJdbc(), t.orgId(), t.unitId(), student(b), b, LocalDate.parse("2026-09-01"), null, 5000, "PAID");
+        adminJdbc().update("update charge set due_on = date '2026-09-08' where id in (?, ?)", prevA, prevB);
         BillingFixtures.charge(adminJdbc(), t.orgId(), t.unitId(), student(d), d, LocalDate.parse("2026-09-01"), null, 7000, "CANCELED");
         long before = adminJdbc().queryForObject("select count(*) from charge", Long.class);
 
@@ -83,6 +84,10 @@ class GenerationPreviewIT extends OrganizationBase {
         assertThat(preview.days()).extracting(MonthlyGeneration.Day::dueOn).extracting(LocalDate::toString).containsExactly("2026-10-08", "2026-10-10", "2026-10-12", "2026-10-15");
         assertThat(preview.days()).extracting(MonthlyGeneration.Day::count).containsExactly(2, 1, 1, 1);
         assertThat(preview.days()).extracting(MonthlyGeneration.Day::totalCents).containsExactly(35000L, 15000L, 30000L, 10000L);
+        // RN-COB-02: gera em = vencimento menos 10 dias; diferença por dia contra o mesmo dia do mês anterior (D8).
+        assertThat(preview.days()).extracting(MonthlyGeneration.Day::generatesOn).extracting(LocalDate::toString).containsExactly("2026-09-28", "2026-09-30", "2026-10-02", "2026-10-05");
+        assertThat(preview.days()).extracting(MonthlyGeneration.Day::previousTotalCents).containsExactly(15000L, 0L, 0L, 0L);
+        assertThat(preview.alreadyGeneratedCents()).isZero();
         assertThat(preview.count()).isEqualTo(5);
         assertThat(preview.totalCents()).isEqualTo(90000);
         assertThat(preview.previousMonthTotalCents()).isEqualTo(15000);
@@ -105,6 +110,7 @@ class GenerationPreviewIT extends OrganizationBase {
             day.lines().stream().sorted((x, y) -> Long.compare(x.amountCents(), y.amountCents())).forEach(l -> previewed.add(day.dueOn() + ":" + l.amountCents()));
         }
         assertThat(created).containsExactlyElementsOf(previewed);
+        assertThat(preview(admin, t.unitId(), 10).alreadyGeneratedCents()).isEqualTo(90000);
         assertThat(far).isNotNull();
         assertThat(e).isNotNull();
     }

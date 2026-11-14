@@ -961,7 +961,7 @@ const mockStartedUnits: { studentId: string; unitId: string; feeCents: number; f
 // RF-COB-02 (#73): cancelar e renegociar acrescentam as situações CANCELED e RENEGOTIATED, a parcela (INSTALLMENT) e os campos do painel.
 export type MockCharge = { id: string; type: "MONTHLY" | "ENROLLMENT_FEE" | "INSTALLMENT" | "ONE_OFF"; studentId: string; unitId: string; modalityRowId: string | null; referenceMonth: string | null; dueOn: string; toleranceDays: number; amountCents: number; status: "OPEN" | "IN_REVIEW" | "PAID" | "CANCELED" | "RENEGOTIATED"; description: string; reason?: string; canceledAt?: string; originId?: string; renegotiationId?: string; daysToBlock?: number; modalityName?: string };
 let mockCharges: MockCharge[] = [];
-export type MockReceipt = { code: string; unitId: string; number: number; chargeId: string; amountCents: number; paidAt: string; studentName: string; method?: string; observation?: string | null; by?: { id: string; name: string } };
+export type MockReceipt = { code: string; unitId: string; number: number; chargeId: string; amountCents: number; paidAt: string; studentName: string; method?: string; feeCents?: number; observation?: string | null; by?: { id: string; name: string } };
 let mockReceipts: MockReceipt[] = [];
 // RF-COB-06 (#79): histórico de lembretes por cobrança, em memória; só o envio manual por e-mail existe no simulado.
 export type MockReminder = { chargeId: string; kind: "MANUAL"; channel: "EMAIL"; status: "SENT" | "SKIPPED"; reason: "NO_ADDRESS" | "EMAIL_PROBLEM" | null; createdAt: string; sentBy: { id: string; name: string | null } };
@@ -4222,7 +4222,7 @@ export const routes: Route[] = [
       if (!Number.isInteger(days) || days < 1 || days > 60) return studentBad("days", "de 1 a 60");
       const until = plusDays(isoDay(new Date()), days);
       const reach = activeRole() === "COORDINATOR" || unitId === ADMIN_UNIT;
-      const byDay = new Map<string, { dueOn: string; count: number; totalCents: number; lines: unknown[] }>();
+      const byDay = new Map<string, { dueOn: string; generatesOn: string; count: number; totalCents: number; previousTotalCents: number; lines: unknown[] }>();
       const skipped: unknown[] = [];
       let firstDue = "";
       for (const [studentId, e] of Object.entries(mockEnrollments)) {
@@ -4239,7 +4239,7 @@ export const routes: Route[] = [
           }
           for (let first = true; nextDueOf(row, ref) <= until; first = false) {
             const dueOn = nextDueOf(row, ref);
-            const day = byDay.get(dueOn) ?? { dueOn, count: 0, totalCents: 0, lines: [] };
+            const day = byDay.get(dueOn) ?? { dueOn, generatesOn: plusDays(dueOn, -10), count: 0, totalCents: 0, previousTotalCents: 0, lines: [] };
             day.lines.push({ studentId, student: student.name, modalityRowId: row.id, modality, plan: plan.name, discountCents: discount, amountCents: amount, referenceMonth: ref, adjustable: first });
             day.count += 1;
             day.totalCents += amount;
@@ -4250,9 +4250,16 @@ export const routes: Route[] = [
         }
       }
       const list = [...byDay.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn));
+      const monthly = mockCharges.filter((c) => c.type === "MONTHLY" && c.unitId === unitId && c.status !== "CANCELED");
+      // Como o servidor: mesmo dia do mês anterior; sem esse dia, sem comparação.
+      for (const d of list) {
+        const prev = isoDay(new Date(Date.UTC(Number(d.dueOn.slice(0, 4)), Number(d.dueOn.slice(5, 7)) - 2, Number(d.dueOn.slice(8, 10)))));
+        d.previousTotalCents = prev.slice(8, 10) === d.dueOn.slice(8, 10) ? monthly.filter((c) => c.dueOn === prev).reduce((t, c) => t + c.amountCents, 0) : 0;
+      }
+      const alreadyGeneratedCents = monthly.filter((c) => c.dueOn >= isoDay(new Date()) && c.dueOn <= until).reduce((t, c) => t + c.amountCents, 0);
       const prevRef = firstDue ? isoDay(new Date(Date.UTC(Number(firstDue.slice(0, 4)), Number(firstDue.slice(5, 7)) - 2, 1))) : "";
       const previousMonthTotalCents = mockCharges.filter((c) => c.type === "MONTHLY" && c.unitId === unitId && c.status !== "CANCELED" && c.referenceMonth === prevRef).reduce((t, c) => t + c.amountCents, 0);
-      return HttpResponse.json({ until, days: list, count: list.reduce((t, d) => t + d.count, 0), totalCents: list.reduce((t, d) => t + d.totalCents, 0), previousMonthTotalCents, skipped });
+      return HttpResponse.json({ until, days: list, count: list.reduce((t, d) => t + d.count, 0), totalCents: list.reduce((t, d) => t + d.totalCents, 0), previousMonthTotalCents, alreadyGeneratedCents, skipped });
     },
   },
   {
@@ -4271,8 +4278,8 @@ export const routes: Route[] = [
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) return studentBad("date", "use AAAA-MM-DD");
       if (date > today) return studentBad("date", "não pode ser futura");
       const reach = activeRole() === "COORDINATOR" || unitId === ADMIN_UNIT;
-      const payments = mockReceipts
-        .filter((r) => reach && r.unitId === unitId && localDay(new Date(r.paidAt)) === date)
+      const ofDay = mockReceipts.filter((r) => reach && r.unitId === unitId && localDay(new Date(r.paidAt)) === date);
+      const payments = ofDay
         .sort((a, b) => b.paidAt.localeCompare(a.paidAt) || b.code.localeCompare(a.code))
         .map((r) => {
           const c = mockCharges.find((x) => x.id === r.chargeId)!;
@@ -4294,7 +4301,7 @@ export const routes: Route[] = [
         date,
         totalCents: payments.reduce((t, p) => t + p.amountCents, 0),
         count: payments.length,
-        byMethod: sum((p) => p.method, (k) => k).map((g) => ({ method: g.key, count: g.count, totalCents: g.totalCents })),
+        byMethod: sum((p) => p.method, (k) => k).map((g) => ({ method: g.key, count: g.count, totalCents: g.totalCents, feePassedCents: ofDay.filter((r) => (r.method ?? "CASH") === g.key).reduce((t, r) => t + (r.feeCents ?? 0), 0) })),
         byRegistrar: sum((p) => p.registeredBy, (k) => k?.id ?? "").map((g) => ({ registeredBy: g.key, count: g.count, totalCents: g.totalCents })),
         payments,
       });

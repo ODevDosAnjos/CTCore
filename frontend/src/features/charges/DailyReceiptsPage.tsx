@@ -1,90 +1,114 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { ComingSoon } from "@/components/ui/coming-soon";
+import { Select } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
+import { useBelowSm } from "@/components/query/useBelowSm";
+import { SupportLink } from "@/features/auth/SupportContact";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
-import { formatCurrency, formatTime } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { todayIso } from "./ChangeDueDialog";
+import { longDate, methodRows, registrarRows, shiftDay, type MethodRow, type RegistrarRow } from "./receiptRows";
 import type { DailyReceipts } from "./types";
 import { useDailyReceipts } from "./useDailyReceipts";
-import { PageHeader } from "@/components/ui/page-header";
 
-const cell = "px-3 py-2 text-left align-top";
+const cell = "px-3 py-3 text-left align-middle";
+const num = `${cell} text-right tabular-nums`;
 
-function Table({ title, head, children }: { title: string; head: string[]; children: ReactNode }) {
+const TOTAL_KEY = "total";
+
+type Col = { label: string; numeric?: boolean };
+
+// Tabela no desktop; no celular, um cartão por linha com as mesmas informações (D10).
+function Block<R>({ title, cols, rows, total, narrow, cells, name }: { title: string; cols: Col[]; rows: R[]; total?: ReactNode[]; narrow: boolean; cells: (r: R) => ReactNode[]; name: (r: R) => string }) {
+  const card = (values: ReactNode[], key: string, strong?: boolean) => (
+    <li key={key} className={strong ? "rounded-md bg-surface-soft p-3 text-sm font-semibold" : "rounded-md border p-3 text-sm"}>
+      <p className="font-medium">{values[0]}</p>
+      <dl className="mt-1 flex flex-col gap-0.5">
+        {cols.slice(1).map((c, i) => (
+          <div key={c.label} className="flex justify-between gap-3">
+            <dt className="font-normal text-muted-foreground">{c.label}</dt>
+            <dd className="tabular-nums">{values[i + 1]}</dd>
+          </div>
+        ))}
+      </dl>
+    </li>
+  );
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[28rem] text-sm">
-          <thead className="bg-muted/50">
+    <section className="flex flex-col gap-3">
+      <h2 className="font-heading text-2xl font-semibold uppercase">{title}</h2>
+      {narrow ? (
+        <ul className="flex flex-col gap-2">
+          {rows.map((r) => card(cells(r), name(r)))}
+          {total && card(total, TOTAL_KEY, true)}
+        </ul>
+      ) : (
+        <table className="w-full overflow-hidden rounded-card border bg-card text-sm">
+          <thead className="bg-surface-soft text-xs text-muted-foreground">
             <tr>
-              {head.map((h) => (
-                <th key={h} scope="col" className={`${cell} font-medium`}>
-                  {h}
+              {cols.map((c) => (
+                <th key={c.label} scope="col" className={`${c.numeric ? "text-right" : "text-left"} px-3 py-3 font-semibold`}>
+                  {c.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y">{children}</tbody>
+          <tbody className="divide-y">
+            {rows.map((r) => (
+              <tr key={name(r)}>
+                {cells(r).map((v, i) => (
+                  <td key={cols[i].label} className={cols[i].numeric ? num : cell}>
+                    {v}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          {total && (
+            <tfoot>
+              <tr className="border-t bg-surface-soft font-semibold">
+                {total.map((v, i) => (
+                  <td key={cols[i].label} className={cols[i].numeric ? num : cell}>
+                    {v}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
-      </div>
+      )}
     </section>
   );
 }
 
 function Summary({ data }: { data: DailyReceipts }) {
   const { t } = useTranslation();
-  const method = (m: string) => t(`payments.method.${m}`);
-  const who = (p: { name: string } | null) => (p ? p.name : t("charges.daily.online"));
-  const c = (k: string) => t(`charges.daily.columns.${k}`);
+  const narrow = useBelowSm();
+  const { rows, total } = methodRows(data.byMethod);
+  const money = (c: number) => (c === 0 ? "—" : formatCurrency(c));
   return (
-    <>
-      <dl className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-card border bg-card p-4">
-          <dt className="text-sm text-muted-foreground">{t("charges.daily.total")}</dt>
-          <dd className="text-xl font-semibold">{formatCurrency(data.totalCents)}</dd>
-        </div>
-        <div className="rounded-card border bg-card p-4">
-          <dt className="text-sm text-muted-foreground">{t("charges.daily.count")}</dt>
-          <dd className="text-xl font-semibold">{data.count}</dd>
-        </div>
-      </dl>
-      <Table title={t("charges.daily.byMethod")} head={[c("method"), c("count"), c("total")]}>
-        {data.byMethod.map((m) => (
-          <tr key={m.method}>
-            <td className={cell}>{method(m.method)}</td>
-            <td className={cell}>{m.count}</td>
-            <td className={cell}>{formatCurrency(m.totalCents)}</td>
-          </tr>
-        ))}
-      </Table>
-      <Table title={t("charges.daily.byRegistrar")} head={[c("registrar"), c("count"), c("total")]}>
-        {data.byRegistrar.map((r) => (
-          <tr key={r.registeredBy?.id ?? "online"}>
-            <td className={cell}>{who(r.registeredBy)}</td>
-            <td className={cell}>{r.count}</td>
-            <td className={cell}>{formatCurrency(r.totalCents)}</td>
-          </tr>
-        ))}
-      </Table>
-      <Table title={t("charges.daily.list")} head={[c("time"), c("student"), c("reference"), c("method"), c("registrar"), c("amount"), c("receipt")]}>
-        {data.payments.map((p) => (
-          <tr key={p.id}>
-            <td className={cell}>{formatTime(p.paidAt)}</td>
-            <td className={cell}>{p.student.name}</td>
-            <td className={cell}>{p.reference}</td>
-            <td className={cell}>{method(p.method)}</td>
-            <td className={cell}>{who(p.registeredBy)}</td>
-            <td className={cell}>{formatCurrency(p.amountCents)}</td>
-            <td className={cell}>{p.receiptNumber}</td>
-          </tr>
-        ))}
-      </Table>
-    </>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Block<MethodRow>
+        title={t("charges.daily.byMethod")}
+        cols={[{ label: t("charges.daily.columns.method") }, { label: t("charges.daily.columns.count"), numeric: true }, { label: t("charges.daily.columns.amount"), numeric: true }, { label: t("charges.daily.columns.fee"), numeric: true }]}
+        rows={rows}
+        narrow={narrow}
+        name={(r) => r.key}
+        cells={(r) => [t(`charges.daily.method.${r.key}`), r.count, formatCurrency(r.totalCents), money(r.feeCents)]}
+        total={[t("charges.daily.totalRow"), total.count, formatCurrency(total.totalCents), money(total.feeCents)]}
+      />
+      <Block<RegistrarRow>
+        title={t("charges.daily.byRegistrar")}
+        cols={[{ label: t("charges.daily.columns.registrar") }, { label: t("charges.daily.columns.count"), numeric: true }, { label: t("charges.daily.columns.amount"), numeric: true }]}
+        rows={registrarRows(data.byRegistrar)}
+        narrow={narrow}
+        name={(r) => r.id ?? "portal"}
+        cells={(r) => [r.name ?? t("charges.daily.portal"), r.count, r.count === 0 ? "—" : formatCurrency(r.totalCents)]}
+      />
+    </div>
   );
 }
 
@@ -96,42 +120,51 @@ function Content() {
   // Com "todas as unidades" a rota não tem o que consultar; a pessoa escolhe uma da lista ao alcance.
   const all = scope.selected === ALL;
   const unitId = all ? picked || null : scope.selected;
-  const { status, data, reload } = useDailyReceipts(unitId, date || todayIso());
+  const unitName = scope.units.find((u) => u.id === unitId)?.name;
+  const { status, data, reload } = useDailyReceipts(unitId, date);
+  const today = todayIso();
 
   let body;
-  if (!unitId) body = <EmptyState title={t("charges.daily.pickUnit")} text={t("charges.daily.pickUnitText")} />;
-  else if (status === "loading" || status === "idle") body = <LoadingState />;
-  else if (status === "forbidden") body = <ForbiddenState />;
-  else if (status === "error" || status === "notFound" || !data) body = <ErrorState onRetry={reload} />;
-  else if (data.count === 0) body = <EmptyState title={t("charges.daily.empty")} />;
+  if (!unitId) body = <EmptyState variant="card" title={t("charges.daily.pickUnit")} text={t("charges.daily.pickUnitText")} />;
+  else if (status === "loading" || status === "idle") body = <LoadingState variant="card" />;
+  else if (status === "forbidden") body = <ForbiddenState variant="card" />;
+  else if (status === "error" || status === "notFound" || !data) body = <ErrorState variant="card" onRetry={reload} secondary={<SupportLink />} />;
+  else if (data.count === 0) body = <EmptyState variant="card" title={t("charges.daily.empty")} text={t("charges.daily.emptyText")} />;
   else body = <Summary data={data} />;
 
+  const when = longDate(date);
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("charges.daily.title")} />
-      <p className="text-muted-foreground">{t("charges.daily.intro")}</p>
-      <div className="flex flex-wrap items-end gap-3">
-        {all && (
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            {t("charges.daily.unit")}
-            <Select className="w-auto" value={picked} onChange={(e) => setPicked(e.target.value)}>
-              <option value="">{t("charges.daily.chooseUnit")}</option>
-              {scope.units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </Select>
-          </label>
-        )}
+      <PageHeader
+        title={t("charges.daily.title")}
+        subtitle={unitName ? t("charges.daily.subtitle", { date: when, unit: unitName }) : t("charges.daily.subtitleNoUnit", { date: when })}
+        actions={
+          <>
+            <Button type="button" variant="outline" className="min-h-11" onClick={() => setDate(shiftDay(date, -1))}>
+              {t("charges.daily.previous")}
+            </Button>
+            {date !== today && (
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => setDate(shiftDay(date, 1))}>
+                {t("charges.daily.next")}
+              </Button>
+            )}
+            <ComingSoon variant="button" label={t("charges.export")} />
+          </>
+        }
+      />
+      {all && (
         <label className="flex flex-col gap-1 text-sm font-medium">
-          {t("charges.daily.date")}
-          <Input type="date" className="w-auto" max={todayIso()} value={date} onChange={(e) => setDate(e.target.value)} />
+          {t("charges.daily.unit")}
+          <Select className="w-auto" value={picked} onChange={(e) => setPicked(e.target.value)}>
+            <option value="">{t("charges.daily.chooseUnit")}</option>
+            {scope.units.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </Select>
         </label>
-        <Button asChild variant="outline" className="min-h-11">
-          <Link to="/cobrancas">{t("charges.daily.back")}</Link>
-        </Button>
-      </div>
+      )}
       {body}
     </div>
   );

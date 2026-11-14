@@ -28,7 +28,9 @@ public class DailyReceipts {
 
     public record Line(UUID id, OffsetDateTime paidAt, Person student, String reference, String method, Person registeredBy, long amountCents, int receiptNumber) {}
 
-    public record ByMethod(String method, int count, long totalCents) {}
+    public record ByMethod(String method, int count, long totalCents, long feePassedCents) {}
+
+    private record Row(Line line, long feeCents) {}
 
     public record ByRegistrar(Person registeredBy, int count, long totalCents) {}
 
@@ -63,11 +65,11 @@ public class DailyReceipts {
             LocalDate today = LocalDate.now(clock.withZone(ZoneId.of(zone)));
             LocalDate day = wanted == null ? today : wanted;
             if (day.isAfter(today)) throw new ApiValidationException("date", "não pode ser futura");
-            List<Line> lines = jdbc.sql("select p.id, p.paid_at, s.id, s.name, "
+            List<Row> rows = jdbc.sql("select p.id, p.paid_at, s.id, s.name, "
                     + "case when c.type = 'MONTHLY' and c.reference_month is not null "
                     + "then m.name || ' · ' || (array['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'])[extract(month from c.reference_month)::int] "
                     + "|| '/' || extract(year from c.reference_month)::int else coalesce(c.description, '') end, "
-                    + "p.method, a.id, coalesce(nullif(btrim(a.name), ''), a.email), p.amount_cents, r.number "
+                    + "p.method, a.id, coalesce(nullif(btrim(a.name), ''), a.email), p.amount_cents, r.number, p.fee_passed_cents "
                     + "from payment p join charge c on c.id = p.charge_id and c.organization_id = p.organization_id "
                     + "join student s on s.id = p.student_id and s.organization_id = p.organization_id "
                     + "join receipt r on r.payment_id = p.id left join enrollment_modality em on em.id = c.enrollment_modality_id "
@@ -75,19 +77,23 @@ public class DailyReceipts {
                     + "where p.organization_id = :org and p.unit_id = :unit and p.status = 'CONFIRMED' and (p.paid_at at time zone :zone)::date = :day "
                     + "order by p.paid_at desc, p.id desc")
                     .param("org", who.organizationId()).param("unit", unitId).param("zone", zone).param("day", day)
-                    .query((rs, n) -> new Line(rs.getObject(1, UUID.class), rs.getObject(2, OffsetDateTime.class),
+                    .query((rs, n) -> new Row(new Line(rs.getObject(1, UUID.class), rs.getObject(2, OffsetDateTime.class),
                             new Person(rs.getObject(3, UUID.class), rs.getString(4)), rs.getString(5), rs.getString(6),
-                            rs.getObject(7, UUID.class) == null ? null : new Person(rs.getObject(7, UUID.class), rs.getString(8)), rs.getLong(9), rs.getInt(10)))
+                            rs.getObject(7, UUID.class) == null ? null : new Person(rs.getObject(7, UUID.class), rs.getString(8)), rs.getLong(9), rs.getInt(10)), rs.getLong(11)))
                     .list();
+            List<Line> lines = rows.stream().map(Row::line).toList();
             Map<String, long[]> methods = new LinkedHashMap<>();
             Map<Person, long[]> registrars = new LinkedHashMap<>();
             long total = 0;
-            for (Line l : lines) {
+            for (Row r : rows) {
+                Line l = r.line();
                 total += l.amountCents();
-                add(methods.computeIfAbsent(l.method(), k -> new long[2]), l);
+                long[] m = methods.computeIfAbsent(l.method(), k -> new long[3]);
+                add(m, l);
+                m[2] += r.feeCents();
                 add(registrars.computeIfAbsent(Objects.requireNonNullElse(l.registeredBy(), new Person(null, null)), k -> new long[2]), l);
             }
-            List<ByMethod> byMethod = methods.entrySet().stream().map(e -> new ByMethod(e.getKey(), (int) e.getValue()[0], e.getValue()[1])).toList();
+            List<ByMethod> byMethod = methods.entrySet().stream().map(e -> new ByMethod(e.getKey(), (int) e.getValue()[0], e.getValue()[1], e.getValue()[2])).toList();
             List<ByRegistrar> byRegistrar = registrars.entrySet().stream()
                     .map(e -> new ByRegistrar(e.getKey().id() == null ? null : e.getKey(), (int) e.getValue()[0], e.getValue()[1])).toList();
             return new Day(day, total, lines.size(), byMethod, byRegistrar, lines);

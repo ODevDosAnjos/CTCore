@@ -9,7 +9,7 @@ import { mockPermissions } from "@/mocks/permissions";
 import { gate } from "@/test/gate";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { GenerationPreview, PreviewLine } from "./types";
 
@@ -31,13 +31,15 @@ const line = (n: number, over: Partial<PreviewLine> = {}): PreviewLine => ({
   adjustable: true,
   ...over,
 });
-const day = (dueOn: string, lines: PreviewLine[]) => ({ dueOn, count: lines.length, totalCents: lines.reduce((t, l) => t + l.amountCents, 0), lines });
+const gen = (dueOn: string) => new Date(Date.parse(`${dueOn}T12:00:00Z`) - 10 * 86_400_000).toISOString().slice(0, 10);
+const day = (dueOn: string, lines: PreviewLine[], previousTotalCents = 0) => ({ dueOn, generatesOn: gen(dueOn), count: lines.length, totalCents: lines.reduce((t, l) => t + l.amountCents, 0), previousTotalCents, lines });
 const data = (over: Partial<GenerationPreview> = {}): GenerationPreview => ({
   until: "2099-12-31",
-  days: [day("2099-12-05", [line(1), line(2, { discountCents: 2000, amountCents: 8000 })]), day("2099-12-10", [line(3)]), day("2099-12-15", [line(4), line(5, { adjustable: false })])],
+  days: [day("2099-12-05", [line(1), line(2, { discountCents: 2000, amountCents: 8000 })], 18000), day("2099-12-10", [line(3)], 5000), day("2099-12-15", [line(4), line(5, { adjustable: false })], 20000)],
   count: 5,
   totalCents: 48000,
   previousMonthTotalCents: 33000,
+  alreadyGeneratedCents: 12500,
   skipped: [{ studentId: "s9", student: "Bia Bolsista", modality: "Judô", referenceMonth: "2099-12-01", reason: "FULL_BENEFIT" }],
   ...over,
 });
@@ -81,31 +83,81 @@ function setup(opts: { role?: string; preview?: () => Response | Promise<Respons
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Prévia da geração de mensalidades", level: 1 });
+const ready = () => screen.findByRole("heading", { name: "Prévia da geração", level: 1 });
+// "Ver alunos" abre as linhas do dia (D9); as ações vivem nelas.
+const openAll = async (user: ReturnType<typeof userEvent.setup>) => {
+  for (const b of await screen.findAllByRole("button", { name: /^Ver alunos do dia/ })) await user.click(b);
+};
 
 describe("ChargePreviewPage (RF-COB-03)", () => {
-  it("CA12: três grupos por dia com quantidade e subtotal, total, diferença com sinal e a bolsa em Não serão cobrados", async () => {
+  afterEach(() => setDeviceNarrow(false));
+
+  it("CA8: subtítulo com mês, unidade e a regra da geração; botão no topo; período com 30 dias marcado; sem Voltar", async () => {
     setup();
     await ready();
-    const groups = await screen.findAllByRole("region");
-    expect(groups.map((g) => g.querySelector("h2")?.textContent)).toEqual([
-      expect.stringMatching(/^Vence em 05\/12\/2099 · 2 mensalidades · .*180,00/),
-      expect.stringMatching(/^Vence em 10\/12\/2099 · 1 mensalidades · .*100,00/),
-      expect.stringMatching(/^Vence em 15\/12\/2099 · 2 mensalidades · .*200,00/),
-      "Não serão cobrados",
-    ]);
-    expect(screen.getByText("Total previsto").nextElementSibling).toHaveTextContent(/480,00/);
-    expect(screen.getByText("Diferença para o mês anterior").nextElementSibling).toHaveTextContent(/^\+\s.*150,00/);
-    expect(within(groups[3]).getByText("Bia Bolsista")).toBeInTheDocument();
-    expect(within(groups[3]).getByText(/Bolsa de 100%/)).toBeInTheDocument();
-    expect(screen.getByText(/desconto de/)).toBeInTheDocument();
+    await screen.findByText("Total previsto");
+    expect(screen.getByText(/a geração é automática, todo dia, 10 dias antes de cada vencimento/)).toHaveTextContent("Dezembro/2099 · Centro · a geração é automática");
+    expect(screen.getByRole("button", { name: "Gerar próximas mensalidades" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Período" })).toHaveValue("30");
+    expect(screen.queryByRole("link", { name: "Voltar às cobranças" })).toBeNull();
     expect(calls.at(-1)!.get("unitId")).toBe("u1");
-    expect(calls.at(-1)!.get("days")).toBe("10");
+    expect(calls.at(-1)!.get("days")).toBe("30");
   });
 
-  it("motivo desconhecido mostra Não será cobrado e os motivos do canvas têm o texto do canvas", async () => {
-    const reasons = ["X", "OVERDUE_BLOCK", "END_REQUESTED", "MODALITY_ENDED"];
-    const texts = ["Não será cobrado", "Modalidade bloqueada por atraso", "Encerramento solicitado", "Modalidade encerrada"];
+  it("CA9: três cartões com total e diferença para o mês anterior, quantidade com pulados e já gerado", async () => {
+    setup();
+    await ready();
+    await screen.findByText("Total previsto");
+    expect(screen.getByText("Total previsto").nextElementSibling).toHaveTextContent(/480,00/);
+    expect(screen.getByText(/em relação a novembro/)).toHaveTextContent(/^\+\s.*150,00 em relação a novembro$/);
+    expect(screen.getByText("Mensalidades", { selector: "p" }).nextElementSibling).toHaveTextContent("5");
+    expect(screen.getByText("1 aluno não será cobrado")).toBeInTheDocument();
+    expect(screen.getByText("Já gerado").nextElementSibling).toHaveTextContent(/125,00/);
+    expect(screen.getByText("nada repete se gerar de novo")).toBeInTheDocument();
+  });
+
+  it("CA9: total menor sai com o sinal de menos, igual sai igual e sem pulados todos serão cobrados", async () => {
+    const { unmount } = setup({ preview: () => HttpResponse.json(data({ previousMonthTotalCents: 56000, skipped: [], alreadyGeneratedCents: 0 })) });
+    await ready();
+    expect(await screen.findByText(/em relação a novembro/)).toHaveTextContent(/^−\s.*80,00 em relação a novembro$/);
+    expect(screen.getByText("todos serão cobrados")).toBeInTheDocument();
+    expect(screen.getByText("Já gerado").nextElementSibling).toHaveTextContent(/0,00/);
+    unmount();
+    setup({ preview: () => HttpResponse.json(data({ previousMonthTotalCents: 48000 })) });
+    expect(await screen.findByText("igual a novembro")).toBeInTheDocument();
+  });
+
+  it("CA10: por dia de vencimento com gera em, total, diferença e Ver alunos em cada linha", async () => {
+    setup();
+    await ready();
+    const table = (await screen.findByRole("heading", { name: "Por dia de vencimento" })).closest("section")!;
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent(/Dia 5 · gera em 25\/11.*2.*180,00.*igual/);
+    expect(rows[1]).toHaveTextContent(/Dia 10 · gera em 30\/11.*1.*100,00.*\+ .*50,00/);
+    expect(rows[2]).toHaveTextContent(/Dia 15 · gera em 05\/12.*2.*200,00.*igual/);
+    expect(within(table).getAllByRole("button", { name: /^Ver alunos do dia/ })).toHaveLength(3);
+    expect(within(table).getByRole("columnheader", { name: "Diferença para novembro" })).toBeInTheDocument();
+  });
+
+  it("CA11: Ver alunos abre as linhas do dia com o desconto e clicar de novo recolhe", async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByText("Total previsto");
+    expect(screen.queryByText("Aluno 1")).toBeNull();
+    const button = screen.getByRole("button", { name: "Ver alunos do dia 5" });
+    await user.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Aluno 1")).toBeInTheDocument();
+    expect(screen.getByText(/desconto de/)).toBeInTheDocument();
+    await user.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Aluno 1")).toBeNull();
+  });
+
+  it("CA12: os motivos do canvas, motivo sem texto vira Não será cobrado sem quebrar a tela (B14) e a nota de rodapé", async () => {
+    const reasons = ["INVENTADO", "FULL_BENEFIT", "OVERDUE_BLOCK", "END_REQUESTED", "MODALITY_ENDED"];
+    const texts = ["Não será cobrado", "Bolsa de 100%", "Modalidade bloqueada por atraso", "Encerramento solicitado", "Modalidade encerrada"];
     setup({
       preview: () =>
         HttpResponse.json(
@@ -113,20 +165,17 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
         ),
     });
     await ready();
+    const table = (await screen.findByRole("heading", { name: "Quem não será cobrado e por quê" })).closest("section")!;
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Aluno", "Modalidade", "Motivo"]);
     for (const [i, text] of texts.entries()) {
-      const row = (await screen.findByText(`Fulano ${i}`)).closest("li")!;
+      const row = within(table).getByText(`Fulano ${i}`).closest("tr")!;
       expect(row).toHaveTextContent(text);
+      expect(row).toHaveTextContent("Judô");
     }
+    expect(screen.getByText(/abra "Ver alunos"/)).toBeInTheDocument();
   });
 
-  it("diferença negativa sai com o sinal de menos", async () => {
-    setup({ preview: () => HttpResponse.json(data({ previousMonthTotalCents: 56000 })) });
-    await ready();
-    expect(await screen.findByText("Diferença para o mês anterior")).toBeInTheDocument();
-    expect(screen.getByText("Diferença para o mês anterior").nextElementSibling).toHaveTextContent(/^−\s.*80,00/);
-  });
-
-  it("CA13: com todas as unidades pede a escolha e só chama a rota depois dela; trocar para 30 dias manda days=30", async () => {
+  it("CA13: com todas as unidades pede a escolha e só chama a rota depois dela; trocar para 60 dias manda days=60", async () => {
     const user = userEvent.setup();
     setup({ allUnits: true, units: [{ id: "u1", name: "Centro", shortName: "c" }, { id: "u2", name: "Norte", shortName: "n" }] });
     await ready();
@@ -135,8 +184,8 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Unidade" }), "u2");
     await screen.findByText("Total previsto");
     expect(calls.at(-1)!.get("unitId")).toBe("u2");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Período" }), "30");
-    await waitFor(() => expect(calls.at(-1)!.get("days")).toBe("30"));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Período" }), "60");
+    await waitFor(() => expect(calls.at(-1)!.get("days")).toBe("60"));
   });
 
   it("CA16: vazio com a frase do período, erro com tentar de novo e carregando", async () => {
@@ -144,11 +193,11 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     let mode: "empty" | "error" = "error";
     setup({ preview: () => (mode === "error" ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json(data({ days: [], count: 0, totalCents: 0, skipped: [] }))) });
     await ready();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
     mode = "empty";
     await user.click(retry);
-    expect(await screen.findByText("Nada a gerar nos próximos 10 dias")).toBeInTheDocument();
+    expect(await screen.findByText("Nada a gerar nos próximos 30 dias")).toBeInTheDocument();
   });
 
   it("CA15: 403 da rota vira sem permissão; quem só lê vê os dados sem os botões de ajuste", async () => {
@@ -158,6 +207,7 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     unmount();
     setup({ level: "READ" });
     await screen.findByText("Total previsto");
+    await openAll(userEvent.setup());
     expect(screen.getByText("Aluno 1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Trocar vencimento/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Cancelar mensalidade/ })).toBeNull();
@@ -168,6 +218,7 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Total previsto");
+    await openAll(user);
     expect(screen.getAllByRole("button", { name: /^Trocar vencimento de / })).toHaveLength(4);
     expect(screen.getAllByRole("button", { name: /^Aplicar benefício a / })).toHaveLength(4);
     const before = calls.length;
@@ -189,6 +240,7 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Total previsto");
+    await openAll(user);
     const before = calls.length;
     await user.click(screen.getByRole("button", { name: "Cancelar mensalidade de Aluno 3" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancelar mensalidade" });
@@ -207,6 +259,7 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     setup();
     server.use(http.post("/api/v1/students/:id/modalities/:row/next-charge/cancel", () => HttpResponse.json({ code: "CONFLICT", message: "x", fields: [] }, { status: 409 })));
     await screen.findByText("Total previsto");
+    await openAll(user);
     await user.click(screen.getByRole("button", { name: "Cancelar mensalidade de Aluno 1" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancelar mensalidade" });
     await user.type(within(dialog).getByLabelText(/^Motivo/), "x");
@@ -226,6 +279,7 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     );
     setup();
     await screen.findByText("Total previsto");
+    await openAll(user);
     await user.click(screen.getByRole("button", { name: "Aplicar benefício a Aluno 2" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getAllByText(/Jiu-Jitsu/).length).toBeGreaterThan(0);
@@ -234,11 +288,14 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
 
   it("CA17: a 360 px com dados o axe não acusa violação nos dois temas", async () => {
     for (const dark of [false, true]) {
-      setDevicePrefersDark(dark);
+      setDeviceNarrow(true, dark);
       window.innerWidth = 360;
       const { container, unmount } = setup();
       await ready();
       await screen.findByText("Total previsto");
+      expect(screen.queryAllByRole("table")).toHaveLength(0);
+      await openAll(userEvent.setup());
+      expect(screen.getByText("Aluno 1")).toBeInTheDocument();
       expect(await axeViolations(container)).toEqual([]);
       unmount();
     }
@@ -249,6 +306,7 @@ describe("ChargePreviewPage (RF-COB-03)", () => {
     setup();
     server.use(http.patch("/api/v1/students/:id/modalities/:row/next-charge", () => HttpResponse.json({ code: "CONFLICT", message: "x", fields: [] }, { status: 409 })));
     await screen.findByText("Total previsto");
+    await openAll(user);
     await user.click(screen.getByRole("button", { name: "Trocar vencimento de Aluno 1" }));
     let dialog = await screen.findByRole("dialog", { name: "Trocar vencimento" });
     await user.clear(within(dialog).getByLabelText("Novo vencimento"));

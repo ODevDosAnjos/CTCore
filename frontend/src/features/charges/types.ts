@@ -106,8 +106,10 @@ export interface PreviewLine {
 }
 export interface PreviewDay {
   dueOn: string;
+  generatesOn: string;
   count: number;
   totalCents: number;
+  previousTotalCents: number;
   lines: PreviewLine[];
 }
 export interface PreviewSkipped {
@@ -123,6 +125,7 @@ export interface GenerationPreview {
   count: number;
   totalCents: number;
   previousMonthTotalCents: number;
+  alreadyGeneratedCents: number;
   skipped: PreviewSkipped[];
 }
 
@@ -159,7 +162,7 @@ export interface DailyReceipts {
   date: string;
   totalCents: number;
   count: number;
-  byMethod: { method: string; count: number; totalCents: number }[];
+  byMethod: { method: string; count: number; totalCents: number; feePassedCents: number }[];
   byRegistrar: { registeredBy: DailyReceiptsPerson | null; count: number; totalCents: number }[];
   payments: {
     id: string;

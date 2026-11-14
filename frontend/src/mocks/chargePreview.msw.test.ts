@@ -96,3 +96,17 @@ describe("prévia da geração e ajustes x OpenAPI (RF-COB-03, RN-COB-02, #74)",
     expect(other.count).toBe(0);
   });
 });
+
+describe("prévia da geração: campos do canvas (#479, CA15)", () => {
+  it("o contrato exige os campos e cada dia traz gera em (vencimento menos 10 dias) e diferença", async () => {
+    const schema = openapi.components.schemas.GenerationPreview;
+    expect(schema.required).toContain("alreadyGeneratedCents");
+    expect(schema.properties.days.items.required).toEqual(expect.arrayContaining(["generatesOn", "previousTotalCents"]));
+    await enroll();
+    const p = await preview();
+    expect(p.alreadyGeneratedCents).toBeGreaterThanOrEqual(0);
+    const [day] = p.days;
+    expect(day.generatesOn).toBe(new Date(Date.parse(`${day.dueOn}T12:00:00Z`) - 10 * 86_400_000).toISOString().slice(0, 10));
+    expect(day.previousTotalCents).toBe(0);
+  });
+});

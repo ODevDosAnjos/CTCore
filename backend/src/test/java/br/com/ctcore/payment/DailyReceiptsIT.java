@@ -104,6 +104,22 @@ class DailyReceiptsIT extends OrganizationBase {
     }
 
     @Test
+    @DisplayName("CA15: a taxa repassada soma por meio; meio manual vem com zero")
+    void feePassedByMethod() {
+        var t = tenant();
+        var admin = account(t, Role.ADMINISTRATOR, "Ana Admin");
+        pay(adminJdbc(), t, "Online A", 3000, "PIX_MP", "PORTAL", "2026-10-20T13:00:00Z", null, "CONFIRMED");
+        pay(adminJdbc(), t, "Online B", 2000, "PIX_MP", "PORTAL", "2026-10-20T13:30:00Z", null, "CONFIRMED");
+        pay(adminJdbc(), t, "Balcao", 1000, "CASH", "MANAGEMENT", "2026-10-20T14:00:00Z", admin.accountId(), "CONFIRMED");
+        adminJdbc().update("update payment set fee_passed_cents = 99 where method = 'PIX_MP' and unit_id = ?", t.unitId());
+
+        var d = day(admin, t.unitId(), null);
+
+        assertThat(d.byMethod()).extracting(DailyReceipts.ByMethod::method, DailyReceipts.ByMethod::feePassedCents)
+                .containsExactlyInAnyOrder(tuple("PIX_MP", 198L), tuple("CASH", 0L));
+    }
+
+    @Test
     @DisplayName("CA4: mensalidade mostra modalidade e mês")
     void monthlyReference() {
         var t = tenant();

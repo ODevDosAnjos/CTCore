@@ -4369,22 +4369,25 @@ components:
         adjustable: { type: boolean, description: 'Verdadeiro só para a primeira mensalidade ainda não gerada da modalidade (a que o ponteiro aponta).' }
     GenerationPreview:
       type: object
-      required: [until, days, count, totalCents, previousMonthTotalCents, skipped]
+      required: [until, days, count, totalCents, previousMonthTotalCents, alreadyGeneratedCents, skipped]
       properties:
         until: { type: string, format: date }
         days:
           type: array
           items:
             type: object
-            required: [dueOn, count, totalCents, lines]
+            required: [dueOn, generatesOn, count, totalCents, previousTotalCents, lines]
             properties:
               dueOn: { type: string, format: date }
+              generatesOn: { type: string, format: date, description: 'Vencimento menos 10 dias (RN-COB-02).' }
               count: { type: integer }
               totalCents: { type: integer, format: int64 }
+              previousTotalCents: { type: integer, format: int64, description: 'Mensalidades (não canceladas) da unidade com vencimento no mesmo dia do mês anterior; 0 se o mês anterior não tem o dia.' }
               lines: { type: array, items: { $ref: '#/components/schemas/GenerationPreviewLine' } }
         count: { type: integer }
         totalCents: { type: integer, format: int64 }
         previousMonthTotalCents: { type: integer, format: int64, description: 'Mensalidades (não canceladas) do mês anterior ao primeiro vencimento previsto.' }
+        alreadyGeneratedCents: { type: integer, format: int64, description: 'Mensalidades (não canceladas) da unidade já geradas com vencimento entre hoje e o fim da janela; só leitura.' }
         skipped:
           type: array
           items:
@@ -4413,11 +4416,12 @@ components:
           type: array
           items:
             type: object
-            required: [method, count, totalCents]
+            required: [method, count, totalCents, feePassedCents]
             properties:
               method: { type: string, enum: [PIX_MP, CREDIT_CARD, DEBIT_CARD, BOLETO, PIX_KEY, CASH, CARD_MACHINE, TRANSFER] }
               count: { type: integer }
               totalCents: { type: integer, format: int64 }
+              feePassedCents: { type: integer, format: int64, description: 'Taxa repassada ao aluno nos pagamentos do meio (zero nos manuais).' }
         byRegistrar:
           type: array
           items:

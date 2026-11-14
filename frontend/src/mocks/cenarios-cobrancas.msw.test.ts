@@ -65,11 +65,23 @@ describe("cenário de cobranças (#449)", () => {
 
   it("CA11: recebimentos do dia por meio e por quem lançou; prévia com totais e quem não será cobrado", async () => {
     const day = await get(`/billing/daily-receipts?unitId=${UNIT}`);
-    expect(day.byMethod.map((m: { method: string }) => m.method).sort()).toEqual(["BOLETO", "CARD_MACHINE", "CASH", "PIX_KEY"]);
+    expect(day.byMethod.map((m: { method: string }) => m.method).sort()).toEqual(["BOLETO", "CARD_MACHINE", "CASH", "CREDIT_CARD", "DEBIT_CARD", "PIX_KEY", "PIX_MP"]);
     expect(day.byRegistrar.length).toBeGreaterThanOrEqual(2);
     const preview = await get(`/billing/generation-preview?unitId=${UNIT}&days=60`);
     expect(preview.count).toBeGreaterThan(0);
     expect(preview.totalCents).toBeGreaterThan(0);
     expect(preview.skipped).toEqual(expect.arrayContaining([expect.objectContaining({ studentId: ID.isadora, reason: "FULL_BENEFIT" })]));
+  });
+});
+
+describe("cenário de cobranças: recebimentos do dia (#479)", () => {
+  it("hoje há pagamentos de vários meios, com taxa nos do portal, e do portal e de duas pessoas", async () => {
+    const body = await get(`/billing/daily-receipts?unitId=${UNIT}`);
+    const methods = (body.byMethod as { method: string; feePassedCents: number }[]).map((m) => m.method);
+    for (const m of ["PIX_MP", "CREDIT_CARD", "DEBIT_CARD", "BOLETO", "PIX_KEY", "CASH", "CARD_MACHINE"]) expect(methods).toContain(m);
+    expect((body.byMethod as { method: string; feePassedCents: number }[]).find((m) => m.method === "BOLETO")!.feePassedCents).toBeGreaterThan(0);
+    expect((body.byMethod as { method: string; feePassedCents: number }[]).find((m) => m.method === "CASH")!.feePassedCents).toBe(0);
+    expect((body.byRegistrar as { registeredBy: unknown }[]).filter((r) => r.registeredBy === null)).toHaveLength(1);
+    expect(body.byRegistrar).toHaveLength(3);
   });
 });
