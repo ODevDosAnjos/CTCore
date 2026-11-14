@@ -78,7 +78,9 @@ export function cobrancasCenario(ctx: CobrancasCtx, alunos: ReturnType<typeof al
   const reminder = (c: MockCharge, daysAgo: number): MockReminder => ({
     chargeId: c.id, kind: "MANUAL", channel: "EMAIL", status: "SENT", reason: null, createdAt: `${d(-daysAgo)}T14:00:00.000Z`, sentBy: { id: ctx.by.ana.id, name: ctx.by.ana.name },
   });
-  const reminders = [reminder(overdue[0], 3), reminder(overdue[1], 10), reminder(overdue[3], 1)];
+  // A terceira em atraso teve o último envio pulado por e-mail com problema (canvas: "e-mail com problema").
+  const problema: MockReminder = { ...reminder(overdue[2], 2), status: "SKIPPED", reason: "EMAIL_PROBLEM" };
+  const reminders = [reminder(overdue[0], 3), reminder(overdue[1], 10), problema, reminder(overdue[3], 1)];
 
   let p = 0;
   const proof = (c: MockCharge, sentAt: string, contentType: string): MockPaymentProof => ({

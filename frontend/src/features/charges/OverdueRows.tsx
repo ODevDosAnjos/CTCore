@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RowCard } from "@/components/query/RowCard";
+import { Avatar, Person } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { WhatsAppButton } from "@/components/whatsapp/WhatsAppButton";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { StudentCell } from "./ChargeCards";
-import type { OverdueCharge } from "./types";
+import { ChargeActionDialogs, type ChargeDialog } from "./ChargeRowMenu";
+import type { ChargeRow, OverdueCharge } from "./types";
 
 // Referência: mensalidade e parcela mostram o tipo e o mês (MM/AAAA); as demais, a descrição ou o tipo.
 export function useOverdueReference() {
@@ -13,8 +18,15 @@ export function useOverdueReference() {
       : (r.description ?? t(`charges.types.${r.type}`));
 }
 
+function useStudentLine(row: OverdueCharge) {
+  const { t } = useTranslation();
+  const reference = useOverdueReference();
+  return t("charges.overdue.studentLine", { modality: row.modality?.name ?? reference(row), unit: row.unit.name });
+}
+
+// Aluno com "Modalidade · Unidade" embaixo (a cobrança avulsa mostra o tipo no lugar da modalidade).
 export function Student({ row }: { row: OverdueCharge }) {
-  return <StudentCell row={row} />;
+  return <Person name={row.student.name} size="sm" secondary={useStudentLine(row)} />;
 }
 
 export function Select({ row, checked, onToggle }: { row: OverdueCharge; checked: boolean; onToggle: (row: OverdueCharge) => void }) {
@@ -22,56 +34,113 @@ export function Select({ row, checked, onToggle }: { row: OverdueCharge; checked
   return <input type="checkbox" className="size-6" aria-label={t("charges.overdue.selectOne", { student: row.student.name })} checked={checked} onChange={() => onToggle(row)} />;
 }
 
+export function LateCell({ row }: { row: OverdueCharge }) {
+  const { t } = useTranslation();
+  return <span className="whitespace-nowrap">{t("charges.overdue.daysLate", { count: row.daysLate })}</span>;
+}
+
+// "dd/mm · e-mail", "hoje · e-mail" ou "dd/mm · e-mail com problema" (envio pulado); traço se nunca houve lembrete.
 export function LastReminder({ row }: { row: OverdueCharge }) {
   const { t } = useTranslation();
   const last = row.lastReminder;
-  return <>{last ? t("charges.overdue.lastReminder", { date: formatDate(last.at), channel: t(`charges.reminder.channel.${last.channel}`) }) : t("charges.overdue.never")}</>;
+  if (!last) return <>{t("format.empty")}</>;
+  const today = new Date(last.at).toDateString() === new Date().toDateString();
+  const what = last.status === "SKIPPED" && last.reason ? t(`charges.overdue.reason.${last.reason}`) : t(`charges.overdue.channel.${last.channel}`);
+  return <span className="whitespace-nowrap">{t("charges.overdue.lastReminder", { when: today ? t("charges.overdue.today") : formatDate(last.at).slice(0, 5), what })}</span>;
 }
 
-// Até 5 dias para o bloqueio: cor e texto juntos (nunca só cor).
-export function DaysToBlock({ row }: { row: OverdueCharge }) {
+// Bloqueio: "Bloqueada" (0 dia), "Bloqueia em N dias" até 5 dias (cor e texto juntos, nunca só cor), "em N dias" depois, traço sem prazo.
+export function BlockCell({ row }: { row: OverdueCharge }) {
   const { t } = useTranslation();
-  if (row.daysToBlock === null) return <>{t("format.empty")}</>;
-  return <span className={row.daysToBlock <= 5 ? "font-medium text-danger-foreground" : undefined}>{t("charges.overdue.daysLate", { count: row.daysToBlock })}</span>;
+  const days = row.daysToBlock;
+  if (days === null) return <>{t("format.empty")}</>;
+  if (days === 0) return <Badge tone="danger">{t("charges.overdue.blocked")}</Badge>;
+  if (days <= 5) return <Badge tone="danger">{t("charges.overdue.blocksIn", { count: days })}</Badge>;
+  return <span className="whitespace-nowrap">{t("charges.overdue.in", { count: days })}</span>;
 }
 
-// RN-COM-03: a mensagem é montada aqui e a pessoa envia; o botão some sem telefone válido ou com o WhatsApp desligado.
+// RN-COM-03: a mensagem é montada aqui e a pessoa envia.
+export function useReminderMessage() {
+  const { t } = useTranslation();
+  return (row: OverdueCharge) =>
+    t("charges.overdue.whatsappMessage", { payer: row.payer.name, student: row.student.name, amount: formatCurrency(row.amountCents), due: formatDate(row.dueOn), unit: row.unit.name });
+}
+
+// O botão some sem telefone válido ou com o WhatsApp desligado.
 export function Whatsapp({ row }: { row: OverdueCharge }) {
   const { t } = useTranslation();
-  const message = t("charges.overdue.whatsappMessage", { payer: row.payer.name, student: row.student.name, amount: formatCurrency(row.amountCents), due: formatDate(row.dueOn), unit: row.unit.name });
-  return <WhatsAppButton phone={row.payer.phone ?? undefined} message={message} />;
+  const message = useReminderMessage();
+  return <WhatsAppButton variant="whatsapp" phone={row.payer.phone ?? undefined} message={message(row)} label={t("charges.overdue.actions.remind")} ariaLabel={t("charges.overdue.actions.remindFor", { student: row.student.name })} />;
 }
 
-// Cartão do celular: mesma informação das colunas, em pilha.
-export function OverdueCard({ row, checked, onToggle }: { row: OverdueCharge; checked: boolean; onToggle: (row: OverdueCharge) => void }) {
+// A cobrança em atraso como linha da lista, para as janelas de Registrar e Renegociar (RN-COB-09: uma cobrança por vez).
+const asRow = (r: OverdueCharge): ChargeRow => ({
+  id: r.id, student: r.student, unit: r.unit, type: r.type, modality: r.modality, referenceMonth: r.referenceMonth, description: r.description, amountCents: r.amountCents,
+  dueOn: r.dueOn, status: "OVERDUE", payment: null, daysLate: r.daysLate,
+});
+
+// "Renegociar" na cobrança já bloqueada, "Registrar" nas demais (canvas); ao concluir a lista recarrega.
+export function RowActions({ row, onDone }: { row: OverdueCharge; onDone: () => void }) {
   const { t } = useTranslation();
-  const reference = useOverdueReference();
+  const [dialog, setDialog] = useState<ChargeDialog>();
+  const blocked = row.daysToBlock === 0;
+  const key = blocked ? "renegotiate" : "register";
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-3">
-        <Select row={row} checked={checked} onToggle={onToggle} />
-        <Student row={row} />
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        className="min-h-11"
+        aria-label={t(`charges.overdue.actions.${key}For`, { student: row.student.name })}
+        onClick={(e) => {
+          e.stopPropagation();
+          setDialog(blocked ? "renegotiate" : "pay");
+        }}
+      >
+        {t(`charges.overdue.actions.${key}`)}
+      </Button>
+      {/* Os eventos da janela sobem pela árvore do React até a linha (que escolhe a mensagem): este invólucro os segura. */}
+      <div hidden onClick={(e) => e.stopPropagation()}>
+        <ChargeActionDialogs row={asRow(row)} dialog={dialog} onClose={() => setDialog(undefined)} onDone={onDone} />
       </div>
-      <p className="break-words">{reference(row)}</p>
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">{t("charges.overdue.columns.unit")}</dt>
-        <dd>{row.unit.name}</dd>
-        <dt className="text-muted-foreground">{t("charges.overdue.columns.amount")}</dt>
-        <dd>{formatCurrency(row.amountCents)}</dd>
-        <dt className="text-muted-foreground">{t("charges.overdue.columns.dueOn")}</dt>
-        <dd>{formatDate(row.dueOn)}</dd>
-        <dt className="text-muted-foreground">{t("charges.overdue.columns.daysLate")}</dt>
-        <dd className="font-medium text-danger-foreground">{t("charges.overdue.daysLate", { count: row.daysLate })}</dd>
-        <dt className="text-muted-foreground">{t("charges.overdue.columns.lastReminder")}</dt>
-        <dd>
-          <LastReminder row={row} />
-        </dd>
-        <dt className="text-muted-foreground">{t("charges.overdue.columns.daysToBlock")}</dt>
-        <dd>
-          <DaysToBlock row={row} />
-        </dd>
-      </dl>
-      <Whatsapp row={row} />
-    </div>
+    </>
+  );
+}
+
+// Cartão do celular: mesma informação e mesmas ações da tabela, em pilha.
+export function OverdueCard({ row, checked, onToggle, onDone }: { row: OverdueCharge; checked: boolean; onToggle: (row: OverdueCharge) => void; onDone: () => void }) {
+  const { t } = useTranslation();
+  const line = useStudentLine(row);
+  return (
+    <RowCard
+      lead={
+        <>
+          <span className="flex min-h-11 items-center">
+            <Select row={row} checked={checked} onToggle={onToggle} />
+          </span>
+          <Avatar name={row.student.name} decorative />
+        </>
+      }
+      title={row.student.name}
+      meta={
+        <>
+          <span>{line}</span>
+          <span className="flex flex-wrap items-center gap-x-2">
+            <LateCell row={row} />
+            <span className="tabular-nums">{formatCurrency(row.amountCents)}</span>
+          </span>
+          <span>
+            {t("charges.overdue.columns.lastReminder")}: <LastReminder row={row} />
+          </span>
+          <span>
+            {t("charges.overdue.columns.block")}: <BlockCell row={row} />
+          </span>
+          <span className="mt-2 flex flex-wrap gap-2">
+            <Whatsapp row={row} />
+            <RowActions row={row} onDone={onDone} />
+          </span>
+        </>
+      }
+    />
   );
 }

@@ -186,10 +186,12 @@ export interface OverdueCharge {
   dueOn: string;
   daysLate: number;
   daysToBlock: number | null;
-  lastReminder: { at: string; channel: "EMAIL" | "SMS" } | null;
+  modality: { id: string; name: string } | null;
+  lastReminder: { at: string; channel: "EMAIL" | "SMS"; status: "SENT" | "SKIPPED"; reason: "NO_ADDRESS" | "EMAIL_PROBLEM" | "NO_PHONE" | "SMS_LIMIT" | null } | null;
   payer: { name: string; phone: string | null };
 }
 export interface OverdueList {
+  totalCents: number;
   items: OverdueCharge[];
   page: number;
   size: number;

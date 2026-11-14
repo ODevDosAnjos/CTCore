@@ -8,7 +8,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { OverdueCharge } from "./types";
 
@@ -22,6 +22,7 @@ const line = (over: Partial<OverdueCharge> = {}): OverdueCharge => ({
   id: "c1",
   student: { id: "s1", name: "Ana Souza", photoUrl: null },
   unit: { id: "u1", name: "Centro" },
+  modality: { id: "m1", name: "Muay Thai" },
   type: "MONTHLY",
   referenceMonth: "2026-03-01",
   description: null,
@@ -35,7 +36,7 @@ const line = (over: Partial<OverdueCharge> = {}): OverdueCharge => ({
 });
 const two = [
   line(),
-  line({ id: "c2", student: { id: "s2", name: "João Pereira", photoUrl: null }, type: "ONE_OFF", referenceMonth: null, description: "Kimono", amountCents: 9000, daysLate: 5, daysToBlock: null, lastReminder: { at: "2026-03-10T15:00:00Z", channel: "EMAIL" }, payer: { name: "João Pereira", phone: null } }),
+  line({ id: "c2", student: { id: "s2", name: "João Pereira", photoUrl: null }, type: "ONE_OFF", referenceMonth: null, description: "Kimono", amountCents: 9000, daysLate: 5, daysToBlock: null, modality: null, lastReminder: { at: "2026-03-10T15:00:00Z", channel: "EMAIL", status: "SENT", reason: null }, payer: { name: "João Pereira", phone: null } }),
 ];
 
 let calls: URLSearchParams[];
@@ -55,7 +56,7 @@ function setup(list?: (p: URLSearchParams) => Response | Promise<Response>, what
     http.get("/api/v1/charges/overdue", ({ request }) => {
       const p = new URL(request.url).searchParams;
       calls.push(p);
-      return list ? list(p) : HttpResponse.json({ items: two, page: 1, size: 25, total: 2 });
+      return list ? list(p) : HttpResponse.json({ items: two, page: 1, size: 25, total: 2, totalCents: 21000 });
     }),
     http.post("/api/v1/charges/reminders", async ({ request }) => {
       const body = (await request.json()) as { chargeIds: string[] };
@@ -77,27 +78,83 @@ function setup(list?: (p: URLSearchParams) => Response | Promise<Response>, what
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Cobranças em atraso", level: 1 });
+const ready = () => screen.findByRole("heading", { name: "Em atraso", level: 1 });
 const tableRow = (name: string) => screen.getAllByText(name).map((e) => e.closest("tr")).find(Boolean)!;
 
 describe("OverduePage (RF-COB-06)", () => {
-  it("CA25: mostra aluno, unidade, referência, vencimento, valor, dias de atraso, último lembrete e dias até o bloqueio; pede dias de atraso decrescente", async () => {
+  it("CA1, CA3: subtítulo com o escopo, a contagem e a soma do filtro; cada linha traz aluno, atraso, valor, último lembrete e bloqueio; pede dias de atraso decrescente", async () => {
     setup();
     await ready();
     await screen.findAllByText("Ana Souza");
+    expect(screen.getByText("Todas as unidades · 2 cobranças · R$ 210,00")).toBeInTheDocument();
     const a = tableRow("Ana Souza");
-    expect(within(a).getByText("Centro")).toBeInTheDocument();
-    expect(within(a).getByText("Mensalidade · 03/2026")).toBeInTheDocument();
-    expect(within(a).getByText("05/03/2026")).toBeInTheDocument();
+    expect(within(a).getByText("Muay Thai · Centro")).toBeInTheDocument();
     expect(within(a).getByText(/120,00/)).toBeInTheDocument();
     expect(within(a).getByText("12 dias")).toBeInTheDocument();
-    expect(within(a).getByText("Nunca")).toBeInTheDocument();
-    expect(within(a).getByText("18 dias")).toBeInTheDocument();
+    expect(within(a).getByText("—")).toBeInTheDocument();
+    expect(within(a).getByText("em 18 dias")).toBeInTheDocument();
     const b = tableRow("João Pereira");
-    expect(within(b).getByText("Kimono")).toBeInTheDocument();
-    expect(within(b).getByText("10/03/2026 · E-mail")).toBeInTheDocument();
+    expect(within(b).getByText("Kimono · Centro")).toBeInTheDocument();
+    expect(within(b).getByText("10/03 · e-mail")).toBeInTheDocument();
     expect(within(b).getByText("—")).toBeInTheDocument();
     expect(calls.at(-1)!.get("sort")).toBe("daysLate,desc");
+  });
+
+  it("CA3: bloqueio em 0 dia, em até 5 dias e depois; último lembrete de hoje e com e-mail com problema", async () => {
+    const now = new Date().toISOString();
+    setup(() =>
+      HttpResponse.json({
+        items: [
+          line({ id: "b0", student: { id: "x0", name: "Gabriel Rocha", photoUrl: null }, daysToBlock: 0, lastReminder: { at: now, channel: "EMAIL", status: "SENT", reason: null } }),
+          line({ id: "b2", student: { id: "x2", name: "Bruno Carvalho", photoUrl: null }, daysToBlock: 2, lastReminder: { at: "2026-09-28T15:00:00Z", channel: "EMAIL", status: "SKIPPED", reason: "EMAIL_PROBLEM" } }),
+        ],
+        page: 1,
+        size: 25,
+        total: 2,
+        totalCents: 24000,
+      }),
+    );
+    await ready();
+    await screen.findAllByText("Gabriel Rocha");
+    const g = tableRow("Gabriel Rocha");
+    expect(within(g).getByText("Bloqueada")).toBeInTheDocument();
+    expect(within(g).getByText("hoje · e-mail")).toBeInTheDocument();
+    const c = tableRow("Bruno Carvalho");
+    expect(within(c).getByText("Bloqueia em 2 dias")).toBeInTheDocument();
+    expect(within(c).getByText("28/09 · e-mail com problema")).toBeInTheDocument();
+  });
+
+  it("CA2, CA5: o aviso tem o link Configurar; a mensagem pronta é a da primeira cobrança e troca ao clicar noutra linha; Editar texto é Em breve", async () => {
+    const user = userEvent.setup();
+    setup();
+    await ready();
+    await screen.findAllByText("Ana Souza");
+    expect(screen.getByRole("link", { name: "Configurar" })).toHaveAttribute("href", "/configuracoes/unidade");
+    const panel = screen.getByRole("region", { name: "Mensagem pronta do lembrete" });
+    expect(within(panel).getByText(/Carla Souza/)).toBeInTheDocument();
+    await user.click(within(tableRow("João Pereira")).getByText("Kimono · Centro"));
+    expect(within(panel).getByText(/João Pereira/)).toBeInTheDocument();
+    const edit = within(panel).getByRole("button", { name: /Editar texto/ });
+    expect(edit).toHaveAttribute("aria-disabled", "true");
+    await user.click(edit);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("CA4: Registrar abre o registro de pagamento; na cobrança bloqueada a linha traz Renegociar no lugar", async () => {
+    const user = userEvent.setup();
+    setup(() =>
+      HttpResponse.json({ items: [line(), line({ id: "c3", student: { id: "s3", name: "Gabriel Rocha", photoUrl: null }, daysToBlock: 0 })], page: 1, size: 25, total: 2, totalCents: 24000 }),
+    );
+    await ready();
+    await screen.findAllByText("Ana Souza");
+    expect(within(tableRow("Gabriel Rocha")).queryByRole("button", { name: /Registrar/ })).toBeNull();
+    expect(within(tableRow("Ana Souza")).queryByRole("button", { name: /Renegociar/ })).toBeNull();
+    await user.click(within(tableRow("Ana Souza")).getByRole("button", { name: "Registrar pagamento de Ana Souza" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await user.click(within(tableRow("Gabriel Rocha")).getByRole("button", { name: "Renegociar cobrança de Gabriel Rocha" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 
   it("CA26: sem seleção o botão fica desabilitado; seleciona 2, envia, mostra o resultado de cada uma e recarrega a lista", async () => {
@@ -161,16 +218,16 @@ describe("OverduePage (RF-COB-06)", () => {
     const { unmount } = setup();
     await ready();
     await screen.findAllByText("Ana Souza");
-    const links = within(tableRow("Ana Souza")).getAllByRole("link", { name: "Abrir conversa no WhatsApp" });
+    const links = within(tableRow("Ana Souza")).getAllByRole("link", { name: "Lembrete de Ana Souza por WhatsApp" });
     const url = new URL(links[0].getAttribute("href")!);
     expect(url.origin + url.pathname).toBe("https://wa.me/5521900000011");
     const text = url.searchParams.get("text")!;
     for (const part of ["Carla Souza", "Centro", "Ana Souza", "120,00", "05/03/2026"]) expect(text).toContain(part);
-    expect(within(tableRow("João Pereira")).queryByRole("link", { name: "Abrir conversa no WhatsApp" })).toBeNull();
+    expect(within(tableRow("João Pereira")).queryByRole("link", { name: /por WhatsApp/ })).toBeNull();
     unmount();
     setup(undefined, false);
     await screen.findAllByText("Ana Souza");
-    expect(screen.queryByRole("link", { name: "Abrir conversa no WhatsApp" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /por WhatsApp/ })).toBeNull();
   });
 
   it("CA29: erro com tentar de novo e depois lista vazia", async () => {
@@ -181,7 +238,7 @@ describe("OverduePage (RF-COB-06)", () => {
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
     mode = "ok";
     await user.click(retry);
-    expect(await screen.findByText("Nada por aqui ainda")).toBeInTheDocument();
+    expect(await screen.findByText("Nenhuma cobrança em atraso")).toBeInTheDocument();
   });
 
   it("CA29: 403 do servidor mostra sem permissão", async () => {
@@ -189,25 +246,18 @@ describe("OverduePage (RF-COB-06)", () => {
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
-  it("CA29: o filtro de unidade vira unitId na consulta", async () => {
-    const user = userEvent.setup();
-    setup();
-    await ready();
-    await screen.findAllByText("Ana Souza");
-    await user.selectOptions(screen.getByLabelText("Unidade"), "u2");
-    await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u2"));
-  });
-
   it("CA29: a 360 px as linhas viram cartões e o axe não acusa violação nos dois temas", async () => {
     for (const dark of [false, true]) {
-      setDevicePrefersDark(dark);
+      setDeviceNarrow(true, dark);
       window.innerWidth = 360;
       const { container, unmount } = setup();
       await ready();
       await screen.findAllByText("Ana Souza");
       const cards = screen.getAllByRole("listitem").filter((li) => li.className.includes("rounded-md border p-3"));
       expect(cards).toHaveLength(2);
+      expect(container.querySelector("table")).toBeNull();
       expect(within(cards[0]).getByText("12 dias")).toBeInTheDocument();
+      expect(within(cards[0]).getByRole("link", { name: "Lembrete de Ana Souza por WhatsApp" })).toBeInTheDocument();
       expect(await axeViolations(container)).toEqual([]);
       unmount();
     }

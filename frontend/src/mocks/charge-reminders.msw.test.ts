@@ -58,10 +58,11 @@ describe("em atraso e lembretes x OpenAPI (RF-COB-06, #79, CA30)", () => {
     await login("ana@exemplo.com");
     const id = await overdue();
     const list = await (await send("GET", "/charges/overdue")).json();
-    expect(Object.keys(list).sort()).toEqual(["items", "page", "size", "total"]);
+    expect(Object.keys(list).sort()).toEqual(["items", "page", "size", "total", "totalCents"]);
     expect(list.total).toBe(1);
+    expect(list.totalCents).toBe(list.items[0].amountCents);
     expect(Object.keys(list.items[0]).sort()).toEqual([...openapi.components.schemas.OverdueCharge.required].sort());
-    expect(list.items[0]).toMatchObject({ id, daysLate: 30, daysToBlock: null, lastReminder: null, payer: { name: "Responsável Um Fictício", phone: "21900000011" } });
+    expect(list.items[0]).toMatchObject({ id, daysLate: 30, daysToBlock: null, lastReminder: null, modality: { id: expect.any(String), name: expect.any(String) }, payer: { name: "Responsável Um Fictício", phone: "21900000011" } });
     expect((await (await send("GET", "/charges/overdue?q=nao-existe")).json()).total).toBe(0);
     await send("POST", `/charges/${id}/payments`, { method: "CASH" });
     expect((await (await send("GET", "/charges/overdue")).json()).total).toBe(0);
@@ -77,7 +78,7 @@ describe("em atraso e lembretes x OpenAPI (RF-COB-06, #79, CA30)", () => {
     expect(panel.reminders).toHaveLength(1);
     expect(Object.keys(panel.reminders[0]).sort()).toEqual([...openapi.components.schemas.ChargeReminder.required].sort());
     expect(panel.reminders[0]).toMatchObject({ kind: "MANUAL", channel: "EMAIL", status: "SENT", reason: null });
-    expect((await (await send("GET", "/charges/overdue")).json()).items[0].lastReminder).toMatchObject({ channel: "EMAIL" });
+    expect((await (await send("GET", "/charges/overdue")).json()).items[0].lastReminder).toMatchObject({ channel: "EMAIL", status: "SENT", reason: null });
     await send("POST", `/charges/${id}/payments`, { method: "CASH" });
     expect((await (await remind([id])).json()).results[0].result).toBe("NOT_OPEN");
     expect((await (await send("GET", `/charges/${id}`)).json()).actions.sendReminder).toBe(false);

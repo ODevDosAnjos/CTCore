@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
 import type { PaymentProof } from "./types";
 
-// Comprovante da lista: miniatura que amplia numa janela. PDF e arquivo que não carrega viram "Abrir arquivo" ou "Imagem indisponível" (a URL assinada pode faltar).
-export function ProofImage({ proof }: { proof: PaymentProof }) {
+// Comprovante: miniatura que amplia numa janela (padrão) ou a imagem em tamanho de conferência (`large`).
+// PDF e arquivo que não carrega viram "Abrir arquivo" ou "Imagem indisponível" (a URL assinada pode faltar).
+export function ProofImage({ proof, large = false }: { proof: PaymentProof; large?: boolean }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [broken, setBroken] = useState(false);
@@ -18,6 +19,7 @@ export function ProofImage({ proof }: { proof: PaymentProof }) {
       </a>
     );
   }
+  if (large) return <img src={url} alt={t("paymentProofs.image.alt", { student: proof.studentName })} className="max-h-96 w-full object-contain" onError={() => setBroken(true)} />;
   return (
     <>
       <button type="button" className="inline-flex min-h-11 min-w-11 items-center rounded-md border p-1" aria-label={t("paymentProofs.image.zoom", { student: proof.studentName })} onClick={() => setOpen(true)}>

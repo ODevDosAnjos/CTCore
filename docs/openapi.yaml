@@ -5542,7 +5542,7 @@ components:
         sentBy: { type: object, nullable: true, required: [id, name], description: "Quem enviou, só no manual.", properties: { id: { type: string, format: uuid }, name: { type: string, nullable: true } } }
     OverdueCharge:
       type: object
-      required: [id, student, unit, type, referenceMonth, description, amountCents, dueOn, daysLate, daysToBlock, lastReminder, payer]
+      required: [id, student, unit, modality, type, referenceMonth, description, amountCents, dueOn, daysLate, daysToBlock, lastReminder, payer]
       properties:
         id: { type: string, format: uuid }
         student:
@@ -5560,8 +5560,19 @@ components:
         lastReminder:
           type: object
           nullable: true
-          required: [at, channel]
-          properties: { at: { type: string, format: date-time }, channel: { type: string, enum: [EMAIL, SMS] } }
+          required: [at, channel, status, reason]
+          description: Último lembrete de qualquer resultado (enviado ou não).
+          properties:
+            at: { type: string, format: date-time }
+            channel: { type: string, enum: [EMAIL, SMS] }
+            status: { type: string, enum: [SENT, SKIPPED] }
+            reason: { type: string, nullable: true, enum: [NO_ADDRESS, EMAIL_PROBLEM, NO_PHONE, SMS_LIMIT] }
+        modality:
+          type: object
+          nullable: true
+          description: Modalidade da matrícula; nula nas cobranças avulsas.
+          required: [id, name]
+          properties: { id: { type: string, format: uuid }, name: { type: string } }
         payer:
           type: object
           required: [name, phone]
@@ -5571,7 +5582,9 @@ components:
       allOf:
         - $ref: '#/components/schemas/Page'
         - type: object
+          required: [totalCents]
           properties:
+            totalCents: { type: integer, format: int64, description: "Soma dos valores de todas as cobranças do filtro, não só da página." }
             items: { type: array, items: { $ref: '#/components/schemas/OverdueCharge' } }
     AnnouncementType:
       type: string
@@ -6758,7 +6771,7 @@ components:
         sentAt: { type: string, format: date-time }
     PaymentProof:
       type: object
-      required: [id, chargeId, studentId, studentName, studentPhotoUrl, unitId, unit, reference, amountCents, dueOn, sentAt, status, contentType, imageUrl, refusalReason, decidedAt]
+      required: [id, chargeId, studentId, studentName, studentPhotoUrl, unitId, unit, reference, amountCents, dueOn, sentAt, status, contentType, imageUrl, refusalReason, decidedAt, unitPixKey]
       properties:
         id: { type: string, format: uuid }
         chargeId: { type: string, format: uuid }
@@ -6767,7 +6780,7 @@ components:
         studentPhotoUrl: { type: string, nullable: true }
         unitId: { type: string, format: uuid }
         unit: { type: string }
-        reference: { type: string }
+        reference: { type: string, description: "Descrição da avulsa, ou \"Modalidade · MM/AAAA\" da mensalidade." }
         amountCents: { type: integer, format: int64 }
         dueOn: { type: string, format: date }
         sentAt: { type: string, format: date-time }
@@ -6776,6 +6789,7 @@ components:
         imageUrl: { type: string, nullable: true, description: URL assinada e temporária; nula se o arquivo não está no armazenamento. }
         refusalReason: { type: string, nullable: true }
         decidedAt: { type: string, nullable: true, format: date-time }
+        unitPixKey: { type: string, nullable: true, description: Chave Pix cadastrada da unidade (só na gestão). }
     PaymentProofList:
       allOf:
         - $ref: '#/components/schemas/Page'

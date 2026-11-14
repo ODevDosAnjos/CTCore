@@ -66,17 +66,20 @@ public class PaymentProofs {
     public record Sent(UUID id, UUID chargeId, String status, Instant sentAt) {}
 
     public record Proof(UUID id, UUID chargeId, UUID studentId, String studentName, String studentPhotoUrl, UUID unitId, String unit, String reference, long amountCents,
-            LocalDate dueOn, Instant sentAt, String status, String contentType, String imageUrl, String refusalReason, Instant decidedAt) {}
+            LocalDate dueOn, Instant sentAt, String status, String contentType, String imageUrl, String refusalReason, Instant decidedAt,
+            String unitPixKey) {}
 
     public record ProofList(List<Proof> items, int page, int size, long total) {}
 
     public record Confirmed(Proof proof, Payments.Registered payment) {}
 
-    private static final String SELECT = "select p.id, p.charge_id, s.id, s.name, s.photo, u.id, u.name, coalesce(c.description, to_char(c.reference_month, 'MM/YYYY'), 'cobrança'), "
-            + "c.amount_cents, c.due_on, p.sent_at, p.status, p.content_type, p.file_key, p.refusal_reason, p.decided_at "
+    private static final String SELECT = "select p.id, p.charge_id, s.id, s.name, s.photo, u.id, u.name, coalesce(c.description, nullif(concat_ws(' · ', md.name, to_char(c.reference_month, 'MM/YYYY')), ''), 'cobrança'), "
+            + "c.amount_cents, c.due_on, p.sent_at, p.status, p.content_type, p.file_key, p.refusal_reason, p.decided_at, us.pix_key "
             + "from payment_proof p join charge c on c.organization_id = p.organization_id and c.id = p.charge_id "
             + "join student s on s.organization_id = p.organization_id and s.id = p.student_id "
-            + "join unit u on u.organization_id = p.organization_id and u.id = p.unit_id ";
+            + "join unit u on u.organization_id = p.organization_id and u.id = p.unit_id "
+            + "left join unit_settings us on us.organization_id = p.organization_id and us.unit_id = p.unit_id "
+            + "left join enrollment_modality em on em.organization_id = c.organization_id and em.id = c.enrollment_modality_id left join modality md on md.id = em.modality_id ";
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -238,7 +241,8 @@ public class PaymentProofs {
         OffsetDateTime decided = rs.getObject(16, OffsetDateTime.class);
         return new Proof(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getString(4), students.photoUrl(rs.getString(5)),
                 rs.getObject(6, UUID.class), rs.getString(7), rs.getString(8), rs.getLong(9), rs.getObject(10, LocalDate.class), rs.getObject(11, OffsetDateTime.class).toInstant(),
-                rs.getString(12), rs.getString(13), image, rs.getString(15), decided == null ? null : decided.toInstant());
+                rs.getString(12), rs.getString(13), image, rs.getString(15), decided == null ? null : decided.toInstant(),
+                rs.getString(17));
     }
 
     /** Pendentes, do mais antigo ao mais novo; Administrador vê o alcance dele e Coordenador todas as unidades. */

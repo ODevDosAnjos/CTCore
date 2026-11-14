@@ -82,7 +82,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
       // Gestão: a cobrança está em conferência e o sino avisa.
       await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
       await open(page, "/cobrancas/conferencia");
-      await expect(page.getByRole("heading", { name: "Comprovantes em conferência", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Em conferência", level: 1 })).toBeVisible();
       await expect(page.getByRole("button", { name: /^Confirmar comprovante de/ })).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);

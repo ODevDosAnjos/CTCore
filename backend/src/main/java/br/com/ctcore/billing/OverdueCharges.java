@@ -39,14 +39,14 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class OverdueCharges {
-    public record LastReminder(OffsetDateTime at, String channel) {}
+    public record LastReminder(OffsetDateTime at, String channel, String status, String reason) {}
 
     public record Payer(String name, String phone) {}
 
-    public record Item(UUID id, Charges.StudentRef student, Charges.Named unit, String type, LocalDate referenceMonth, String description, long amountCents,
-            LocalDate dueOn, int daysLate, Integer daysToBlock, LastReminder lastReminder, Payer payer) {}
+    public record Item(UUID id, Charges.StudentRef student, Charges.Named unit, Charges.Named modality, String type, LocalDate referenceMonth, String description,
+            long amountCents, LocalDate dueOn, int daysLate, Integer daysToBlock, LastReminder lastReminder, Payer payer) {}
 
-    public record OverdueList(List<Item> items, int page, int size, long total) {}
+    public record OverdueList(List<Item> items, int page, int size, long total, long totalCents) {}
 
     public record Filter(String q, UUID unitId) {}
 
@@ -94,7 +94,7 @@ public class OverdueCharges {
             }
             boolean admin = who.role() == Role.ADMINISTRATOR;
             Set<UUID> reach = who.units() == null ? Set.of() : who.units();
-            if (admin && (reach.isEmpty() || f.unitId() != null && !reach.contains(f.unitId()))) return new OverdueList(List.of(), page.page(), page.size(), 0);
+            if (admin && (reach.isEmpty() || f.unitId() != null && !reach.contains(f.unitId()))) return new OverdueList(List.of(), page.page(), page.size(), 0, 0);
             Map<String, Object> params = new HashMap<>();
             params.put("org", org);
             params.put("now", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
@@ -116,9 +116,12 @@ public class OverdueCharges {
                     + "left join guardian g on g.organization_id = c.organization_id and g.id = c.payer_guardian_id "
                     + "join unit_settings us on us.organization_id = c.organization_id and us.unit_id = c.unit_id "
                     + "join organization_settings os on os.organization_id = c.organization_id "
-                    + "left join lateral (select r.created_at, r.channel from charge_reminder r where r.organization_id = c.organization_id and r.charge_id = c.id "
-                    + "and r.status = 'SENT' order by r.created_at desc, r.id limit 1) lr on true where " + where;
+                    + "left join enrollment_modality em on em.organization_id = c.organization_id and em.id = c.enrollment_modality_id "
+                    + "left join modality md on md.id = em.modality_id "
+                    + "left join lateral (select r.created_at, r.channel, r.status, r.reason from charge_reminder r where r.organization_id = c.organization_id "
+                    + "and r.charge_id = c.id order by r.created_at desc, r.id limit 1) lr on true where " + where;
             long total = jdbc.sql("select count(*)" + from).params(params).query(Long.class).single();
+            long totalCents = jdbc.sql("select coalesce(sum(c.amount_cents), 0)" + from).params(params).query(Long.class).single();
             var sort = page.sort() == null ? new PageRequest.Sort("daysLate", true) : page.sort();
             String order = switch (sort.field()) {
                 case "amount" -> "c.amount_cents" + (sort.desc() ? " desc" : " asc");
@@ -127,16 +130,17 @@ public class OverdueCharges {
             };
             params.put("limit", page.size());
             params.put("offset", page.offset());
-            List<Item> items = jdbc.sql("select c.id, s.id, s.name, s.photo, u.id, u.name, c.type, c.reference_month, c.description, c.amount_cents, c.due_on, "
+            List<Item> items = jdbc.sql("select c.id, s.id, s.name, s.photo, u.id, u.name, md.id, md.name, c.type, c.reference_month, c.description, c.amount_cents, c.due_on, "
                     + Charges.today("u") + " - c.due_on, case when c.type in ('MONTHLY', 'INSTALLMENT', 'READJUSTMENT_DIFF') and us.payment_account_reference is not null "
-                    + "then greatest(0, " + Charges.BLOCK_DATE + " - " + Charges.today("u") + ") end, lr.created_at, lr.channel, coalesce(g.name, s.name), "
+                    + "then greatest(0, " + Charges.BLOCK_DATE + " - " + Charges.today("u") + ") end, lr.created_at, lr.channel, lr.status, lr.reason, coalesce(g.name, s.name), "
                     + "case when c.payer_guardian_id is null then s.phone else g.phone end" + from + " order by " + order + ", c.id limit :limit offset :offset")
                     .params(params).query((rs, n) -> new Item(rs.getObject(1, UUID.class), new Charges.StudentRef(rs.getObject(2, UUID.class), rs.getString(3),
-                            students.photoUrl(rs.getString(4))), new Charges.Named(rs.getObject(5, UUID.class), rs.getString(6)), rs.getString(7),
-                            rs.getObject(8, LocalDate.class), rs.getString(9), rs.getLong(10), rs.getObject(11, LocalDate.class), rs.getInt(12),
-                            rs.getObject(13) == null ? null : rs.getInt(13), rs.getObject(14) == null ? null : new LastReminder(rs.getObject(14, OffsetDateTime.class),
-                            rs.getString(15)), new Payer(rs.getString(16), rs.getString(17)))).list();
-            return new OverdueList(items, page.page(), page.size(), total);
+                            students.photoUrl(rs.getString(4))), new Charges.Named(rs.getObject(5, UUID.class), rs.getString(6)),
+                            rs.getObject(7) == null ? null : new Charges.Named(rs.getObject(7, UUID.class), rs.getString(8)), rs.getString(9),
+                            rs.getObject(10, LocalDate.class), rs.getString(11), rs.getLong(12), rs.getObject(13, LocalDate.class), rs.getInt(14),
+                            rs.getObject(15) == null ? null : rs.getInt(15), rs.getObject(16) == null ? null : new LastReminder(rs.getObject(16, OffsetDateTime.class),
+                            rs.getString(17), rs.getString(18), rs.getString(19)), new Payer(rs.getString(20), rs.getString(21)))).list();
+            return new OverdueList(items, page.page(), page.size(), total, totalCents);
         });
     }
 

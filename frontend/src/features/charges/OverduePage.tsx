@@ -1,36 +1,48 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
-import { Select as Control } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { ComingSoon } from "@/components/ui/coming-soon";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryPage, type Page, type Query } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
+import { useBelowSm } from "@/components/query/useBelowSm";
+import { SupportLink } from "@/features/auth/SupportContact";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
-import { useStudentFilterOptions } from "@/features/students/useStudents";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { DaysToBlock, LastReminder, OverdueCard, Select, Student, Whatsapp, useOverdueReference } from "./OverdueRows";
+import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
+import { formatCurrency } from "@/lib/format";
+import { BlockCell, LastReminder, LateCell, OverdueCard, RowActions, Select, Student, Whatsapp, useOverdueReference, useReminderMessage } from "./OverdueRows";
 import { SendReminderDialog } from "./SendReminderDialog";
 import type { OverdueCharge } from "./types";
 import { fetchOverdue } from "./useOverdue";
-import { PageHeader } from "@/components/ui/page-header";
 
 const MAX_SEND = 100;
 
 function Content() {
   const { t } = useTranslation();
   const reference = useOverdueReference();
-  const { units } = useStudentFilterOptions();
+  const message = useReminderMessage();
+  const narrow = useBelowSm();
+  // A unidade vem da barra: "todas" não filtra. A identidade de fetchPage muda só quando a unidade muda.
+  const scope = useUnitScope();
+  const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
+  const unitName = scope.units.find((u) => u.id === scope.selected)?.name;
   // A seleção fica na tela (id -> linha, para o resultado citar o aluno) e vale entre páginas; recarregar a lista a zera.
   const [selected, setSelected] = useState<Map<string, OverdueCharge>>(new Map());
   const [pageRows, setPageRows] = useState<OverdueCharge[]>([]);
+  const [chosen, setChosen] = useState<string>();
   const [version, setVersion] = useState(0);
   const [sending, setSending] = useState(false);
-  const fetchPage = useCallback(async (q: Query): Promise<Page<OverdueCharge>> => {
-    const page = await fetchOverdue(q);
-    setPageRows(page.rows);
-    return page;
-  }, []);
+  const fetchPage = useCallback(
+    async (q: Query): Promise<Page<OverdueCharge>> => {
+      const page = await fetchOverdue({ ...q, filtros: unitId ? { ...q.filtros, unitId } : q.filtros });
+      setPageRows(page.rows);
+      return page;
+    },
+    [unitId],
+  );
+  const reload = () => setVersion((v) => v + 1);
 
   const toggle = (row: OverdueCharge) =>
     setSelected((s) => {
@@ -50,28 +62,50 @@ function Content() {
     });
   const tooMany = selected.size > MAX_SEND;
   const targets = [...selected.values()].map((r) => ({ id: r.id, label: `${r.student.name} · ${reference(r)}` }));
+  const preview = pageRows.find((r) => r.id === chosen) ?? pageRows[0];
 
   const columns: Column<OverdueCharge>[] = [
-    { key: "select", label: t("charges.overdue.columns.select"), render: (r) => <Select row={r} checked={selected.has(r.id)} onToggle={toggle} /> },
+    { key: "select", label: t("charges.overdue.columns.select"), hideLabel: true, render: (r) => <Select row={r} checked={selected.has(r.id)} onToggle={toggle} /> },
     { key: "student", label: t("charges.overdue.columns.student"), sortable: true, render: (r) => <Student row={r} /> },
-    { key: "unit", label: t("charges.overdue.columns.unit"), render: (r) => r.unit.name },
-    { key: "reference", label: t("charges.overdue.columns.reference"), render: (r) => reference(r) },
-    { key: "dueOn", label: t("charges.overdue.columns.dueOn"), render: (r) => formatDate(r.dueOn) },
-    { key: "amount", label: t("charges.overdue.columns.amount"), sortable: true, render: (r) => formatCurrency(r.amountCents) },
-    { key: "daysLate", label: t("charges.overdue.columns.daysLate"), sortable: true, render: (r) => <span className="font-medium text-danger-foreground">{t("charges.overdue.daysLate", { count: r.daysLate })}</span> },
+    { key: "daysLate", label: t("charges.overdue.columns.daysLate"), sortable: true, render: (r) => <LateCell row={r} /> },
+    { key: "amount", label: t("charges.overdue.columns.amount"), sortable: true, numeric: true, render: (r) => <span className="whitespace-nowrap tabular-nums">{formatCurrency(r.amountCents)}</span> },
     { key: "lastReminder", label: t("charges.overdue.columns.lastReminder"), render: (r) => <LastReminder row={r} /> },
-    { key: "daysToBlock", label: t("charges.overdue.columns.daysToBlock"), render: (r) => <DaysToBlock row={r} /> },
-    { key: "whatsapp", label: t("charges.overdue.columns.whatsapp"), render: (r) => <Whatsapp row={r} /> },
+    { key: "block", label: t("charges.overdue.columns.block"), render: (r) => <BlockCell row={r} /> },
+    {
+      key: "actions",
+      label: t("charges.overdue.columns.actions"),
+      hideLabel: true,
+      render: (r) => (
+        <span className="flex justify-end gap-2">
+          <Whatsapp row={r} />
+          <RowActions row={r} onDone={reload} />
+        </span>
+      ),
+    },
   ];
 
-  return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title={t("charges.overdue.title")} />
-      <p className="text-muted-foreground">{t("charges.overdue.intro")}</p>
+  // Cabeçalho, aviso dos lembretes automáticos e a barra do envio em lote ficam acima da lista.
+  const header = ({ counts, total }: { counts?: Record<string, number>; total?: number }) => (
+    <>
+      <PageHeader
+        title={t("charges.overdue.title")}
+        subtitle={
+          total === undefined
+            ? undefined
+            : t("charges.overdue.subtitle", {
+                scope: unitId && unitName ? t("charges.overdue.scopeUnit", { unit: unitName }) : t("charges.overdue.scopeAll"),
+                count: total,
+                total: formatCurrency(counts?.totalCents ?? 0),
+              })
+        }
+      />
+      <Banner tone="info">
+        {t("charges.overdue.notice")}{" "}
+        <Link to="/configuracoes/unidade" className="font-medium underline">
+          {t("charges.overdue.configure")}
+        </Link>
+      </Banner>
       <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="outline" className="min-h-11">
-          <Link to="/cobrancas">{t("charges.overdue.back")}</Link>
-        </Button>
         <label className="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" className="size-6" checked={allOnPage} disabled={pageRows.length === 0} onChange={toggleAll} />
           {t("charges.overdue.selectAll")}
@@ -82,38 +116,48 @@ function Content() {
         <Button type="button" className="min-h-11" disabled={selected.size === 0 || tooMany} onClick={() => setSending(true)}>
           {t("charges.overdue.send")}
         </Button>
-        {tooMany && (
-          <Banner tone="danger">{t("charges.overdue.tooMany")}</Banner>
-        )}
+        {tooMany && <Banner tone="danger">{t("charges.overdue.tooMany")}</Banner>}
       </div>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
       <QueryPage
         key={version}
+        header={header}
+        search={false}
+        canvasPagination
+        canvasStates
+        errorTitle={t("charges.errorTitle")}
+        errorText={t("charges.errorText")}
+        errorSecondary={<SupportLink />}
+        texts={{ emptyTitle: t("charges.overdue.emptyTitle"), emptyText: t("charges.overdue.emptyText") }}
         columns={columns}
+        cardsBelow="sm"
+        cards={(r) => <OverdueCard row={r} checked={selected.has(r.id)} onToggle={toggle} onDone={reload} />}
         fetchPage={fetchPage}
         rowKey={(r) => r.id}
-        filterKeys={["unitId"]}
-        filters={({ get, set }) => (
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            {t("charges.overdue.unit")}
-            <Control value={get("unitId")} onChange={(e) => set("unitId", e.target.value)}>
-              <option value="">{t("charges.overdue.allUnits")}</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </Control>
-          </label>
-        )}
-        cards={(r) => <OverdueCard row={r} checked={selected.has(r.id)} onToggle={toggle} />}
+        onRowClick={(r) => setChosen(r.id)}
       />
+      {preview && !narrow && (
+        <section aria-labelledby="overdue-message" className="flex flex-col gap-2 rounded-card border border-ok-foreground/30 bg-ok p-4 text-ok-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="overdue-message" className="text-base font-semibold">
+              {t("charges.overdue.message.title")}
+            </h2>
+            <ComingSoon variant="button" label={t("charges.overdue.message.edit")} />
+          </div>
+          <p className="break-words text-sm">{message(preview)}</p>
+        </section>
+      )}
       {sending && (
         <SendReminderDialog
           targets={targets}
           onClose={() => setSending(false)}
           onDone={() => {
             setSelected(new Map());
-            setVersion((v) => v + 1);
+            reload();
           }}
         />
       )}

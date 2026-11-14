@@ -88,6 +88,7 @@ describe("comprovantes em conferência x OpenAPI (RF-COB-05, #87)", () => {
     const list = await (await send("GET", "/payment-proofs")).json();
     expect(list.total).toBe(1);
     expect(Object.keys(list.items[0]).sort()).toEqual(required("PaymentProof"));
+    expect(list.items[0].unitPixKey).toBe("pix@alfa.test");
   });
 
   it("recusa o arquivo inválido no campo `file`, a unidade sem chave e a cobrança de fora", async () => {
