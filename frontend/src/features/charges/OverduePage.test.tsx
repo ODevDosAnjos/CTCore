@@ -157,6 +157,18 @@ describe("OverduePage (RF-COB-06)", () => {
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 
+  it("CA4: clicar dentro da janela de Registrar não escolhe a mensagem da linha", async () => {
+    const user = userEvent.setup();
+    setup();
+    await ready();
+    await screen.findAllByText("Ana Souza");
+    const panel = screen.getByRole("region", { name: "Mensagem pronta do lembrete" });
+    await user.click(within(tableRow("João Pereira")).getByRole("button", { name: /Registrar pagamento de João Pereira/ }));
+    await user.click(await screen.findByRole("dialog"));
+    expect(within(panel).getByText(/Carla Souza/)).toBeInTheDocument();
+    expect(within(panel).queryByText(/João Pereira/)).toBeNull();
+  });
+
   it("CA26: sem seleção o botão fica desabilitado; seleciona 2, envia, mostra o resultado de cada uma e recarrega a lista", async () => {
     const user = userEvent.setup();
     setup();

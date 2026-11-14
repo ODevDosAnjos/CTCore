@@ -183,7 +183,35 @@ Instáveis: nenhum.
 - Em atraso (`/cobrancas/atrasados`): lista no visual do canvas, colunas novas, "Configurar" no aviso, cartões no celular, painel "Mensagem pronta do lembrete" com "Editar texto" desabilitado ("Em breve") e os quatro estados. A soma do filtro vem de `counts.totalCents`, em centavos; a modalidade vem do servidor.
 - Conferência (`/comprovantes`): cabeçalho com unidade e contagem, destaque e agrupamento por cobrança, cartões no celular com "Comprovante" abrindo a imagem, janela de conferência (`size="lg"`, 900 px) e os quatro estados. Respeita a unidade da barra (`unitId`, correção da rodada 1).
 - Janela "comprovante de várias cobranças": caso novo `cobrancas-conferencia-janela` no teste visual.
-- Verificação: rodada 2 OK (estado 7e51e7ef). `visual:canvas -- --exige`: 135 comparadas, 0 reprovadas. Visual do CI: `cobrancas-atrasados`, `cobrancas-conferencia` e `cobrancas-conferencia-janela` passaram. Back-end: `mvnw verify` 881 testes verdes, JaCoCo incluso. Front-end: lint, typecheck e build verdes.
+- Verificação: rodada 3 OK (estado c1f31155), que cobre a correção de cobertura abaixo; rodada 2 OK (estado 7e51e7ef) foi a da primeira entrega. `visual:canvas -- --exige`: 135 comparadas, 0 reprovadas. Visual do CI: `cobrancas-atrasados`, `cobrancas-conferencia` e `cobrancas-conferencia-janela` passaram. Back-end: `mvnw verify` 881 testes verdes, JaCoCo incluso. Front-end: lint, typecheck e build verdes.
 - Decisões: a janela usa `limiteCanvas` 0,60 com motivo (56,0% de divergência de fundo e dados); a #573 traz a remoção no corpo. O cenário do MSW ficou com 5 cobranças, não 11, para não quebrar outros testes; a diferença de dados fica para a #573. `reference` da mensalidade passa a "Modalidade · MM/AAAA".
 - Limitações: CA14 (ITs com Testcontainers) NÃO CONFERIDO localmente, sem Docker; vale o `mvnw verify` do CI. Sugestões opcionais não adotadas: largura fixa da ação "Lembrete", IT de mensalidade com modalidade, e R1/R8 x D1 (botão "Voltar às cobranças") para a fase 2.
 - Regressão local, da construção e da verificação (a base não avançou, então não foi repetida): `test:cov` 2366 de 2373, com 7 falhas por tempo esgotado sob carga em 5 arquivos fora do item, que passaram isoladas (91 testes); a construção não anotou arquivo, nome nem linha de erro dessas falhas. `e2e`: 96 passaram, 2 instáveis (`configuracao-unidade`, `portal-pedidos`) que passaram na repetição. Registrado como instabilidade sob carga na #540.
+- CI do PR #575 (run 43623763847, head c4abec2), código 1 (`--ci 1`):
+  - `frontend`, `npm run test:cov`: cobertura de linhas de `src/features/charges/**` em 99,17% (exige 100%). Linhas sem cobertura em `ChargeCards.tsx` (9-13, 22-23) e `OverdueRows.tsx` (103).
+  - `backend`, `mvnw verify`: `br.com.ctcore.communication.AnnouncementSendJobIT.oneFailureDoesNotStopTheOther:80` (`expected: 1 but was: 0`). Arquivo fora do escopo do item, que não toca `communication`; ainda não isolado nem rerodado.
+  - Resultado: CORRIGIR_CODIGO.
+
+### Correção da entrega
+- cobertura de `src/features/charges` (CI pedia 100% de linhas; faltavam `ChargeCards.tsx` 9-13 e 22-23 e `OverdueRows.tsx` 103) — arquivos: `ChargeCards.tsx` (removidos `StudentCell` e o `initials` local, sem uso depois da reescrita), `OverduePage.test.tsx` (caso novo: clicar dentro da janela de Registrar não troca a mensagem da linha, cobre o `stopPropagation` da linha 103) — prova: `npx vitest run src/features/charges --coverage --coverage.include='src/features/charges/**'` → 13 arquivos, 126 testes verdes, linhas 100% em `ChargeCards.tsx` e `OverdueRows.tsx`; `tsc` e `eslint` da pasta sem erro.
+- `AnnouncementSendJobIT.oneFailureDoesNotStopTheOther` (back-end, `communication`, fora do item): não rodou aqui, sem Docker (Testcontainers); o item não toca `communication`. Regra 5 da Autonomia: rodar o CI de novo; se falhar outra vez, abrir issue `técnica`.
+Não é do item: `DailyReceiptsPage.test.tsx` falhou uma vez na primeira execução (tempo, sob carga) e passou na seguinte, sem mudança.
+
+### Rodada 3 — OK — 2026-11-14, estado c1f3115545d08ba89294e379bd8b3f42c85196dc
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA13, CA15 | PASSOU (mantido da rodada 2) | a mudança desde a rodada 2 remove `StudentCell` e `initials` sem uso (`grep StudentCell frontend/src` sem resultado) e acrescenta um teste; testes de charges e payment-proofs verdes |
+| CA4 | PASSOU | caso novo "clicar dentro da janela de Registrar não escolhe a mensagem da linha" verde |
+| CA14 | NÃO CONFERIDO (limitação aceita, regra 2 da Autonomia) | ITs exigem Docker; vale o CI do PR |
+
+Comandos:
+- `npx vitest run src/features/charges src/features/payment-proofs src/test/a11y.test.tsx --maxWorkers=2 --coverage --coverage.include='src/features/charges/**'` → 16 arquivos, 154 testes verdes; linhas 100% em `ChargeCards.tsx` e `OverdueRows.tsx`
+- `npm run lint` e `npm run typecheck` → verdes
+- Visual: a mudança não altera renderização (só remoção de código morto e teste); não repetido.
+
+Achados:
+- Achado do CI (cobertura de `charges`): resolvido. `AnnouncementSendJobIT` é de `communication`, fora do item; segue a regra 5 (rerodar o CI).
+- sugestão: as sugestões da rodada 1 seguem abertas (opcionais).
+
+Instáveis: nenhum.
