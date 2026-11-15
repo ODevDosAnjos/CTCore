@@ -168,6 +168,18 @@ Achados da rodada 1: (1) `nextChargeMonth` com `'^[0-9]{4}-[0-9]{2}$'` em `docs/
 Achados obrigatórios: nenhum.
 Sugestões: as 3 da rodada 1 seguem abertas, sem impedir a entrega.
 
+### Rodada 3 — OK — 2026-11-14, estado 9330b8e8bc28b1913099d495d6244d697289fa31
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA15, CA17 | PASSOU | mantido das rodadas 1 e 2 (nenhum código de tela, servidor ou contrato mudou) |
+| CA16 | PASSOU | `npm run test:visual:docker -- -g "dia-sem-aula|beneficio"` → 20 de 20 passaram, sem `--update-snapshots` (dia-sem-aula-novo 1440/390 claro e escuro, e os 16 de benefício) |
+
+Comandos: `git diff HEAD` → só `frontend/visual/casos.ts` (`"Motivo"` volta a `"Motivo *"` em `dia-sem-aula-novo`, igual à base) e o arquivo do item; teste visual acima.
+Achados da entrega (job `visual` do CI, `dia-sem-aula-novo`): corrigido, passou local.
+Achados obrigatórios: nenhum.
+Sugestões: as 3 da rodada 1 seguem abertas, sem impedir a entrega.
+
 ## Entrega
 
 **O que muda.** Benefícios no visual do canvas: abas com contagens (Ativos, Encerrados, Todos), lista com pílulas, filtros, versão de celular e os quatro estados. Janela "Conceder" refeita sobre `ModalityDialog` (busca de aluno, tipo, validade, "Decidido por", resumo e motivo). Janela "Substituir benefício?" nova (`POST /benefits` com `replaceExisting: true`). Janela "Encerrar" com resumo, motivo e nota do valor do plano. Contrato: `GET /benefits` ganha `status=CLOSED`, `counts` e, em cada linha, `planValueCents` e `nextChargeMonth` (`docs/openapi.yaml`); RF-BEN-01 a 03 em `docs/especificacao/07-planos-e-beneficios.md`; MSW espelha o contrato.
@@ -187,3 +199,7 @@ Sugestões: as 3 da rodada 1 seguem abertas, sem impedir a entrega.
 - Lista: o canvas não mostra "Benefício alto" sob o 60% da linha de Olívia, nem "Buscar por nome" e "Por página"; sugestões do verificador, não obrigatórias, não feitas.
 
 **Regressão local.** `lint`, `typecheck` e `build` verdes. `test:cov`: 253 arquivos, 2415 testes, linhas 97,02%. `e2e`: 96 passaram; 2 instáveis (`configuracao-unidade.spec.ts` e `portal-pedidos.spec.ts`, tema escuro), passaram nas 3 repetições. `verify`: 886 testes de integração; 1 instável (`AnnouncementSendJobIT.sendsDueOnce`, comunicação), passou 2 de 2 isolado. A primeira linha de erro dessas falhas não ficou guardada na construção, então não é registrada aqui. O `verify` parou na falha, então o JaCoCo dos pacotes críticos não rodou local: a prova é o CI do PR. A base não avançou nesta entrega, então a regressão não foi repetida.
+
+### Correção da entrega
+- Job `visual` do CI do PR #580 reprovou 4 testes (`dia-sem-aula-novo`, 1440 e 390, claro e escuro): o passo `preencher` do caso usava o rótulo `"Motivo"` no lugar de `"Motivo *"` (alteração indevida em `visual/casos.ts` nesta branch; o campo `ReasonField` tem o asterisco no rótulo) — arquivos: `frontend/visual/casos.ts` (volta a `"Motivo *"`) — prova: `npm run test:visual:docker -- -g "dia-sem-aula"` → 4 passaram (sem `--update-snapshots`). Os 529 demais testes do job passaram no CI.
+Visual do CI: dia-sem-aula-novo → passou.
