@@ -2129,6 +2129,8 @@ paths:
         alcance devolve lista vazia). Professor, Aluno e Responsável recebem 403. `status` é calculado: `EXPIRED` quando ativo com validade anterior
         a hoje no fuso da unidade. `high` (RN-BEN-06): bolsa acima de 50% ou desconto acima de metade do plano. `value` é percentual inteiro (1 a 100)
         em `PERCENT` e centavos em `AMOUNT`; `monthlyValueCents` nunca é negativo (RN-BEN-07). `q` ignora acento e maiúsculas; os filtros combinam (E).
+        `counts` (abas da tela) usa os mesmos filtros de `q`, `type`, `modalityId` e `unitId`, ignorando `status` e `high`: `active`, `high` (ativos altos) e `closed` (encerrados e vencidos).
+        `planValueCents` e `nextChargeMonth` (`AAAA-MM`, mesma regra de `effectiveFrom` da prévia) dão o valor a que a próxima cobrança volta ao encerrar.
         Só leitura: não grava auditoria.
       security: [{ sessionCookie: [] }]
       parameters:
@@ -2136,7 +2138,7 @@ paths:
         - { name: type, in: query, required: false, schema: { type: string, enum: [PERCENT, AMOUNT] } }
         - { name: modalityId, in: query, required: false, schema: { type: string, format: uuid } }
         - { name: unitId, in: query, required: false, schema: { type: string, format: uuid } }
-        - { name: status, in: query, required: false, schema: { type: string, enum: [ACTIVE, EXPIRED, ENDED] } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [ACTIVE, EXPIRED, ENDED, CLOSED], description: '`CLOSED` junta encerrados e vencidos.' } }
         - { name: high, in: query, required: false, schema: { type: boolean } }
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/Size' }
@@ -4879,7 +4881,7 @@ components:
                   changedBy: { type: string, nullable: true }
     BenefitRow:
       type: object
-      required: [id, student, unit, modality, type, value, reason, decidedBy, grantedBy, validUntil, status, high, monthlyValueCents]
+      required: [id, student, unit, modality, type, value, reason, decidedBy, grantedBy, validUntil, status, high, monthlyValueCents, planValueCents, nextChargeMonth]
       properties:
         id: { type: string, format: uuid }
         student: { $ref: '#/components/schemas/ClassRef' }
@@ -4894,6 +4896,8 @@ components:
         status: { type: string, enum: [ACTIVE, EXPIRED, ENDED] }
         high: { type: boolean }
         monthlyValueCents: { type: integer, format: int64 }
+        planValueCents: { type: integer, format: int64, description: Valor do plano da modalidade. }
+        nextChargeMonth: { type: string, pattern: '^[0-9]{4}-[0-9]{2}$', description: Mês da primeira cobrança ainda não gerada (mesma regra de `BenefitPreview.effectiveFrom`). }
     BenefitPreviewInput:
       type: object
       required: [studentId, modalityRowId, type, value]
@@ -4940,6 +4944,13 @@ components:
         - type: object
           properties:
             items: { type: array, items: { $ref: '#/components/schemas/BenefitRow' } }
+            counts:
+              type: object
+              required: [active, high, closed]
+              properties:
+                active: { type: integer, format: int64 }
+                high: { type: integer, format: int64 }
+                closed: { type: integer, format: int64 }
     PlanList:
       allOf:
         - $ref: '#/components/schemas/Page'

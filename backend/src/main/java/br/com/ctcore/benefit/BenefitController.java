@@ -1,7 +1,6 @@
 package br.com.ctcore.benefit;
 
 import br.com.ctcore.api.page.PageRequest;
-import br.com.ctcore.api.page.PageResponse;
 import br.com.ctcore.identity.AccountPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Set;
@@ -30,7 +29,7 @@ class BenefitController {
     }
 
     @GetMapping
-    PageResponse<Benefits.Row> list(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) String q,
+    Benefits.BenefitList list(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) String q,
             @RequestParam(required = false) String type, @RequestParam(required = false) UUID modalityId, @RequestParam(required = false) UUID unitId,
             @RequestParam(required = false) String status, @RequestParam(required = false) Boolean high, @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {

@@ -213,6 +213,34 @@ class BenefitListIT extends OrganizationBase {
     }
 
     @Test
+    @DisplayName("RF-BEN-01 (#481): CLOSED junta encerrado e vencido; counts ignora status e high mas respeita filtros e alcance; planValueCents e nextChargeMonth")
+    void closedCountsAndPlanFields() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        UUID second = unit(t, "Zona Sul");
+        benefit(t, enrolled(t, t.unitId(), "Ana", 0, 10000), "PERCENT", 60);
+        benefit(t, enrolled(t, t.unitId(), "Bia", 0, 10000), "PERCENT", 10);
+        benefit(t, enrolled(t, t.unitId(), "Cao", 0, 10000), "PERCENT", 10, TODAY + " - 1", "ACTIVE");
+        benefit(t, enrolled(t, t.unitId(), "Dan", 0, 10000), "PERCENT", 10, null, "ENDED");
+        benefit(t, enrolled(t, second, "Eva", 0, 10000), "AMOUNT", 3000);
+        benefit(other, enrolled(other, other.unitId(), "Alheio", 0, 10000), "PERCENT", 10, null, "ENDED");
+        var coord = who(t, Role.COORDINATOR);
+        assertThat(names(list("?status=CLOSED", coord))).containsExactly("Cao", "Dan");
+        var counts = list("?status=CLOSED&high=true", coord).get("counts");
+        assertThat(List.of(counts.get("active").asInt(), counts.get("high").asInt(), counts.get("closed").asInt())).containsExactly(3, 1, 2);
+        var unitCounts = list("?unitId=" + t.unitId(), coord).get("counts");
+        assertThat(List.of(unitCounts.get("active").asInt(), unitCounts.get("high").asInt(), unitCounts.get("closed").asInt())).containsExactly(2, 1, 2);
+        var searched = list("?q=ana", coord).get("counts");
+        assertThat(List.of(searched.get("active").asInt(), searched.get("high").asInt(), searched.get("closed").asInt())).containsExactly(1, 1, 0);
+        var admin = list("", who(t, Role.ADMINISTRATOR)).get("counts");
+        assertThat(admin.get("active").asInt() + admin.get("closed").asInt()).isEqualTo(4);
+        var row = list("", coord).get("items").get(0);
+        assertThat(row.get("planValueCents").asLong()).isEqualTo(10000);
+        assertThat(row.get("nextChargeMonth").asText()).matches("\\d{4}-\\d{2}");
+        assertThat(list("?unitId=" + other.unitId(), coord).get("counts").get("closed").asInt()).isZero();
+    }
+
+    @Test
     @DisplayName("CA3: o banco recusa 0%, 101%, desconto de 0 centavo e tipo desconhecido")
     void checks() {
         var t = tenant();

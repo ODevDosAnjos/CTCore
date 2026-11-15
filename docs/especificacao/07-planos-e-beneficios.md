@@ -39,9 +39,9 @@ Definir quanto cada modalidade custa em cada unidade e os benefícios individuai
 - **RF-PLA-01.** Financeiro › Planos e benefícios: cartões Planos e Benefícios, cada um com resumo. A permissão de planos (Coordenador; Administrador nas suas unidades; Professor sem acesso) vale também para o resumo de benefícios, e uma unidade fora do alcance do Administrador dá resumo e lista vazios, sem erro.
 - **RF-PLA-02.** Planos: tabela com modalidade, nome, valor, frequência, alunos usando, situação; filtro por modalidade. A tabela vive na própria tela de Planos e benefícios, abaixo dos cartões.
 - **RF-PLA-03.** Janela de plano: modalidade, nome, valor, frequência, vale em outras unidades. Mudar o valor mostra quantos alunos serão afetados, a partir de quando e as escolhas da RN-PLA-05. Só Coordenador e Administrador (nas suas unidades) criam e editam plano. Com "Treinar em outra unidade" em "Sim" ou "Não" (RN-ORG-13), o plano grava "vale em outras unidades" como falso e a janela não oferece o controle.
-- **RF-BEN-01.** Benefícios: tabela com aluno, modalidade, tipo, valor, motivo, decidido por, validade e situação; filtros por tipo, modalidade, situação e "Benefícios altos".
-- **RF-BEN-02.** Conceder benefício: aluno, modalidade, tipo, valor, motivo, decidido por, validade. Antes de confirmar, mostra plano, benefício, nova mensalidade e a partir de qual mês vale. Se já houver um, avisa que ele será encerrado.
-- **RF-BEN-03.** Encerrar benefício, com motivo.
+- **RF-BEN-01.** Benefícios: tabela com aluno, modalidade, tipo, valor, motivo, decidido por, validade e situação; abas por situação com contagem (Ativos, Benefícios altos, Encerrados, que junta encerrados e vencidos) e filtros por tipo e modalidade; a unidade vem do seletor de unidade da barra.
+- **RF-BEN-02.** Conceder benefício: aluno, modalidade, tipo, valor, motivo, decidido por, validade. Antes de confirmar, mostra plano, benefício, nova mensalidade e a partir de qual mês vale. Se já houver um, avisa que ele será encerrado e, ao confirmar, pede a confirmação da substituição em janela própria, com o benefício atual e o novo lado a lado (RN-BEN-08).
+- **RF-BEN-03.** Encerrar benefício, com motivo. A janela mostra o resumo do benefício e o valor que a próxima cobrança gerada volta a ter.
 
 ## Pronto quando
 

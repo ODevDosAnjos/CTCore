@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 export type Query = { q: string; pagina: number; ordem: string; filtros: Record<string, string>; tamanho: number };
 // `counts` são totais auxiliares da tela (ex.: filtros rápidos), vindos do mesmo pedido.
+type Texts = { emptyTitle?: string; emptyText?: string; noResultTitle?: string; noResultText?: string };
 export type Page<T> = { rows: T[]; total: number; counts?: Record<string, number> };
 
 // Consulta: busca, filtros, ordenação, página e tamanho vivem no endereço (RNF-27). Nunca pede mais que uma página.
@@ -34,6 +35,7 @@ export function QueryPage<T>({
   tableCard,
   header,
   defaultFilters = {},
+  tabKeys = [],
   onRowClick,
   rowClassName,
   errorTitle,
@@ -47,7 +49,8 @@ export function QueryPage<T>({
   filters?: (p: { get: (k: string) => string; set: (k: string, v: string) => void; counts?: Record<string, number>; total?: number; clear: () => void }) => ReactNode;
   emptyAction?: ReactNode;
   // Textos próprios dos dois vazios (sem item / sem item com estes filtros); sem eles valem os padrões.
-  texts?: { emptyTitle?: string; emptyText?: string; noResultTitle?: string; noResultText?: string };
+  // Pode ser uma função dos filtros atuais (ex.: vazio próprio de cada aba).
+  texts?: Texts | ((get: (k: string) => string) => Texts);
   // Opcionais: abaixo de md a lista sai em cartões no lugar da tabela; `footer` recebe a página carregada (ex.: totais).
   cards?: (row: T) => ReactNode;
   footer?: (page: Page<T>) => ReactNode;
@@ -67,6 +70,8 @@ export function QueryPage<T>({
   tableCard?: boolean;
   /** Valor de filtro quando o endereço não traz o parâmetro (ex.: `{ status: "ACTIVE" }`). A tela grava um valor próprio (ex.: "ALL") para o "Todos" não reaplicar o padrão. */
   defaultFilters?: Record<string, string>;
+  /** Filtros que são abas da tela (ex.: "view"): não contam como filtro, então a aba vazia mostra o vazio dela, sem "Limpar filtros". */
+  tabKeys?: string[];
   /** Linha da tabela clicável (o link do nome continua sendo o alvo do teclado). */
   onRowClick?: (row: T) => void;
   /** Classe extra da linha da tabela (ex.: esmaecer o que está desativado). */
@@ -92,7 +97,7 @@ export function QueryPage<T>({
   const filtros = Object.fromEntries(filterKeys.map((k) => [k, getF(k)]).filter(([, v]) => v));
   const filtrosKey = JSON.stringify(filtros);
   // O padrão da tela não conta como filtro: sem resultado nele, o vazio é o de "nada ainda".
-  const hasFilter = Boolean(q) || Object.entries(filtros).some(([k, v]) => v !== defaultFilters[k]);
+  const hasFilter = Boolean(q) || Object.entries(filtros).some(([k, v]) => v !== defaultFilters[k] && !tabKeys.includes(k));
 
   // O resultado guarda a chave da consulta que o gerou; chave diferente da atual significa carregando.
   const [tick, setTick] = useState(0);
@@ -125,6 +130,7 @@ export function QueryPage<T>({
     };
   }, [key, q, pagina, ordem, filtrosKey, tamanho, fetchPage, set]);
 
+  const tx = typeof texts === "function" ? texts(getF) : texts;
   const variant = canvasStates ? "card" : undefined;
   let body: ReactNode;
   if (state.s === "loading" && canvasStates)
@@ -152,8 +158,8 @@ export function QueryPage<T>({
     body = (
       <EmptyState
         variant={variant}
-        title={texts?.noResultTitle ?? t("query.noResultTitle")}
-        text={texts?.noResultText ?? t("query.noResultText")}
+        title={tx?.noResultTitle ?? t("query.noResultTitle")}
+        text={tx?.noResultText ?? t("query.noResultText")}
         action={
           <Button className="min-h-11" onClick={clear}>
             {t("query.clear")}
@@ -161,7 +167,7 @@ export function QueryPage<T>({
         }
       />
     );
-  else if (state.data!.total === 0) body = <EmptyState variant={variant} title={texts?.emptyTitle} text={texts?.emptyText} action={emptyAction} />;
+  else if (state.data!.total === 0) body = <EmptyState variant={variant} title={tx?.emptyTitle} text={tx?.emptyText} action={emptyAction} />;
   else {
     const Pager = canvasPagination ? CanvasPagination : Pagination;
     const pages = Math.max(1, Math.ceil(state.data!.total / tamanho));
