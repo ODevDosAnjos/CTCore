@@ -42,9 +42,9 @@ describe("cenário da agenda e das listas (#449)", () => {
     expect(list.some((x) => x.status === "EXPIRED")).toBe(true);
   });
 
-  it("CA17: 5 planos (um desativado, um que vale nas outras unidades)", async () => {
+  it("CA17: 10 planos (5 do cenário base e 5 do canvas, dois desativados, vários que valem nas outras unidades)", async () => {
     const p = await get("/plans");
-    expect(p.total).toBe(5);
+    expect(p.total).toBe(10);
     expect(p.items.some((x: { status: string }) => x.status === "INACTIVE")).toBe(true);
     expect(p.items.some((x: { validOtherUnits: boolean }) => x.validOtherUnits)).toBe(true);
   });
@@ -64,5 +64,23 @@ describe("cenário da agenda e das listas (#449)", () => {
     const units = await get("/units");
     expect(units).toHaveLength(3);
     expect(units.filter((x: { active: boolean }) => !x.active)).toHaveLength(1);
+  });
+});
+
+describe("cenário dos planos do canvas (#480)", () => {
+  it("quatro planos ativos (58, 21, 22 e 30 alunos) e um desativado por Carla Mendes com histórico de duas linhas", async () => {
+    const list = await get("/plans?size=100");
+    const byName = Object.fromEntries((list.items as { name: string; studentsUsing: number; status: string; id: string }[]).map((p) => [p.name, p]));
+    expect([byName["Adulto 3x"], byName["Adulto livre"], byName["Kids 2x"], byName["Adulto 2x"]].map((p) => p.studentsUsing)).toEqual([58, 21, 22, 30]);
+    expect(byName["Adulto 2x (antigo)"].status).toBe("INACTIVE");
+    const old = await get(`/plans/${byName["Adulto 2x (antigo)"].id}`);
+    expect(old.deactivation.by).toBe("Carla Mendes");
+    expect(old.valueHistory).toHaveLength(2);
+    expect(old.studentsUsing).toBe(3);
+    const main = await get(`/plans/${byName["Adulto 3x"].id}`);
+    expect(main.lastChange.by).toBe("Marcos Leão");
+    const impact = await get(`/plans/${byName["Adulto 3x"].id}/value-impact?valueCents=19000`);
+    expect(impact).toEqual({ studentsAffected: 58, effectiveFrom: "NEXT_CHARGE", unpaidCharges: 6, paidFutureCharges: 2 });
+    expect((await get("/plans/summary")).benefits.active).toBeGreaterThan(0);
   });
 });

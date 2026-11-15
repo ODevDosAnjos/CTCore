@@ -1339,23 +1339,59 @@
     }
   },
   "plans": {
+    "title": "Planos e benefícios",
+    "subtitle": "Unidade {{unit}} · valores guardados em centavos · a graduação não muda a mensalidade",
+    "subtitleAll": "Todas as unidades · valores guardados em centavos · a graduação não muda a mensalidade",
+    "mobileSubtitleAll": "Todas as unidades",
     "newButton": "Novo plano",
-    "actions": {
-      "label": "Ações",
+    "tabsLabel": "Planos e benefícios",
+    "tabPlans": "Planos",
+    "tabBenefits": "Benefícios",
+    "summaryLabel": "Resumo de planos e benefícios",
+    "cards": {
+      "plansTitle": "Planos",
+      "plansNote": "ativos na {{unit}} · só mensais, um por modalidade",
+      "plansNoteAll": "ativos · só mensais, um por modalidade",
+      "benefitsTitle": "Benefícios",
+      "benefitsNote": "ativos · {{high}} acima de 50% · bolsas e descontos",
+      "seeBenefits": "Ver benefícios"
+    },
+    "table": {
+      "title": "Planos",
+      "emptyTitle": "Nenhum plano ainda",
+      "emptyText": "Crie o primeiro plano para poder matricular alunos.",
+      "free": "Livre",
+      "perWeek": "{{count}}x por semana",
+      "students_one": "{{count}} aluno",
+      "students_other": "{{count}} alunos",
+      "cardMeta": "{{frequency}} · {{students}}",
+      "otherYes": "Vale nas outras unidades",
+      "otherNo": "Só nesta unidade",
       "edit": "Editar",
-      "deactivate": "Desativar",
-      "activate": "Ativar",
-      "forRow": "{{action}} o plano {{name}}",
+      "editFor": "Editar o plano {{name}}",
+      "footnote": "A frequência é só informativa: nada controla quantas aulas o aluno faz. Plano com alunos não é excluído, só desativado.",
+      "columns": {
+        "modality": "Modalidade",
+        "name": "Plano",
+        "value": "Valor",
+        "frequency": "Frequência",
+        "students": "Alunos",
+        "otherUnits": "Outras unidades",
+        "status": "Situação",
+        "actions": "Ações"
+      },
+      "statuses": {
+        "ACTIVE": "Ativo",
+        "INACTIVE": "Desativado"
+      },
+      "filters": {
+        "modality": "Modalidade",
+        "allModalities": "Todas"
+      }
+    },
+    "actions": {
       "failed": "Não foi possível concluir. Nada foi alterado. Tente de novo.",
       "activateConflict": "Já existe um plano ativo com este nome na unidade e modalidade. Nada foi alterado."
-    },
-    "deactivateDialog": {
-      "title": "Desativar o plano {{name}}?",
-      "explain": "O plano deixa de ser oferecido em novas matrículas, mas continua na lista e nas matrículas que já o usam. Você pode ativá-lo de novo.",
-      "errors": {
-        "FORBIDDEN": "Você não tem permissão para isto. Nada foi alterado.",
-        "generic": "Não foi possível desativar. Nada foi alterado. Tente de novo."
-      }
     },
     "form": {
       "newTitle": "Novo plano",
@@ -1366,80 +1402,81 @@
       "modality": "Modalidade",
       "modalityRequired": "Escolha a modalidade.",
       "noModalities": "Esta unidade não oferece modalidades ativas.",
-      "name": "Nome do plano",
+      "name": "Nome",
       "nameInvalid": "Informe um nome de 2 a 60 caracteres.",
-      "value": "Valor mensal (R$)",
-      "valueHelp": "Em reais, por exemplo 150,00. A cobrança é mensal.",
+      "valueCurrent": "Valor atual",
+      "valueNew": "Novo valor",
+      "valueNewCreate": "Valor mensal",
       "valueInvalid": "Informe um valor de R$ 0,01 a R$ 999.999,99.",
-      "frequency": "Frequência semanal",
-      "frequencyHelp": "Só informa quantas vezes por semana o plano prevê.",
-      "frequencyOptions": { "2": "2x por semana", "3": "3x por semana", "free": "Livre" },
-      "validOtherUnits": "Vale em outras unidades",
+      "frequency": "Frequência",
+      "frequencyOptions": {
+        "2": "2x por semana",
+        "3": "3x por semana",
+        "free": "Livre"
+      },
+      "validOtherUnits": "Vale também nas outras unidades",
+      "validOtherUnitsNote": "A organização usa \"Depende do plano\" para treinar em outra unidade",
       "crossUnit": {
         "allowed": "Esta organização permite treinar em outra unidade em todos os planos. Para mudar, use as configurações da organização.",
         "denied": "Esta organização não permite treinar em outra unidade em nenhum plano. Para mudar, use as configurações da organização."
       },
       "impact": {
-        "title": "Efeito da mudança de valor",
         "loading": "Calculando o efeito...",
         "error": "Não foi possível calcular o efeito.",
-        "students": "Alunos afetados: {{count}}",
-        "from": "O novo valor vale a partir da próxima cobrança gerada. Cobrança já paga não muda.",
-        "unpaid": "Cobranças geradas e ainda não pagas",
-        "unpaidKeep": "Manter no valor antigo",
-        "unpaidAdjust": "Ajustar para o novo valor",
-        "paid": "Cobranças pagas de meses futuros",
-        "paidNone": "Não cobrar a diferença",
-        "paidCharge": "Cobrar a diferença em cobrança separada"
+        "students_one": "{{count}} aluno será afetado a partir da próxima cobrança gerada. Ele recebe um e-mail com o valor novo.",
+        "students_other": "{{count}} alunos serão afetados a partir da próxima cobrança gerada. Eles recebem um e-mail com o valor novo.",
+        "unpaid": "Cobranças já geradas e não pagas ({{count}})",
+        "unpaidKeep": "Manter no valor antigo (padrão)",
+        "unpaidAdjust": "Ajustar para o valor novo",
+        "paid": "Cobranças de meses futuros já pagas ({{count}})",
+        "paidNone": "Não cobrar a diferença (padrão)",
+        "paidCharge": "Cobrar \"Diferença de reajuste\" numa cobrança separada",
+        "paidAside": "O aluno é avisado",
+        "note": "Cobrança paga nunca muda. A escolha vai para a auditoria."
       },
-      "save": "Salvar",
+      "required": "Campo obrigatório",
+      "save": "Salvar plano",
+      "create": "Criar plano",
+      "deactivate": "Desativar plano",
       "conflict": "Já existe um plano ativo com este nome na unidade e modalidade. Nada foi alterado.",
       "error": "Não foi possível salvar. Nada foi alterado. Tente de novo."
     },
-    "title": "Planos e benefícios",
-    "intro": "Resumo dos planos e dos benefícios da unidade escolhida.",
-    "emptyTitle": "Nenhum plano ainda",
-    "emptyText": "Quando houver planos ou benefícios, o resumo aparece aqui.",
-    "noRange": "Sem plano ativo",
-    "range": "{{min}} a {{max}}",
-    "table": {
-      "title": "Tabela de planos",
-      "intro": "Planos das suas unidades, com o valor, a frequência semanal e a situação de cada um.",
-      "unit": "Unidade {{name}}",
-      "free": "Livre",
-      "perWeek": "{{count}}x por semana",
-      "inactiveBadge": "Desativado",
-      "columns": {
-        "modality": "Modalidade",
-        "name": "Plano",
-        "value": "Valor",
-        "frequency": "Frequência semanal",
-        "students": "Alunos usando",
-        "status": "Situação"
+    "deactivateDialog": {
+      "title": "Desativar plano",
+      "subtitle": "{{modality}} · {{plan}} · {{value}}",
+      "explain": "O plano some das escolhas de matrícula e de troca de plano.",
+      "users_one": "O aluno que já usa continua com ele até trocar.",
+      "users_other": "Os {{count}} alunos que já usam continuam com ele até trocar.",
+      "summary": "Resumo",
+      "items": {
+        "charges": "Nada muda nas cobranças já geradas.",
+        "readonly": "Plano desativado não é editável: para mudar algo, reative antes.",
+        "reactivate": "Você reativa quando quiser, se não houver outro plano ativo com o mesmo nome."
       },
-      "statuses": { "ACTIVE": "Ativo", "INACTIVE": "Desativado" },
-      "filters": {
-        "modality": "Modalidade",
-        "allModalities": "Todas as modalidades",
-        "unit": "Unidade",
-        "allUnits": "Todas as unidades",
-        "status": "Situação",
-        "allStatuses": "Todas as situações"
+      "confirm": "Desativar plano",
+      "errors": {
+        "FORBIDDEN": "Você não tem permissão para isto. Nada foi alterado.",
+        "generic": "Não foi possível desativar. Nada foi alterado. Tente de novo."
       }
     },
-    "plans": {
-      "title": "Planos",
-      "active": "Ativos",
-      "inactive": "Desativados",
-      "studentsUsing": "Alunos usando",
-      "range": "Faixa de valores",
-      "view": "Ver planos"
-    },
-    "benefits": {
-      "title": "Benefícios",
-      "active": "Ativos",
-      "high": "Altos",
-      "view": "Ver benefícios"
+    "inspect": {
+      "badge": "Desativado",
+      "subtitle": "{{unit}} · {{value}} · {{frequency}}",
+      "notice": "Plano desativado: só consulta. Reative para editar ou voltar a oferecer.",
+      "students": "Alunos que ainda usam",
+      "deactivated": "Desativado em {{date}} por {{person}}",
+      "deactivatedLabel": "Desativação",
+      "deactivatedNoPerson": "Desativado em {{date}}",
+      "otherUnits": "Vale em outras unidades",
+      "yes": "Sim",
+      "no": "Não",
+      "history": "Histórico de valor",
+      "since": "Desde",
+      "value": "Valor",
+      "changedBy": "Alterado por",
+      "noAuthor": "—",
+      "note": "A unidade e a modalidade de um plano não mudam: para outra, crie um plano novo.",
+      "reactivate": "Reativar plano"
     }
   },
   "benefits": {

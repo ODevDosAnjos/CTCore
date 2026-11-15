@@ -7,6 +7,7 @@ import { DataTable, TableSkeleton, type Column } from "./DataTable";
 import { CanvasPagination, DEFAULT_PAGE_SIZE, PAGE_SIZES, Pagination } from "./Pagination";
 import { useQueryParams } from "./useQueryParams";
 import { useBelowSm } from "./useBelowSm";
+import { cn } from "@/lib/utils";
 
 export type Query = { q: string; pagina: number; ordem: string; filtros: Record<string, string>; tamanho: number };
 // `counts` são totais auxiliares da tela (ex.: filtros rápidos), vindos do mesmo pedido.
@@ -30,6 +31,7 @@ export function QueryPage<T>({
   searchPlaceholder,
   canvasPagination,
   canvasStates,
+  tableCard,
   header,
   defaultFilters = {},
   onRowClick,
@@ -60,7 +62,9 @@ export function QueryPage<T>({
   /** Os quatro estados no visual do canvas (cartão); sem isso valem os de sempre, até cada tela migrar. */
   canvasStates?: boolean;
   /** Cabeçalho da tela acima da busca; recebe os totais da lista (ex.: subtítulo com a contagem). */
-  header?: (p: { counts?: Record<string, number>; total?: number }) => ReactNode;
+  header?: (p: { counts?: Record<string, number>; total?: number; get: (k: string) => string; set: (k: string, v: string) => void }) => ReactNode;
+  /** Tabela dentro de um cartão com borda arredondada (canvas); sem a prop, a tabela fica solta. */
+  tableCard?: boolean;
   /** Valor de filtro quando o endereço não traz o parâmetro (ex.: `{ status: "ACTIVE" }`). A tela grava um valor próprio (ex.: "ALL") para o "Todos" não reaplicar o padrão. */
   defaultFilters?: Record<string, string>;
   /** Linha da tabela clicável (o link do nome continua sendo o alvo do teclado). */
@@ -164,7 +168,7 @@ export function QueryPage<T>({
     body = (
       <>
         {!(cardsOnly && narrow) && (
-          <div className={cards && !cardsOnly ? "hidden md:block" : undefined}>
+          <div className={cn(cards && !cardsOnly && "hidden md:block", tableCard && "overflow-hidden rounded-card border bg-card")}>
             <DataTable columns={columns} rows={state.data!.rows} rowKey={rowKey} onRowClick={onRowClick} rowClassName={rowClassName} order={ordem} onOrder={(o) => set({ ordem: o })} />
           </div>
         )}
@@ -193,7 +197,7 @@ export function QueryPage<T>({
 
   return (
     <div className="flex flex-col gap-3">
-      {header?.({ counts: lastCounts, total: lastTotal })}
+      {header?.({ counts: lastCounts, total: lastTotal, get: getF, set: (k, v) => set({ [k]: v }) })}
       <form role="search" className={searchPlaceholder ? "flex flex-wrap items-center gap-2" : "flex flex-wrap items-end gap-2"} onSubmit={(e) => e.preventDefault()}>
         {search && searchPlaceholder && <SearchBox className="w-full sm:w-80" aria-label={t("query.search")} placeholder={searchPlaceholder} value={q} onChange={(v) => set({ q: v })} />}
         {search && !searchPlaceholder && (

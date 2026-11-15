@@ -1,60 +1,93 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { MoneyField } from "@/components/fields/fields";
+import { formatMoney } from "@/components/fields/masks";
+import { LastChange } from "@/components/LastChange";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
-import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
-import { Select } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { ChoiceCards } from "@/components/ui/choice-cards";
+import { Field, Input, Select } from "@/components/ui/field";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/features/units/Text";
 import { ApiError } from "@/lib/api";
-import { centsToReais, createPlan, reaisToCents, updatePlan, usePlanImpact, usePlanOptions, type PlanInput, type PlanOptions, type PlanRow } from "./usePlans";
+import { createPlan, updatePlan, usePlanDetail, usePlanImpact, usePlanOptions, type PlanDetail, type PlanInput, type PlanOptions, type PlanRow } from "./usePlans";
 
-type Field = "unit" | "modality" | "name" | "value" | "frequency" | "form";
-type Errors = Partial<Record<Field, string>>;
+type FieldName = "unit" | "modality" | "name" | "value" | "frequency" | "form";
+type Errors = Partial<Record<FieldName, string>>;
 // Campo do servidor -> campo da tela.
-const FIELD: Record<string, Field> = { unitId: "unit", modalityId: "modality", name: "name", valueCents: "value", weeklyFrequency: "frequency" };
-const F = { unit: "unit", modality: "modality", frequency: "frequency" } as const;
+const FIELD: Record<string, FieldName> = { unitId: "unit", modalityId: "modality", name: "name", valueCents: "value", weeklyFrequency: "frequency" };
+const FORM_ID = "plan-form";
 
 // RF-PLA-03: criação (sem `plan`) e edição do plano. O servidor reconfere tudo (alcance, unicidade do nome, regra de outras unidades).
-export function PlanFormDialog({ open, plan, onClose, onSaved }: { open: boolean; plan?: PlanRow; onClose: () => void; onSaved: (saved: PlanRow) => void }) {
+export function PlanFormDialog({ open, plan, onClose, onSaved, onDeactivate }: { open: boolean; plan?: PlanRow; onClose: () => void; onSaved: (saved: PlanRow) => void; onDeactivate?: (plan: PlanRow) => void }) {
   const { t } = useTranslation();
-  const loaded = usePlanOptions(open);
+  const options = usePlanOptions(open);
+  const detail = usePlanDetail(open ? plan?.id : undefined);
   if (!open) return null;
-  return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={t(plan ? "plans.form.editTitle" : "plans.form.newTitle")}>
-      {loaded.status === "loading" && <LoadingState />}
-      {loaded.status === "forbidden" && <ForbiddenState />}
-      {loaded.status === "error" && <ErrorState onRetry={loaded.retry} />}
-      {loaded.options && <Form key={plan?.id ?? "new"} options={loaded.options} plan={plan} onClose={onClose} onSaved={onSaved} />}
-    </Modal>
-  );
+  const title = t(plan ? "plans.form.editTitle" : "plans.form.newTitle");
+  const statuses = [options.status, plan ? detail.status : "ready"];
+  const status = statuses.includes("forbidden") ? "forbidden" : statuses.includes("error") ? "error" : statuses.includes("loading") ? "loading" : "ready";
+  if (status !== "ready" || !options.options)
+    return (
+      <Modal open size="lg" onOpenChange={(o) => !o && onClose()} title={title}>
+        {status === "forbidden" && <ForbiddenState />}
+        {status === "error" && (
+          <ErrorState
+            onRetry={() => {
+              options.retry();
+              detail.retry();
+            }}
+          />
+        )}
+        {status === "loading" && <LoadingState />}
+      </Modal>
+    );
+  return <Form key={plan?.id ?? "new"} title={title} options={options.options} plan={plan} detail={detail.detail} onClose={onClose} onSaved={onSaved} onDeactivate={onDeactivate} />;
 }
 
-function Form({ options, plan, onClose, onSaved }: { options: PlanOptions; plan?: PlanRow; onClose: () => void; onSaved: (saved: PlanRow) => void }) {
+function Form({
+  title,
+  options,
+  plan,
+  detail,
+  onClose,
+  onSaved,
+  onDeactivate,
+}: {
+  title: string;
+  options: PlanOptions;
+  plan?: PlanRow;
+  detail?: PlanDetail;
+  onClose: () => void;
+  onSaved: (saved: PlanRow) => void;
+  onDeactivate?: (plan: PlanRow) => void;
+}) {
   const { t } = useTranslation();
   const [unitId, setUnitId] = useState(plan?.unit.id ?? (options.units.length === 1 ? options.units[0].id : ""));
   const unit = options.units.find((u) => u.id === unitId);
   const [modalityId, setModalityId] = useState(plan?.modality.id ?? "");
   const [name, setName] = useState(plan?.name ?? "");
-  const [value, setValue] = useState(plan ? centsToReais(plan.valueCents) : "");
-  const [frequency, setFrequency] = useState(plan?.weeklyFrequency?.toString() ?? "");
+  const [cents, setCents] = useState<number | null>(plan?.valueCents ?? null);
+  const [frequency, setFrequency] = useState(plan ? (plan.weeklyFrequency?.toString() ?? "") : "2");
   const [other, setOther] = useState(plan?.validOtherUnits ?? false);
   const [unpaid, setUnpaid] = useState<"KEEP" | "ADJUST">("KEEP");
   const [paidDifference, setPaidDifference] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
 
-  const cents = reaisToCents(value);
-  const valueChanged = !!plan && cents !== null && cents !== plan.valueCents;
+  const validCents = cents !== null && cents >= 1 && cents <= 99_999_999;
+  const valueChanged = !!plan && validCents && cents !== plan.valueCents;
   const impact = usePlanImpact(plan?.id, valueChanged ? cents : null);
 
   function validate(): Errors {
     const found: Errors = {};
     const n = name.trim();
     if (!plan && !unitId) found.unit = t("plans.form.unitRequired");
-    if (!modalityId) found.modality = t("plans.form.modalityRequired");
+    if (!plan && !modalityId) found.modality = t("plans.form.modalityRequired");
     if (n.length < 2 || n.length > 60) found.name = t("plans.form.nameInvalid");
-    if (cents === null) found.value = t("plans.form.valueInvalid");
+    if (!validCents) found.value = t("plans.form.valueInvalid");
     return found;
   }
 
@@ -84,145 +117,162 @@ function Form({ options, plan, onClose, onSaved }: { options: PlanOptions; plan?
     }
   }
 
-  const err = (field: Field) => errors[field] && (
-    <p id={`plan-${field}-erro`} className="text-sm text-danger-foreground">
-      {errors[field]}
-    </p>
+  const k = "plans.form.";
+  const frequencySelect = (
+    <Field label={t(`${k}frequency`)} error={errors.frequency}>
+      {(c) => (
+        <Select {...c} value={frequency} onChange={(e) => setFrequency(e.target.value)}>
+          <option value="2">{t(`${k}frequencyOptions.2`)}</option>
+          <option value="3">{t(`${k}frequencyOptions.3`)}</option>
+          <option value="">{t(`${k}frequencyOptions.free`)}</option>
+        </Select>
+      )}
+    </Field>
   );
-  const props = (field: Field) => ({ id: `plan-${field}`, "aria-invalid": errors[field] ? (true as const) : undefined, "aria-describedby": errors[field] ? `plan-${field}-erro` : undefined });
+  const nameField = <Text label={t(`${k}name`)} required value={name} onChange={setName} error={errors.name} autoComplete="off" />;
+  const impactData = impact.impact;
 
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-3"
-      aria-busy={busy}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!busy) void submit();
-      }}
+    <Modal
+      open
+      size="lg"
+      onOpenChange={(o) => !o && !busy && onClose()}
+      title={title}
+      footer={
+        <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2">
+          {plan && onDeactivate && (
+            <Button type="button" variant="danger" className="min-h-11" disabled={busy} onClick={() => onDeactivate(plan)}>
+              {t(`${k}deactivate`)}
+            </Button>
+          )}
+          {plan && <LastChange value={detail?.lastChange ?? null} />}
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form={FORM_ID} className="min-h-11" disabled={busy}>
+              {t(plan ? `${k}save` : `${k}create`)}
+            </Button>
+          </div>
+        </div>
+      }
     >
-      <div>
+      <form
+        id={FORM_ID}
+        noValidate
+        className="flex flex-col gap-4"
+        aria-busy={busy}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!busy) void submit();
+        }}
+      >
         {plan ? (
           <>
-            <span className="block text-sm font-medium">{t("plans.form.unit")}</span>
-            <p className="min-h-11 py-2">{plan.unit.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {t(`${k}unit`)}: {plan.unit.name}
+            </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label={t(`${k}modality`)}>{(c) => <Input {...c} disabled readOnly value={plan.modality.name} />}</Field>
+              {nameField}
+              {frequencySelect}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t(`${k}valueCurrent`)}>{(c) => <Input {...c} disabled value={formatMoney(plan.valueCents)} readOnly />}</Field>
+              <div className="flex flex-col gap-1">
+                <MoneyField label={t(`${k}valueNew`)} required initial={plan.valueCents} onChange={setCents} />
+                {errors.value && <p className="text-xs text-danger-foreground">{errors.value}</p>}
+              </div>
+            </div>
           </>
         ) : (
           <>
-            <label htmlFor="plan-unit" className="block text-sm font-medium">
-              {t("plans.form.unit")}
-            </label>
-            <Select
-              {...props(F.unit)}
-              value={unitId}
-              onChange={(e) => {
-                setUnitId(e.target.value);
-                setModalityId("");
-              }}
-            >
-              <option value="">{t("plans.form.choose")}</option>
-              {options.units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </Select>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t(`${k}unit`)} required error={errors.unit}>
+                {(c) => (
+                  <Select
+                    {...c}
+                    value={unitId}
+                    onChange={(e) => {
+                      setUnitId(e.target.value);
+                      setModalityId("");
+                    }}
+                  >
+                    <option value="">{t(`${k}choose`)}</option>
+                    {options.units.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              <Field label={t(`${k}modality`)} required error={errors.modality} hint={unit && unit.modalities.length === 0 ? t(`${k}noModalities`) : undefined}>
+                {(c) => (
+                  <Select {...c} value={modalityId} onChange={(e) => setModalityId(e.target.value)}>
+                    <option value="">{t(`${k}choose`)}</option>
+                    {(unit?.modalities ?? []).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {nameField}
+              {frequencySelect}
+            </div>
+            <div className="flex flex-col gap-1">
+              <MoneyField label={t(`${k}valueNewCreate`)} required onChange={setCents} />
+              {errors.value && <p className="text-xs text-danger-foreground">{errors.value}</p>}
+            </div>
           </>
         )}
-        {err(F.unit)}
-      </div>
-      <div>
-        {plan ? (
-          <>
-            <span className="block text-sm font-medium">{t("plans.form.modality")}</span>
-            <p className="min-h-11 py-2">{plan.modality.name}</p>
-          </>
+        {options.crossUnitTraining === "plan" ? (
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{t(`${k}validOtherUnits`)}</span>
+              <span className="text-xs text-muted-foreground">{t(`${k}validOtherUnitsNote`)}</span>
+            </div>
+            <Switch checked={other} onCheckedChange={setOther} label={t(`${k}validOtherUnits`)} />
+          </div>
         ) : (
-          <>
-            <label htmlFor="plan-modality" className="block text-sm font-medium">
-              {t("plans.form.modality")}
-            </label>
-            <Select {...props(F.modality)} value={modalityId} onChange={(e) => setModalityId(e.target.value)}>
-              <option value="">{t("plans.form.choose")}</option>
-              {(unit?.modalities ?? []).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </Select>
-            {unit && unit.modalities.length === 0 && <p className="text-sm text-muted-foreground">{t("plans.form.noModalities")}</p>}
-          </>
+          <p className="text-sm text-muted-foreground">{t(`${k}crossUnit.${options.crossUnitTraining}`)}</p>
         )}
-        {err(F.modality)}
-      </div>
-      <Text label={t("plans.form.name")} value={name} onChange={setName} error={errors.name} autoComplete="off" />
-      <Text label={t("plans.form.value")} value={value} onChange={setValue} error={errors.value} help={t("plans.form.valueHelp")} inputMode="decimal" autoComplete="off" />
-      <div>
-        <label htmlFor="plan-frequency" className="block text-sm font-medium">
-          {t("plans.form.frequency")}
-        </label>
-        <Select {...props(F.frequency)} value={frequency} onChange={(e) => setFrequency(e.target.value)}>
-          <option value="2">{t("plans.form.frequencyOptions.2")}</option>
-          <option value="3">{t("plans.form.frequencyOptions.3")}</option>
-          <option value="">{t("plans.form.frequencyOptions.free")}</option>
-        </Select>
-        {err(F.frequency)}
-        <p className="text-sm text-muted-foreground">{t("plans.form.frequencyHelp")}</p>
-      </div>
-      {options.crossUnitTraining === "plan" ? (
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" checked={other} onChange={(e) => setOther(e.target.checked)} />
-          {t("plans.form.validOtherUnits")}
-        </label>
-      ) : (
-        <p className="text-sm text-muted-foreground">{t(`plans.form.crossUnit.${options.crossUnitTraining}`)}</p>
-      )}
-      {valueChanged && (
-        <section aria-labelledby="plan-impact-title" className="flex flex-col gap-2 rounded-md border p-3">
-          <h3 id="plan-impact-title" className="font-medium">
-            {t("plans.form.impact.title")}
-          </h3>
-          {impact.status === "loading" && <p role="status">{t("plans.form.impact.loading")}</p>}
-          {impact.status === "error" && <Banner tone="danger">{t("plans.form.impact.error")}</Banner>}
-          {impact.impact && <p>{t("plans.form.impact.students", { count: impact.impact.studentsAffected })}</p>}
-          <p className="text-sm">{t("plans.form.impact.from")}</p>
-          {(impact.impact?.unpaidCharges ?? 0) > 0 && (
-            <fieldset>
-              <legend className="text-sm font-medium">{t("plans.form.impact.unpaid")}</legend>
-              {(["KEEP", "ADJUST"] as const).map((v) => (
-                <label key={v} className="flex min-h-11 items-center gap-2">
-                  <input type="radio" name="plan-unpaid" checked={unpaid === v} onChange={() => setUnpaid(v)} />
-                  {t(v === "KEEP" ? "plans.form.impact.unpaidKeep" : "plans.form.impact.unpaidAdjust")}
-                </label>
-              ))}
-            </fieldset>
-          )}
-          {(impact.impact?.paidFutureCharges ?? 0) > 0 && (
-            <fieldset>
-              <legend className="text-sm font-medium">{t("plans.form.impact.paid")}</legend>
-              {([false, true] as const).map((v) => (
-                <label key={String(v)} className="flex min-h-11 items-center gap-2">
-                  <input type="radio" name="plan-paid" checked={paidDifference === v} onChange={() => setPaidDifference(v)} />
-                  {t(v ? "plans.form.impact.paidCharge" : "plans.form.impact.paidNone")}
-                </label>
-              ))}
-            </fieldset>
-          )}
-        </section>
-      )}
-      {errors.form && (
-        <Banner tone="danger">
-          {errors.form}
-        </Banner>
-      )}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" className="min-h-11" onClick={onClose} disabled={busy}>
-          {t("common.cancel")}
-        </Button>
-        <Button type="submit" className="min-h-11" disabled={busy}>
-          {t("plans.form.save")}
-        </Button>
-      </div>
-    </form>
+        {valueChanged && (
+          <section className="flex flex-col gap-3">
+            {impact.status === "loading" && <p role="status">{t(`${k}impact.loading`)}</p>}
+            {impact.status === "error" && <Banner tone="danger">{t(`${k}impact.error`)}</Banner>}
+            {impactData && <Banner tone="warn">{t(`${k}impact.students`, { count: impactData.studentsAffected })}</Banner>}
+            {(impactData?.unpaidCharges ?? 0) > 0 && (
+              <ChoiceCards
+                legend={t(`${k}impact.unpaid`, { count: impactData?.unpaidCharges })}
+                value={unpaid}
+                onChange={(v) => setUnpaid(v as "KEEP" | "ADJUST")}
+                options={[
+                  { value: "KEEP", label: t(`${k}impact.unpaidKeep`) },
+                  { value: "ADJUST", label: t(`${k}impact.unpaidAdjust`) },
+                ]}
+              />
+            )}
+            {(impactData?.paidFutureCharges ?? 0) > 0 && (
+              <ChoiceCards
+                legend={t(`${k}impact.paid`, { count: impactData?.paidFutureCharges })}
+                value={String(paidDifference)}
+                onChange={(v) => setPaidDifference(v === "true")}
+                options={[
+                  { value: "false", label: t(`${k}impact.paidNone`) },
+                  { value: "true", label: t(`${k}impact.paidCharge`), aside: t(`${k}impact.paidAside`) },
+                ]}
+              />
+            )}
+            {impactData && <p className="text-xs text-muted-foreground">{t(`${k}impact.note`)}</p>}
+          </section>
+        )}
+        {errors.form && <Banner tone="danger">{errors.form}</Banner>}
+      </form>
+    </Modal>
   );
 }

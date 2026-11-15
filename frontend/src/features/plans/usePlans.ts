@@ -47,12 +47,29 @@ export interface PlanRow {
 }
 
 // Query da tela (RNF-27) -> GET /plans; erro sobe com o status (403 vira "sem permissão").
-export async function fetchPlans(q: Query): Promise<Page<PlanRow>> {
+export async function fetchPlans(q: Query, unitId?: string): Promise<Page<PlanRow>> {
   const p = new URLSearchParams({ page: String(q.pagina), size: String(q.tamanho) });
   if (q.q) p.set("q", q.q);
+  if (unitId) p.set("unitId", unitId);
   for (const [k, v] of Object.entries(q.filtros)) p.set(k, v);
   const data = await api<{ items: PlanRow[]; total: number }>(`/plans?${p}`);
   return { rows: data.items, total: data.total };
+}
+
+// Modalidades ativas para a pílula de filtro da tela de planos; falha deixa a lista vazia.
+export function usePlanModalities() {
+  const [modalities, setModalities] = useState<Choice[]>([]);
+  useEffect(() => {
+    let alive = true;
+    api<(Choice & { active: boolean })[]>("/modalities").then(
+      (m) => alive && setModalities(m.filter((x) => x.active)),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return modalities;
 }
 
 // Opções dos filtros (modalidades ativas e unidades do alcance). Falha deixa a opção vazia; a lista segue.
@@ -69,6 +86,38 @@ export function usePlanFilterOptions() {
     };
   }, []);
   return options;
+}
+
+// Espelha PlanDetail do OpenAPI (RN-PLA-06): o plano com a última alteração, quem desativou e o histórico de valor (mais novo primeiro).
+export interface PlanDetail extends PlanRow {
+  lastChange: { at: string; by: string | null } | null;
+  deactivation: { at: string; by: string | null } | null;
+  valueHistory: { startsOn: string; valueCents: number; changedBy: string | null }[];
+}
+export const fetchPlanDetail = (id: string) => api<PlanDetail>(`/plans/${id}`);
+
+// Detalhe do plano; só carrega com id. 403 vira "sem permissão".
+export function usePlanDetail(id: string | undefined) {
+  const [tick, setTick] = useState(0);
+  const key = `${id}:${tick}`;
+  const [done, setDone] = useState<{ key: string; detail?: PlanDetail; forbidden?: boolean }>();
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    fetchPlanDetail(id).then(
+      (detail) => alive && setDone({ key, detail }),
+      (e) => alive && setDone({ key, forbidden: e instanceof ApiError && e.status === 403 }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [id, key]);
+  const current = id && done?.key === key ? done : undefined;
+  return {
+    status: !id ? "idle" : !current ? "loading" : current.detail ? "ready" : current.forbidden ? "forbidden" : "error",
+    detail: current?.detail,
+    retry: () => setTick((n) => n + 1),
+  } as const;
 }
 
 // Espelham PlanInput, PlanOptions e PlanValueImpact do OpenAPI (RF-PLA-03).
@@ -140,13 +189,3 @@ export function usePlanImpact(planId: string | undefined, cents: number | null) 
   const current = planId && cents !== null && done?.key === key ? done : undefined;
   return { status: !planId || cents === null ? "idle" : !current ? "loading" : current.impact ? "ready" : "error", impact: current?.impact } as const;
 }
-
-// Reais digitados ("150", "150,5", "1.234,56") -> centavos, sem ponto flutuante; fora de R$ 0,01 a R$ 999.999,99 (ou ilegível) é nulo.
-export function reaisToCents(raw: string): number | null {
-  const m = /^(\d{1,3}(?:\.\d{3})+|\d{1,6})(?:,(\d{1,2}))?$/.exec(raw.trim());
-  if (!m) return null;
-  const cents = Number(m[1].replace(/\./g, "")) * 100 + Number((m[2] ?? "").padEnd(2, "0"));
-  return cents >= 1 && cents <= 99_999_999 ? cents : null;
-}
-
-export const centsToReais = (cents: number) => `${Math.floor(cents / 100)},${String(cents % 100).padStart(2, "0")}`;
