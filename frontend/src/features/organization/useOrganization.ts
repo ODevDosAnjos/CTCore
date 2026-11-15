@@ -2,6 +2,21 @@ import { useEffect, useState } from "react";
 import type { LastChangeValue } from "@/components/LastChange";
 import { api, ApiError } from "@/lib/api";
 
+export type CrossUnitTraining = "plan" | "allowed" | "denied";
+// RF-ORG-01 / RN-ORG-13: as cinco regras da organização (OrganizationRules do OpenAPI).
+export interface OrganizationRules {
+  deactivationDays: number;
+  formerStudentRetentionMonths: number;
+  trialRetentionMonths: number;
+  trialLimit: number;
+  crossUnitTraining: CrossUnitTraining;
+}
+export interface Coordinator {
+  name: string | null;
+  email: string;
+  twoFactorEnabled: boolean;
+}
+
 // Espelha OrganizationView do OpenAPI (docs/openapi.yaml). `logoUrl` é a URL temporária assinada.
 export interface OrganizationView {
   name: string;
@@ -10,11 +25,14 @@ export interface OrganizationView {
   logoUrl: string | null;
   version: number;
   lastChange: LastChangeValue | null;
+  rules: OrganizationRules;
+  coordinator: Coordinator | null;
 }
 export interface OrganizationUpdate {
   name: string;
   color: string | null;
   holderDocument: string | null;
+  rules?: OrganizationRules;
 }
 
 type Loaded = { tick: number; view?: OrganizationView; forbidden?: boolean };

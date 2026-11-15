@@ -18,8 +18,10 @@ const session = (role: string): SessionView => ({
   activeLinkId: "l1",
   twoFactor: { enabled: false, required: false },
 });
-const empty: OrganizationView = { name: "Academia Alfa", color: null, holderDocument: null, logoUrl: null, version: 0, lastChange: null };
-const full: OrganizationView = { name: "Academia Alfa", color: "#1a56db", holderDocument: "11222333000181", logoUrl: "data:image/png;base64,AAAA", version: 0, lastChange: null };
+const rules: OrganizationView["rules"] = { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" };
+const coordinator = { name: "Marcos Leão", email: "marcos@academialeao.example", twoFactorEnabled: true };
+const empty: OrganizationView = { name: "Academia Alfa", color: null, holderDocument: null, logoUrl: null, version: 0, lastChange: null, rules, coordinator };
+const full: OrganizationView = { ...empty, color: "#1a56db", holderDocument: "11222333000181", logoUrl: "data:image/png;base64,AAAA" };
 
 let writes: { method: string; body?: unknown }[];
 let stored: OrganizationView;
@@ -70,64 +72,63 @@ describe("OrganizationSettingsPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR", full);
     await ready();
-    expect(screen.getByLabelText("Nome da organização")).toHaveValue("Academia Alfa");
-    expect(screen.getByLabelText("Cor principal (#RRGGBB)")).toHaveValue("#1a56db");
-    expect(screen.getByLabelText("Titular (CPF ou CNPJ)")).toHaveValue("11.222.333/0001-81");
-    await user.clear(screen.getByLabelText("Nome da organização"));
-    await user.type(screen.getByLabelText("Nome da organização"), "Dojo Novo");
-    await user.clear(screen.getByLabelText("Cor principal (#RRGGBB)"));
-    await user.type(screen.getByLabelText("Cor principal (#RRGGBB)"), "#0B6E4F");
-    await user.clear(screen.getByLabelText("Titular (CPF ou CNPJ)"));
-    await user.type(screen.getByLabelText("Titular (CPF ou CNPJ)"), "52998224725");
-    expect(screen.getByLabelText("Titular (CPF ou CNPJ)")).toHaveValue("529.982.247-25");
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Academia Alfa");
+    expect(screen.getByLabelText("Cor principal")).toHaveValue("#1a56db");
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("11.222.333/0001-81");
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
+    await user.type(screen.getByLabelText(/^Nome da organização/), "Dojo Novo");
+    await user.clear(screen.getByLabelText("Cor principal"));
+    await user.type(screen.getByLabelText("Cor principal"), "#0B6E4F");
+    await user.clear(screen.getByLabelText("Titular (razão social ou nome)"));
+    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "52998224725");
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("529.982.247-25");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
-    expect(writes).toEqual([{ method: "PATCH", body: { name: "Dojo Novo", color: "#0b6e4f", holderDocument: "52998224725" } }]);
-    expect(screen.getByLabelText("Nome da organização")).toHaveValue("Dojo Novo");
+    expect(writes).toEqual([{ method: "PATCH", body: { name: "Dojo Novo", color: "#0b6e4f", holderDocument: "52998224725", rules } }]);
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Dojo Novo");
   });
 
   it("CA15: erro do servidor aparece junto do campo", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await user.clear(screen.getByLabelText("Nome da organização"));
-    await user.type(screen.getByLabelText("Nome da organização"), "Recusado");
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
+    await user.type(screen.getByLabelText(/^Nome da organização/), "Recusado");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("nome recusado pelo servidor")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nome da organização")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveAttribute("aria-invalid", "true");
   });
 
   it("CA15: cor reprovada mostra a razão e Reprovado com texto e ícone e bloqueia o salvar; aprovada mostra Aprovado", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await user.type(screen.getByLabelText("Cor principal (#RRGGBB)"), "#ffeb3b");
-    expect(screen.getByText(/Contraste com texto branco: 1,2\d para 1/)).toBeInTheDocument();
-    expect(screen.getByText(/Reprovado/)).toBeInTheDocument();
-    expect(screen.getByText(/Reprovado/).querySelector("svg")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
-    await user.clear(screen.getByLabelText("Cor principal (#RRGGBB)"));
-    await user.type(screen.getByLabelText("Cor principal (#RRGGBB)"), "#1a56db");
-    expect(screen.getByText(/Aprovado/).querySelector("svg")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeEnabled();
-    await user.clear(screen.getByLabelText("Cor principal (#RRGGBB)"));
-    await user.type(screen.getByLabelText("Cor principal (#RRGGBB)"), "azul");
+    await user.type(screen.getByLabelText("Cor principal"), "#ffeb3b");
+    expect(screen.getByRole("alert")).toHaveTextContent(/Esta cor tem contraste 1,22:1 com o texto branco/);
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+    await user.clear(screen.getByLabelText("Cor principal"));
+    await user.type(screen.getByLabelText("Cor principal"), "#1a56db");
+    expect(screen.getByText(/Contraste [\d,]+:1 · AA/).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeEnabled();
+    await user.clear(screen.getByLabelText("Cor principal"));
+    await user.type(screen.getByLabelText("Cor principal"), "azul");
     expect(screen.getByRole("alert")).toHaveTextContent("Use o formato #RRGGBB");
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
   });
 
   it("nome em branco e titular inválido bloqueiam o salvar", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await user.clear(screen.getByLabelText("Nome da organização"));
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
     expect(screen.getByText("Informe o nome da organização.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
-    await user.type(screen.getByLabelText("Nome da organização"), "Dojo");
-    await user.type(screen.getByLabelText("Titular (CPF ou CNPJ)"), "52998224726");
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+    await user.type(screen.getByLabelText(/^Nome da organização/), "Dojo");
+    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "52998224726");
     await user.tab();
     expect(screen.getByText(/o CPF ou CNPJ digitado não é válido/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
   });
 
   it("CA16: tipo não aceito e arquivo acima de 5 MB são recusados no navegador, sem abrir o corte", async () => {
@@ -162,7 +163,7 @@ describe("OrganizationSettingsPage", () => {
     try {
       setup("COORDINATOR");
       await ready();
-      expect(screen.getByText("Sem logo: vale a marca padrão da plataforma.")).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "Logo da organização" })).not.toBeInTheDocument();
       await user.upload(screen.getByLabelText("Arquivo da logo"), new File(["x"], "logo.png", { type: "image/png" }));
       const confirm = await screen.findByRole("button", { name: "Usar este corte" });
       await waitFor(() => expect(confirm).toBeEnabled());
@@ -190,17 +191,19 @@ describe("OrganizationSettingsPage", () => {
     await user.click(within(again).getByRole("button", { name: "Remover logo" }));
     expect(await screen.findByText("Logo removida.")).toBeInTheDocument();
     expect(writes).toEqual([{ method: "DELETE" }]);
-    expect(screen.getByText("Sem logo: vale a marca padrão da plataforma.")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Logo da organização" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar logo" })).toBeInTheDocument();
   });
 
   it("CA17: o Administrador vê os dados com campos desabilitados e sem salvar, enviar nem remover", async () => {
     setup("ADMINISTRATOR", full);
     await ready();
     expect(screen.getByText("Você pode ver estes dados, mas só o Coordenador altera.")).toBeInTheDocument();
-    for (const label of ["Nome da organização", "Cor principal (#RRGGBB)", "Titular (CPF ou CNPJ)", "Escolher cor"]) {
+    for (const label of [/^Nome da organização/, "Cor principal", "Titular (razão social ou nome)", "Prazo para bloquear por atraso", "Experimentais por telefone, por unidade", "Usar a cor #C8462C"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
-    for (const name of ["Salvar", "Enviar logo", "Trocar logo", "Remover logo"]) {
+    expect(screen.getByRole("radio", { name: "Sim" })).toBeDisabled();
+    for (const name of ["Salvar alterações", "Descartar", "Enviar logo", "Trocar logo", "Remover logo", "Transferir coordenação"]) {
       expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
     }
     expect(screen.queryByLabelText("Arquivo da logo")).not.toBeInTheDocument();
@@ -231,11 +234,10 @@ describe("OrganizationSettingsPage", () => {
   it("CA18: organização sem logo, cor e titular mostra os campos vazios com o texto de padrão", async () => {
     setup("COORDINATOR");
     await ready();
-    expect(screen.getByLabelText("Cor principal (#RRGGBB)")).toHaveValue("");
+    expect(screen.getByLabelText("Cor principal")).toHaveValue("");
     expect(screen.getByText("Sem cor definida: vale a cor padrão da plataforma.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Titular (CPF ou CNPJ)")).toHaveValue("");
-    expect(screen.getByText(/Não informado/)).toBeInTheDocument();
-    expect(screen.getByText("Sem logo: vale a marca padrão da plataforma.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("");
+    expect(screen.queryByRole("img", { name: "Logo da organização" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enviar logo" })).toBeInTheDocument();
   });
 
@@ -249,9 +251,9 @@ describe("OrganizationSettingsPage", () => {
     const { container } = setup("COORDINATOR", full);
     await ready();
     expect(await axeViolations(container)).toEqual([]);
-    await user.clear(screen.getByLabelText("Cor principal (#RRGGBB)"));
-    await user.type(screen.getByLabelText("Cor principal (#RRGGBB)"), "#ffeb3b");
-    await user.clear(screen.getByLabelText("Nome da organização"));
+    await user.clear(screen.getByLabelText("Cor principal"));
+    await user.type(screen.getByLabelText("Cor principal"), "#ffeb3b");
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
     expect(await axeViolations(container)).toEqual([]);
   });
 
@@ -264,7 +266,7 @@ describe("OrganizationSettingsPage", () => {
 
 const BIA = { at: "2026-05-20T15:30:00Z", by: "Bia" };
 const DIALOG = "Estes dados foram alterados por outra pessoa";
-const saveButton = () => screen.getByRole("button", { name: "Salvar" });
+const saveButton = () => screen.getByRole("button", { name: "Salvar alterações" });
 
 // A outra pessoa já salvou: o servidor está na versão 3 com outro nome; o primeiro PATCH responde 409.
 function conflicting(patchStatuses: number[] = [409]) {
@@ -304,7 +306,7 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     const user = userEvent.setup();
     const { sent } = conflicting([200]);
     await ready();
-    await user.type(screen.getByLabelText("Nome da organização"), "!");
+    await user.type(screen.getByLabelText(/^Nome da organização/), "!");
     await user.click(saveButton());
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
     expect(sent[0]?.version).toBe("3");
@@ -314,8 +316,8 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     const user = userEvent.setup();
     conflicting();
     await ready();
-    await user.clear(screen.getByLabelText("Nome da organização"));
-    await user.type(screen.getByLabelText("Nome da organização"), "Meu nome");
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
+    await user.type(screen.getByLabelText(/^Nome da organização/), "Meu nome");
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     expect(await within(dialog).findByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
@@ -327,27 +329,27 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     expect(within(dialog).getByRole("button", { name: "Sobrescrever" })).toBeInTheDocument();
   });
 
-  it("CA10: Recarregar descarta a edição, mostra o atual e devolve o foco ao Salvar", async () => {
+  it("CA10: Recarregar descarta a edição, mostra o atual e devolve o foco ao primeiro campo", async () => {
     const user = userEvent.setup();
     conflicting();
     await ready();
-    await user.clear(screen.getByLabelText("Nome da organização"));
-    await user.type(screen.getByLabelText("Nome da organização"), "Meu nome");
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
+    await user.type(screen.getByLabelText(/^Nome da organização/), "Meu nome");
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await user.click(await within(dialog).findByRole("button", { name: "Recarregar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(screen.getByLabelText("Nome da organização")).toHaveValue("Nome da outra pessoa");
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Nome da outra pessoa");
     expect(screen.getByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
-    await waitFor(() => expect(saveButton()).toHaveFocus());
+    await waitFor(() => expect(screen.getByLabelText(/^Nome da organização/)).toHaveFocus());
   });
 
   it("CA10: Sobrescrever regrava com a versão atual, mantém a edição e mostra 'Dados salvos.'", async () => {
     const user = userEvent.setup();
     const { sent } = conflicting([409, 200]);
     await ready();
-    await user.clear(screen.getByLabelText("Nome da organização"));
-    await user.type(screen.getByLabelText("Nome da organização"), "Meu nome");
+    await user.clear(screen.getByLabelText(/^Nome da organização/));
+    await user.type(screen.getByLabelText(/^Nome da organização/), "Meu nome");
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await user.click(await within(dialog).findByRole("button", { name: "Sobrescrever" }));
@@ -355,15 +357,15 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(sent.map((s) => s.version)).toEqual(["3", "3"]);
     expect(sent[1]?.body.name).toBe("Meu nome");
-    expect(screen.getByLabelText("Nome da organização")).toHaveValue("Meu nome");
-    await waitFor(() => expect(saveButton()).toHaveFocus());
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Meu nome");
+    await waitFor(() => expect(screen.getByLabelText(/^Nome da organização/)).toHaveFocus());
   });
 
   it("CA10: novo 409 durante o Sobrescrever consulta de novo e mantém o aviso aberto", async () => {
     const user = userEvent.setup();
     const { sent, reads } = conflicting([409, 409]);
     await ready();
-    await user.type(screen.getByLabelText("Nome da organização"), "!");
+    await user.type(screen.getByLabelText(/^Nome da organização/), "!");
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await user.click(await within(dialog).findByRole("button", { name: "Sobrescrever" }));
@@ -378,7 +380,7 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     const user = userEvent.setup();
     conflicting();
     await ready();
-    await user.type(screen.getByLabelText("Nome da organização"), "!");
+    await user.type(screen.getByLabelText(/^Nome da organização/), "!");
     server.use(http.get("/api/v1/organization", () => HttpResponse.error(), { once: true }));
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
@@ -396,10 +398,149 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     window.innerWidth = 360;
     conflicting();
     await ready();
-    await user.type(screen.getByLabelText("Nome da organização"), "!");
+    await user.type(screen.getByLabelText(/^Nome da organização/), "!");
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await within(dialog).findByRole("button", { name: "Sobrescrever" });
     expect(await axeViolations(document.body)).toEqual([]);
+  });
+});
+
+describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)", () => {
+  it("CA1: mostra título, subtítulo e os cartões Marca, Regras da organização e Coordenação, sem os cartões antigos", async () => {
+    setup("COORDINATOR", full);
+    await ready();
+    expect(screen.getByText("Marca e regras que valem para todas as unidades · só o Coordenador altera")).toBeInTheDocument();
+    for (const name of ["Marca", "Regras da organização", "Coordenação"]) expect(screen.getByRole("heading", { name, level: 2 })).toBeInTheDocument();
+    for (const gone of ["Dados da organização", "Logo"]) expect(screen.queryByRole("heading", { name: gone })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("E-mail do novo Coordenador")).not.toBeInTheDocument();
+  });
+
+  it("CA7: o cartão mostra o Coordenador com as duas etapas e o botão só para o Coordenador", async () => {
+    setup("COORDINATOR", full);
+    await ready();
+    expect(screen.getByText("Marcos Leão")).toBeInTheDocument();
+    expect(screen.getByText("Coordenador · marcos@academialeao.example · duas etapas ativa")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Transferir coordenação" })).toBeInTheDocument();
+  });
+
+  it("CA7: duas etapas inativa e sem Coordenador ativo; o Administrador vê o cartão sem o botão", async () => {
+    const first = setup("ADMINISTRATOR", { ...full, coordinator: { ...coordinator, twoFactorEnabled: false } });
+    await ready();
+    expect(screen.getByText("Coordenador · marcos@academialeao.example · duas etapas inativa")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Transferir coordenação" })).not.toBeInTheDocument();
+    first.unmount();
+    setup("ADMINISTRATOR", { ...full, coordinator: null });
+    expect(await screen.findByText("Esta organização não tem Coordenador ativo.")).toBeInTheDocument();
+  });
+
+  it("CA5: muda as cinco regras, salva e o PATCH leva rules com os cinco valores; a tela mostra os novos", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", full);
+    await ready();
+    expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("30");
+    expect(screen.getByLabelText("Experimentais por telefone, por unidade")).toHaveValue("2");
+    expect(screen.getByRole("radio", { name: "Depende do plano" })).toBeChecked();
+    await user.clear(screen.getByLabelText("Prazo para bloquear por atraso"));
+    await user.type(screen.getByLabelText("Prazo para bloquear por atraso"), "45");
+    await user.clear(screen.getByLabelText("Acesso de ex-aluno ao histórico"));
+    await user.type(screen.getByLabelText("Acesso de ex-aluno ao histórico"), "24");
+    await user.clear(screen.getByLabelText("Guardar aulas experimentais sem matrícula"));
+    await user.type(screen.getByLabelText("Guardar aulas experimentais sem matrícula"), "3");
+    await user.selectOptions(screen.getByLabelText("Experimentais por telefone, por unidade"), "3");
+    await user.click(screen.getByRole("radio", { name: "Não" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
+    const next = { deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, trialLimit: 3, crossUnitTraining: "denied" };
+    expect(writes).toEqual([{ method: "PATCH", body: { name: "Academia Alfa", color: "#1a56db", holderDocument: "11222333000181", rules: next } }]);
+    expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("45");
+    expect(screen.getByRole("radio", { name: "Não" })).toBeChecked();
+  });
+
+  it("CA5: 14 e 91 dias, vazio, decimal e 0 meses são recusados na tela com o campo apontado e bloqueiam o salvar", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", full);
+    await ready();
+    const days = screen.getByLabelText("Prazo para bloquear por atraso");
+    for (const bad of ["14", "91", "", "1,5"]) {
+      await user.clear(days);
+      if (bad) await user.type(days, bad);
+      expect(days).toHaveAttribute("aria-invalid", "true");
+      expect(screen.getByText("Use um número inteiro de 15 a 90.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+    }
+    await user.clear(days);
+    await user.type(days, "30");
+    const months = screen.getByLabelText("Acesso de ex-aluno ao histórico");
+    await user.clear(months);
+    await user.type(months, "0");
+    expect(months).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+    expect(writes).toEqual([]);
+  });
+
+  it("CA5: o 400 do servidor com rules.<campo> aponta o campo", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", full);
+    await ready();
+    server.use(
+      http.patch("/api/v1/organization", () =>
+        HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "rules.trialLimit", message: "limite recusado pelo servidor" }] }, { status: 400 }),
+      ),
+    );
+    await user.selectOptions(screen.getByLabelText("Experimentais por telefone, por unidade"), "1");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByText("limite recusado pelo servidor")).toBeInTheDocument();
+    expect(screen.getByLabelText("Experimentais por telefone, por unidade")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("CA6: o interruptor do comprovante está desabilitado, rotulado Em breve, e não faz chamada", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", full);
+    await ready();
+    const toggle = screen.getByRole("switch", { name: "Exigir comprovante da graduação de origem" });
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText("Em breve")).toBeInTheDocument();
+    expect(screen.getByText("Pode ser ligado por modalidade")).toBeInTheDocument();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(writes).toEqual([]);
+  });
+
+  it("CA8: Salvar e Descartar só ficam ativos com alteração; Descartar restaura todos os valores", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", full);
+    await ready();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled();
+    await user.type(screen.getByLabelText(/^Nome da organização/), "!");
+    await user.click(screen.getByRole("radio", { name: "Sim" }));
+    await user.click(screen.getByRole("button", { name: "Usar a cor #C8462C" }));
+    expect(screen.getByLabelText("Cor principal")).toHaveValue("#C8462C");
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Academia Alfa");
+    expect(screen.getByLabelText("Cor principal")).toHaveValue("#1a56db");
+    expect(screen.getByRole("radio", { name: "Depende do plano" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+    expect(writes).toEqual([]);
+  });
+
+  it("CA8: o 409 lista também as regras que diferem", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { ...full, version: 3, lastChange: BIA, rules: { ...rules, deactivationDays: 60, crossUnitTraining: "denied" } });
+    server.use(http.patch("/api/v1/organization", () => HttpResponse.json({ code: "EDIT_CONFLICT", message: "x", changed: false, fields: [], traceId: "t" }, { status: 409 })));
+    await ready();
+    await user.clear(screen.getByLabelText("Prazo para bloquear por atraso"));
+    await user.type(screen.getByLabelText("Prazo para bloquear por atraso"), "45");
+    await user.click(screen.getByRole("radio", { name: "Sim" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    const dialog = await screen.findByRole("dialog", { name: DIALOG });
+    const days = (await within(dialog).findByText("Prazo para bloquear por atraso")).closest("li")!;
+    expect(days).toHaveTextContent("Seu valor: 45");
+    expect(days).toHaveTextContent("Valor atual: 60");
+    const cross = within(dialog).getByText("Treinar em outra unidade").closest("li")!;
+    expect(cross).toHaveTextContent("Seu valor: Sim");
+    expect(cross).toHaveTextContent("Valor atual: Não");
   });
 });

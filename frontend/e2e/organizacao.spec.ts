@@ -20,20 +20,20 @@ test("@critical configurações da organização: Coordenador edita e Administra
   await open(page, "/configuracoes/organizacao");
   await expect(page.getByRole("heading", { name: "Organização", level: 1 })).toBeVisible();
 
-  await page.getByLabel("Nome da organização").fill("Dojo Novo");
-  await page.getByLabel("Cor principal (#RRGGBB)").fill("#ffeb3b");
-  await expect(page.getByText(/Reprovado/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Salvar" })).toBeDisabled();
-  await page.getByLabel("Cor principal (#RRGGBB)").fill("#1a56db");
-  await expect(page.getByText(/Aprovado/)).toBeVisible();
-  await page.getByRole("button", { name: "Salvar" }).click();
+  await page.getByLabel(/^Nome da organização/).fill("Dojo Novo");
+  await page.getByLabel("Cor principal").fill("#ffeb3b");
+  await expect(page.getByRole("alert").filter({ hasText: /Esta cor tem contraste/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
+  await page.getByLabel("Cor principal").fill("#1a56db");
+  await expect(page.getByText(/· AA$/)).toBeVisible();
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page.getByText("Dados salvos.")).toBeVisible();
 
   await open(page, "/");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/organizacao");
-  await expect(page.getByLabel("Nome da organização")).toHaveValue("Dojo Novo");
-  await expect(page.getByLabel("Cor principal (#RRGGBB)")).toHaveValue("#1a56db");
+  await expect(page.getByLabel(/^Nome da organização/)).toHaveValue("Dojo Novo");
+  await expect(page.getByLabel("Cor principal")).toHaveValue("#1a56db");
 
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");
@@ -42,7 +42,7 @@ test("@critical configurações da organização: Coordenador edita e Administra
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/organizacao");
   await expect(page.getByRole("heading", { name: "Organização", level: 1 })).toBeVisible();
-  await expect(page.getByLabel("Nome da organização")).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Salvar" })).toHaveCount(0);
+  await expect(page.getByLabel(/^Nome da organização/)).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Salvar alterações" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Enviar logo" })).toHaveCount(0);
 });

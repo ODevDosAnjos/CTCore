@@ -20,6 +20,7 @@ export type Caso = {
   titularInativo?: boolean; // #475: antes do print, a turma 607 (Jiu-Jitsu Manhã) responde com o titular inativo; só no caso, sem mexer no cenário compartilhado
   planosCanvas?: boolean; // #480: antes de abrir a tela, a Coordenação enxerga só a unidade "Tijuca" com os quatro planos ativos e o desativado do canvas e o resumo 4 e 14 (o cenário compartilhado tem mais planos)
   beneficios?: "lista" | "davi" | "marina"; // #481: antes de abrir a tela, a unidade "Tijuca" e os cinco benefícios do canvas (14, 2 e 9); davi e marina põem o aluno, a matrícula, o resumo e o professor das janelas
+  organizacaoCanvas?: boolean; // #482: antes de abrir a tela, a organização "Academia Leão" do canvas (Marcos Leão, cor #C8462C, regras 30, 12, 6, 2 e "Depende do plano") e a Administradora Carla Mendes (Tijuca e Barra) na lista de quem pode receber a coordenação
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -89,7 +90,7 @@ export const casos: Caso[] = [
   { nome: "pedido-trocar-turma", rota: "/alunos/00000000-0000-0000-0000-000000000701?pedido=00000000-0000-0000-0000-00000000f0c1", perfil: ana, canvas: "PedidoAprovadoFluxo", aguardar: '[role="dialog"]', limiteCanvas: { valor: 0.70, motivo: "medido a 60,6%: o canvas mostra a janela sobre a lista de Alunos e o sistema a abre sobre a ficha do aluno (gaveta); \"Pedido aprovado.\" em negrito no canvas; Outros horários e a nota do rodapé diferem (D8 da #471; removido pela #556)" } },
   { nome: "comunicados", rota: "/comunicados", perfil: ana, canvas: "Comunicados" },
   { nome: "comunicados-novo", rota: "/comunicados/novo", perfil: ana, canvas: "ComunicadoNovo" },
-  { nome: "configuracoes-organizacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigAcademia" },
+  { nome: "configuracoes-organizacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigAcademia", organizacaoCanvas: true },
   { nome: "configuracoes-unidades", rota: "/configuracoes/unidades", perfil: ana, canvas: "ConfigUnidades" },
   { nome: "configuracoes-unidade", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigUnidade" },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades" },
@@ -124,8 +125,8 @@ export const casos: Caso[] = [
   { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #498 trata a tela e remove esta exceção)" } },
   { nome: "conta-duas-etapas", rota: "/conta", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img', limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
   { nome: "conta-codigos-reserva", rota: "/conta", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Gerar códigos de reserva novos" }], aguardar: '[role="dialog"] ul li:nth-child(10)', limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
-  { nome: "configuracoes-organizacao-contraste", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigOrgContraste", passos: [{ preencher: ["Cor principal (#RRGGBB)", "#F5E663"] }] },
-  { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "TransferirCoordenacao", passos: [{ clicar: "Transferir coordenação" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #482 trata a tela e remove esta exceção)" } },
+  { nome: "configuracoes-organizacao-contraste", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigOrgContraste", organizacaoCanvas: true, passos: [{ preencher: ["Cor principal", "#F4C430"] }] },
+  { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: "duas@exemplo.com", canvas: "TransferirCoordenacao", organizacaoCanvas: true, passos: [{ clicar: "Transferir coordenação" }, { escolher: ["Novo Coordenador", "Carla Mendes"] }, { preencher: ["Sua senha", "segredo123"] }] },
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", passos: [{ clicar: "Desativar" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: o canvas traz a linha cobrança em conferência e a confirmação por DESATIVAR, que exigem regra nova (medido a 62,2% na #462; a #484 trata a tela e remove esta exceção)" } },
   { nome: "configuracoes-unidade-professor", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPermProf", fullPage: true },

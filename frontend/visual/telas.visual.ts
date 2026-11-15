@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina") {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -90,6 +90,34 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         override({ method: "get", path: "/teachers", status: 200, body: { items: [{ id: "t1", name: "Marcos Leão" }], page: 1, size: 100, total: 1 } });
       }, beneficios);
     }
+    if (organizacaoCanvas) {
+      // #482: a organização do canvas (ConfigAcademia) e a Administradora que a janela de transferência lista; o cenário compartilhado não muda
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async () => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const base = (await (await fetch("/api/v1/organization")).json()) as Record<string, unknown>;
+        override({
+          method: "get",
+          path: "/organization",
+          status: 200,
+          body: {
+            ...base,
+            name: "Academia Leão",
+            color: "#c8462c",
+            holderDocument: "11222333000181",
+            version: 3,
+            lastChange: { at: "2026-10-02T17:12:00Z", by: "Marcos Leão" },
+            coordinator: { name: "Marcos Leão", email: "marcos@academialeao.example", twoFactorEnabled: true },
+          },
+        });
+        override({
+          method: "get",
+          path: "/users",
+          status: 200,
+          body: [{ linkId: "00000000-0000-0000-0000-0000000000c1", name: "Carla Mendes", email: "carla@academialeao.example", role: "ADMINISTRATOR", units: [{ id: "u1", name: "Tijuca" }, { id: "u2", name: "Barra" }], lastAccessAt: null, status: "ACTIVE", canManage: true }],
+        });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -164,7 +192,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

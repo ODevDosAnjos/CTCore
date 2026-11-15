@@ -245,7 +245,16 @@ const initialOrganization = {
   logoUrl: null as string | null,
   version: 0,
   lastChange: null as MockLastChange,
+  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" as string },
+  coordinator: { name: "Ana", email: "ana@exemplo.com", twoFactorEnabled: true } as { name: string | null; email: string; twoFactorEnabled: boolean } | null,
 };
+// RF-ORG-01: faixas das regras da organização (as mesmas do servidor).
+const ruleRanges: [string, number, number][] = [
+  ["deactivationDays", 15, 90],
+  ["formerStudentRetentionMonths", 1, 60],
+  ["trialRetentionMonths", 1, 60],
+  ["trialLimit", 1, 3],
+];
 // RNF-15: If-Match com a versão lida; ausente ou não numérico é 428, versão diferente da atual é 409.
 // Sem `version`, só o formato é conferido (a versão é conferida depois da validação do corpo).
 const precondition = (request: Request, version?: number) => {
@@ -2254,7 +2263,7 @@ export const routes: Route[] = [
       if (denied) return denied;
       const missing = precondition(request);
       if (missing) return missing;
-      const body = (await request.json()) as { name?: string; color?: string | null; holderDocument?: string | null };
+      const body = (await request.json()) as { name?: string; color?: string | null; holderDocument?: string | null; rules?: Record<string, unknown> };
       const name = (body.name ?? "").trim();
       const color = body.color ? body.color : null;
       const holder = body.holderDocument ? body.holderDocument : null;
@@ -2262,11 +2271,20 @@ export const routes: Route[] = [
       if (!name || name.length > 120) fields.push({ field: "name", message: "entre 1 e 120 caracteres" });
       if (color !== null && !(isHexColor(color) && passesContrast(color))) fields.push({ field: "color", message: "use #RRGGBB com contraste mínimo de 4,5:1" });
       if (holder !== null && !isValidCpfOrCnpj(holder)) fields.push({ field: "holderDocument", message: "CPF ou CNPJ inválido" });
+      if (body.rules) {
+        for (const [key, min, max] of ruleRanges) {
+          const value = body.rules[key];
+          if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) fields.push({ field: `rules.${key}`, message: `use um valor de ${min} a ${max}` });
+        }
+        if (!["plan", "allowed", "denied"].includes(String(body.rules.crossUnitTraining))) fields.push({ field: "rules.crossUnitTraining", message: "use plan, allowed ou denied" });
+      }
       if (fields.length) return error(400, "VALIDATION_ERROR", "Dados inválidos.", fields);
       const stale = precondition(request, organization.version);
       if (stale) return stale;
-      const next = { ...organization, name, color: color?.toLowerCase() ?? null, holderDocument: holder ? onlyDigits(holder) : null };
-      const changed = next.name !== organization.name || next.color !== organization.color || next.holderDocument !== organization.holderDocument;
+      const rules = body.rules ? (body.rules as typeof organization.rules) : organization.rules;
+      const next = { ...organization, name, color: color?.toLowerCase() ?? null, holderDocument: holder ? onlyDigits(holder) : null, rules };
+      const changed =
+        next.name !== organization.name || next.color !== organization.color || next.holderDocument !== organization.holderDocument || JSON.stringify(rules) !== JSON.stringify(organization.rules);
       organization = changed ? { ...next, version: organization.version + 1, lastChange: changedNow() } : organization;
       return HttpResponse.json(organization);
     },
@@ -2308,7 +2326,8 @@ export const routes: Route[] = [
       if ((confirmation ?? "").trim().toUpperCase() !== "TRANSFERIR") {
         return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "confirmation", message: "digite TRANSFERIR" }]);
       }
-      if ((email ?? "").trim().toLowerCase() !== TRANSFER_TARGET) {
+      const target = (email ?? "").trim().toLowerCase();
+      if (target !== TRANSFER_TARGET && !staff.some((x) => x.role === "ADMINISTRATOR" && x.status === "ACTIVE" && x.email === target)) {
         return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "email", message: "informe um Administrador ativo da organização" }]);
       }
       current = {

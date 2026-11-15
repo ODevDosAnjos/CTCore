@@ -15,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,10 +62,84 @@ class OrganizationProfileIT extends OrganizationBase {
         var a = tenant();
         for (Role role : new Role[] {Role.COORDINATOR, Role.ADMINISTRATOR}) {
             var view = ok(get(), a, role);
-            assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("name", "color", "holderDocument", "logoUrl", "version", "lastChange");
+            assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("name", "color", "holderDocument", "logoUrl", "version", "lastChange", "rules", "coordinator");
             assertThat(view.path("name").asText()).isEqualTo("Synthetic " + a.orgId());
             assertThat(view.path("logoUrl").isNull()).isTrue();
+            assertThat(view.path("coordinator").isNull()).isTrue();
+            assertThat(view.path("rules").toString()).isEqualTo(RULES_DEFAULT);
         }
+    }
+
+    static final String RULES_DEFAULT = "{\"deactivationDays\":30,\"formerStudentRetentionMonths\":12,\"trialRetentionMonths\":6,\"trialLimit\":2,\"crossUnitTraining\":\"plan\"}";
+
+    static String rules(int days, int former, int trial, int limit, String cross) {
+        return "{\"deactivationDays\":" + days + ",\"formerStudentRetentionMonths\":" + former + ",\"trialRetentionMonths\":" + trial
+                + ",\"trialLimit\":" + limit + ",\"crossUnitTraining\":\"" + cross + "\"}";
+    }
+
+    @Test
+    @DisplayName("CA13 / RF-ORG-01 / RN-ORG-13: coordinator traz nome, e-mail e duas etapas do Coordenador ativo, para os dois perfis")
+    void coordinatorInView() throws Exception {
+        var a = tenant();
+        UUID account = UUID.randomUUID();
+        adminJdbc().update("insert into account (id, email, name, status) values (?, 'marcos@academialeao.example', 'Marcos Leão', 'ACTIVE')", account);
+        adminJdbc().update("insert into account_link (account_id, organization_id, role, status) values (?, ?, 'COORDINATOR', 'ACTIVE')", account, a.orgId());
+        assertThat(ok(get(), a, Role.ADMINISTRATOR).path("coordinator").toString())
+                .isEqualTo("{\"name\":\"Marcos Leão\",\"email\":\"marcos@academialeao.example\",\"twoFactorEnabled\":false}");
+        adminJdbc().update("insert into account_two_factor (account_id, secret_encrypted, enabled_at) values (?, 'x', now())", account);
+        assertThat(ok(get(), a, Role.COORDINATOR).path("coordinator").path("twoFactorEnabled").asBoolean()).isTrue();
+    }
+
+    @Test
+    @DisplayName("CA13 / RF-ORG-01 / RN-ORG-13: PATCH com rules grava as cinco regras, sobe a versão e audita antes e depois; sem rules mantém")
+    void rulesUpdate() throws Exception {
+        var a = tenant();
+        var coordinator = who(a, Role.COORDINATOR);
+        var view = ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, 3, "denied") + "}"), a, Role.COORDINATOR);
+        assertThat(view.path("rules").toString()).isEqualTo(rules(45, 24, 3, 3, "denied"));
+        assertThat(view.path("version").asInt()).isEqualTo(1);
+        assertThat(adminJdbc().queryForObject("select deactivation_days || '/' || trial_limit || '/' || cross_unit_training from organization_settings where organization_id = ?",
+                String.class, a.orgId())).isEqualTo("45/3/denied");
+        var rows = audit(a, "organization.update");
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).get("b").toString()).contains("\"deactivationDays\": 30", "\"crossUnitTraining\": \"plan\"");
+        assertThat(rows.get(0).get("a").toString()).contains("\"deactivationDays\": 45", "\"crossUnitTraining\": \"denied\"");
+        // omitido: as regras ficam; igual: nada muda
+        assertThat(ok(patch("{\"name\":\"Dojo\"}"), a, Role.COORDINATOR).path("rules").toString()).isEqualTo(rules(45, 24, 3, 3, "denied"));
+        var same = ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, 3, "denied") + "}"), a, Role.COORDINATOR);
+        assertThat(same.path("version").asInt()).isEqualTo(1);
+        assertThat(audit(a, "organization.update")).hasSize(1);
+        // só regra mudou: a versão sobe e a auditoria traz as regras
+        assertThat(ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, 1, "denied") + "}"), a, Role.COORDINATOR).path("version").asInt()).isEqualTo(2);
+        assertThat(audit(a, "organization.update")).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("CA13 / RF-ORG-01: regra fora da faixa ou ausente responde 400 apontando rules.<campo> e nada é gravado")
+    void rulesValidation() throws Exception {
+        var a = tenant();
+        String[][] bad = {
+            {"deactivationDays", rules(14, 12, 6, 2, "plan")}, {"deactivationDays", rules(91, 12, 6, 2, "plan")},
+            {"formerStudentRetentionMonths", rules(30, 0, 6, 2, "plan")}, {"formerStudentRetentionMonths", rules(30, 61, 6, 2, "plan")},
+            {"trialRetentionMonths", rules(30, 12, 0, 2, "plan")}, {"trialLimit", rules(30, 12, 6, 4, "plan")},
+            {"trialLimit", rules(30, 12, 6, 0, "plan")}, {"crossUnitTraining", rules(30, 12, 6, 2, "x")},
+            {"deactivationDays", "{\"formerStudentRetentionMonths\":12,\"trialRetentionMonths\":6,\"trialLimit\":2,\"crossUnitTraining\":\"plan\"}"}};
+        for (String[] b : bad) invalid(patch("{\"name\":\"Outro\",\"rules\":" + b[1] + "}"), a, "rules." + b[0]);
+        assertThat(adminJdbc().queryForObject("select name || version from organization where id = ?", String.class, a.orgId())).isEqualTo("Synthetic " + a.orgId() + "0");
+        ok(patch("{\"name\":\"Faixa\",\"rules\":" + rules(15, 1, 60, 3, "allowed") + "}"), a, Role.COORDINATOR);
+        ok(patch("{\"name\":\"Faixa\",\"rules\":" + rules(90, 60, 1, 1, "plan") + "}"), a, Role.COORDINATOR);
+    }
+
+    @Test
+    @DisplayName("CA13 / RNF-26: Administrador não grava regras (403); organização B não vê nem altera as regras da A")
+    void rulesIsolated() throws Exception {
+        var a = tenant();
+        var b = tenant();
+        assertThat(call(patch("{\"name\":\"Hack\",\"rules\":" + rules(60, 12, 6, 3, "denied") + "}"), who(a, Role.ADMINISTRATOR)).getResponse().getStatus()).isEqualTo(403);
+        ok(patch("{\"name\":\"A\",\"rules\":" + rules(60, 12, 6, 3, "denied") + "}"), a, Role.COORDINATOR);
+        assertThat(ok(get(), b, Role.COORDINATOR).path("rules").toString()).isEqualTo(RULES_DEFAULT);
+        assertThat(adminJdbc().queryForObject("select deactivation_days from organization_settings where organization_id = ?", Integer.class, b.orgId())).isEqualTo(30);
+        assertThat(call(get(), who(a, Role.TEACHER)).getResponse().getStatus()).isEqualTo(403);
     }
 
     @Test

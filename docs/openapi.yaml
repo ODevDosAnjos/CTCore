@@ -331,9 +331,9 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
     patch:
-      summary: Altera nome, cor principal e titular (RF-ORG-01). Só o Coordenador.
+      summary: Altera nome, cor principal, titular e regras (RF-ORG-01). Só o Coordenador.
       description: |
-        Os três campos são enviados juntos; `color` e `holderDocument` vazios ou nulos voltam ao padrão. Cor reprovada no contraste AA
+        Nome, cor e titular são enviados juntos e `rules` é opcional (mudança de regra grava antes e depois na auditoria); `color` e `holderDocument` vazios ou nulos voltam ao padrão. Cor reprovada no contraste AA
         (menos de 4,5:1 com texto branco), CPF/CNPJ inválido ou nome fora de 1 a 120 caracteres respondem 400 VALIDATION_ERROR com o campo
         apontado e nada é salvo. Grava `organization.update` na auditoria quando algum valor muda.
         Exige `If-Match` com o `version` lido (RNF-15): versão diferente da atual responde 409 `EDIT_CONFLICT` e nada é gravado; cabeçalho
@@ -4047,7 +4047,7 @@ components:
         traceId: { type: string }
     OrganizationView:
       type: object
-      required: [name, color, holderDocument, logoUrl, version, lastChange]
+      required: [name, color, holderDocument, logoUrl, version, lastChange, rules, coordinator]
       properties:
         version: { type: integer, minimum: 0, description: 'Versão para o If-Match da próxima gravação (RNF-15).' }
         lastChange: { $ref: '#/components/schemas/LastChange' }
@@ -4055,6 +4055,27 @@ components:
         color: { type: string, nullable: true, pattern: '^#[0-9a-f]{6}$', description: 'Cor principal (contraste mínimo 4,5:1 com texto branco); nula usa a cor padrão da plataforma.' }
         holderDocument: { type: string, nullable: true, pattern: '^([0-9]{11}|[0-9]{14})$', description: 'CPF ou CNPJ do titular, só dígitos.' }
         logoUrl: { type: string, nullable: true, description: 'URL temporária assinada da logo (512 x 512); nula sem logo.' }
+        rules: { $ref: '#/components/schemas/OrganizationRules' }
+        coordinator: { $ref: '#/components/schemas/Coordinator' }
+    OrganizationRules:
+      type: object
+      description: 'Regras da organização (RF-ORG-01, RN-ORG-13).'
+      required: [deactivationDays, formerStudentRetentionMonths, trialRetentionMonths, trialLimit, crossUnitTraining]
+      properties:
+        deactivationDays: { type: integer, minimum: 15, maximum: 90 }
+        formerStudentRetentionMonths: { type: integer, minimum: 1, maximum: 60 }
+        trialRetentionMonths: { type: integer, minimum: 1, maximum: 60 }
+        trialLimit: { type: integer, minimum: 1, maximum: 3 }
+        crossUnitTraining: { type: string, enum: [plan, allowed, denied] }
+    Coordinator:
+      type: object
+      nullable: true
+      description: 'Coordenador ativo da organização; nulo sem vínculo ativo.'
+      required: [name, email, twoFactorEnabled]
+      properties:
+        name: { type: string, nullable: true }
+        email: { type: string }
+        twoFactorEnabled: { type: boolean }
     LastChange:
       type: object
       nullable: true
@@ -4070,6 +4091,7 @@ components:
         name: { type: string, minLength: 1, maxLength: 120 }
         color: { type: string, nullable: true, description: '#RRGGBB; vazio ou nulo limpa.' }
         holderDocument: { type: string, nullable: true, description: 'CPF ou CNPJ, com ou sem máscara; vazio ou nulo limpa.' }
+        rules: { allOf: [{ $ref: '#/components/schemas/OrganizationRules' }], description: 'Opcional; omitido, as regras ficam como estão. Valor fora da faixa responde 400 com o campo `rules.<campo>`.' }
     UnitDeactivationCheck:
       type: object
       required: [activeStudents, activeClasses, lastActiveUnit, canDeactivate]
