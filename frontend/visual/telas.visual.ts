@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina") {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -54,6 +54,41 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         override({ method: "get", path: "/plans", status: 200, body: { ...lista, items, total: items.length } });
         override({ method: "get", path: "/plans/summary", status: 200, body: { ...resumo, plans: { ...resumo.plans, active: 4, inactive: 1 }, benefits: { active: 14, high: 2 } } });
       });
+    }
+    if (beneficios) {
+      // #481: a unidade única "Tijuca" e os cinco benefícios do canvas (contagens 14, 2 e 9); `davi` e `marina` acrescentam o aluno, a matrícula, o resumo e o professor das janelas; o cenário compartilhado não muda
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async (cenario) => {
+        type Json = { units: { id: string; name: string }[]; [k: string]: unknown };
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const reach = (await (await fetch("/api/v1/units/reachable")).json()) as Json;
+        const sul = { ...reach.units.find((u) => u.name === "Unidade Sul"), name: "Tijuca" } as { id: string; name: string };
+        const modalities = (await (await fetch("/api/v1/modalities")).json()) as { id: string; name: string }[];
+        const jiu = modalities.find((m) => m.name === "Jiu-Jitsu") ?? modalities[0];
+        const muay = modalities.find((m) => m.name === "Muay Thai") ?? modalities[1];
+        const row = (id: string, name: string, modality: { id: string; name: string }, type: string, value: number, reason: string, decidedBy: string, validUntil: string | null, status: string, high: boolean, monthly: number) => ({
+          id, student: { id: `s-${id}`, name }, unit: sul, modality: { id: modality.id, name: modality.name }, type, value, reason, decidedBy, grantedBy: "Carla Mendes", validUntil, status, high, monthlyValueCents: monthly, planValueCents: 15000, nextChargeMonth: "2026-11",
+        });
+        const davi = row("b1", "Davi Nogueira", jiu, "PERCENT", 50, "Atleta da equipe kids", "Marcos Leão", "2026-12-31", "ACTIVE", false, 7500);
+        const marina = row("b4", "Marina Teixeira", jiu, "AMOUNT", 3000, "Indicação de amigo", "Carla Mendes", "2026-12-31", "ACTIVE", false, 15000);
+        const items = [
+          davi,
+          row("b2", "Pedro Henrique Dias", jiu, "PERCENT", 100, "Professor auxiliar", "Marcos Leão", null, "ACTIVE", true, 0),
+          row("b3", "Theo Andrade", jiu, "PERCENT", 10, "Desconto de família (irmão)", "Carla Mendes", null, "ACTIVE", false, 13500),
+          { ...marina, reason: "Indicou 2 alunos", validUntil: "2026-11-30" },
+          row("b5", "Olívia Ramos", muay, "PERCENT", 60, "Campanha de retorno", "Carla Mendes", "2026-09-30", "EXPIRED", true, 6000),
+        ];
+        override({ method: "get", path: "/units/reachable", status: 200, body: { ...reach, allUnits: false, units: [sul] } });
+        override({ method: "get", path: "/benefits", status: 200, body: { items, page: 1, size: 25, total: items.length, counts: { active: 14, high: 2, closed: 9 } } });
+        if (cenario === "lista") return;
+        const aluno = cenario === "davi" ? davi : marina;
+        const student = { id: aluno.student.id, name: aluno.student.name, photoUrl: null };
+        override({ method: "get", path: "/students", status: 200, body: { items: [student], page: 1, size: 25, total: 1 } });
+        override({ method: "get", path: `/students/${student.id}/enrollment`, status: 200, body: { id: "e1", status: "ACTIVE", enrolledAt: "2026-01-10T12:00:00Z", reopenedAt: null, modalities: [{ id: "r1", unit: sul, modality: jiu, primaryClass: { id: "k1", name: "Kids" }, otherClasses: [], plan: { id: "p1", name: "Kids 2x" }, nextPlan: null, dueDay: 5, status: "ACTIVE", startedAt: "2026-01-10T12:00:00Z", endedAt: null, canEdit: true, closureRequestedAt: null }] } });
+        const next = cenario === "davi" ? 4500 : 9000;
+        override({ method: "post", path: "/benefits/preview", status: 200, body: { plan: { id: "p1", name: "Kids 2x", valueCents: 15000 }, current: aluno, newMonthlyValueCents: next, effectiveFrom: "2026-11", replaces: true, high: true } });
+        override({ method: "get", path: "/teachers", status: 200, body: { items: [{ id: "t1", name: "Marcos Leão" }], page: 1, size: 100, total: 1 } });
+      }, beneficios);
     }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
@@ -129,7 +164,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

@@ -425,15 +425,17 @@ const benefitRow = ({ planIndex, student, ...b }: (typeof mockBenefits)[number])
     status: b.status,
     high: b.type === "PERCENT" ? b.value > 50 : b.value * 2 > plan.valueCents,
     monthlyValueCents: Math.max(0, plan.valueCents - discount),
+    planValueCents: plan.valueCents,
   };
 };
 // RF-BEN-02: em memória; `rowId` liga o benefício concedido à modalidade da matrícula (não sai na resposta).
-export type MockBenefit = ReturnType<typeof benefitRow> & { rowId: string | null; teacherId?: string };
+export type MockBenefit = Omit<ReturnType<typeof benefitRow>, "planValueCents"> & { planValueCents?: number; rowId: string | null; teacherId?: string };
 const initialBenefits = (): MockBenefit[] => mockBenefits.map((b) => ({ ...benefitRow(b), rowId: null }));
 let benefitRows = initialBenefits();
 const publicBenefit = (b: MockBenefit) => {
   const { id, student, unit, modality, type, value, reason, decidedBy, grantedBy, validUntil, status, high, monthlyValueCents } = b;
-  return { id, student, unit, modality, type, value, reason, decidedBy, grantedBy, validUntil, status, high, monthlyValueCents };
+  // RF-BEN-03: o mês a partir do qual o encerramento vale segue a regra da prévia (vencimento no dia 5 nos dados fictícios).
+  return { id, student, unit, modality, type, value, reason, decidedBy, grantedBy, validUntil, status, high, monthlyValueCents, planValueCents: b.planValueCents ?? 0, nextChargeMonth: benefitEffectiveFrom(5) };
 };
 const visibleBenefits = (role: string | undefined) =>
   benefitRows.filter((b) => role === "COORDINATOR" || b.unit.id === ADMIN_UNIT).map(publicBenefit);
@@ -2831,20 +2833,24 @@ export const routes: Route[] = [
       const size = Number(p.get("size") ?? 25);
       const bad: { field: string; message: string }[] = [];
       if (type !== null && !["PERCENT", "AMOUNT"].includes(type)) bad.push({ field: "type", message: "valor inválido" });
-      if (status !== null && !["ACTIVE", "EXPIRED", "ENDED"].includes(status)) bad.push({ field: "status", message: "valor inválido" });
+      if (status !== null && !["ACTIVE", "EXPIRED", "ENDED", "CLOSED"].includes(status)) bad.push({ field: "status", message: "valor inválido" });
       if (!Number.isInteger(page) || page < 1) bad.push({ field: "page", message: "deve ser 1 ou maior" });
       if (![25, 50, 100].includes(size)) bad.push({ field: "size", message: "deve ser 25, 50 ou 100" });
       if (bad.length) return error(400, "VALIDATION_ERROR", "Dados inválidos.", bad);
       const q = teacherKey((p.get("q") ?? "").trim());
       const modalityId = p.get("modalityId");
       const unitId = p.get("unitId");
-      const found = visibleBenefits(role)
-        .filter((b) => teacherKey(b.student.name).includes(q) && (!type || b.type === type) && (!status || b.status === status))
+      // RF-BEN-01: as contagens das abas usam busca, tipo, modalidade e unidade, sem situação nem "alto".
+      const scoped = visibleBenefits(role)
+        .filter((b) => teacherKey(b.student.name).includes(q) && (!type || b.type === type))
         .filter((b) => !modalityId || b.modality.id === modalityId)
-        .filter((b) => !unitId || b.unit.id === unitId)
+        .filter((b) => !unitId || b.unit.id === unitId);
+      const counts = { active: scoped.filter((b) => b.status === "ACTIVE").length, high: scoped.filter((b) => b.status === "ACTIVE" && b.high).length, closed: scoped.filter((b) => b.status !== "ACTIVE").length };
+      const found = scoped
+        .filter((b) => !status || (status === "CLOSED" ? b.status !== "ACTIVE" : b.status === status))
         .filter((b) => p.get("high") !== "true" || b.high)
         .sort((a, b) => a.student.name.localeCompare(b.student.name));
-      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length });
+      return HttpResponse.json({ items: found.slice((page - 1) * size, page * size), page, size, total: found.length, counts });
     },
   },
   {
@@ -2881,7 +2887,7 @@ export const routes: Route[] = [
       const row: MockBenefit = {
         id: crypto.randomUUID(), rowId: t.row.id, student: { id: t.student.id, name: t.student.name }, unit: { id: t.row.unitId, name: unit?.name ?? "" },
         modality: modalityCatalog.find((c) => c.id === t.row.modalityId) ?? modalityCatalog[0], type: t.type, value: t.value, reason: t.reason, decidedBy: t.decidedBy,
-        grantedBy: session.account.name, validUntil: body.validUntil ?? null, status: "ACTIVE", teacherId: body.teacherId,
+        grantedBy: session.account.name, validUntil: body.validUntil ?? null, status: "ACTIVE", teacherId: body.teacherId, planValueCents: t.plan.valueCents,
         high: t.type === "PERCENT" ? t.value > 50 : t.value * 2 > t.plan.valueCents, monthlyValueCents: Math.max(0, t.plan.valueCents - benefitDiscount(t.type, t.value, t.plan.valueCents)),
       };
       benefitRows.push(row);
@@ -3985,7 +3991,7 @@ export const routes: Route[] = [
             id: crypto.randomUUID(), rowId: added[i].id, student: { id: found.id, name: found.name }, unit: { id: m.unitId!, name: units.find((u) => u.id === m.unitId)?.name ?? "" },
             modality: modalityCatalog.find((c) => c.id === m.modalityId) ?? modalityCatalog[0], type, value, reason: m.benefit.reason ?? "", decidedBy: m.benefit.decidedBy ?? "",
             grantedBy: session.account.name, validUntil: m.benefit.validUntil ?? null, status: "ACTIVE", high: type === "PERCENT" ? value > 50 : value * 2 > plan.valueCents,
-            monthlyValueCents: Math.max(0, plan.valueCents - benefitDiscount(type, value, plan.valueCents)),
+            monthlyValueCents: Math.max(0, plan.valueCents - benefitDiscount(type, value, plan.valueCents)), planValueCents: plan.valueCents,
           });
         }
       });

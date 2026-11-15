@@ -2,7 +2,6 @@ package br.com.ctcore.benefit;
 
 import br.com.ctcore.api.error.ApiValidationException;
 import br.com.ctcore.api.page.PageRequest;
-import br.com.ctcore.api.page.PageResponse;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.modality.Modalities;
@@ -28,7 +27,11 @@ public class Benefits {
     public record Ref(UUID id, String name) {}
 
     public record Row(UUID id, Ref student, Ref unit, Ref modality, String type, long value, String reason, String decidedBy, String grantedBy,
-            LocalDate validUntil, String status, boolean high, long monthlyValueCents) {}
+            LocalDate validUntil, String status, boolean high, long monthlyValueCents, long planValueCents, String nextChargeMonth) {}
+
+    public record Counts(long active, long high, long closed) {}
+
+    public record BenefitList(List<Row> items, int page, int size, long total, Counts counts) {}
 
     public record Filter(String q, String type, UUID modalityId, UUID unitId, String status, Boolean high) {}
 
@@ -42,7 +45,7 @@ public class Benefits {
     private static final String FULL_FROM = FROM_SQL + " join student s on s.id = b.student_id join modality m on m.id = em.modality_id "
             + "join account a on a.id = b.granted_by_account_id";
     private static final String SELECT = "select b.id, s.id, s.name, u.id, u.name, m.id, m.name, b.type, b.value, b.reason, b.decided_by, a.name, b.valid_until, "
-            + STATUS_SQL + ", " + HIGH_SQL + ", p.value_cents";
+            + STATUS_SQL + ", " + HIGH_SQL + ", p.value_cents, em.due_day, (now() at time zone u.timezone)::date";
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -60,12 +63,12 @@ public class Benefits {
         return Math.max(0, planCents - discount);
     }
 
-    public PageResponse<Row> list(AccountPrincipal who, Filter f, PageRequest page) {
+    public BenefitList list(AccountPrincipal who, Filter f, PageRequest page) {
         plans.requireAccess(who);
         String type = enumValue("type", f.type(), Set.of("PERCENT", "AMOUNT"));
-        String status = enumValue("status", f.status(), Set.of("ACTIVE", "EXPIRED", "ENDED"));
+        String status = enumValue("status", f.status(), Set.of("ACTIVE", "EXPIRED", "ENDED", "CLOSED"));
         Set<UUID> reach = plans.reach(who, f.unitId());
-        if (reach != null && reach.isEmpty()) return PageResponse.of(List.of(), page, 0);
+        if (reach != null && reach.isEmpty()) return new BenefitList(List.of(), page.page(), page.size(), 0, new Counts(0, 0, 0));
 
         StringBuilder where = new StringBuilder("b.organization_id = :org");
         Map<String, Object> params = new HashMap<>();
@@ -86,16 +89,23 @@ public class Benefits {
             where.append(" and b.unit_id in (:reach)");
             params.put("reach", reach);
         }
-        if (status != null) {
+        String base = where.toString();
+        if ("CLOSED".equals(status)) {
+            where.append(" and ").append(STATUS_SQL).append(" <> 'ACTIVE'");
+        } else if (status != null) {
             where.append(" and ").append(STATUS_SQL).append(" = :status");
             params.put("status", status);
         }
         if (Boolean.TRUE.equals(f.high())) where.append(" and ").append(HIGH_SQL);
         return transactions.execute(() -> {
+            // RF-BEN-01: contagem das abas com busca, tipo, modalidade e unidade, sem situação nem "alto".
+            Counts counts = jdbc.sql("select count(*) filter (where " + STATUS_SQL + " = 'ACTIVE'), count(*) filter (where " + STATUS_SQL
+                    + " = 'ACTIVE' and " + HIGH_SQL + "), count(*) filter (where " + STATUS_SQL + " <> 'ACTIVE') from " + FULL_FROM + " where " + base)
+                    .params(params).query((rs, n) -> new Counts(rs.getLong(1), rs.getLong(2), rs.getLong(3))).single();
             long total = jdbc.sql("select count(*) from " + FULL_FROM + " where " + where).params(params).query(Long.class).single();
             List<Row> rows = jdbc.sql(SELECT + " from " + FULL_FROM + " where " + where + " order by s.name_key, m.name, b.id limit :limit offset :offset")
                     .params(params).param("limit", page.size()).param("offset", page.offset()).query(Benefits::mapRow).list();
-            return PageResponse.of(rows, page, total);
+            return new BenefitList(rows, page.page(), page.size(), total, counts);
         });
     }
 
@@ -115,7 +125,8 @@ public class Benefits {
         return new Row(rs.getObject(1, UUID.class), new Ref(rs.getObject(2, UUID.class), rs.getString(3)),
                 new Ref(rs.getObject(4, UUID.class), rs.getString(5)), new Ref(rs.getObject(6, UUID.class), rs.getString(7)),
                 rs.getString(8), rs.getLong(9), rs.getString(10), rs.getString(11), rs.getString(12), rs.getObject(13, LocalDate.class),
-                rs.getString(14), rs.getBoolean(15), monthlyValueCents(rs.getString(8), rs.getLong(9), rs.getLong(16)));
+                rs.getString(14), rs.getBoolean(15), monthlyValueCents(rs.getString(8), rs.getLong(9), rs.getLong(16)), rs.getLong(16),
+                BenefitWrite.effectiveFrom(rs.getObject(18, LocalDate.class), rs.getInt(17)).toString());
     }
 
     private static String enumValue(String field, String raw, Set<String> allowed) {

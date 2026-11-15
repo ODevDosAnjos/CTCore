@@ -1,10 +1,13 @@
 import { useId, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "@/components/fields/masks";
 import { Modal } from "@/components/Modal";
+import { ReasonField } from "@/components/ReasonField";
 import { EmptyState, ErrorState, ForbiddenState } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/field";
+import { SummaryBox } from "@/components/ui/summary-box";
 import { ApiError } from "@/lib/api";
+import { monthLabel, previousMonthLabel, untilMonth, valueText } from "./benefitFormat";
 import type { BenefitRow } from "./useBenefits";
 import { endBenefit } from "./useGrantBenefit";
 
@@ -14,7 +17,7 @@ type Outcome = "form" | "error" | "forbidden" | "gone";
 export function EndBenefitDialog({ benefit, onClose, onDone }: { benefit: BenefitRow; onClose: () => void; onDone: () => void }) {
   const { t } = useTranslation();
   const k = "benefits.end.";
-  const id = useId();
+  const formId = useId();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>("form");
@@ -43,41 +46,43 @@ export function EndBenefitDialog({ benefit, onClose, onDone }: { benefit: Benefi
     }
   }
 
+  const base = t(benefit.type === "PERCENT" ? `${k}summaryPercent` : `${k}summaryAmount`, { student: benefit.student.name, modality: benefit.modality.name, value: valueText(benefit) });
+  const summary = benefit.validUntil ? t(`${k}summaryUntil`, { summary: base, month: untilMonth(benefit.validUntil) }) : t(`${k}summaryNoDeadline`, { summary: base });
+
   return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={t(`${k}title`)}>
+    <Modal
+      open
+      size="sm"
+      scrim="canvas"
+      onOpenChange={(o) => !o && !busy && onClose()}
+      title={t(`${k}title`)}
+      footer={
+        outcome === "form" ? (
+          <>
+            <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
+              {t(`${k}back`)}
+            </Button>
+            <Button type="submit" form={formId} variant="dangerSolid" className="min-h-11" disabled={!canSubmit}>
+              {t(`${k}submit`)}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
       {outcome === "forbidden" && <ForbiddenState />}
       {outcome === "error" && <ErrorState onRetry={() => setOutcome("form")} />}
       {outcome === "gone" && <EmptyState title={t(`${k}goneTitle`)} text={t(`${k}goneText`)} action={<Button type="button" className="min-h-11" onClick={onClose}>{t("common.close")}</Button>} />}
       {outcome === "form" && (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-3">
-          <p className="text-sm">{t(`${k}summary`, { student: benefit.student.name, modality: benefit.modality.name })}</p>
-          <p className="text-sm text-muted-foreground">{t(`${k}effect`)}</p>
-          <div>
-            <label htmlFor={id} className="block text-sm font-medium">
-              {t(`${k}reason`)}
-            </label>
-            <Input
-              id={id}
-              maxLength={200}
-              value={reason}
-              aria-invalid={fieldError ? true : undefined}
-              aria-describedby={fieldError ? `${id}-erro` : undefined}
-              onChange={(e) => setReason(e.target.value)}
-            />
-            {fieldError && (
-              <p id={`${id}-erro`} className="text-sm text-danger-foreground">
-                {fieldError}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" className="min-h-11" disabled={!canSubmit}>
-              {busy ? t(`${k}sending`) : t(`${k}submit`)}
-            </Button>
-          </div>
+        <form id={formId} onSubmit={submit} noValidate className="flex flex-col gap-3">
+          <SummaryBox label={t(`${k}block`)} items={[summary]} />
+          <ReasonField
+            label={t(`${k}reason`)}
+            value={reason}
+            onChange={setReason}
+            error={fieldError}
+            rows={1}
+            note={t(`${k}note`, { next: monthLabel(benefit.nextChargeMonth), value: formatMoney(benefit.planValueCents), previous: previousMonthLabel(benefit.nextChargeMonth) })}
+          />
         </form>
       )}
     </Modal>

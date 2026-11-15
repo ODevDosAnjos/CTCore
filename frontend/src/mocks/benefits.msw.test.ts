@@ -34,6 +34,17 @@ describe("tabela de benefícios x OpenAPI (RF-BEN-01, CA12)", () => {
     expect((await benefits("?size=10")).status).toBe(400);
   });
 
+  it("RF-BEN-01 (#481): CLOSED junta encerrado e vencido; counts ignora status e high; linhas trazem planValueCents e nextChargeMonth", async () => {
+    await login("ana@exemplo.com");
+    expect(names(await (await benefits("?status=CLOSED")).json())).toEqual(["Carla Dias", "Eva Melo"]);
+    const data = await (await benefits("?status=CLOSED&high=true")).json();
+    expect(data.counts).toEqual({ active: 3, high: 2, closed: 2 });
+    expect((await (await benefits("?q=bruno")).json()).counts).toEqual({ active: 1, high: 1, closed: 0 });
+    const bruno = (await (await benefits("?q=bruno")).json()).items[0];
+    expect(bruno.planValueCents).toBe(20000);
+    expect(bruno.nextChargeMonth).toMatch(/^[0-9]{4}-[0-9]{2}$/);
+  });
+
   it("Administrador só vê a unidade dele; Professor e portal recebem 403", async () => {
     await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
     expect((await (await benefits()).json()).total).toBe(3);

@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
+import { SessionProvider } from "@/features/auth/SessionProvider";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { choiceRoutes, enrollmentOf, modalityRow } from "./enrollmentFixtures";
 import { RecordEnrollment } from "./RecordEnrollment";
@@ -16,9 +17,11 @@ const result = (status: Result["status"], data?: Enrollment): Result => ({ statu
 const show = (enrollment: Result, canGrant = false, path = "/") =>
   render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <RecordEnrollment studentId="s1" studentName="Aluno Teste" canGrant={canGrant} enrollment={enrollment} onChanged={() => {}} />
-      </MemoryRouter>
+      <SessionProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <RecordEnrollment studentId="s1" studentName="Aluno Teste" canGrant={canGrant} enrollment={enrollment} onChanged={() => {}} />
+        </MemoryRouter>
+      </SessionProvider>
     </ThemeProvider>,
   );
 

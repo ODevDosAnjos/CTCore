@@ -134,6 +134,9 @@ export function ModalityDialog({
   cancelLabel,
   fullOnMobile,
   submitVariant,
+  footerNote,
+  beforeSubmit,
+  scrim,
 }: {
   title: string;
   effect?: string;
@@ -158,6 +161,12 @@ export function ModalityDialog({
   fullOnMobile?: boolean;
   /** Variante do botão de ação (vermelho cheio em Encerrar). */
   submitVariant?: "primary" | "dangerSolid";
+  /** Texto à esquerda do rodapé (ex.: "Lançado por Carla"); só com `size`. */
+  footerNote?: ReactNode;
+  /** Chamado antes de gravar; devolvendo verdadeiro, a janela não grava (quem chamou abre outra confirmação). */
+  beforeSubmit?: () => boolean;
+  /** Fundo mais claro das janelas do canvas. */
+  scrim?: "canvas";
 }) {
   const { t } = useTranslation();
   const formId = useId();
@@ -168,6 +177,7 @@ export function ModalityDialog({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy || !canSubmit) return;
+    if (beforeSubmit?.()) return;
     setBusy(true);
     setErrors({});
     setForm(undefined);
@@ -190,10 +200,12 @@ export function ModalityDialog({
       onOpenChange={(o) => !o && onClose()}
       title={title}
       size={size}
+      scrim={scrim}
       fullOnMobile={fullOnMobile}
       footer={
         size && state === "ready" ? (
           <>
+            {footerNote && <span className="mr-auto self-center text-xs text-muted-foreground">{footerNote}</span>}
             <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
               {cancelLabel ?? t("common.back")}
             </Button>

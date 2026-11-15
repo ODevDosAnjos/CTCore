@@ -19,6 +19,7 @@ export type Caso = {
   dias?: boolean; // #474: antes do print, lança os dias sem aula e ignora os feriados que o canvas mostra (o MSW começa sem dias)
   titularInativo?: boolean; // #475: antes do print, a turma 607 (Jiu-Jitsu Manhã) responde com o titular inativo; só no caso, sem mexer no cenário compartilhado
   planosCanvas?: boolean; // #480: antes de abrir a tela, a Coordenação enxerga só a unidade "Tijuca" com os quatro planos ativos e o desativado do canvas e o resumo 4 e 14 (o cenário compartilhado tem mais planos)
+  beneficios?: "lista" | "davi" | "marina"; // #481: antes de abrir a tela, a unidade "Tijuca" e os cinco benefícios do canvas (14, 2 e 9); davi e marina põem o aluno, a matrícula, o resumo e o professor das janelas
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -33,6 +34,8 @@ const reduzido = "reduzido@exemplo.com"; // Aluno sem modalidade ativa, portal r
 
 // #469: aluno fictício adulto (Carla, só com Judô, do MSW) e os passos que preenchem a etapa 2
 const matriculaRota = "/alunos/nova-matricula?aluno=00000000-0000-0000-0000-000000000722";
+// #481: o aluno do canvas na janela Conceder benefício (o MSW do caso devolve só ele na busca)
+const escolhaDavi: Passo[] = [{ preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Davi"] }, { clicar: "Davi Nogueira" }, { escolher: ["Modalidade", "Jiu-Jitsu"] }];
 const modalidade: Passo[] = [{ escolher: ["Unidade", "Centro"] }, { escolher: ["Modalidade", "Jiu-Jitsu"] }, { escolher: ["Turma principal", "Jiu-Jitsu Adulto"] }, { escolher: ["Plano", "Jiu-Jitsu Livre"] }];
 
 export const casos: Caso[] = [
@@ -72,7 +75,7 @@ export const casos: Caso[] = [
   { nome: "dias-sem-aula", rota: "/dias-sem-aula", perfil: ana, canvas: "DiasSemAula", dias: true },
   { nome: "turmas", rota: "/turmas", perfil: ana, canvas: "Turmas" },
   { nome: "planos", rota: "/planos", perfil: ana, canvas: "Planos", planosCanvas: true },
-  { nome: "beneficios", rota: "/beneficios", perfil: ana, canvas: "BeneficiosLista" },
+  { nome: "beneficios", rota: "/beneficios", perfil: ana, canvas: "BeneficiosLista", beneficios: "lista" },
   { nome: "cobrancas", rota: "/cobrancas", perfil: ana, canvas: "Mensalidades", canvasEscuro: "CobrancasEscuro" },
   { nome: "cobrancas-erro", rota: "/cobrancas", perfil: ana, canvas: "EstadoErro", falha: { path: "/charges", status: 500 } },
   { nome: "cobrancas-sem-acesso", rota: "/cobrancas", perfil: prof, canvas: "EstadoSemAcesso" },
@@ -157,7 +160,9 @@ export const casos: Caso[] = [
   { nome: "plano-editar", rota: "/planos", perfil: ana, canvas: "PlanosRegras", passos: [{ clicar: "Editar o plano Adulto 3x" }, { preencher: ["Novo valor *", "19500"] }], aguardar: "#plan-form", limiteCanvas: { valor: 0.5, motivo: "medido a 44,8%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } }, // #480: com valor novo, como no canvas, para mostrar o aviso e as escolhas do reajuste
   { nome: "plano-desativar", rota: "/planos", perfil: ana, canvas: "PlanoDesativar", passos: [{ clicar: "Editar o plano Adulto livre" }, { clicar: "Desativar plano" }], limiteCanvas: { valor: 0.7, motivo: "medido a 63,2%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
   { nome: "plano-desativado", rota: "/planos", perfil: ana, canvas: "PlanoDesativado", passos: [{ clicar: "Editar o plano Adulto 2x \\(antigo\\)" }], aguardar: "#plan-history-title", limiteCanvas: { valor: 0.5, motivo: "medido a 45,4%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
-  { nome: "beneficio-conceder", rota: "/beneficios", perfil: ana, canvas: "BeneficioConceder", passos: [{ clicar: "Conceder benefício" }], limiteCanvas: { valor: 0.60, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #481 trata a tela e remove esta exceção)" } },
+  { nome: "beneficio-conceder", rota: "/beneficios", perfil: ana, canvas: "BeneficioConceder", beneficios: "davi", passos: [{ clicar: "Conceder benefício" }, ...escolhaDavi, { preencher: ["Percentual", "70"] }, { escolher: ["Decidido por *", "Marcos Leão"] }, { preencher: ["Validade", "2026-12-31"] }, { preencher: ["Motivo *", "Atleta da equipe kids · campeão estadual"] }] },
+  { nome: "beneficio-substituir", rota: "/beneficios", perfil: ana, canvas: "BeneficioSubstituir", beneficios: "marina", passos: [{ clicar: "Conceder benefício" }, { preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Marina" ] }, { clicar: "Marina Teixeira" }, { escolher: ["Modalidade", "Jiu-Jitsu"] }, { preencher: ["Percentual", "50"] }, { escolher: ["Decidido por *", "Ana"] }, { preencher: ["Motivo *", "Auxilia na turma Kids"] }, { clicar: "Conceder benefício" }], limiteCanvas: { valor: 0.7, motivo: "medido a 56,4%: fundo: o canvas mostra a tela de Planos atrás da janela de confirmação, e o sistema abre a confirmação sobre a janela Conceder benefício (que continua aberta para o \"Manter o atual\" voltar ao formulário preenchido, D9); a estrutura da janela confere lado a lado (capturas em .capturas/481); removido pela #577" } },
+  { nome: "beneficio-encerrar", rota: "/beneficios", perfil: ana, canvas: "BeneficioEncerrar", beneficios: "lista", passos: [{ clicar: "Encerrar o benefício de Marina Teixeira" }, { preencher: ["Motivo *", "Indicações não se matricularam"] }] },
   // Cobranças, comunicação, notificações e pedidos (#422). Janelas abrem pelos passos.
   // Sem caso: recusar pedido e recusar comprovante (o MSW não tem pedido nem comprovante em aberto), recibo público (o MSW começa sem recibo, o código nasce no pagamento), painel da cobrança, registrar pagamento, cancelar, alterar vencimento e renegociar (id gerado ou fluxo longo), lembrete (seleção em lote) e imagem do comprovante; GM* são as mesmas telas a 390 px (D1).
   { nome: "cobranca-avulsa", rota: "/cobrancas", perfil: ana, canvas: "CobrancaAvulsa", passos: [{ clicar: "Nova cobrança" }], limiteCanvas: { valor: 0.70, motivo: "medido a 66,2%: dados e fundo: o canvas mostra outra cobrança, outra unidade e a lista atrás com 12 linhas e filtros do mês; a estrutura da janela confere lado a lado (capturas em .capturas/477); removido pela #573" } },
@@ -229,8 +234,8 @@ export const semCaso: Record<string, string[]> = {
     "PedidoEncerramentoRecusar",
     "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "SomenteLeitura",
-    "Estornar", "ExportarMensalidades", "BeneficioEncerrar",
-    "BeneficioSubstituir", "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
+    "Estornar", "ExportarMensalidades",
+    "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
     "PagamentosDesconectado", "ModalidadeDesativar", "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",

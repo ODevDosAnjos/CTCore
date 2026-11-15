@@ -10,18 +10,20 @@ import type { BenefitRow } from "./useBenefits";
 
 const benefit: BenefitRow = {
   id: "b1",
-  student: { id: "s1", name: "Ana Souza" },
-  unit: { id: "u1", name: "Centro" },
-  modality: { id: "m1", name: "Judô" },
-  type: "PERCENT",
-  value: 30,
-  reason: "Bolsa",
-  decidedBy: "Mestre",
+  student: { id: "s1", name: "Marina Teixeira" },
+  unit: { id: "u1", name: "Tijuca" },
+  modality: { id: "m1", name: "Jiu-Jitsu" },
+  type: "AMOUNT",
+  value: 3000,
+  reason: "Indicou 2 alunos",
+  decidedBy: "Carla Mendes",
   grantedBy: "Gestora",
-  validUntil: null,
+  validUntil: "2026-11-30",
   status: "ACTIVE",
   high: false,
-  monthlyValueCents: 10500,
+  monthlyValueCents: 15000,
+  planValueCents: 18000,
+  nextChargeMonth: "2026-11",
 };
 const onDone = vi.fn();
 const onClose = vi.fn();
@@ -37,15 +39,18 @@ function setup(end: () => Response) {
   );
 }
 const send = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.type(screen.getByLabelText("Motivo do encerramento"), "Mudou de cidade");
+  await user.type(screen.getByLabelText(/^Motivo/), "Mudou de cidade");
   await user.click(screen.getByRole("button", { name: "Encerrar benefício" }));
 };
 
 describe("janela Encerrar benefício (RF-BEN-03, CA10, CA11)", () => {
-  it("mostra aluno e modalidade, só habilita com motivo e fecha ao confirmar", async () => {
+  it("CA13: mostra o resumo e a nota do valor da próxima cobrança, só habilita com motivo e fecha ao confirmar", async () => {
     const user = userEvent.setup();
     setup(() => HttpResponse.json({ ...benefit, status: "ENDED" }));
-    expect(screen.getByText("Ana Souza · Judô")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Encerrar benefício" })).toBeInTheDocument();
+    expect(screen.getByText("Marina Teixeira · Jiu-Jitsu · desconto de R$ 30,00 · até 11/2026")).toBeInTheDocument();
+    expect(screen.getByText("A próxima cobrança gerada (nov/2026) volta a R$ 180,00. A de out/2026 não muda.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Encerrar benefício" })).toBeDisabled();
     await send(user);
     await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -76,7 +81,7 @@ describe("janela Encerrar benefício (RF-BEN-03, CA10, CA11)", () => {
     setup(() => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }));
     await send(user);
     await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
-    expect(screen.getByLabelText("Motivo do encerramento")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Motivo/)).toBeInTheDocument();
   });
 
   it.each([
