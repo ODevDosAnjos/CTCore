@@ -9,3 +9,10 @@ reason = "Sem correção na 6.2.x; SSE com fragmentos não é usado"
 id = "GHSA-pc63-qcmh-9cmg"
 ignoreUntil = 2027-01-15
 reason = "Sem correção na 6.2.x; XsltView não é usada"
+
+# picomatch (<= 4.0.7, última versão publicada): ReDoS em extglobs repetidos, sem correção.
+# Só entra por vite e vitest (ferramentas de build e teste, fora do runtime). Remoção: #587.
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2027-01-15
+reason = "Sem versão corrigida; picomatch só em vite/vitest (build e teste), fora do runtime"
