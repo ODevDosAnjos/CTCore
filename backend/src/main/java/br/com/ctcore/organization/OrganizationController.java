@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/organization")
 class OrganizationController {
-    record UpdateRequest(String name, String color, String holderDocument) {}
+    record UpdateRequest(String name, String color, String holderDocument, OrganizationRules.Request rules) {}
 
     record TransferRequest(String email, String confirmation) {}
 
@@ -45,7 +45,7 @@ class OrganizationController {
     @PatchMapping
     OrganizationView update(@AuthenticationPrincipal AccountPrincipal who, @RequestHeader(value = "If-Match", required = false) String ifMatch,
             @RequestBody UpdateRequest body, HttpServletRequest request) {
-        return profile.update(who, ifMatch,body.name(), body.color(), body.holderDocument(), request.getRemoteAddr());
+        return profile.update(who, ifMatch, body.name(), body.color(), body.holderDocument(), body.rules(), request.getRemoteAddr());
     }
 
     @PutMapping(value = "/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

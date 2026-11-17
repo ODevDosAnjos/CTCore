@@ -97,6 +97,46 @@ describe("organização x OpenAPI (CA21)", () => {
   });
 });
 
+describe("regras e Coordenador x OpenAPI (RF-ORG-01, RN-ORG-13, CA13)", () => {
+  const rules = (over: Record<string, unknown> = {}) => ({ deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, trialLimit: 3, crossUnitTraining: "denied", ...over });
+
+  it("a leitura traz rules e coordinator do contrato e o PATCH com rules grava, valida a faixa e, sem rules, mantém", async () => {
+    await login("ana@exemplo.com");
+    const read = await (await get()).json();
+    expect(Object.keys(read.rules).sort()).toEqual(Object.keys(openapi.components.schemas.OrganizationRules.properties).sort());
+    expect(Object.keys(read.coordinator).sort()).toEqual(Object.keys(openapi.components.schemas.Coordinator.properties).sort());
+    expect(Object.keys(openapi.components.schemas.OrganizationUpdateRequest.properties)).toContain("rules");
+
+    const saved = await patch({ name: "Dojo", rules: rules() });
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toMatchObject({ rules: rules(), version: 1 });
+    expect((await (await patch({ name: "Dojo" })).json()).rules).toEqual(rules());
+    expect((await (await patch({ name: "Dojo", rules: rules() })).json()).version).toBe(1);
+
+    for (const [over, field] of [
+      [{ deactivationDays: 14 }, "rules.deactivationDays"],
+      [{ deactivationDays: 91 }, "rules.deactivationDays"],
+      [{ formerStudentRetentionMonths: 0 }, "rules.formerStudentRetentionMonths"],
+      [{ trialRetentionMonths: 61 }, "rules.trialRetentionMonths"],
+      [{ trialLimit: 4 }, "rules.trialLimit"],
+      [{ crossUnitTraining: "x" }, "rules.crossUnitTraining"],
+    ] as const) {
+      const res = await patch({ name: "Dojo", rules: rules(over) });
+      expect(res.status).toBe(400);
+      expect((await res.json()).fields.map((f: { field: string }) => f.field)).toContain(field);
+    }
+    expect((await (await get()).json()).rules).toEqual(rules());
+  });
+
+  it("o Administrador lê rules e coordinator e não grava regra (403)", async () => {
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
+    const read = await (await get()).json();
+    expect(read.rules.deactivationDays).toBe(30);
+    expect(read.coordinator.email).toBeTruthy();
+    expect((await patch({ name: "Hack", rules: rules() })).status).toBe(403);
+  });
+});
+
 describe("transferência da coordenação x OpenAPI (RF-ORG-06, CA16)", () => {
   const transfer = (body: unknown, token?: string) =>
     fetch("/api/v1/organization/coordination-transfer", {

@@ -7,6 +7,7 @@ import br.com.ctcore.audit.AuditActor;
 import br.com.ctcore.audit.AuditEntry;
 import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
+import br.com.ctcore.identity.TwoFactorService;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
@@ -30,27 +31,35 @@ public class OrganizationProfile {
     static final int MAX_NAME = 120;
 
     /** Resposta de GET e das escritas; {@code logoUrl} é a URL temporária assinada, nunca o caminho no armazenamento. */
-    public record OrganizationView(String name, String color, String holderDocument, String logoUrl, int version, LastChange lastChange) {}
+    public record OrganizationView(String name, String color, String holderDocument, String logoUrl, int version, LastChange lastChange,
+            OrganizationRules rules, Coordinator coordinator) {}
+
+    /** Coordenador ativo da organização (dado de conta visível à gestão); nulo se não houver vínculo ativo. */
+    public record Coordinator(String name, String email, boolean twoFactorEnabled) {}
 
     public record Brand(String name, String color, String logoUrl) {}
 
     private record Row(String name, String color, String holder, String logo, int version) {}
 
-    private record Loaded(Row row, LastChange last) {}
+    private record CoordinatorRow(UUID accountId, String name, String email) {}
+
+    private record Loaded(Row row, LastChange last, OrganizationRules rules, CoordinatorRow coordinator) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
     private final Permissions permissions;
     private final AuditService audit;
     private final FileStorage storage;
+    private final TwoFactorService twoFactor;
 
     public OrganizationProfile(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Permissions permissions,
-            AuditService audit, FileStorage storage) {
+            AuditService audit, FileStorage storage, TwoFactorService twoFactor) {
         this.jdbc = jdbc;
         this.transactions = transactions;
         this.permissions = permissions;
         this.audit = audit;
         this.storage = storage;
+        this.twoFactor = twoFactor;
     }
 
     public OrganizationView read(AccountPrincipal who) {
@@ -66,7 +75,7 @@ public class OrganizationProfile {
         });
     }
 
-    public OrganizationView update(AccountPrincipal who, String ifMatch, String name, String color, String holderDocument, String ip) {
+    public OrganizationView update(AccountPrincipal who, String ifMatch, String name, String color, String holderDocument, OrganizationRules.Request rulesRequest, String ip) {
         requireWrite(who);
         int expectedVersion = IfMatch.version(ifMatch);
         String newName = name == null ? "" : name.trim();
@@ -74,16 +83,31 @@ public class OrganizationProfile {
         if (newName.length() > MAX_NAME) throw new ApiValidationException("name", "no máximo 120 caracteres");
         String newColor = field("color", () -> BrandColor.normalize(color));
         String newHolder = field("holderDocument", () -> HolderDocument.normalize(holderDocument));
+        OrganizationRules newRules = rulesRequest == null ? null : OrganizationRules.validate(rulesRequest);
         Loaded after = transactions.execute(() -> {
             Row before = lockedRow(who.organizationId());
             if (before.version() != expectedVersion) throw new ApiStatusException(ErrorCode.EDIT_CONFLICT);
+            OrganizationRules oldRules = rules(who.organizationId());
+            OrganizationRules nextRules = newRules == null ? oldRules : newRules;
+            boolean rulesChanged = !nextRules.equals(oldRules);
             Row next = new Row(newName, newColor, newHolder, before.logo(), before.version());
-            if (!next.equals(before)) {
+            if (!next.equals(before) || rulesChanged) {
                 next = new Row(newName, newColor, newHolder, before.logo(), before.version() + 1);
                 jdbc.sql("update organization set name = :name, color = :color, holder_document = :holder, version = version + 1 where id = :id")
                         .param("name", newName).param("color", newColor).param("holder", newHolder)
                         .param("id", who.organizationId()).update();
-                audit.record(entry(who, "organization.update", ip, auditValues(before), auditValues(next)));
+                Map<String, Object> oldAudit = auditValues(before);
+                Map<String, Object> newAudit = auditValues(next);
+                if (rulesChanged) {
+                    jdbc.sql("update organization_settings set deactivation_days = :d, former_student_retention_months = :f, "
+                            + "trial_retention_months = :t, trial_limit = :l, cross_unit_training = :c where organization_id = :id")
+                            .param("d", nextRules.deactivationDays()).param("f", nextRules.formerStudentRetentionMonths())
+                            .param("t", nextRules.trialRetentionMonths()).param("l", nextRules.trialLimit())
+                            .param("c", nextRules.crossUnitTraining()).param("id", who.organizationId()).update();
+                    oldAudit.put("rules", oldRules.auditValues());
+                    newAudit.put("rules", nextRules.auditValues());
+                }
+                audit.record(entry(who, "organization.update", ip, oldAudit, newAudit));
             }
             return loaded(next, who);
         });
@@ -154,12 +178,31 @@ public class OrganizationProfile {
     }
 
     private Loaded loaded(Row row, AccountPrincipal who) {
-        return new Loaded(row, LastChange.find(jdbc, who.organizationId(), "organization", who.organizationId(), LastChange.ORGANIZATION_ACTIONS));
+        return new Loaded(row, LastChange.find(jdbc, who.organizationId(), "organization", who.organizationId(), LastChange.ORGANIZATION_ACTIONS),
+                rules(who.organizationId()), coordinator(who.organizationId()));
+    }
+
+    private OrganizationRules rules(UUID organizationId) {
+        return jdbc.sql("select deactivation_days, former_student_retention_months, trial_retention_months, trial_limit, cross_unit_training "
+                + "from organization_settings where organization_id = :id").param("id", organizationId)
+                .query((rs, i) -> new OrganizationRules(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getString(5))).single();
+    }
+
+    private CoordinatorRow coordinator(UUID organizationId) {
+        return jdbc.sql("select a.id, a.name, a.email "
+                + "from account_link l join account a on a.id = l.account_id "
+                + "where l.organization_id = :id and l.role = 'COORDINATOR' and l.status = 'ACTIVE' limit 1").param("id", organizationId)
+                .query((rs, i) -> new CoordinatorRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3))).optional().orElse(null);
     }
 
     private OrganizationView view(Loaded loaded) {
         Row row = loaded.row();
-        return new OrganizationView(row.name(), row.color(), row.holder(), logoUrl(row), row.version(), loaded.last());
+        return new OrganizationView(row.name(), row.color(), row.holder(), logoUrl(row), row.version(), loaded.last(), loaded.rules(), coordinator(loaded.coordinator()));
+    }
+
+    // Duas etapas ficam sob o escopo da conta (RLS), fora da transação da organização.
+    private Coordinator coordinator(CoordinatorRow c) {
+        return c == null ? null : new Coordinator(c.name(), c.email(), twoFactor.enabled(c.accountId()));
     }
 
     private String logoUrl(Row row) {
