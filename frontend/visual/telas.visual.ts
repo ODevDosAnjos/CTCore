@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada") {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica") {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -166,6 +166,20 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       }, unidadeCanvas);
     }
+    if (unidadesCanvas) {
+      // #484: a lista do canvas (Tijuca, Barra e Méier desativada em 30/06/2026) ou só "Academia Leão · Tijuca"; a Barra tem 83 alunos e 5 turmas ativos, sem cobrança em conferência
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async (cenario) => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const base = { shortNameAdjusted: false, city: "Rio de Janeiro/RJ", active: true, deactivatedAt: null as string | null };
+        const tijuca = { ...base, id: "00000000-0000-0000-0000-0000000004a1", name: "Tijuca", shortName: "academia-leao-tijuca", activeStudents: 131, administrators: [{ name: "Carla Mendes" }] };
+        const barra = { ...base, id: "00000000-0000-0000-0000-0000000004a2", name: "Barra", shortName: "academia-leao-barra", activeStudents: 83, administrators: [{ name: "Carla Mendes" }, { name: "Diego Alves" }] };
+        const meier = { ...base, id: "00000000-0000-0000-0000-0000000004a3", name: "Méier", shortName: "academia-leao-meier", activeStudents: 0, administrators: [], active: false, deactivatedAt: "2026-06-30T15:00:00Z" };
+        const unica = { ...tijuca, name: "Academia Leão · Tijuca", city: "Rio de Janeiro" };
+        override({ method: "get", path: "/units", status: 200, body: cenario === "unica" ? [unica] : [tijuca, barra, meier] });
+        override({ method: "get", path: `/units/${barra.id}/deactivation-check`, status: 200, body: { activeStudents: 83, activeClasses: 5, pendingProofs: 0, lastActiveUnit: false, canDeactivate: false } });
+      }, unidadesCanvas);
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -240,7 +254,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

@@ -4,7 +4,6 @@ import { Modal } from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
-import type { UnitSummary } from "./useUnits";
 
 const FORMAT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -14,7 +13,7 @@ export function ShortNameDialog({
   onClose,
   onSave,
 }: {
-  unit: UnitSummary | null;
+  unit: { id: string; name: string; shortName: string } | null;
   onClose: () => void;
   onSave: (id: string, shortName: string) => Promise<unknown>;
 }) {

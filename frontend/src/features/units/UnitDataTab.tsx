@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/Card";
 import { MoneyField, PhoneField } from "@/components/fields/fields";
 import { formatCep, formatCpfCnpj } from "@/components/fields/masks";
+import { Button } from "@/components/ui/button";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { Field, Select } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { ShortNameDialog } from "./ShortNameDialog";
 import { Err, Text } from "./Text";
 import { SwitchRow } from "./SwitchRow";
 import { UnitModalitiesSection } from "./UnitModalitiesSection";
@@ -15,6 +19,9 @@ const DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 // Aba Dados (R3): os campos da unidade, a cobrança, as modalidades (gravam na hora) e o diretório ("Em breve").
 export function UnitDataTab({ d, set, problems, errors, unitId, shortName, timezone }: TabProps & { unitId: string; shortName: string; timezone: string }) {
   const { t } = useTranslation();
+  // D3 (item 484): o ajuste único do nome curto (RN-ORG-15) sai da lista e fica aqui; o servidor recusa o segundo (409).
+  const [adjusting, setAdjusting] = useState(false);
+  const [adjusted, setAdjusted] = useState<string>();
   const shown = (field: string, problem?: string) => errors[field] ?? problem;
   const toggleDay = (day: number) => set("dueDays")(d.dueDays.includes(day) ? d.dueDays.filter((x) => x !== day) : [...d.dueDays, day].sort((a, b) => a - b));
   return (
@@ -47,7 +54,14 @@ export function UnitDataTab({ d, set, problems, errors, unitId, shortName, timez
                 </Select>
               )}
             </Field>
-            <Text label={t("unitSettings.shortName")} value={shortName} onChange={() => undefined} readOnly help={t("unitSettings.shortNameHelp")} />
+            <div className="flex flex-col items-start gap-1">
+              <Text label={t("unitSettings.shortName")} value={adjusted ?? shortName} onChange={() => undefined} readOnly help={t("unitSettings.shortNameHelp")} />
+              {adjusted === undefined && (
+                <Button type="button" variant="secondary" size="sm" onClick={() => setAdjusting(true)}>
+                  {t("units.adjust")}
+                </Button>
+              )}
+            </div>
             <details className="sm:col-span-2">
               <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">{t("unitSettings.coordinatesToggle")}</summary>
               <div className="flex flex-col gap-3">
@@ -101,6 +115,14 @@ export function UnitDataTab({ d, set, problems, errors, unitId, shortName, timez
         <ComingSoon variant="switch" label={t("unitSettings.directory")} />
         <p className="text-sm text-muted-foreground">{t("unitSettings.directoryHelp")}</p>
       </Card>
+      <ShortNameDialog
+        unit={adjusting ? { id: unitId, name: d.name, shortName: adjusted ?? shortName } : null}
+        onClose={() => setAdjusting(false)}
+        onSave={async (id, value) => {
+          await api(`/units/${id}/short-name`, { method: "PATCH", body: { shortName: value } });
+          setAdjusted(value);
+        }}
+      />
     </div>
   );
 }

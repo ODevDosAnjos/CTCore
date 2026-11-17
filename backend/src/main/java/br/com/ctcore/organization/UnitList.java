@@ -31,11 +31,11 @@ public class UnitList {
     public record Administrator(String name) {}
 
     public record UnitSummary(UUID id, String name, String shortName, boolean shortNameAdjusted, String city, int activeStudents,
-            List<Administrator> administrators, boolean active) {}
+            List<Administrator> administrators, boolean active, OffsetDateTime deactivatedAt) {}
 
-    private record Row(UUID id, String name, String shortName, boolean adjusted, String city, boolean active) {}
+    private record Row(UUID id, String name, String shortName, boolean adjusted, String city, boolean active, OffsetDateTime deactivatedAt) {}
 
-    private static final String COLUMNS = "select id, name, short_name, short_name_adjusted, city, active from unit ";
+    private static final String COLUMNS = "select id, name, short_name, short_name_adjusted, city, active, deactivated_at from unit ";
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -92,7 +92,7 @@ public class UnitList {
                     .param("n", shortName).param("id", unitId).param("org", who.organizationId()).update();
             audit.record(new AuditEntry(new AuditActor(AuditActor.Type.ACCOUNT, who.accountId(), who.role().name()), "unit.short_name.update",
                     "unit", unitId.toString(), unitId, Map.of("shortName", before.shortName()), Map.of("shortName", shortName), null, ip));
-            return summary(new Row(unitId, before.name(), shortName, true, before.city(), before.active()), administrators(who.organizationId()));
+            return summary(new Row(unitId, before.name(), shortName, true, before.city(), before.active(), before.deactivatedAt()), administrators(who.organizationId()));
         });
     }
 
@@ -115,10 +115,10 @@ public class UnitList {
 
     private UnitSummary summary(Row r, Map<UUID, List<Administrator>> admins) {
         return new UnitSummary(r.id(), r.name(), r.shortName(), r.adjusted(), r.city(), blockers.activeStudents(r.id()),
-                admins.getOrDefault(r.id(), List.of()), r.active());
+                admins.getOrDefault(r.id(), List.of()), r.active(), r.deactivatedAt());
     }
 
     private static Row row(ResultSet rs, int i) throws SQLException {
-        return new Row(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getString(5), rs.getBoolean(6));
+        return new Row(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getString(5), rs.getBoolean(6), rs.getObject(7, OffsetDateTime.class));
     }
 }

@@ -551,8 +551,9 @@ paths:
     get:
       summary: O que impede desativar a unidade (RF-ORG-07). Só o Coordenador.
       description: |
-        `canDeactivate` é verdadeiro só sem alunos com modalidade ativa, sem turmas ativas e havendo outra unidade ativa
-        (`lastActiveUnit` falso). `activeStudents` (alunos distintos com modalidade ativa na unidade) e `activeClasses` vêm do banco.
+        `canDeactivate` é verdadeiro só sem alunos com modalidade ativa, sem turmas ativas, sem cobranças em conferência e havendo outra
+        unidade ativa (`lastActiveUnit` falso). `activeStudents` (alunos distintos com modalidade ativa na unidade), `activeClasses` e
+        `pendingProofs` (cobranças `IN_REVIEW` da unidade) vêm do banco.
         Unidade de outra organização ou inexistente responde 404.
       security: [{ sessionCookie: [] }]
       parameters:
@@ -568,10 +569,10 @@ paths:
     post:
       summary: Desativa a unidade (RF-ORG-07, RN-ORG-11). Só o Coordenador.
       description: |
-        Exige `X-Reauth-Token` da ação `DEACTIVATE_UNIT` (uso único; sem token válido, 403 REAUTH_REQUIRED) e a confirmação digitada igual ao
-        nome da unidade (sem diferenciar maiúsculas, sem espaços nas pontas; senão 400 VALIDATION_ERROR no campo `confirmation`).
-        Com aluno de modalidade ativa, turma ativa ou sendo a única unidade ativa, responde 409 `UNIT_HAS_BLOCKERS` e `fields` traz
-        `activeStudents`, `activeClasses` e `lastActiveUnit` (valores em texto); nada muda e o token não é gasto.
+        Exige `X-Reauth-Token` da ação `DEACTIVATE_UNIT` (uso único; sem token válido, 403 REAUTH_REQUIRED) e a confirmação digitada `DESATIVAR`
+        (sem diferenciar maiúsculas, sem espaços nas pontas; senão 400 VALIDATION_ERROR no campo `confirmation`).
+        Com aluno de modalidade ativa, turma ativa, cobrança em conferência ou sendo a única unidade ativa, responde 409 `UNIT_HAS_BLOCKERS`
+        e `fields` traz `activeStudents`, `activeClasses`, `pendingProofs` e `lastActiveUnit` (valores em texto); nada muda e o token não é gasto.
         Unidade já desativada responde 409 `CONFLICT`; de outra organização ou inexistente, 404. Nada é apagado: a unidade segue em
         `GET /units` com `active = false` e sai de `GET /units/reachable`. Grava `unit.deactivated` na auditoria, com antes e depois.
       security: [{ sessionCookie: [], csrfHeader: [] }]
@@ -586,7 +587,7 @@ paths:
               type: object
               required: [confirmation]
               properties:
-                confirmation: { type: string, description: 'Nome da unidade.' }
+                confirmation: { type: string, description: 'DESATIVAR.' }
       responses:
         '204': { description: Unidade desativada. }
         '400': { $ref: '#/components/responses/BadRequest' }
@@ -4094,10 +4095,11 @@ components:
         rules: { allOf: [{ $ref: '#/components/schemas/OrganizationRules' }], description: 'Opcional; omitido, as regras ficam como estão. Valor fora da faixa responde 400 com o campo `rules.<campo>`.' }
     UnitDeactivationCheck:
       type: object
-      required: [activeStudents, activeClasses, lastActiveUnit, canDeactivate]
+      required: [activeStudents, activeClasses, pendingProofs, lastActiveUnit, canDeactivate]
       properties:
         activeStudents: { type: integer, minimum: 0 }
         activeClasses: { type: integer, minimum: 0 }
+        pendingProofs: { type: integer, minimum: 0, description: 'Cobranças da unidade em conferência (IN_REVIEW).' }
         lastActiveUnit: { type: boolean }
         canDeactivate: { type: boolean }
     Modality:
@@ -5183,7 +5185,7 @@ components:
                     maxDegree: { type: integer, minimum: 0, maximum: 10 }
     UnitSummary:
       type: object
-      required: [id, name, shortName, shortNameAdjusted, city, activeStudents, administrators, active]
+      required: [id, name, shortName, shortNameAdjusted, city, activeStudents, administrators, active, deactivatedAt]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -5199,6 +5201,7 @@ components:
             properties:
               name: { type: string }
         active: { type: boolean, description: 'Verdadeiro = Ativa; falso = Desativada.' }
+        deactivatedAt: { type: string, format: date-time, nullable: true, description: 'Instante da desativação; nulo nas ativas e nas desativadas antes deste campo existir.' }
     StaffUser:
       type: object
       required: [linkId, name, email, role, units, lastAccessAt, status, canManage]

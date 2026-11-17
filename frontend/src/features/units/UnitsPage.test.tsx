@@ -19,36 +19,26 @@ const session = (role: string): SessionView => ({
 });
 const unit = (over: Partial<UnitSummary> = {}): UnitSummary => ({
   id: "u1",
-  name: "Unidade Centro",
-  shortName: "alfa-centro",
+  name: "Tijuca",
+  shortName: "academia-leao-tijuca",
   shortNameAdjusted: false,
-  city: "Rio de Janeiro",
-  activeStudents: 0,
-  administrators: [{ name: "Bruno" }, { name: "Carla" }],
+  city: "Rio de Janeiro/RJ",
+  activeStudents: 131,
+  administrators: [{ name: "Carla Mendes" }],
   active: true,
+  deactivatedAt: null,
   ...over,
 });
-const two = [unit(), unit({ id: "u2", name: "Unidade Norte", shortName: "alfa-norte", shortNameAdjusted: true, city: null, administrators: [], active: false })];
+const barra = unit({ id: "u2", name: "Barra", shortName: "academia-leao-barra", activeStudents: 83, administrators: [{ name: "Carla Mendes" }, { name: "Diego Alves" }] });
+const meier = unit({ id: "u3", name: "Méier", shortName: "academia-leao-meier", activeStudents: 0, administrators: [], active: false, deactivatedAt: "2026-06-30T15:00:00Z" });
+const three = [unit(), barra, meier];
 
-let patches: unknown[];
-
-function setup(role: string, read: () => Response | Promise<Response> = () => HttpResponse.json(two)) {
-  patches = [];
-  let stored = two;
+function setup(role: string, read: () => Response | Promise<Response> = () => HttpResponse.json(three)) {
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: false, units: [] })),
     http.get("/api/v1/units", read),
-    http.patch("/api/v1/units/:id/short-name", async ({ request, params }) => {
-      const body = (await request.json()) as { shortName: string };
-      patches.push(body);
-      if (body.shortName === "em-uso") return HttpResponse.json({ code: "CONFLICT", fields: [] }, { status: 409 });
-      if (body.shortName === "quebrado") return HttpResponse.json({ code: "INTERNAL_ERROR", fields: [] }, { status: 500 });
-      const changed = { ...stored.find((u) => u.id === params.id)!, shortName: body.shortName, shortNameAdjusted: true };
-      stored = stored.map((u) => (u.id === params.id ? changed : u));
-      return HttpResponse.json(changed);
-    }),
   );
   return render(
     <ThemeProvider>
@@ -64,21 +54,43 @@ function setup(role: string, read: () => Response | Promise<Response> = () => Ht
 const ready = () => screen.findByRole("heading", { name: "Unidades", level: 1 });
 
 describe("UnitsPage", () => {
-  it("CA1 / CA2: lista cidade, alunos ativos, Administradores, situação e nome curto; só a unidade não ajustada tem o botão", async () => {
+  it("CA1 / CA2 / CA3: subtítulo, tabela em cartão, selos, Abrir, Ver histórico em breve, nota e botões vermelhos", async () => {
     setup("COORDINATOR");
     await ready();
-    const rowOf = (name: string) => screen.getAllByRole("row").find((r) => r.querySelector("td")?.textContent === name)!;
-    const centro = rowOf("Unidade Centro");
-    expect(within(centro).getByText("Rio de Janeiro")).toBeInTheDocument();
-    expect(within(centro).getByText("Bruno, Carla")).toBeInTheDocument();
-    expect(within(centro).getByText("Ativa")).toBeInTheDocument();
-    expect(within(centro).getByText("alfa-centro")).toBeInTheDocument();
-    expect(within(centro).getByRole("button", { name: /Ajustar nome curto/ })).toBeInTheDocument();
-    const norte = rowOf("Unidade Norte");
-    expect(within(norte).getByText("Não informada")).toBeInTheDocument();
-    expect(within(norte).getByText("Nenhum Administrador")).toBeInTheDocument();
-    expect(within(norte).getByText("Desativada")).toBeInTheDocument();
-    expect(within(norte).queryByRole("button")).toBeNull();
+    expect(screen.getByText(/^2 ativas · até 10 unidades e 200 usuários por organização · unidades não mudam o preço$/)).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Unidades da organização" });
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Unidade", "Cidade", "Alunos ativos", "Administradores", "Situação", "Nome curto", "Ações"]);
+    const rowOf = (name: string) => within(table).getAllByRole("row").find((r) => r.querySelector("td")?.textContent === name)!;
+    const tijuca = rowOf("Tijuca");
+    expect(within(tijuca).getByText("Rio de Janeiro/RJ")).toBeInTheDocument();
+    expect(within(tijuca).getByText("Ativa")).toBeInTheDocument();
+    expect(within(tijuca).getByRole("link", { name: /Abrir/ })).toHaveAttribute("href", "/configuracoes/unidade?unidade=u1");
+    expect(within(rowOf("Barra")).getByText("Carla Mendes, Diego Alves")).toBeInTheDocument();
+    const meierRow = rowOf("Méier");
+    expect(within(meierRow).getByText("Desativada em 30/06/2026")).toBeInTheDocument();
+    expect(within(meierRow).getByText("Nenhum Administrador")).toBeInTheDocument();
+    expect(within(meierRow).getByRole("button", { name: "Ver histórico" })).toHaveAttribute("aria-disabled", "true");
+    expect(within(meierRow).getByText("Em breve")).toBeInTheDocument();
+    expect(within(table).queryByRole("button", { name: /Configurar|Desativar a|Ajustar nome curto/ })).toBeNull();
+    expect(screen.getByText("O nome curto aparece nos links públicos (ctcore.com.br/aula/academia-leao-tijuca). É único na plataforma e pode ser ajustado uma vez; o antigo redireciona.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desativar a Tijuca…" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desativar a Barra…" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desativar a Méier…" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Nova unidade" })).toHaveAttribute("href", "/configuracoes/unidades/nova");
+  });
+
+  it("CA1: com uma só unidade ativa o subtítulo é \"1 unidade ativa\" e o botão abre a janela informativa", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", () => HttpResponse.json([unit()]));
+    await ready();
+    expect(screen.getByText("1 unidade ativa")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Desativar a Tijuca…" }));
+    const dialog = await screen.findByRole("dialog", { name: "A única unidade ativa não pode ser desativada" });
+    expect(within(dialog).getByText(/cancele a assinatura em Configurações › Assinatura/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Ir para a assinatura" })).toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).queryByRole("textbox")).toBeNull();
+    await user.click(within(dialog).getAllByRole("button", { name: "Fechar" })[1]);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("CA13: mostra carregando, depois erro com nova tentativa que recarrega, e vazio", async () => {
@@ -95,50 +107,18 @@ describe("UnitsPage", () => {
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
   });
 
-  it("CA16: o Administrador não vê Unidades no menu e a rota mostra que a área não está disponível", async () => {
+  it("CA14: o Administrador não vê Unidades no menu e a rota mostra que a área não está disponível", async () => {
     setup("ADMINISTRATOR");
     expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Unidades", level: 1 })).toBeNull();
   });
 
-  it("CA14: o Coordenador ajusta o nome curto, o botão some e a lista mostra o valor novo", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR");
+  it("com 10 unidades o botão Nova unidade fica desabilitado com o motivo", async () => {
+    setup("COORDINATOR", () => HttpResponse.json(Array.from({ length: 10 }, (_, i) => unit({ id: `u${i}`, name: `Unidade ${i}` }))));
     await ready();
-    await user.click(screen.getByRole("button", { name: /Ajustar nome curto/ }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/só pode ajustar o nome curto uma vez/)).toBeInTheDocument();
-    await user.type(within(dialog).getByLabelText("Novo nome curto"), "centro-novo");
-    await user.click(within(dialog).getByRole("button", { name: "Ajustar" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(patches).toEqual([{ shortName: "centro-novo" }]);
-    expect(screen.getByText("centro-novo")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Ajustar nome curto/ })).toBeNull();
-  });
-
-  it("CA14: formato inválido bloqueia o envio; nome em uso (409) e falha do servidor mostram a mensagem e mantêm a janela aberta", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR");
-    await ready();
-    await user.click(screen.getByRole("button", { name: /Ajustar nome curto/ }));
-    const dialog = await screen.findByRole("dialog");
-    const input = within(dialog).getByLabelText("Novo nome curto");
-    const confirm = within(dialog).getByRole("button", { name: "Ajustar" });
-    expect(confirm).toBeDisabled();
-    await user.type(input, "Maiuscula");
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("Use até 60 letras minúsculas");
-    expect(confirm).toBeDisabled();
-    await user.clear(input);
-    await user.type(input, "em-uso");
-    await user.click(confirm);
-    expect(await within(dialog).findByText("Este nome curto não está disponível. Escolha outro.")).toBeInTheDocument();
-    await user.clear(input);
-    await user.type(input, "quebrado");
-    await user.click(confirm);
-    expect(await within(dialog).findByText("Não foi possível ajustar o nome curto. Tente de novo.")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(screen.getByText("alfa-centro")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Nova unidade" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription(/10 unidades/);
   });
 
   it.each([
@@ -151,7 +131,7 @@ describe("UnitsPage", () => {
     const { container } = setup("COORDINATOR");
     await ready();
     expect(await axeViolations(container)).toEqual([]);
-    await user.click(screen.getByRole("button", { name: /Ajustar nome curto/ }));
+    await user.click(screen.getByRole("button", { name: "Desativar a Barra…" }));
     await screen.findByRole("dialog");
     expect(await axeViolations(document.body)).toEqual([]);
   });

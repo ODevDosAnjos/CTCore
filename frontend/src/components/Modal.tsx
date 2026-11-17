@@ -19,6 +19,7 @@ export function Modal({
   scrim,
   headless,
   fullOnMobile,
+  tone,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +39,8 @@ export function Modal({
   headless?: boolean;
   /** Abaixo de 640 px a janela ocupa a tela, com seta de voltar, corpo rolável e rodapé fixo (Encerrar modalidade). */
   fullOnMobile?: boolean;
+  /** "danger": título em vermelho (janelas de desativar do canvas). */
+  tone?: "danger";
 }) {
   const { t } = useTranslation();
   const opener = useRef<HTMLElement | null>(null);
@@ -75,7 +78,7 @@ export function Modal({
                   </Button>
                 </Dialog.Close>
               )}
-              <Dialog.Title className={cn("font-heading font-semibold", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
+              <Dialog.Title className={cn("font-heading font-semibold", tone === "danger" && "text-danger-foreground", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
               {dismissible && (
                 <Dialog.Close asChild>
                   <Button variant="ghost" size="icon" aria-label={t("common.close")}>

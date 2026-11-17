@@ -93,10 +93,12 @@ class UnitDeactivationIT extends UnitBase {
     @DisplayName("RN-ORG-11 / CA1 / CA5 / CA9: desativa com token e nome em outra caixa, mantém o histórico, tira de reachable e audita sem segredo")
     void deactivates() throws Exception {
         var s = setup();
-        var response = send(s.coordinator(), s.target(), "  uNiT ", s.coordinator().reauth);
+        var response = send(s.coordinator(), s.target(), "  dEsAtIvAr ", s.coordinator().reauth);
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(204);
         assertThat(active(s.target())).isFalse();
+        assertThat(adminJdbc().queryForObject("select deactivated_at is not null from unit where id = ?", Boolean.class, s.target())).isTrue();
+        assertThat(body(call(list(), s.coordinator().principal()).getResponse()).findValuesAsText("deactivatedAt")).containsOnly("null", body(call(list(), s.coordinator().principal()).getResponse()).findValuesAsText("deactivatedAt").get(1)).hasSize(2);
         assertThat(call(read(s.target()), s.coordinator().principal()).getResponse().getContentAsString()).contains("\"active\":false");
         var listed = body(call(list(), s.coordinator().principal()).getResponse());
         assertThat(listed).hasSize(2);
@@ -108,7 +110,7 @@ class UnitDeactivationIT extends UnitBase {
         assertThat(rows.get(0).toString()).contains("\"active\": true").contains("\"active\": false").doesNotContain(s.coordinator().reauth, "password");
         // segunda chamada: já desativada
         s.coordinator().token("DEACTIVATE_UNIT", "again" + s.coordinator().account);
-        assertThat(send(s.coordinator(), s.target(), "Unit", "again" + s.coordinator().account).getStatus()).isEqualTo(409);
+        assertThat(send(s.coordinator(), s.target(), "DESATIVAR", "again" + s.coordinator().account).getStatus()).isEqualTo(409);
         assertThat(audits(s.tenant())).isEqualTo(1);
     }
 
@@ -118,10 +120,10 @@ class UnitDeactivationIT extends UnitBase {
         var s = setup();
         for (Role role : List.of(Role.ADMINISTRATOR, Role.TEACHER, Role.STUDENT)) {
             var other = new Member(s.tenant(), role);
-            assertThat(send(other, s.target(), "Unit", other.reauth).getStatus()).as(role.name()).isEqualTo(403);
+            assertThat(send(other, s.target(), "DESATIVAR", other.reauth).getStatus()).as(role.name()).isEqualTo(403);
             assertThat(call(check(s.target()), other.principal()).getResponse().getStatus()).as(role.name()).isEqualTo(403);
         }
-        assertThat(call(deactivate(s.target(), "Unit", s.coordinator().reauth), null).getResponse().getStatus()).isEqualTo(401);
+        assertThat(call(deactivate(s.target(), "DESATIVAR", s.coordinator().reauth), null).getResponse().getStatus()).isEqualTo(401);
         assertThat(active(s.target())).isTrue();
         assertThat(audits(s.tenant())).isZero();
     }
@@ -132,12 +134,13 @@ class UnitDeactivationIT extends UnitBase {
         var s = setup();
         when(blockers.activeStudents(any())).thenReturn(2);
         when(blockers.activeClasses(any())).thenReturn(1);
+        when(blockers.pendingProofs(any())).thenReturn(3);
 
-        var response = send(s.coordinator(), s.target(), "Unit", s.coordinator().reauth);
+        var response = send(s.coordinator(), s.target(), "DESATIVAR", s.coordinator().reauth);
         assertThat(response.getStatus()).isEqualTo(409);
         String error = response.getContentAsString();
         assertThat(error).contains("UNIT_HAS_BLOCKERS").contains("{\"field\":\"activeStudents\",\"message\":\"2\"}")
-                .contains("{\"field\":\"activeClasses\",\"message\":\"1\"}").contains("{\"field\":\"lastActiveUnit\",\"message\":\"false\"}");
+                .contains("{\"field\":\"activeClasses\",\"message\":\"1\"}").contains("{\"field\":\"pendingProofs\",\"message\":\"3\"}").contains("{\"field\":\"lastActiveUnit\",\"message\":\"false\"}");
         assertThat(active(s.target())).isTrue();
         assertThat(unusedTokens(s.coordinator())).isEqualTo(1);
         assertThat(audits(s.tenant())).isZero();
@@ -145,10 +148,13 @@ class UnitDeactivationIT extends UnitBase {
         var check = body(call(check(s.target()), s.coordinator().principal()).getResponse());
         assertThat(check.path("activeStudents").asInt()).isEqualTo(2);
         assertThat(check.path("activeClasses").asInt()).isEqualTo(1);
+        assertThat(check.path("pendingProofs").asInt()).isEqualTo(3);
         assertThat(check.path("canDeactivate").asBoolean()).isFalse();
 
         when(blockers.activeStudents(any())).thenReturn(0);
         when(blockers.activeClasses(any())).thenReturn(0);
+        assertThat(body(call(check(s.target()), s.coordinator().principal()).getResponse()).path("canDeactivate").asBoolean()).isFalse();
+        when(blockers.pendingProofs(any())).thenReturn(0);
         var free = body(call(check(s.target()), s.coordinator().principal()).getResponse());
         assertThat(free.path("canDeactivate").asBoolean()).isTrue();
         assertThat(free.path("lastActiveUnit").asBoolean()).isFalse();
@@ -158,7 +164,7 @@ class UnitDeactivationIT extends UnitBase {
     @DisplayName("CA5: confirmação em branco ou diferente dá erro em confirmation e nada muda")
     void confirmation() throws Exception {
         var s = setup();
-        for (String word : new String[] {"", "   ", "Outra", "Unit extra", null}) {
+        for (String word : new String[] {"", "   ", "Unit", "Outra", "DESATIVAR extra", null}) {
             var response = send(s.coordinator(), s.target(), word, s.coordinator().reauth);
             assertThat(response.getStatus()).as(String.valueOf(word)).isEqualTo(400);
             assertThat(response.getContentAsString()).contains("\"field\":\"confirmation\"");
@@ -178,16 +184,16 @@ class UnitDeactivationIT extends UnitBase {
         adminJdbc().update("insert into reauth_token (account_id, session_id, action, token_hash, expires_at) values (?, ?, 'DEACTIVATE_UNIT', ?, now() - interval '1 minute')",
                 c.account, c.session, Codes.hash("expired" + c.account));
         for (String token : new String[] {null, "other-action" + c.account, "expired" + c.account, "unknown", stranger.reauth}) {
-            var response = send(c, s.target(), "Unit", token);
+            var response = send(c, s.target(), "DESATIVAR", token);
             assertThat(response.getStatus()).as(String.valueOf(token)).isEqualTo(403);
             assertThat(response.getContentAsString()).contains("REAUTH_REQUIRED");
         }
         assertThat(active(s.target())).isTrue();
         assertThat(audits(s.tenant())).isZero();
-        assertThat(send(c, s.target(), "Unit", c.reauth).getStatus()).isEqualTo(204);
+        assertThat(send(c, s.target(), "DESATIVAR", c.reauth).getStatus()).isEqualTo(204);
         // o mesmo token não serve de novo, nem em outra unidade
         var third = addUnit(s.tenant(), "Terceira", "terceira-" + s.tenant().orgId(), "Rio");
-        assertThat(send(c, third, "Terceira", c.reauth).getStatus()).isEqualTo(403);
+        assertThat(send(c, third, "DESATIVAR", c.reauth).getStatus()).isEqualTo(403);
         assertThat(active(third)).isTrue();
     }
 
@@ -196,7 +202,7 @@ class UnitDeactivationIT extends UnitBase {
     void lastUnit() throws Exception {
         var t = tenant();
         var c = new Member(t, Role.COORDINATOR);
-        var response = send(c, t.unitId(), "Unit", c.reauth);
+        var response = send(c, t.unitId(), "DESATIVAR", c.reauth);
         assertThat(response.getStatus()).isEqualTo(409);
         assertThat(response.getContentAsString()).contains("UNIT_HAS_BLOCKERS").contains("{\"field\":\"lastActiveUnit\",\"message\":\"true\"}");
         assertThat(body(call(check(t.unitId()), c.principal()).getResponse()).path("lastActiveUnit").asBoolean()).isTrue();
@@ -204,9 +210,9 @@ class UnitDeactivationIT extends UnitBase {
         assertThat(unusedTokens(c)).isEqualTo(1);
 
         var second = addUnit(t, "Segunda", "segunda-" + t.orgId(), "Rio");
-        assertThat(send(c, second, "Segunda", c.reauth).getStatus()).isEqualTo(204);
+        assertThat(send(c, second, "DESATIVAR", c.reauth).getStatus()).isEqualTo(204);
         c.token("DEACTIVATE_UNIT", "next" + c.account);
-        assertThat(send(c, t.unitId(), "Unit", "next" + c.account).getStatus()).isEqualTo(409);
+        assertThat(send(c, t.unitId(), "DESATIVAR", "next" + c.account).getStatus()).isEqualTo(409);
         assertThat(active(t.unitId())).isTrue();
     }
 
@@ -217,7 +223,7 @@ class UnitDeactivationIT extends UnitBase {
         var other = tenant();
         addUnit(other, "Outra", "outra2-" + other.orgId(), "Rio");
         for (UUID id : new UUID[] {other.unitId(), UUID.randomUUID()}) {
-            assertThat(send(s.coordinator(), id, "Unit", s.coordinator().reauth).getStatus()).isEqualTo(404);
+            assertThat(send(s.coordinator(), id, "DESATIVAR", s.coordinator().reauth).getStatus()).isEqualTo(404);
             assertThat(call(check(id), s.coordinator().principal()).getResponse().getStatus()).isEqualTo(404);
         }
         assertThat(active(other.unitId())).isTrue();

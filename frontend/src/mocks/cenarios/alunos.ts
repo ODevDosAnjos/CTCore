@@ -84,7 +84,7 @@ export function alunosCenario(ctx: Ctx) {
   // Quem já aceitou o termo; Fábio (matrícula nova) fica pendente.
   const aceitos = students.filter((s) => s.id !== ID.fabio).map((s) => s.id);
 
-  const sul = { id: ID.sul, name: "Unidade Sul", shortName: "alfa-sul", shortNameAdjusted: false, city: "Niterói" as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: true };
+  const sul = { id: ID.sul, name: "Unidade Sul", shortName: "alfa-sul", shortNameAdjusted: false, city: "Niterói" as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: true, deactivatedAt: null as string | null };
   const planSul: MockPlan = { id: ID.planSul, unitId: ID.sul, unitName: "Unidade Sul", modalityIndex: 3, name: "Jiu-Jitsu Sul Mensal", valueCents: 18000, weeklyFrequency: 3, validOtherUnits: false, status: "ACTIVE" };
   const klass = (id: string, name: string, unitId: string, modalityId: string, ageRange: string | null, schedule: MockClass["schedule"], head: string, capacity: number | null, extra: Partial<MockClass> = {}): MockClass => ({
     id, name, unitId, modalityId, ageRange, schedule, head, assistants: [], capacity, status: "ACTIVE", ...extra,

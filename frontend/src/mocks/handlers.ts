@@ -278,8 +278,8 @@ const organizationAccess = (write: boolean) => {
 };
 // Unidades da organização (RF-ORG-02), em memória. Só o Coordenador lê e ajusta; nome "em-uso" simula nome de outra organização.
 const initialUnits = () => [
-  { id: "00000000-0000-0000-0000-000000000021", name: "Unidade Centro", shortName: "alfa-centro", shortNameAdjusted: false, city: "Rio de Janeiro", activeStudents: 0, administrators: [{ name: "Bruno" }, { name: "Carla" }], active: true },
-  { id: "00000000-0000-0000-0000-000000000022", name: "Unidade Norte", shortName: "alfa-norte", shortNameAdjusted: true, city: null as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: false },
+  { id: "00000000-0000-0000-0000-000000000021", name: "Unidade Centro", shortName: "alfa-centro", shortNameAdjusted: false, city: "Rio de Janeiro", activeStudents: 0, administrators: [{ name: "Bruno" }, { name: "Carla" }], active: true, deactivatedAt: null as string | null },
+  { id: "00000000-0000-0000-0000-000000000022", name: "Unidade Norte", shortName: "alfa-norte", shortNameAdjusted: true, city: null as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: false, deactivatedAt: "2026-06-30T15:00:00Z" as string | null },
 ];
 let units = initialUnits();
 const unitsAccess = () => {
@@ -2617,7 +2617,7 @@ export const routes: Route[] = [
       const base = name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unidade";
       let shortName = base;
       for (let n = 2; units.some((u) => u.shortName === shortName); n++) shortName = `${base}-${n}`;
-      const unit = { id: crypto.randomUUID(), name, shortName, shortNameAdjusted: false, city: null as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: true };
+      const unit = { id: crypto.randomUUID(), name, shortName, shortNameAdjusted: false, city: null as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: true, deactivatedAt: null as string | null };
       units = [...units, unit];
       const admin = body.administrator;
       const invite = !admin?.email ? "NONE" : admin.email === "existente@exemplo.com" ? "FAILED" : "SENT";
@@ -2653,7 +2653,7 @@ export const routes: Route[] = [
       const unit = units.find((u) => u.id === params.id);
       if (!unit) return error(404, "NOT_FOUND", "Não encontrado.");
       const last = !units.some((u) => u.active && u.id !== unit.id);
-      return HttpResponse.json({ activeStudents: 0, activeClasses: 0, lastActiveUnit: last, canDeactivate: !last });
+      return HttpResponse.json({ activeStudents: 0, activeClasses: 0, pendingProofs: 0, lastActiveUnit: last, canDeactivate: !last });
     },
   },
   {
@@ -2666,18 +2666,20 @@ export const routes: Route[] = [
       if (!unit) return error(404, "NOT_FOUND", "Não encontrado.");
       if (!unit.active) return error(409, "CONFLICT", "Conflito.");
       const { confirmation } = (await request.json()) as { confirmation?: string };
-      if ((confirmation ?? "").trim().toLowerCase() !== unit.name.toLowerCase()) {
-        return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "confirmation", message: "digite o nome da unidade" }]);
+      if ((confirmation ?? "").trim().toLowerCase() !== "desativar") {
+        return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "confirmation", message: "digite DESATIVAR" }]);
       }
       if (!units.some((u) => u.active && u.id !== unit.id)) {
         return error(409, "UNIT_HAS_BLOCKERS", "Única unidade ativa.", [
           { field: "activeStudents", message: "0" },
           { field: "activeClasses", message: "0" },
+          { field: "pendingProofs", message: "0" },
           { field: "lastActiveUnit", message: "true" },
         ]);
       }
       if (!request.headers.get("X-Reauth-Token")) return error(403, "REAUTH_REQUIRED", "Confirme sua senha para continuar.");
       unit.active = false;
+      unit.deactivatedAt = new Date().toISOString();
       return new HttpResponse(null, { status: 204 });
     },
   },
