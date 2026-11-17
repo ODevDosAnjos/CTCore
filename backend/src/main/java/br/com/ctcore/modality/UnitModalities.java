@@ -11,6 +11,7 @@ import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.organization.UnitSettings;
 import br.com.ctcore.permission.Access;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Service;
 /** RF-MOD-03 (RN-MOD-02, RN-MOD-03): modalidades ativas da organização que a unidade oferece. Leitura e escrita pela linha UNIT_SETTINGS. */
 @Service
 public class UnitModalities {
-    public record Item(UUID id, String name, boolean offered, int classCount, int planCount) {}
+    public record Item(UUID id, String name, boolean offered, int classCount, int planCount, boolean graduationEnabled) {}
 
     public record Listing(boolean canManage, List<Item> items) {}
 
@@ -42,11 +43,11 @@ public class UnitModalities {
         Access access = units.access(who, unitId);
         if (access == Access.NONE) throw new AccessDeniedException("Permission denied");
         return new Listing(access == Access.FULL, transactions.execute(() -> jdbc.sql("""
-                select m.id, m.name, coalesce(u.offered, false), (select count(*) from training_class c where c.unit_id = :unit and c.modality_id = m.id and c.status = 'ACTIVE'), (select count(*) from plan p where p.unit_id = :unit and p.modality_id = m.id and p.status = 'ACTIVE') from modality m
+                select m.id, m.name, coalesce(u.offered, false), (select count(*) from training_class c where c.unit_id = :unit and c.modality_id = m.id and c.status = 'ACTIVE'), (select count(*) from plan p where p.unit_id = :unit and p.modality_id = m.id and p.status = 'ACTIVE'), o.graduation_enabled from modality m
                 join organization_modality o on o.modality_id = m.id and o.organization_id = :org and o.active
                 left join unit_modality u on u.modality_id = m.id and u.unit_id = :unit and u.organization_id = :org
                 order by m.name""").param("org", who.organizationId()).param("unit", unitId)
-                .query((rs, i) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3), rs.getInt(4), rs.getInt(5))).list()));
+                .query((rs, i) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3), rs.getInt(4), rs.getInt(5), rs.getBoolean(6))).list()));
     }
 
     public Item setOffered(AccountPrincipal who, UUID unitId, UUID modalityId, Boolean offered, String ip) {
@@ -67,7 +68,9 @@ public class UnitModalities {
                         offered ? "unit.modality.offered" : "unit.modality.withdrawn", "unit_modality", modalityId.toString(), unitId,
                         Map.of("offered", current), Map.of("offered", offered), null, ip));
             }
-            return new Item(modalityId, name, offered, count("training_class", unitId, modalityId), count("plan", unitId, modalityId));
+            boolean graduation = jdbc.sql("select graduation_enabled from organization_modality where organization_id = :org and modality_id = :id")
+                    .param("org", who.organizationId()).param("id", modalityId).query(Boolean.class).single();
+            return new Item(modalityId, name, offered, count("training_class", unitId, modalityId), count("plan", unitId, modalityId), graduation);
         });
     }
 
@@ -78,8 +81,15 @@ public class UnitModalities {
 
     /** RN-MOD-06: desmarcar na unidade exige que não haja turma ativa da modalidade nela; a recusa lista as turmas. */
     private void refuseIfClasses(UUID unitId, UUID modalityId) {
-        List<ApiError.Field> classes = jdbc.sql("select name from training_class where unit_id = :unit and modality_id = :id and status = 'ACTIVE' order by name, id")
-                .param("unit", unitId).param("id", modalityId).query((rs, i) -> new ApiError.Field("class", rs.getString(1))).list();
+        List<ApiError.Field> classes = new ArrayList<>();
+        jdbc.sql("select c.name, (select count(distinct m.student_id) from enrollment_modality m where m.status = 'ACTIVE' and (m.primary_class_id = c.id "
+                + "or exists (select 1 from enrollment_modality_class o where o.organization_id = m.organization_id and o.modality_row_id = m.id "
+                + "and o.class_id = c.id))) from training_class c where c.unit_id = :unit and c.modality_id = :id and c.status = 'ACTIVE' order by c.name, c.id")
+                .param("unit", unitId).param("id", modalityId).query((rs, i) -> {
+                    classes.add(new ApiError.Field("class", rs.getString(1)));
+                    classes.add(new ApiError.Field("classStudents", String.valueOf(rs.getInt(2))));
+                    return 0;
+                }).list();
         if (!classes.isEmpty()) throw new ApiStatusException(ErrorCode.UNIT_MODALITY_IN_USE, classes);
     }
 }

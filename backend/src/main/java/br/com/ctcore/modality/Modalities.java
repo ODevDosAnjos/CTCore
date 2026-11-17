@@ -8,12 +8,15 @@ import br.com.ctcore.audit.AuditActor;
 import br.com.ctcore.audit.AuditEntry;
 import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
+import br.com.ctcore.identity.Role;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
 import java.text.Normalizer;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -31,7 +34,8 @@ public class Modalities {
     static final int MAX_NAME = 60;
     static final int MAX_NOTE = 300;
 
-    public record Item(UUID id, String name, boolean active, boolean canManage, boolean graduationEnabled) {}
+    public record Item(UUID id, String name, boolean active, boolean canManage, boolean graduationEnabled, int levelCount,
+            List<String> offeredUnits) {}
 
     public record Request(UUID id, String name, String note, String status, OffsetDateTime createdAt) {}
 
@@ -57,10 +61,26 @@ public class Modalities {
 
     public List<Item> list(AccountPrincipal who) {
         boolean manage = access(who) == Access.FULL;
-        return transactions.execute(() -> jdbc.sql("select m.id, m.name, coalesce(o.active, false), coalesce(o.graduation_enabled, false) from modality m "
-                + "left join organization_modality o on o.modality_id = m.id and o.organization_id = :org order by m.name")
-                .param("org", who.organizationId())
-                .query((rs, i) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3), manage, rs.getBoolean(4))).list());
+        boolean all = who.role() == Role.COORDINATOR;
+        return transactions.execute(() -> {
+            // D3: o Administrador vê só as unidades do alcance dele.
+            Map<UUID, List<String>> offered = new HashMap<>();
+            jdbc.sql("select um.modality_id, u.id, u.name from unit_modality um join unit u on u.id = um.unit_id "
+                    + "join organization_modality o on o.modality_id = um.modality_id and o.organization_id = :org and o.active "
+                    + "where um.organization_id = :org and um.offered and u.active order by u.name, u.id")
+                    .param("org", who.organizationId()).query((rs, i) -> {
+                        if (all || who.units().contains(rs.getObject(2, UUID.class))) {
+                            offered.computeIfAbsent(rs.getObject(1, UUID.class), k -> new ArrayList<>()).add(rs.getString(3));
+                        }
+                        return 0;
+                    }).list();
+            return jdbc.sql("select m.id, m.name, coalesce(o.active, false), coalesce(o.graduation_enabled, false), "
+                    + "(select count(*) from graduation_level g where g.organization_id = :org and g.modality_id = m.id) from modality m "
+                    + "left join organization_modality o on o.modality_id = m.id and o.organization_id = :org order by m.name")
+                    .param("org", who.organizationId())
+                    .query((rs, i) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3), manage, rs.getBoolean(4),
+                            rs.getInt(5), offered.getOrDefault(rs.getObject(1, UUID.class), List.of()))).list();
+        });
     }
 
     public Item setActive(AccountPrincipal who, UUID id, Boolean active, String ip) {
@@ -82,7 +102,9 @@ public class Modalities {
             }
             boolean graduation = jdbc.sql("select graduation_enabled from organization_modality where organization_id = :org and modality_id = :id")
                     .param("org", who.organizationId()).param("id", id).query(Boolean.class).optional().orElse(false);
-            return new Item(id, name, active, true, graduation);
+            int levels = jdbc.sql("select count(*) from graduation_level where organization_id = :org and modality_id = :id")
+                    .param("org", who.organizationId()).param("id", id).query(Integer.class).single();
+            return new Item(id, name, active, true, graduation, levels, List.of());
         });
     }
 
@@ -134,8 +156,10 @@ public class Modalities {
         int classes = usage.activeClasses(id);
         int students = usage.activeStudents(id);
         if (classes == 0 && students == 0) return;
-        throw new ApiStatusException(ErrorCode.MODALITY_IN_USE, List.of(
+        List<ApiError.Field> fields = new ArrayList<>(List.of(
                 new ApiError.Field("activeClasses", String.valueOf(classes)), new ApiError.Field("activeStudents", String.valueOf(students))));
+        usage.activeClassNames(id).forEach(name -> fields.add(new ApiError.Field("class", name)));
+        throw new ApiStatusException(ErrorCode.MODALITY_IN_USE, fields);
     }
 
     private static AuditActor actor(AccountPrincipal who) {

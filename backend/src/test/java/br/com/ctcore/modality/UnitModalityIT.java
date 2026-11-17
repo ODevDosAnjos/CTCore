@@ -24,6 +24,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 /** RF-MOD-03: lista, marcação, idempotência, modalidade inativa, perfis, isolamento (API e RLS) e auditoria, com banco real. */
 class UnitModalityIT extends OrganizationBase {
     @Autowired ObjectMapper json;
+    @Autowired ModalityUsage usage;
+    @Autowired br.com.ctcore.isolation.OrganizationTransactions transactions;
 
     @org.junit.jupiter.api.BeforeEach
     @AfterEach
@@ -145,7 +147,7 @@ class UnitModalityIT extends OrganizationBase {
         var fields = body(refused).findValue("fields");
         assertThat(body(refused).get("code").asText()).isEqualTo("UNIT_MODALITY_IN_USE");
         assertThat(fields.findParents("field").stream().map(f -> f.get("field").asText() + "=" + f.get("message").asText()).toList())
-                .containsExactly("class=Judô Adulto", "class=Judô Kids");
+                .containsExactly("class=Judô Adulto", "classStudents=0", "class=Judô Kids", "classStudents=0");
         assertThat(adminJdbc().queryForObject("select offered from unit_modality where unit_id = ? and modality_id = ?", Boolean.class, t.unitId(), judo)).isTrue();
         assertThat(audits(t, "unit.modality.withdrawn")).isZero();
 
@@ -157,6 +159,27 @@ class UnitModalityIT extends OrganizationBase {
         adminJdbc().update("update training_class set status = 'INACTIVE' where unit_id = ? and modality_id = ?", t.unitId(), judo);
         assertThat(send(offer(t.unitId(), judo, "{\"offered\":false}"), coordinator).getStatus()).isEqualTo(200);
         assertThat(adminJdbc().queryForObject("select offered from unit_modality where unit_id = ? and modality_id = ?", Boolean.class, other.unitId(), judo)).isTrue();
+    }
+
+    @Test
+    @DisplayName("D1, D2: a lista traz graduationEnabled; a porta de uso nomeia as turmas ativas por unidade, em ordem de nome, só da organização")
+    void graduationAndClassNames() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        activate(t, "Judô");
+        activate(other, "Judô");
+        UUID judo = id("Judô");
+        adminJdbc().update("update organization_modality set graduation_enabled = true where organization_id = ? and modality_id = ?", t.orgId(), judo);
+        UUID second = secondUnit(t);
+        classOf(t, t.unitId(), "Judô Kids", judo, "ACTIVE");
+        classOf(t, second, "Judô Adulto", judo, "ACTIVE");
+        classOf(t, second, "Judô Antiga", judo, "INACTIVE");
+        classOf(other, other.unitId(), "Judô Alheia", judo, "ACTIVE");
+        var coordinator = who(t, Role.COORDINATOR);
+        assertThat(body(send(list(t.unitId()), coordinator)).get("items").get(0).get("graduationEnabled").asBoolean()).isTrue();
+        assertThat(body(send(offer(t.unitId(), judo, "{\"offered\":true}"), coordinator)).get("graduationEnabled").asBoolean()).isTrue();
+        assertThat(body(send(list(other.unitId()), who(other, Role.COORDINATOR))).get("items").get(0).get("graduationEnabled").asBoolean()).isFalse();
+        assertThat(transactions.provision(t.orgId(), () -> usage.activeClassNames(judo))).containsExactly("Judô Adulto (Second)", "Judô Kids (Unit)");
     }
 
     @Test

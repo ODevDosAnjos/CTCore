@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
@@ -11,6 +12,9 @@ import {
 } from "./useGraduation";
 import { Input } from "@/components/ui/field";
 import { Banner } from "@/components/ui/banner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ComingSoon } from "@/components/ui/coming-soon";
+import { SwitchRow } from "@/features/units/SwitchRow";
 
 // Cor inicial de um nível novo: o token neutro do tema; o valor final é a cor que a pessoa escolhe.
 const neutralColor = () => getComputedStyle(document.documentElement).getPropertyValue("--subtle").trim();
@@ -20,6 +24,9 @@ const MAX_NAME = 40;
 const LEVELS_ERROR = "graduation-levels-error";
 const LEVELS = "levels";
 const input = "min-h-11";
+const HEAD = "whitespace-nowrap px-2 py-2 text-xs font-semibold text-muted-foreground";
+// RN-GRA-01: só o Jiu-Jitsu tem padrão de catálogo (D9).
+const DEFAULT_MODALITY = "Jiu-Jitsu";
 
 // Linha da tela: números ficam em texto até salvar.
 type Row = {
@@ -88,11 +95,13 @@ function ReadOnly({ data }: { data: Graduation }) {
 }
 
 function Editor({
+  modalityName,
   data,
   save,
   onSaved,
   onClose,
 }: {
+  modalityName: string;
   data: Graduation;
   save: (body: GraduationUpdate) => Promise<Graduation>;
   onSaved: (g: Graduation) => void;
@@ -104,16 +113,19 @@ function Editor({
   const [rows, setRows] = useState<Row[]>(() => toRows(data));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState<number | null>(null);
 
   const patch = (i: number, change: Partial<Row>) => {
     setErrors({});
     setRows((all) => all.map((r, j) => (j === i ? { ...r, ...change } : r)));
   };
-  const move = (i: number, by: number) => {
+  // Mesmo caminho do arrastar (mouse) e dos botões de subir e descer (teclado e leitor de tela).
+  const reorder = (from: number, to: number) => {
     setErrors({});
     setRows((all) => {
+      if (to < 0 || to >= all.length || from === to) return all;
       const next = [...all];
-      [next[i], next[i + by]] = [next[i + by], next[i]];
+      next.splice(to, 0, ...next.splice(from, 1));
       return next;
     });
   };
@@ -177,179 +189,174 @@ function Editor({
         void submit();
       }}
     >
-      <label className="flex min-h-11 items-center gap-2">
-        <input
-          type="checkbox"
-          role="switch"
-          checked={enabled}
-          onChange={(e) => {
-            setErrors({});
-            setEnabled(e.target.checked);
-          }}
-        />
-        {t("modalities.graduation.enabled")}
-      </label>
-      <label className="flex min-h-11 items-center gap-2">
-        <input
-          type="checkbox"
-          checked={proof}
-          onChange={(e) => setProof(e.target.checked)}
-        />
-        {t("modalities.graduation.requireProof")}
-      </label>
+      <SwitchRow
+        label={t("modalities.graduation.enabled")}
+        description={t("modalities.graduation.enabledHelp")}
+        checked={enabled}
+        onChange={(v) => {
+          setErrors({});
+          setEnabled(v);
+        }}
+      />
+      {modalityName === DEFAULT_MODALITY && (
+        <p className="text-sm text-muted-foreground">
+          {t("modalities.graduation.defaultNote")}
+        </p>
+      )}
       {err(LEVELS, LEVELS_ERROR)}
-      {rows.length === 0 && (
+      {rows.length === 0 ? (
         <p className="text-muted-foreground">
           {t("modalities.graduation.empty")}
         </p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <table
+            aria-label={t("modalities.graduation.tableLabel")}
+            className="w-full text-left text-sm"
+          >
+            <thead className="border-b border-divider bg-surface-soft">
+              <tr>
+                <th scope="col" className="w-8 px-2 py-2">
+                  <span className="sr-only">{t("modalities.graduation.order")}</span>
+                </th>
+                <th scope="col" className={HEAD}>{t("modalities.graduation.levelHeader")}</th>
+                <th scope="col" className={HEAD}>{t("modalities.graduation.maxDegreeHeader")}</th>
+                <th scope="col" className={HEAD}>{t("modalities.graduation.agesHeader")}</th>
+                <th scope="col" className="px-2 py-2">
+                  <span className="sr-only">{t("modalities.graduation.actions")}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const n = i + 1;
+                const nameField = `levels[${i}].name`;
+                return (
+                  <tr
+                    key={r.key}
+                    data-testid="graduation-row"
+                    onDragOver={(e) => dragging !== null && e.preventDefault()}
+                    onDrop={() => {
+                      if (dragging !== null) reorder(dragging, i);
+                      setDragging(null);
+                    }}
+                    className="border-b border-divider align-top last:border-b-0"
+                  >
+                    <td className="px-2 py-3">
+                      <span
+                        draggable
+                        data-testid="graduation-handle"
+                        onDragStart={() => setDragging(i)}
+                        onDragEnd={() => setDragging(null)}
+                        className="inline-flex min-h-8 cursor-grab items-center text-subtle"
+                      >
+                        <GripVertical aria-hidden className="size-4" />
+                      </span>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center gap-2">
+                        <span aria-hidden className="h-2.5 w-11 shrink-0 rounded-sm border" style={{ backgroundColor: r.color }} />
+                        <input
+                          id={`level-color-${r.key}`}
+                          type="color"
+                          aria-label={t("modalities.graduation.color", { n })}
+                          className="size-8 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
+                          value={r.color}
+                          onChange={(e) => patch(i, { color: e.target.value })}
+                        />
+                        <Input
+                          id={`level-name-${r.key}`}
+                          aria-label={t("modalities.graduation.levelName", { n })}
+                          className={`${input} min-w-36 flex-1`}
+                          value={r.name}
+                          autoComplete="off"
+                          aria-invalid={errors[nameField] ? true : undefined}
+                          aria-describedby={errors[nameField] ? `level-name-error-${r.key}` : undefined}
+                          onChange={(e) => patch(i, { name: e.target.value })}
+                        />
+                      </div>
+                      {err(nameField, `level-name-error-${r.key}`)}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Input
+                        id={`level-degree-${r.key}`}
+                        aria-label={t("modalities.graduation.maxDegree", { n })}
+                        type="number"
+                        min={0}
+                        max={10}
+                        className={`${input} w-16`}
+                        value={r.maxDegree}
+                        onChange={(e) => patch(i, { maxDegree: e.target.value })}
+                      />
+                      {err(`levels[${i}].maxDegree`, `level-degree-error-${r.key}`)}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id={`level-min-${r.key}`}
+                          aria-label={t("modalities.graduation.minAge", { n })}
+                          type="number"
+                          min={0}
+                          max={120}
+                          className={`${input} w-16`}
+                          value={r.minAge}
+                          onChange={(e) => patch(i, { minAge: e.target.value })}
+                        />
+                        <span aria-hidden>–</span>
+                        <Input
+                          id={`level-max-${r.key}`}
+                          aria-label={t("modalities.graduation.maxAge", { n })}
+                          type="number"
+                          min={0}
+                          max={120}
+                          className={`${input} w-16`}
+                          value={r.maxAge}
+                          onChange={(e) => patch(i, { maxAge: e.target.value })}
+                        />
+                      </div>
+                      {err(`levels[${i}].minAge`, `level-min-error-${r.key}`)}
+                      {err(`levels[${i}].maxAge`, `level-max-error-${r.key}`)}
+                      <Checkbox
+                        className="min-h-8 text-xs"
+                        label={t("modalities.graduation.kidsShort")}
+                        aria-label={t("modalities.graduation.kids", { n })}
+                        checked={r.kids}
+                        onChange={(e) => patch(i, { kids: e.target.checked })}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={t("modalities.graduation.up", { n })} disabled={i === 0} onClick={() => reorder(i, i - 1)}>
+                          <ArrowUp aria-hidden />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="size-8" aria-label={t("modalities.graduation.down", { n })} disabled={i === rows.length - 1} onClick={() => reorder(i, i + 1)}>
+                          <ArrowDown aria-hidden />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon" className="size-8"
+                          aria-label={t("modalities.graduation.remove", { n })}
+                          onClick={() => {
+                            setErrors({});
+                            setRows((all) => all.filter((_, j) => j !== i));
+                          }}
+                        >
+                          <Trash2 aria-hidden />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-      <ol className="flex flex-col gap-3">
-        {rows.map((r, i) => {
-          const n = i + 1;
-          const nameField = `levels[${i}].name`;
-          return (
-            <li
-              key={r.key}
-              className="flex flex-col gap-2 rounded-md border p-3"
-            >
-              <div>
-                <label
-                  htmlFor={`level-name-${r.key}`}
-                  className="block text-sm font-medium"
-                >
-                  {t("modalities.graduation.levelName", { n })}
-                </label>
-                <Input
-                  id={`level-name-${r.key}`}
-                  className={input}
-                  value={r.name}
-                  autoComplete="off"
-                  aria-invalid={errors[nameField] ? true : undefined}
-                  aria-describedby={
-                    errors[nameField] ? `level-name-error-${r.key}` : undefined
-                  }
-                  onChange={(e) => patch(i, { name: e.target.value })}
-                />
-                {err(nameField, `level-name-error-${r.key}`)}
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div>
-                  <label
-                    htmlFor={`level-color-${r.key}`}
-                    className="block text-sm font-medium"
-                  >
-                    {t("modalities.graduation.color", { n })}
-                  </label>
-                  <input
-                    id={`level-color-${r.key}`}
-                    type="color"
-                    className="h-11 w-full cursor-pointer rounded-md border border-input bg-card"
-                    value={r.color}
-                    onChange={(e) => patch(i, { color: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor={`level-degree-${r.key}`}
-                    className="block text-sm font-medium"
-                  >
-                    {t("modalities.graduation.maxDegree", { n })}
-                  </label>
-                  <Input
-                    id={`level-degree-${r.key}`}
-                    type="number"
-                    min={0}
-                    max={10}
-                    className={input}
-                    value={r.maxDegree}
-                    onChange={(e) => patch(i, { maxDegree: e.target.value })}
-                  />
-                  {err(`levels[${i}].maxDegree`, `level-degree-error-${r.key}`)}
-                </div>
-                <div>
-                  <label
-                    htmlFor={`level-min-${r.key}`}
-                    className="block text-sm font-medium"
-                  >
-                    {t("modalities.graduation.minAge", { n })}
-                  </label>
-                  <Input
-                    id={`level-min-${r.key}`}
-                    type="number"
-                    min={0}
-                    max={120}
-                    className={input}
-                    value={r.minAge}
-                    onChange={(e) => patch(i, { minAge: e.target.value })}
-                  />
-                  {err(`levels[${i}].minAge`, `level-min-error-${r.key}`)}
-                </div>
-                <div>
-                  <label
-                    htmlFor={`level-max-${r.key}`}
-                    className="block text-sm font-medium"
-                  >
-                    {t("modalities.graduation.maxAge", { n })}
-                  </label>
-                  <Input
-                    id={`level-max-${r.key}`}
-                    type="number"
-                    min={0}
-                    max={120}
-                    className={input}
-                    value={r.maxAge}
-                    onChange={(e) => patch(i, { maxAge: e.target.value })}
-                  />
-                  {err(`levels[${i}].maxAge`, `level-max-error-${r.key}`)}
-                </div>
-              </div>
-              <label className="flex min-h-11 items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={r.kids}
-                  onChange={(e) => patch(i, { kids: e.target.checked })}
-                />
-                {t("modalities.graduation.kids", { n })}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={i === 0}
-                  onClick={() => move(i, -1)}
-                >
-                  {t("modalities.graduation.up", { n })}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={i === rows.length - 1}
-                  onClick={() => move(i, 1)}
-                >
-                  {t("modalities.graduation.down", { n })}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setErrors({});
-                    setRows((all) => all.filter((_, j) => j !== i));
-                  }}
-                >
-                  {t("modalities.graduation.remove", { n })}
-                </Button>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
       <Button
         type="button"
-        variant="outline"
-        className="self-start"
+        variant="ghost"
+        className="self-center"
         disabled={rows.length >= MAX_LEVELS}
         onClick={() =>
           setRows((all) => [
@@ -367,21 +374,25 @@ function Editor({
           ])
         }
       >
+        <Plus aria-hidden />
         {t("modalities.graduation.add")}
       </Button>
-      {errors.form && (
-        <Banner tone="danger">
-          {errors.form}
-        </Banner>
-      )}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
+      <SwitchRow
+        label={t("modalities.graduation.requireProof")}
+        description={t("modalities.graduation.requireProofHelp")}
+        checked={proof}
+        onChange={setProof}
+      />
+      {errors.form && <Banner tone="danger">{errors.form}</Banner>}
+      <div className="sticky -bottom-6 -mx-6 -mb-6 mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-divider bg-surface-soft px-6 py-4">
+        <div className="mr-auto">
+          <ComingSoon variant="button" label={t("modalities.graduation.backToDefault")} />
+        </div>
+        <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
           {t("common.cancel")}
         </Button>
-        <Button type="submit" disabled={busy}>
-          {busy
-            ? t("modalities.graduation.saving")
-            : t("modalities.graduation.save")}
+        <Button type="submit" className="min-h-11" disabled={busy}>
+          {busy ? t("modalities.graduation.saving") : t("modalities.graduation.save")}
         </Button>
       </div>
     </form>
@@ -401,13 +412,13 @@ function Body({
   const g = useGraduation(modality.id);
   return (
     <>
-      <p className="font-medium">{modality.name}</p>
       {g.status === "loading" && <LoadingState />}
       {g.status === "forbidden" && <ForbiddenState />}
       {g.status === "error" && <ErrorState onRetry={g.retry} />}
       {g.data &&
         (g.data.canManage ? (
           <Editor
+            modalityName={modality.name}
             data={g.data}
             save={g.save}
             onClose={onClose}
@@ -435,8 +446,10 @@ export function GraduationDialog({
     <Modal
       open={modality !== null}
       onOpenChange={(o) => !o && onClose()}
-      title={t("modalities.graduation.title")}
-      className="max-h-[90vh] overflow-y-auto"
+      title={t("modalities.graduation.dialogTitle", { name: modality?.name ?? "" })}
+      size="lg"
+      scrim="canvas"
+      className="max-w-[720px]"
     >
       {modality && (
         <Body modality={modality} onClose={onClose} onSaved={onSaved} />

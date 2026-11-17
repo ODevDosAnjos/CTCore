@@ -156,7 +156,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
   const flag = (id: TabId) =>
     withError.has(id) ? <CircleAlert role="img" aria-label={t("unitSettings.tabError")} className="ml-1 inline size-4 align-text-bottom text-danger-foreground" /> : undefined;
   const tabs = [
-    { id: "data", content: <UnitDataTab {...shared} unitId={detail.id} shortName={detail.shortName} timezone={detail.timezone} /> },
+    { id: "data", content: <UnitDataTab {...shared} unitId={detail.id} unitName={detail.name} shortName={detail.shortName} timezone={detail.timezone} /> },
     { id: "payments", content: <UnitPaymentsTab {...shared} connected={detail.settings.paymentAccount === "CONNECTED"} /> },
     { id: "reminders", content: <UnitRemindersTab {...shared} /> },
     { id: "links", content: <UnitLinksTab d={d} set={set} /> },

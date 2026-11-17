@@ -16,8 +16,8 @@ import type { TabProps } from "./unitDraft";
 
 const DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 
-// Aba Dados (R3): os campos da unidade, a cobrança, as modalidades (gravam na hora) e o diretório ("Em breve").
-export function UnitDataTab({ d, set, problems, errors, unitId, shortName, timezone }: TabProps & { unitId: string; shortName: string; timezone: string }) {
+// Aba Dados (R3): as modalidades oferecidas (primeiro bloco, gravam na hora), os campos da unidade, a cobrança e o diretório ("Em breve").
+export function UnitDataTab({ d, set, problems, errors, unitId, unitName, shortName, timezone }: TabProps & { unitId: string; unitName: string; shortName: string; timezone: string }) {
   const { t } = useTranslation();
   // D3 (item 484): o ajuste único do nome curto (RN-ORG-15) sai da lista e fica aqui; o servidor recusa o segundo (409).
   const [adjusting, setAdjusting] = useState(false);
@@ -26,6 +26,7 @@ export function UnitDataTab({ d, set, problems, errors, unitId, shortName, timez
   const toggleDay = (day: number) => set("dueDays")(d.dueDays.includes(day) ? d.dueDays.filter((x) => x !== day) : [...d.dueDays, day].sort((a, b) => a - b));
   return (
     <div className="flex flex-col gap-4">
+      <UnitModalitiesSection unitId={unitId} unitName={unitName} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card heading="h2" title={t("unitSettings.sections.data")}>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -107,7 +108,6 @@ export function UnitDataTab({ d, set, problems, errors, unitId, shortName, timez
               </div>
             </div>
           </Card>
-          <UnitModalitiesSection unitId={unitId} />
         </div>
       </div>
 

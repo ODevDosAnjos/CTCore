@@ -3,16 +3,30 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ApiError } from "@/lib/api";
 import { Banner } from "@/components/ui/banner";
-import { Switch } from "@/components/ui/switch";
+import { BlockedNotice } from "@/components/ui/blocked-notice";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { useUnitModalities } from "./useUnitModalities";
 
-// RF-MOD-03: modalidades que a unidade oferece. Cada interruptor grava na hora, fora do formulário e do "Salvar" da tela.
-export function UnitModalitiesSection({ unitId }: { unitId: string }) {
+type Failure = { name: string; classes: { name: string; students: number }[] };
+
+// A recusa 409 manda, por turma, "class" (nome) seguido de "classStudents" (alunos ativos).
+function refusedClasses(err: unknown): Failure["classes"] {
+  if (!(err instanceof ApiError) || err.code !== "UNIT_MODALITY_IN_USE") return [];
+  const classes: Failure["classes"] = [];
+  for (const f of err.fields) {
+    if (f.field === "class") classes.push({ name: f.message, students: 0 });
+    else if (f.field === "classStudents" && classes.length > 0) classes[classes.length - 1].students = Number(f.message) || 0;
+  }
+  return classes;
+}
+
+// RF-MOD-03: modalidades que a unidade oferece. Cada caixa grava na hora, fora do formulário e do "Salvar" da tela.
+export function UnitModalitiesSection({ unitId, unitName }: { unitId: string; unitName: string }) {
   const { t } = useTranslation();
   const api = useUnitModalities(unitId);
-  const [failed, setFailed] = useState<{ name: string; classes: string[] }>();
+  const [failed, setFailed] = useState<Failure>();
 
   function body() {
     if (api.status === "loading") return <LoadingState />;
@@ -34,52 +48,52 @@ export function UnitModalitiesSection({ unitId }: { unitId: string }) {
     }
     return (
       <>
-        {failed && (
-          <Banner tone="danger" className="mb-2">
-            <p>{t(failed.classes.length > 0 ? "unitModalities.inUse" : "unitModalities.changeError", { name: failed.name })}</p>
-            {failed.classes.length > 0 && (
-              <ul className="list-disc pl-5">
-                {failed.classes.map((c) => (
-                  <li key={c}>{c}</li>
-                ))}
-              </ul>
-            )}
-          </Banner>
-        )}
         <ul className="flex flex-col">
           {items.map((m) => (
-            <li key={m.id} className="flex items-center justify-between gap-3 py-2">
-              <div className="min-w-0">
-                <p className="break-words text-sm font-medium">{m.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t(m.classCount === 1 ? "unitModalities.classOne" : "unitModalities.classMany", { count: m.classCount })} · {t(m.planCount === 1 ? "unitModalities.planOne" : "unitModalities.planMany", { count: m.planCount })}
-                </p>
-              </div>
-              <Switch
-                label={m.name}
+            <li key={m.id} className="flex items-start gap-3 py-1.5">
+              <Checkbox
+                id={`unit-modality-${m.id}`}
+                className="mt-[3px]"
+                aria-describedby={`unit-modality-${m.id}-help`}
                 checked={m.offered}
                 disabled={!canManage}
-                onCheckedChange={(offered) => {
+                onChange={(e) => {
                   setFailed(undefined);
-                  api.setOffered(m.id, offered).catch((err) =>
-                    setFailed({
-                      name: m.name,
-                      classes: err instanceof ApiError && err.code === "UNIT_MODALITY_IN_USE" ? err.fields.filter((f) => f.field === "class").map((f) => f.message) : [],
-                    }),
-                  );
+                  api.setOffered(m.id, e.target.checked).catch((err) => setFailed({ name: m.name, classes: refusedClasses(err) }));
                 }}
               />
+              <div className="min-w-0">
+                <label htmlFor={`unit-modality-${m.id}`} className="block break-words text-sm">
+                  {m.name}
+                </label>
+                <p id={`unit-modality-${m.id}-help`} className="text-sm text-muted-foreground">
+                  {t(m.graduationEnabled ? "unitModalities.graduationOn" : "unitModalities.graduationOff")}
+                </p>
+              </div>
             </li>
           ))}
         </ul>
+        {failed &&
+          (failed.classes.length > 0 ? (
+            <BlockedNotice
+              className="mt-3"
+              title={t("unitModalities.inUseTitle", { name: failed.name, unit: unitName })}
+              lines={failed.classes.map((c) => t("unitModalities.inUseClass", { name: c.name, students: t(c.students === 1 ? "unitModalities.studentOne" : "unitModalities.studentMany", { count: c.students }) }))}
+            >
+              <p className="text-muted-foreground">{t("unitModalities.inUseGuidance")}</p>
+            </BlockedNotice>
+          ) : (
+            <Banner tone="danger" className="mt-3">
+              {t("unitModalities.changeError", { name: failed.name })}
+            </Banner>
+          ))}
         {!canManage && <p className="mt-2 text-sm text-muted-foreground">{t("unitModalities.readOnly")}</p>}
-        <p className="mt-2 text-xs text-muted-foreground">{t("unitModalities.note")}</p>
       </>
     );
   }
 
   return (
-    <Card heading="h2" title={t("unitModalities.title")}>
+    <Card heading="h2" title={t("unitModalities.title", { unit: unitName })}>
       {body()}
     </Card>
   );

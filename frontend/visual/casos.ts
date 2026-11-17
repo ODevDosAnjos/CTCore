@@ -23,6 +23,7 @@ export type Caso = {
   organizacaoCanvas?: boolean; // #482: antes de abrir a tela, a organização "Academia Leão" do canvas (Marcos Leão, cor #C8462C, regras 30, 12, 6, 2 e "Depende do plano") e a Administradora Carla Mendes (Tijuca e Barra) na lista de quem pode receber a coordenação
   unidadeCanvas?: "conectada" | "desconectada"; // #483: antes de abrir a tela, a unidade "Tijuca" do canvas (dados, taxas, modalidades com turmas e planos) com a conta do Mercado Pago conectada ou desconectada
   unidadesCanvas?: "lista" | "unica"; // #484: antes de abrir a tela, a lista de unidades do canvas (Tijuca, Barra e Méier desativada) ou só a unidade única; a Barra tem 83 alunos e 5 turmas ativos
+  modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa"; // #485: antes de abrir a tela, Jiu-Jitsu (19 níveis) e Muay Thai (8) ativas em Tijuca e Barra e o resto do catálogo disponível; administrador mostra só as duas, em consulta; desativar recusa o Muay Thai (3 turmas, 63 alunos); recusa não deixa a Tijuca largar o Muay Thai (turma da noite, 26 alunos)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -100,7 +101,7 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-pagamentos-desconectado", rota: "/configuracoes/unidade", perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
   { nome: "configuracoes-unidade-lembretes", rota: "/configuracoes/unidade", perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
   { nome: "configuracoes-unidade-links", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
-  { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades" },
+  { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas" },
   { nome: "configuracoes-usuarios", rota: "/configuracoes/usuarios", perfil: ana, canvas: "ConfigUsuarios" },
   { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos" },
@@ -141,9 +142,11 @@ export const casos: Caso[] = [
   { nome: "configuracoes-usuario-convidar", rota: "/configuracoes/usuarios", perfil: ana, canvas: "UsuarioConvidar", passos: [{ clicar: "Convidar" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #487 trata a tela e remove esta exceção)" } },
   // Modalidades, faixas, professores, turmas, agenda e dias sem aula (#420). Janelas abrem pelos passos.
   // Sem caso: painel da aula, editar, cancelar e corrigir aula (o id da aula é gerado pelo MSW, sem rota fixa); GM* são as mesmas telas a 390 px (D1).
-  { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin" },
-  { nome: "configuracoes-modalidades-graduacao", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeGraduacao", passos: [{ clicar: "Ativar" }, { clicar: "Graduação" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #485 trata a tela e remove esta exceção)" } },
-  { nome: "configuracoes-modalidades-pedido", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadesOferecidasRecusa", passos: [{ clicar: "Não achei minha modalidade" }], limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #485 trata a tela e remove esta exceção)" } },
+  { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin", modalidadesCanvas: "administrador" },
+  { nome: "configuracoes-modalidade-desativar", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeDesativar", modalidadesCanvas: "desativar", passos: [{ clicar: "Desativar Muay Thai" }] },
+  { nome: "configuracoes-unidade-modalidades-recusa", rota: "/configuracoes/unidade", perfil: ana, canvas: "ModalidadesOferecidasRecusa", unidadeCanvas: "conectada", modalidadesCanvas: "recusa", passos: [{ clicar: "Muay Thai", papel: "checkbox" }] },
+  { nome: "configuracoes-modalidades-graduacao", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeGraduacao", modalidadesCanvas: "lista", passos: [{ clicar: "Graduação Jiu-Jitsu" }] },
+  { nome: "configuracoes-modalidades-pedido", rota: "/configuracoes/modalidades", perfil: ana, modalidadesCanvas: "lista", passos: [{ clicar: "Não achei minha modalidade" }] }, // D7: o canvas não desenha esta janela; o caso só guarda a referência do teste visual
   { nome: "configuracoes-faixa-nova", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", passos: [{ clicar: "Nova faixa" }], limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #486 trata a tela e remove esta exceção)" } },
   { nome: "professor-novo", rota: "/professores", perfil: ana, canvas: "ProfessorNovo", passos: [{ clicar: "Novo professor" }] },
   { nome: "professor-painel", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorPainel" },
@@ -245,7 +248,7 @@ export const semCaso: Record<string, string[]> = {
     "GraduacaoRegistrar", "ExportarGraduacoes", "SomenteLeitura",
     "Estornar", "ExportarMensalidades",
     "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios",
-    "ModalidadeDesativar", "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
+    "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
     "PortalEstados", "PortalMAvisoAberto", "PortalMCarteirinha", "PortalMEditar", "PortalMEstados",
