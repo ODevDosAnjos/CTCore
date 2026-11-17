@@ -66,7 +66,7 @@ test("@critical Coordenador marca uma modalidade na unidade", async ({ page }) =
   await available.getByRole("button", { name: /Ativar\s*Jiu-Jitsu/ }).click();
 
   await open(page, "/configuracoes/unidade");
-  await expect(page.getByRole("heading", { name: "Configurações da unidade", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Unidade /, level: 1 })).toBeVisible();
   const offered = page.getByRole("switch", { name: "Jiu-Jitsu" });
   await expect(offered).not.toBeChecked();
   await offered.check();

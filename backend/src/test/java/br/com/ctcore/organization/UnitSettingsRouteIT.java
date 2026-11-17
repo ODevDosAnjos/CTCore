@@ -47,7 +47,9 @@ class UnitSettingsRouteIT extends UnitBase {
     void administratorOwnUnit() throws Exception {
         var a = tenant();
         var admin = admin(a, a.unitId());
-        assertThat(call(read(a.unitId()), admin).getResponse().getStatus()).isEqualTo(200);
+        var read = call(read(a.unitId()), admin).getResponse();
+        assertThat(read.getStatus()).isEqualTo(200);
+        assertThat(read.getContentAsString()).contains("\"timezone\":\"America/Sao_Paulo\""); // CA19
         var response = call(put(a.unitId(), payload()), admin).getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         assertThat(audit(a, "unit.update")).hasSize(1);

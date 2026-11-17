@@ -21,6 +21,7 @@ export type Caso = {
   planosCanvas?: boolean; // #480: antes de abrir a tela, a Coordenação enxerga só a unidade "Tijuca" com os quatro planos ativos e o desativado do canvas e o resumo 4 e 14 (o cenário compartilhado tem mais planos)
   beneficios?: "lista" | "davi" | "marina"; // #481: antes de abrir a tela, a unidade "Tijuca" e os cinco benefícios do canvas (14, 2 e 9); davi e marina põem o aluno, a matrícula, o resumo e o professor das janelas
   organizacaoCanvas?: boolean; // #482: antes de abrir a tela, a organização "Academia Leão" do canvas (Marcos Leão, cor #C8462C, regras 30, 12, 6, 2 e "Depende do plano") e a Administradora Carla Mendes (Tijuca e Barra) na lista de quem pode receber a coordenação
+  unidadeCanvas?: "conectada" | "desconectada"; // #483: antes de abrir a tela, a unidade "Tijuca" do canvas (dados, taxas, modalidades com turmas e planos) com a conta do Mercado Pago conectada ou desconectada
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -92,7 +93,12 @@ export const casos: Caso[] = [
   { nome: "comunicados-novo", rota: "/comunicados/novo", perfil: ana, canvas: "ComunicadoNovo" },
   { nome: "configuracoes-organizacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigAcademia", organizacaoCanvas: true },
   { nome: "configuracoes-unidades", rota: "/configuracoes/unidades", perfil: ana, canvas: "ConfigUnidades" },
-  { nome: "configuracoes-unidade", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigUnidade" },
+  { nome: "configuracoes", rota: "/configuracoes", perfil: admin }, // GMConfig e GMConfigUnidade são de 360 px: a comparação é feita à mão (D5 da #435)
+  { nome: "configuracoes-unidade", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigUnidade", unidadeCanvas: "conectada" },
+  { nome: "configuracoes-unidade-pagamentos", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPagamentos", unidadeCanvas: "conectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
+  { nome: "configuracoes-unidade-pagamentos-desconectado", rota: "/configuracoes/unidade", perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
+  { nome: "configuracoes-unidade-lembretes", rota: "/configuracoes/unidade", perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
+  { nome: "configuracoes-unidade-links", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas" },
   { nome: "configuracoes-usuarios", rota: "/configuracoes/usuarios", perfil: ana, canvas: "ConfigUsuarios" },
@@ -129,7 +135,7 @@ export const casos: Caso[] = [
   { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: "duas@exemplo.com", canvas: "TransferirCoordenacao", organizacaoCanvas: true, passos: [{ clicar: "Transferir coordenação" }, { escolher: ["Novo Coordenador", "Carla Mendes"] }, { preencher: ["Sua senha", "segredo123"] }] },
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", passos: [{ clicar: "Desativar" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: o canvas traz a linha cobrança em conferência e a confirmação por DESATIVAR, que exigem regra nova (medido a 62,2% na #462; a #484 trata a tela e remove esta exceção)" } },
-  { nome: "configuracoes-unidade-professor", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPermProf", fullPage: true },
+  { nome: "configuracoes-unidade-professor", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPermProf", unidadeCanvas: "conectada", passos: [{ clicar: "Permissões do Professor", papel: "tab" }], fullPage: true },
   { nome: "configuracoes-usuario-convidar", rota: "/configuracoes/usuarios", perfil: ana, canvas: "UsuarioConvidar", passos: [{ clicar: "Convidar" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #487 trata a tela e remove esta exceção)" } },
   // Modalidades, faixas, professores, turmas, agenda e dias sem aula (#420). Janelas abrem pelos passos.
   // Sem caso: painel da aula, editar, cancelar e corrigir aula (o id da aula é gerado pelo MSW, sem rota fixa); GM* são as mesmas telas a 390 px (D1).
@@ -223,7 +229,7 @@ export const semCaso: Record<string, string[]> = {
   "tela de funcionalidade ainda sem rota em App.tsx (sprint futura)": [
     "Busca", "FaixasTopo", "Experimentais", "Graduacoes", "GraduacaoLote", "Financeiro",
     "Relatorios", "RelatoriosAlunos", "RelatoriosExperimentais", "RelatoriosAulas", "RelatorioConsolidado", "RelatorioProfessor",
-    "ConfigPagamentos", "LembretesAuto", "ConfigLinks", "ConfigAssinatura", "Historico", "ImportarDados",
+    "ConfigAssinatura", "Historico", "ImportarDados",
     "ConvitesPortal", "MinhaContaNotificacoes", "Ajuda", "AjudaTour", "Novidades", "PortalMInstalar",
     "PortalMPush",
   ],
@@ -237,7 +243,7 @@ export const semCaso: Record<string, string[]> = {
     "GraduacaoRegistrar", "ExportarGraduacoes", "SomenteLeitura",
     "Estornar", "ExportarMensalidades",
     "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios", "UnidadeUnica",
-    "PagamentosDesconectado", "ModalidadeDesativar", "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
+    "ModalidadeDesativar", "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
     "PortalEstados", "PortalMAvisoAberto", "PortalMCarteirinha", "PortalMEditar", "PortalMEstados",

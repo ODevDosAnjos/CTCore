@@ -503,6 +503,7 @@ const makeUnitDetail = (u: (typeof units)[number]) => ({
   whatsapp: null as string | null,
   cnpj: null as string | null,
   active: u.active,
+  timezone: "America/Sao_Paulo",
   settings: defaultUnitSettings(),
   version: 0,
   lastChange: null as MockLastChange,
@@ -2379,7 +2380,15 @@ export const routes: Route[] = [
       const denied = unitSettingsAccess(String(params.unitId));
       if (denied) return denied;
       const offered = unitModalities.get(String(params.unitId)) ?? new Set<string>();
-      const items = modalityCatalog.filter((m) => activeModalities.has(m.id)).map((m) => ({ ...m, offered: offered.has(m.id) }));
+      const unit = String(params.unitId);
+      const items = modalityCatalog
+        .filter((m) => activeModalities.has(m.id))
+        .map((m) => ({
+          ...m,
+          offered: offered.has(m.id),
+          classCount: mockClasses.filter((c) => c.unitId === unit && c.modalityId === m.id && c.status === "ACTIVE").length,
+          planCount: mockPlans.filter((p) => p.unitId === unit && modalityCatalog[p.modalityIndex].id === m.id && p.status === "ACTIVE").length,
+        }));
       return HttpResponse.json({ canManage: true, items });
     },
   },
@@ -2401,7 +2410,12 @@ export const routes: Route[] = [
       if (offered) set.add(found.id);
       else set.delete(found.id);
       unitModalities.set(unitId, set);
-      return HttpResponse.json({ ...found, offered });
+      return HttpResponse.json({
+        ...found,
+        offered,
+        classCount: mockClasses.filter((c) => c.unitId === unitId && c.modalityId === found.id && c.status === "ACTIVE").length,
+        planCount: mockPlans.filter((p) => p.unitId === unitId && modalityCatalog[p.modalityIndex].id === found.id && p.status === "ACTIVE").length,
+      });
     },
   },
   {

@@ -1,12 +1,31 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export type TabItem = { id: string; label: string; content: React.ReactNode };
+export type TabItem = { id: string; label: string; content: React.ReactNode; /** Marca depois do rótulo (ex.: aviso de erro na aba). */ badge?: React.ReactNode };
 
-/** Abas com teclado (setas, Home, End); só o painel ativo é exibido. */
-export function Tabs({ tabs, label, defaultId, className }: { tabs: TabItem[]; label: string; defaultId?: string; className?: string }) {
+/** Abas com teclado (setas, Home, End); só o painel ativo é exibido. Com `value`, a aba ativa é de quem usa (controlada). */
+export function Tabs({
+  tabs,
+  label,
+  defaultId,
+  value,
+  onValueChange,
+  className,
+}: {
+  tabs: TabItem[];
+  label: string;
+  defaultId?: string;
+  value?: string;
+  onValueChange?: (id: string) => void;
+  className?: string;
+}) {
   const base = React.useId();
-  const [active, setActive] = React.useState(defaultId ?? tabs[0]?.id);
+  const [inner, setInner] = React.useState(defaultId ?? tabs[0]?.id);
+  const active = value ?? inner;
+  const setActive = (id: string) => {
+    setInner(id);
+    onValueChange?.(id);
+  };
   const refs = React.useRef<Record<string, HTMLButtonElement | null>>({});
   const go = (i: number) => {
     const next = tabs[(i + tabs.length) % tabs.length];
@@ -42,6 +61,7 @@ export function Tabs({ tabs, label, defaultId, className }: { tabs: TabItem[]; l
             )}
           >
             {tab.label}
+            {tab.badge}
           </button>
         ))}
       </div>

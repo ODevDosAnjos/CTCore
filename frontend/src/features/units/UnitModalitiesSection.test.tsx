@@ -10,7 +10,7 @@ import { UnitModalitiesSection } from "./UnitModalitiesSection";
 
 const A = "00000000-0000-0000-0000-00000000000a";
 const B = "00000000-0000-0000-0000-00000000000b";
-const item = (id: string, name: string, offered: boolean) => ({ id, name, offered });
+const item = (id: string, name: string, offered: boolean, classCount = 0, planCount = 0) => ({ id, name, offered, classCount, planCount });
 
 const ui = (unitId: string) => (
   <ThemeProvider>
@@ -123,5 +123,14 @@ describe("UnitModalitiesSection (RF-MOD-03)", () => {
     const { container } = render(ui(A));
     await screen.findByRole("switch", { name: "Boxe" });
     expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it("CA7: cada linha mostra turmas e planos, no singular com 1, e a nota das modalidades ativas", async () => {
+    server.use(listing({ [A]: [item("m1", "Jiu-Jitsu", true, 5, 4), item("m2", "Muay Thai", true, 1, 1), item("m3", "Boxe", false, 0, 0)] }));
+    render(ui(A));
+    expect(await screen.findByText("5 turmas · 4 planos")).toBeInTheDocument();
+    expect(screen.getByText("1 turma · 1 plano")).toBeInTheDocument();
+    expect(screen.getByText("0 turmas · 0 planos")).toBeInTheDocument();
+    expect(screen.getByText("Só aparecem as modalidades ativas na organização")).toBeInTheDocument();
   });
 });

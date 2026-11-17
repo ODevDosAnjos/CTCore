@@ -17,20 +17,20 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await loginAs(page, "ana@exemplo.com");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/unidade");
-  await expect(page.getByRole("heading", { name: "Configurações da unidade", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Unidade /, level: 1 })).toBeVisible();
 
   await page.getByLabel("Telefone").fill("21999998888");
-  await page.getByRole("checkbox", { name: "Cobrar taxa de matrícula" }).check();
-  await page.getByLabel("Valor da taxa de matrícula").fill("");
-  await page.getByLabel("Valor da taxa de matrícula").pressSequentially("15000");
-  await page.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText("Dados salvos.")).toBeVisible();
+  await page.getByRole("switch", { name: "Cobrar taxa de matrícula" }).click();
+  await page.getByLabel("Valor da taxa").fill("");
+  await page.getByLabel("Valor da taxa").pressSequentially("15000");
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(page.getByText("Salvo", { exact: true })).toBeVisible();
 
   await open(page, "/");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/unidade");
   await expect(page.getByLabel("Telefone")).toHaveValue("(21) 99999-8888");
-  await expect(page.getByLabel("Valor da taxa de matrícula")).toHaveValue("R$ 150,00");
+  await expect(page.getByLabel("Valor da taxa")).toHaveValue("R$ 150,00");
 
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");

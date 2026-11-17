@@ -28,6 +28,7 @@ class UnitModalityIT extends OrganizationBase {
     @org.junit.jupiter.api.BeforeEach
     @AfterEach
     void clean() {
+        adminJdbc().update("delete from plan");
         adminJdbc().update("delete from training_class_assistant");
         adminJdbc().update("delete from training_class_schedule");
         adminJdbc().update("delete from training_class");
@@ -84,6 +85,37 @@ class UnitModalityIT extends OrganizationBase {
         adminJdbc().update("insert into training_class (id, organization_id, unit_id, name, name_key, modality_id, head_teacher_id, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
                 id, t.orgId(), unit, name, Modalities.normalize(name), modality, head, status);
         return id;
+    }
+
+    @Test
+    @DisplayName("CA19: a lista traz classCount e planCount só de turmas e planos ativos da unidade e da modalidade; a gravação devolve os mesmos números")
+    void counts() throws Exception {
+        var t = tenant();
+        activate(t, "Judô", "Boxe");
+        UUID judo = id("Judô");
+        UUID second = secondUnit(t);
+        classOf(t, t.unitId(), "Judô Kids", judo, "ACTIVE");
+        classOf(t, t.unitId(), "Judô Adulto", judo, "ACTIVE");
+        classOf(t, t.unitId(), "Judô Antiga", judo, "INACTIVE");
+        classOf(t, second, "Judô Outra Unidade", judo, "ACTIVE");
+        planOf(t, t.unitId(), "Judô 2x", judo, "ACTIVE");
+        planOf(t, t.unitId(), "Judô 3x", judo, "INACTIVE");
+        planOf(t, second, "Judô Livre", judo, "ACTIVE");
+        var coordinator = who(t, Role.COORDINATOR);
+        var items = body(send(list(t.unitId()), coordinator)).get("items");
+        assertThat(items.get(0).get("name").asText()).isEqualTo("Boxe");
+        assertThat(items.get(0).get("classCount").asInt()).isZero();
+        assertThat(items.get(0).get("planCount").asInt()).isZero();
+        assertThat(items.get(1).get("classCount").asInt()).isEqualTo(2);
+        assertThat(items.get(1).get("planCount").asInt()).isEqualTo(1);
+        var saved = body(send(offer(t.unitId(), judo, "{\"offered\":true}"), coordinator));
+        assertThat(saved.get("classCount").asInt()).isEqualTo(2);
+        assertThat(saved.get("planCount").asInt()).isEqualTo(1);
+    }
+
+    private void planOf(Tenant t, UUID unit, String name, UUID modality, String status) {
+        adminJdbc().update("insert into plan (id, organization_id, unit_id, modality_id, name, name_key, value_cents, status) values (?, ?, ?, ?, ?, ?, 10000, ?)",
+                UUID.randomUUID(), t.orgId(), unit, modality, name, Modalities.normalize(name), status);
     }
 
     @Test

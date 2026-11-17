@@ -14,3 +14,8 @@ export function Text({ label, value, onChange, error, help, ...rest }: Props) {
     </Field>
   );
 }
+
+// Erro devolvido pelo servidor, abaixo de campos que guardam o próprio valor (máscaras).
+export function Err({ text }: { text?: string }) {
+  return text ? <p className="text-xs text-danger-foreground">{text}</p> : null;
+}

@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 /** RF-MOD-03 (RN-MOD-02, RN-MOD-03): modalidades ativas da organização que a unidade oferece. Leitura e escrita pela linha UNIT_SETTINGS. */
 @Service
 public class UnitModalities {
-    public record Item(UUID id, String name, boolean offered) {}
+    public record Item(UUID id, String name, boolean offered, int classCount, int planCount) {}
 
     public record Listing(boolean canManage, List<Item> items) {}
 
@@ -42,11 +42,11 @@ public class UnitModalities {
         Access access = units.access(who, unitId);
         if (access == Access.NONE) throw new AccessDeniedException("Permission denied");
         return new Listing(access == Access.FULL, transactions.execute(() -> jdbc.sql("""
-                select m.id, m.name, coalesce(u.offered, false) from modality m
+                select m.id, m.name, coalesce(u.offered, false), (select count(*) from training_class c where c.unit_id = :unit and c.modality_id = m.id and c.status = 'ACTIVE'), (select count(*) from plan p where p.unit_id = :unit and p.modality_id = m.id and p.status = 'ACTIVE') from modality m
                 join organization_modality o on o.modality_id = m.id and o.organization_id = :org and o.active
                 left join unit_modality u on u.modality_id = m.id and u.unit_id = :unit and u.organization_id = :org
                 order by m.name""").param("org", who.organizationId()).param("unit", unitId)
-                .query((rs, i) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3))).list()));
+                .query((rs, i) -> new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3), rs.getInt(4), rs.getInt(5))).list()));
     }
 
     public Item setOffered(AccountPrincipal who, UUID unitId, UUID modalityId, Boolean offered, String ip) {
@@ -67,8 +67,13 @@ public class UnitModalities {
                         offered ? "unit.modality.offered" : "unit.modality.withdrawn", "unit_modality", modalityId.toString(), unitId,
                         Map.of("offered", current), Map.of("offered", offered), null, ip));
             }
-            return new Item(modalityId, name, offered);
+            return new Item(modalityId, name, offered, count("training_class", unitId, modalityId), count("plan", unitId, modalityId));
         });
+    }
+
+    private int count(String table, UUID unitId, UUID modalityId) {
+        return jdbc.sql("select count(*) from " + table + " where unit_id = :unit and modality_id = :id and status = 'ACTIVE'").param("unit", unitId).param("id", modalityId)
+                .query(Integer.class).single();
     }
 
     /** RN-MOD-06: desmarcar na unidade exige que não haja turma ativa da modalidade nela; a recusa lista as turmas. */
