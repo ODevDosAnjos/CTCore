@@ -4,6 +4,7 @@ import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { BlockerChecklist } from "@/components/ui/blocker-checklist";
 import { Button } from "@/components/ui/button";
+import { ComingSoon } from "@/components/ui/coming-soon";
 import { Field, Input } from "@/components/ui/field";
 import { ReauthDialog } from "@/features/auth/ReauthDialog";
 import { ApiError, api } from "@/lib/api";
@@ -13,21 +14,24 @@ import type { UnitSummary } from "./useUnits";
 interface Check {
   activeStudents: number;
   activeClasses: number;
+  pendingProofs: number;
   lastActiveUnit: boolean;
   canDeactivate: boolean;
 }
 type Phase = "form" | "reauth" | "sending" | "failed" | "forbidden";
 type Loaded = { key: string; check?: Check; forbidden?: boolean };
 
-// RF-ORG-07 / RNF-26: mostra o que impede, pede o nome da unidade digitado, depois a senha; só então chama a rota.
-export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSummary | null; onClose: () => void; onDone: () => void }) {
+const WORD = "DESATIVAR";
+
+// RN-ORG-11: a única unidade ativa só recebe a explicação; as demais mostram o que impede, pedem DESATIVAR e a senha (RN-ACE-21).
+export function DeactivateUnitDialog({ unit, onlyActive, onClose, onDone }: { unit: UnitSummary | null; onlyActive: boolean; onClose: () => void; onDone: () => void }) {
   const { t } = useTranslation();
   const [tick, setTick] = useState(0);
   const [loaded, setLoaded] = useState<Loaded>();
-  const [name, setName] = useState("");
+  const [word, setWord] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string>();
-  const unitId = unit?.id;
+  const unitId = onlyActive ? undefined : unit?.id;
   const key = `${unitId}:${tick}`;
 
   useEffect(() => {
@@ -35,7 +39,12 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
     let alive = true;
     api<Check>(`/units/${unitId}/deactivation-check`).then(
       (check) => alive && setLoaded({ key, check }),
-      (e) => alive && setLoaded({ key, forbidden: e instanceof ApiError && e.status === 403 }),
+      (e) =>
+        alive &&
+        setLoaded({
+          key,
+          forbidden: e instanceof ApiError && e.status === 403,
+        }),
     );
     return () => {
       alive = false;
@@ -44,10 +53,10 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
 
   const current = loaded?.key === key ? loaded : undefined;
   const check = current?.check;
-  const ready = !!unit && !!check?.canDeactivate && name.trim().toLowerCase() === unit.name.trim().toLowerCase();
+  const ready = !!check?.canDeactivate && word.trim().toUpperCase() === WORD;
 
   function close() {
-    setName("");
+    setWord("");
     setError(undefined);
     setPhase("form");
     setTick((n) => n + 1);
@@ -60,13 +69,13 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
     try {
       await api(`/units/${unit.id}/deactivation`, {
         method: "POST",
-        body: { confirmation: name.trim() },
+        body: { confirmation: word.trim() },
         headers: { "X-Reauth-Token": token },
       });
     } catch (e) {
       const status = e instanceof ApiError ? e.status : 0;
       if (status === 400) {
-        setError(t("units.deactivate.nameInvalid"));
+        setError(t("units.deactivate.wordInvalid"));
         setPhase("form");
       } else if (status === 409) {
         setTick((n) => n + 1); // mostra o que impede agora
@@ -78,20 +87,47 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
     onDone();
   }
 
+  const title = t("units.deactivate.title", { name: unit?.name ?? "" });
+
+  if (onlyActive) {
+    return (
+      <Modal
+        open={unit !== null}
+        onOpenChange={(o) => !o && close()}
+        size="sm"
+        scrim="canvas"
+        tone="danger"
+        title={t("units.deactivate.only.title")}
+        footer={
+          <>
+            <Button type="button" variant="ghost" className="min-h-11" onClick={close}>
+              {t("common.close")}
+            </Button>
+            <ComingSoon variant="button" label={t("units.deactivate.only.subscription")} />
+          </>
+        }
+      >
+        <p className="text-sm">{t("units.deactivate.only.text")}</p>
+      </Modal>
+    );
+  }
+
   return (
     <>
       <Modal
         open={unit !== null && phase !== "reauth"}
         onOpenChange={(o) => !o && phase !== "sending" && close()}
         size="sm"
-        title={t("units.deactivate.title", { name: unit?.name ?? "" })}
+        scrim="canvas"
+        tone="danger"
+        title={title}
         footer={
           check ? (
             <>
-              <Button type="button" variant="outline" className="min-h-11" onClick={close} disabled={phase === "sending"}>
+              <Button type="button" variant="ghost" className="min-h-11" onClick={close} disabled={phase === "sending"}>
                 {t("common.close")}
               </Button>
-              <Button type="submit" form="deactivate-unit-form" className="min-h-11" disabled={!ready || phase === "sending"}>
+              <Button type="submit" form="deactivate-unit-form" variant="danger" className="min-h-11" disabled={!ready || phase === "sending"}>
                 {t("units.deactivate.confirm")}
               </Button>
             </>
@@ -122,28 +158,53 @@ export function DeactivateUnitDialog({ unit, onClose, onDone }: { unit: UnitSumm
               label={t("units.deactivate.blockedHead")}
               items={[
                 check.activeStudents > 0
-                  ? { text: t("units.deactivate.students", { count: check.activeStudents }), link: { to: `/alunos?unitId=${unit?.id}&status=ACTIVE`, label: t("units.deactivate.seeStudents") } }
+                  ? {
+                      text: t("units.deactivate.students", {
+                        count: check.activeStudents,
+                      }),
+                      link: {
+                        to: `/alunos?unitId=${unit?.id}&status=ACTIVE`,
+                        label: t("units.deactivate.seeStudents"),
+                      },
+                    }
                   : { text: t("units.deactivate.studentsFree"), ok: true },
                 check.activeClasses > 0
-                  ? { text: t("units.deactivate.classes", { count: check.activeClasses }), link: { to: `/turmas?unitId=${unit?.id}&status=ACTIVE`, label: t("units.deactivate.seeClasses") } }
+                  ? {
+                      text: t("units.deactivate.classes", {
+                        count: check.activeClasses,
+                      }),
+                      link: {
+                        to: `/turmas?unitId=${unit?.id}&status=ACTIVE`,
+                        label: t("units.deactivate.seeClasses"),
+                      },
+                    }
                   : { text: t("units.deactivate.classesFree"), ok: true },
-                check.lastActiveUnit ? { text: t("units.deactivate.lastUnit") } : { text: t("units.deactivate.lastUnitFree"), ok: true },
+                check.pendingProofs > 0
+                  ? {
+                      text: t("units.deactivate.proofs", {
+                        count: check.pendingProofs,
+                      }),
+                    }
+                  : { text: t("units.deactivate.proofsFree"), ok: true },
               ]}
             />
-            <Field label={t("units.deactivate.typeLabel", { name: unit?.name ?? "" })} error={error} alertError>
-              {(c) => (
-                <Input
-                  {...c}
-                  autoComplete="off"
-                  value={name}
-                  disabled={!check.canDeactivate}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    setError(undefined);
-                  }}
-                />
-              )}
-            </Field>
+            {check.canDeactivate ? (
+              <Field label={t("units.deactivate.typeLabel")} error={error} alertError>
+                {(c) => (
+                  <Input
+                    {...c}
+                    autoComplete="off"
+                    value={word}
+                    onChange={(e) => {
+                      setWord(e.target.value);
+                      setError(undefined);
+                    }}
+                  />
+                )}
+              </Field>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("units.deactivate.guidance")}</p>
+            )}
           </form>
         )}
       </Modal>

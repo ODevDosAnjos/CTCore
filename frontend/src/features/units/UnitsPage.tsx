@@ -1,107 +1,156 @@
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
-import { DataTable, type Column } from "@/components/query/DataTable";
+import { Link, useLocation } from "react-router";
+import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
-import { DeactivateUnitDialog } from "./DeactivateUnitDialog";
-import { ShortNameDialog } from "./ShortNameDialog";
-import { MAX_UNITS, useUnits, type UnitSummary } from "./useUnits";
+import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
+import { ManagementLayout } from "@/features/permissions/ManagementLayout";
+import { formatDate } from "@/lib/format";
+import { DeactivateUnitDialog } from "./DeactivateUnitDialog";
+import { MAX_UNITS, useUnits, type UnitSummary } from "./useUnits";
+
+const HEAD = "px-4 py-3 font-medium text-muted-foreground";
+const CELL = "px-4 py-3 align-middle";
 
 function Content() {
   const { t } = useTranslation();
   const api = useUnits();
-  const [adjusting, setAdjusting] = useState<UnitSummary | null>(null);
   const [deactivating, setDeactivating] = useState<UnitSummary | null>(null);
   const [notice, setNotice] = useState(false);
+  const created = (useLocation().state as { created?: string } | null)?.created;
   if (api.status === "loading") return <LoadingState />;
   if (api.status === "forbidden") return <ForbiddenState />;
   if (!api.units) return <ErrorState onRetry={api.retry} />;
 
+  const units = api.units;
+  const active = units.filter((u) => u.active);
   const sr = (u: UnitSummary) => <span className="sr-only"> {u.name}</span>;
-  const columns: Column<UnitSummary>[] = [
-    { key: "name", label: t("units.title"), render: (u) => <span className="font-medium">{u.name}</span> },
-    { key: "city", label: t("units.city"), render: (u) => u.city ?? t("units.noCity") },
-    { key: "students", label: t("units.activeStudents"), numeric: true, render: (u) => u.activeStudents },
-    {
-      key: "admins",
-      label: t("units.administrators"),
-      render: (u) => (u.administrators.length ? u.administrators.map((a) => a.name).join(", ") : t("units.noAdministrators")),
-    },
-    { key: "status", label: t("units.status"), render: (u) => <StatusBadge status={u.active ? "ACTIVE" : "INACTIVE"} label={u.active ? t("units.active") : t("units.inactive")} /> },
-    {
-      key: "short",
-      label: t("units.shortName"),
-      render: (u) => (
-        <div>
-          <span>{u.shortName}</span>
-          {!u.shortNameAdjusted && (
-            <Button variant="secondary" size="sm" className="mt-1 block whitespace-normal" onClick={() => setAdjusting(u)}>
-              {t("units.adjust")}
-              {sr(u)}
-            </Button>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "actions",
-      label: t("units.actions"),
-      render: (u) => (
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="secondary" size="sm">
-            <Link to={`/configuracoes/unidade?unidade=${u.id}`}>
-              {t("units.configure")}
-              {sr(u)}
-            </Link>
-          </Button>
-          {u.active && (
-            <Button variant="secondary" size="sm" onClick={() => setDeactivating(u)}>
-              {t("units.deactivate.button")}
-              {sr(u)}
-            </Button>
-          )}
-        </div>
-      ),
-    },
-  ];
+  const full = units.length >= MAX_UNITS;
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("units.title")} />
-      {notice && <Banner tone="ok">{t("units.deactivate.done")}</Banner>}
-      {api.units.length >= MAX_UNITS ? (
-        <div>
-          <Button disabled aria-describedby="units-limit">
-            {t("units.newButton")}
-          </Button>
-          <p id="units-limit" className="text-sm text-muted-foreground">
-            {t("units.limitReached")}
-          </p>
-        </div>
-      ) : (
-        <Button asChild className="self-start">
-          <Link to="/configuracoes/unidades/nova">{t("units.newButton")}</Link>
-        </Button>
+      <PageHeader
+        title={t("units.title")}
+        subtitle={t("units.subtitle", { count: active.length })}
+        actions={
+          full ? (
+            <Button disabled aria-describedby="units-limit">
+              <Plus aria-hidden />
+              {t("units.newButton")}
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link to="/configuracoes/unidades/nova">
+                <Plus aria-hidden />
+                {t("units.newButton")}
+              </Link>
+            </Button>
+          )
+        }
+      />
+      {full && (
+        <p id="units-limit" className="text-sm text-muted-foreground">
+          {t("units.limitReached")}
+        </p>
       )}
-      {api.units.length === 0 ? (
+      {created && <Banner tone="ok">{t("units.new.created", { name: created })}</Banner>}
+      {notice && <Banner tone="ok">{t("units.deactivate.done")}</Banner>}
+      {units.length === 0 ? (
         <EmptyState title={t("units.emptyTitle")} text={t("units.emptyText")} />
       ) : (
-        <DataTable columns={columns} rows={api.units} rowKey={(u) => u.id} order="" onOrder={() => undefined} />
+        <>
+          <Card className="overflow-hidden p-0">
+            <div className="relative overflow-x-auto">
+              <table aria-label={t("units.tableLabel")} className="w-full text-left text-sm">
+                <thead className="border-b border-divider bg-surface-soft">
+                  <tr>
+                    <th scope="col" className={HEAD}>
+                      {t("units.unit")}
+                    </th>
+                    <th scope="col" className={HEAD}>
+                      {t("units.city")}
+                    </th>
+                    <th scope="col" className={`${HEAD} text-right`}>
+                      {t("units.activeStudents")}
+                    </th>
+                    <th scope="col" className={HEAD}>
+                      {t("units.administrators")}
+                    </th>
+                    <th scope="col" className={HEAD}>
+                      {t("units.status")}
+                    </th>
+                    <th scope="col" className={HEAD}>
+                      {t("units.shortName")}
+                    </th>
+                    <th scope="col" className={HEAD}>
+                      <span className="sr-only">{t("units.actions")}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {units.map((u) => (
+                    <tr key={u.id} className="border-b border-divider last:border-b-0">
+                      <td className={`${CELL} font-medium`}>{u.name}</td>
+                      <td className={CELL}>{u.city ?? t("units.noCity")}</td>
+                      <td className={`${CELL} text-right tabular-nums`}>{u.activeStudents}</td>
+                      <td className={CELL}>{u.administrators.length ? u.administrators.map((a) => a.name).join(", ") : t("units.noAdministrators")}</td>
+                      <td className={CELL}>
+                        <StatusBadge
+                          status={u.active ? "ACTIVE" : "INACTIVE"}
+                          label={
+                            u.active
+                              ? t("units.active")
+                              : u.deactivatedAt
+                                ? t("units.inactiveOn", {
+                                    date: formatDate(u.deactivatedAt),
+                                  })
+                                : t("units.inactive")
+                          }
+                        />
+                      </td>
+                      <td className={`${CELL} font-mono text-xs`}>{u.shortName}</td>
+                      <td className={`${CELL} text-right`}>
+                        {u.active ? (
+                          <Button asChild variant="secondary" size="sm">
+                            <Link to={`/configuracoes/unidade?unidade=${u.id}`}>
+                              {t("units.open")}
+                              {sr(u)}
+                            </Link>
+                          </Button>
+                        ) : (
+                          <ComingSoon variant="button" label={t("units.history")} />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+          {active[0] && <p className="text-sm text-muted-foreground">{t("units.shortNameNote", { shortName: active[0].shortName })}</p>}
+          <div className="flex flex-wrap gap-2">
+            {active.map((u) => (
+              <Button key={u.id} variant="danger" size="sm" onClick={() => setDeactivating(u)}>
+                {t("units.deactivate.button", { name: u.name })}
+              </Button>
+            ))}
+          </div>
+        </>
       )}
       <DeactivateUnitDialog
         unit={deactivating}
+        onlyActive={active.length === 1}
         onClose={() => setDeactivating(null)}
         onDone={() => {
           setNotice(true);
           void api.refresh();
         }}
       />
-      <ShortNameDialog unit={adjusting} onClose={() => setAdjusting(null)} onSave={api.adjustShortName} />
     </div>
   );
 }

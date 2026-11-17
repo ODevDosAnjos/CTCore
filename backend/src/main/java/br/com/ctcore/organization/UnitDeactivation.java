@@ -15,7 +15,6 @@ import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.annotation.Lazy;
@@ -26,7 +25,9 @@ import org.springframework.stereotype.Service;
 /** RF-ORG-07 (RN-ORG-11, D1..D5): o Coordenador desativa uma unidade sem impedimentos; nada é apagado. */
 @Service
 public class UnitDeactivation {
-    public record Check(int activeStudents, int activeClasses, boolean lastActiveUnit, boolean canDeactivate) {}
+    public record Check(int activeStudents, int activeClasses, int pendingProofs, boolean lastActiveUnit, boolean canDeactivate) {}
+
+    private static final String CONFIRMATION = "DESATIVAR";
 
     private record Row(String name, boolean active) {}
 
@@ -47,10 +48,9 @@ public class UnitDeactivation {
         this.blockers = blockers;
     }
 
-    /** D2: o nome da unidade, sem diferenciar maiúsculas nem espaços nas pontas. */
-    static boolean matches(String confirmation, String name) {
-        return confirmation != null && !confirmation.isBlank()
-                && name.strip().toLowerCase(Locale.ROOT).equals(confirmation.strip().toLowerCase(Locale.ROOT));
+    /** RN-ORG-11: a palavra DESATIVAR, sem diferenciar maiúsculas nem espaços nas pontas. */
+    static boolean matches(String confirmation) {
+        return confirmation != null && CONFIRMATION.equalsIgnoreCase(confirmation.strip());
     }
 
     public Check check(AccountPrincipal who, UUID unitId) {
@@ -66,7 +66,7 @@ public class UnitDeactivation {
         transactions.execute(() -> {
             Row row = find(who, unitId);
             if (!row.active()) throw new ApiStatusException(ErrorCode.CONFLICT);
-            if (!matches(confirmation, row.name())) throw new ApiValidationException("confirmation", "digite o nome da unidade");
+            if (!matches(confirmation)) throw new ApiValidationException("confirmation", "digite DESATIVAR");
             refuseIfBlocked(state(who, unitId));
             return null;
         });
@@ -77,7 +77,7 @@ public class UnitDeactivation {
             Row row = find(who, unitId);
             if (!row.active()) throw new ApiStatusException(ErrorCode.CONFLICT);
             refuseIfBlocked(state(who, unitId));
-            jdbc.sql("update unit set active = false where id = :id and organization_id = :org")
+            jdbc.sql("update unit set active = false, deactivated_at = now() where id = :id and organization_id = :org")
                     .param("id", unitId).param("org", who.organizationId()).update();
             audit.record(new AuditEntry(new AuditActor(AuditActor.Type.ACCOUNT, who.accountId(), who.role().name()), "unit.deactivated",
                     "unit", unitId.toString(), unitId, Map.of("active", true), Map.of("active", false), null, ip));
@@ -90,16 +90,18 @@ public class UnitDeactivation {
         throw new ApiStatusException(ErrorCode.UNIT_HAS_BLOCKERS, List.of(
                 new ApiError.Field("activeStudents", String.valueOf(check.activeStudents())),
                 new ApiError.Field("activeClasses", String.valueOf(check.activeClasses())),
+                new ApiError.Field("pendingProofs", String.valueOf(check.pendingProofs())),
                 new ApiError.Field("lastActiveUnit", String.valueOf(check.lastActiveUnit()))));
     }
 
     private Check state(AccountPrincipal who, UUID unitId) {
         int students = blockers.activeStudents(unitId);
         int classes = blockers.activeClasses(unitId);
+        int proofs = blockers.pendingProofs(unitId);
         int others = jdbc.sql("select count(*) from unit where organization_id = :org and active and id <> :id")
                 .param("org", who.organizationId()).param("id", unitId).query(Integer.class).single();
         boolean last = others == 0;
-        return new Check(students, classes, last, students == 0 && classes == 0 && !last);
+        return new Check(students, classes, proofs, last, students == 0 && classes == 0 && proofs == 0 && !last);
     }
 
     private Row find(AccountPrincipal who, UUID unitId) {

@@ -26,7 +26,7 @@ class UnitListIT extends UnitBase {
         assertThat(units).hasSize(2);
         var first = units.get(0);
         assertThat(first.fieldNames()).toIterable().containsExactlyInAnyOrder("id", "name", "shortName", "shortNameAdjusted", "city",
-                "activeStudents", "administrators", "active");
+                "activeStudents", "administrators", "active", "deactivatedAt");
         assertThat(first.path("name").asText()).isEqualTo("Unit");
         assertThat(first.path("active").asBoolean()).isTrue();
         assertThat(first.path("shortNameAdjusted").asBoolean()).isFalse();

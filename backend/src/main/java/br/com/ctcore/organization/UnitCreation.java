@@ -110,7 +110,7 @@ public class UnitCreation {
                 if (unit.city() != null) after.put("city", unit.city());
                 audit.record(new AuditEntry(new AuditActor(AuditActor.Type.ACCOUNT, who.accountId(), who.role().name()), "unit.create", "unit",
                         id.toString(), id, Map.of(), after, null, ip));
-                return new UnitSummary(id, unit.name(), shortName, false, unit.city(), 0, List.of(), true);
+                return new UnitSummary(id, unit.name(), shortName, false, unit.city(), 0, List.of(), true, null);
             });
         } catch (DuplicateKeyException e) {
             if (candidate[0] != null) rejected.add(candidate[0]);

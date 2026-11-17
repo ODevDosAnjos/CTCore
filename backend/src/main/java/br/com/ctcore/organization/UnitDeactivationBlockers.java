@@ -11,6 +11,9 @@ public interface UnitDeactivationBlockers {
 
     int activeClasses(UUID unitId);
 
+    /** Cobranças da unidade em conferência (IN_REVIEW). */
+    int pendingProofs(UUID unitId);
+
     /** Turmas ativas e alunos distintos com modalidade ativa na unidade (#63, R13). */
     @Component
     class Jdbc implements UnitDeactivationBlockers {
@@ -29,6 +32,12 @@ public interface UnitDeactivationBlockers {
         @Override
         public int activeClasses(UUID unitId) {
             return jdbc.sql("select count(*) from training_class where unit_id = :id and status = 'ACTIVE'")
+                    .param("id", unitId).query(Integer.class).single();
+        }
+
+        @Override
+        public int pendingProofs(UUID unitId) {
+            return jdbc.sql("select count(*) from charge where unit_id = :id and status = 'IN_REVIEW'")
                     .param("id", unitId).query(Integer.class).single();
         }
     }

@@ -55,7 +55,7 @@ Coordenador (tudo), Administrador (vê as configurações da organização e alt
 - **RN-ORG-08.** "Todas as unidades" existe só para o Coordenador e só para consulta: Início, financeiro e relatórios somados e comparados. Para cadastrar ou alterar, ele entra numa unidade.
 - **RN-ORG-09.** Administrador de duas ou mais unidades escolhe a unidade no seletor do topo. Ele não tem visão somada.
 - **RN-ORG-10.** Planos, turmas, cobranças, dias de vencimento e conta de pagamento são da unidade. Faixas etárias, graduação, termos e prazos são da organização.
-- **RN-ORG-11.** Desativar uma unidade exige que não haja alunos com modalidade ativa nem turmas ativas nela (transferidos ou encerrados antes). A única unidade ativa da organização não pode ser desativada. O histórico fica para consulta. Confirmação digitada: o nome da unidade.
+- **RN-ORG-11.** Desativar uma unidade exige que não haja alunos com modalidade ativa nem turmas ativas nela (transferidos ou encerrados antes), nem cobranças em conferência. A única unidade ativa da organização não pode ser desativada. O histórico fica para consulta. Confirmação digitada: DESATIVAR, e a senha (RN-ACE-21).
 - **RN-ORG-12.** Transferência: uma modalidade da matrícula pode ir para outra unidade da mesma organização, mantendo histórico e graduação. Cobranças já geradas ficam na unidade de origem. A nova unidade escolhe turma, plano e vencimento.
 - **RN-ORG-13.** "Treinar em outra unidade": com "Depende do plano", cada plano diz se vale também em outras unidades. Com "Sim" ou "Não", vale para todos os planos.
 - **RN-ORG-14.** O endereço da unidade é guardado com latitude e longitude (geocodificação no cadastro, ajustável no mapa), para o diretório.

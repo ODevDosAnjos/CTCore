@@ -18,13 +18,15 @@ test("@critical nova unidade: Coordenador cria com convite, Administrador sem ac
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/unidades");
   await page.getByRole("link", { name: "Nova unidade" }).click();
-  await page.getByLabel("Nome da unidade").fill("Academia Tijuca");
-  await page.getByRole("button", { name: "Avançar" }).click();
+  await page.getByLabel(/Nome da unidade/).fill("Academia Tijuca");
+  await expect(page.getByLabel("Nome curto")).toHaveValue("academia-tijuca");
   await page.getByLabel("CEP").fill("01001000");
-  await page.getByRole("button", { name: "Avançar" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByLabel("Nome do Administrador").fill("Ana Nova");
   await page.getByLabel("E-mail do Administrador").fill("nova@exemplo.com");
-  await page.getByRole("button", { name: "Concluir" }).click();
+  await page.getByRole("button", { name: "Criar unidade" }).click();
   await expect(page.getByRole("heading", { name: "Unidades", level: 1 })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Academia Tijuca", exact: true })).toBeVisible();
 

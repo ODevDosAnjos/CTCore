@@ -401,6 +401,33 @@ function conflicting(putStatuses: number[] = [409]) {
   return { sent, reads };
 }
 
+describe("UnitSettingsPage: nome curto (RN-ORG-15, D3 da #484)", () => {
+  it("a aba Dados ajusta o nome curto uma vez: PATCH, valor novo na tela e o botão some; 409 mostra a mensagem", async () => {
+    const user = userEvent.setup();
+    const patches: unknown[] = [];
+    setup("COORDINATOR");
+    server.use(
+      http.patch("/api/v1/units/:id/short-name", async ({ request }) => {
+        const body = (await request.json()) as { shortName: string };
+        patches.push(body);
+        return body.shortName === "em-uso" ? HttpResponse.json({ code: "CONFLICT", fields: [] }, { status: 409 }) : HttpResponse.json({});
+      }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Ajustar nome curto" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Novo nome curto"), "em-uso");
+    await user.click(within(dialog).getByRole("button", { name: "Ajustar" }));
+    expect(await within(dialog).findByText("Este nome curto não está disponível. Escolha outro.")).toBeInTheDocument();
+    await user.clear(within(dialog).getByLabelText("Novo nome curto"));
+    await user.type(within(dialog).getByLabelText("Novo nome curto"), "centro-novo");
+    await user.click(within(dialog).getByRole("button", { name: "Ajustar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(patches).toEqual([{ shortName: "em-uso" }, { shortName: "centro-novo" }]);
+    expect(screen.getByLabelText("Nome curto")).toHaveValue("centro-novo");
+    expect(screen.queryByRole("button", { name: "Ajustar nome curto" })).toBeNull();
+  });
+});
+
 describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-08, RNF-15)", () => {
   it("CA9: sem registro mostra 'Ainda sem alterações'", async () => {
     setup("COORDINATOR");

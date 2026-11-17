@@ -189,7 +189,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 481 | Benefícios: lista, conceder, encerrar e substituir no visual do canvas | issue #481 | Sprint 10.5 | #456, #457, #460, #461, #452 | agente | feito |
 | 482 | Organização: marca, regras da organização, contraste e transferir coordenação no visual do canvas | issue #482 | Sprint 10.5 | #453, #460, #461, #450 | agente | feito |
 | 483 | Unidade: abas Dados, Pagamentos, Lembretes, Links e Permissões do Professor no visual do canvas | issue #483 | Sprint 10.5 | #453, #458, #459, #450 | agente | feito |
-| 484 | Unidades: lista, nova unidade, desativar e unidade única no visual do canvas | issue #484 | Sprint 10.5 | #460, #461, #462, #451, #450 | agente | a fazer |
+| 484 | Unidades: lista, nova unidade, desativar e unidade única no visual do canvas | issue #484 | Sprint 10.5 | #460, #461, #462, #451, #450 | agente | feito |
 | 485 | Modalidades: lista, graduação, recusa e desativar no visual do canvas | issue #485 | Sprint 10.5 | #458, #459, #460, #461, #462, #452 | agente | a fazer |
 | 486 | Faixas etárias no visual do canvas | issue #486 | Sprint 10.5 | #458, #459 | agente | a fazer |
 | 487 | Usuários: lista, convidar e tabela de permissões no visual do canvas | issue #487 | Sprint 10.5 | #456, #457, #458, #459, #460, #461, #452 | agente | a fazer |

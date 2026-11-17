@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -19,24 +19,25 @@ const session = (role: string): SessionView => ({
 });
 const unit = (over: Partial<UnitSummary> = {}): UnitSummary => ({
   id: "u1",
-  name: "Unidade Centro",
-  shortName: "alfa-centro",
+  name: "Tijuca",
+  shortName: "academia-leao-tijuca",
   shortNameAdjusted: false,
-  city: "Rio de Janeiro",
+  city: "Rio de Janeiro/RJ",
   activeStudents: 0,
   administrators: [],
   active: true,
+  deactivatedAt: null,
   ...over,
 });
 
-type Check = { activeStudents: number; activeClasses: number; lastActiveUnit: boolean; canDeactivate: boolean };
-const free: Check = { activeStudents: 0, activeClasses: 0, lastActiveUnit: false, canDeactivate: true };
+type Check = { activeStudents: number; activeClasses: number; pendingProofs: number; lastActiveUnit: boolean; canDeactivate: boolean };
+const free: Check = { activeStudents: 0, activeClasses: 0, pendingProofs: 0, lastActiveUnit: false, canDeactivate: true };
 let units: UnitSummary[];
 let calls: { token: string | null; body: unknown }[];
 
 function setup(opts: { role?: string; check?: () => Response | Promise<Response>; deactivate?: () => Response | Promise<Response> } = {}) {
   const role = opts.role ?? "COORDINATOR";
-  units = [unit(), unit({ id: "u2", name: "Unidade Norte", shortName: "alfa-norte" })];
+  units = [unit(), unit({ id: "u2", name: "Barra", shortName: "academia-leao-barra" })];
   calls = [];
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
@@ -48,7 +49,7 @@ function setup(opts: { role?: string; check?: () => Response | Promise<Response>
     http.post("/api/v1/units/:id/deactivation", async ({ request, params }) => {
       calls.push({ token: request.headers.get("X-Reauth-Token"), body: await request.json() });
       if (opts.deactivate) return opts.deactivate();
-      units = units.map((u) => (u.id === params.id ? { ...u, active: false } : u));
+      units = units.map((u) => (u.id === params.id ? { ...u, active: false, deactivatedAt: "2026-11-17T15:00:00Z" } : u));
       return new HttpResponse(null, { status: 204 });
     }),
   );
@@ -65,10 +66,10 @@ function setup(opts: { role?: string; check?: () => Response | Promise<Response>
 
 type User = ReturnType<typeof userEvent.setup>;
 const open = async (user: User) => {
-  await user.click((await screen.findAllByRole("button", { name: /Desativar\s*Unidade Centro/ }))[0]);
-  return screen.findByRole("dialog", { name: "Desativar Unidade Centro" });
+  await user.click(await screen.findByRole("button", { name: "Desativar a Barra…" }));
+  return screen.findByRole("dialog", { name: "Desativar a Barra" });
 };
-const NAME = "Digite o nome da unidade (Unidade Centro) para confirmar";
+const WORD = "Digite DESATIVAR para confirmar";
 const reauth = async (user: User) => {
   await user.click(screen.getByRole("button", { name: "Desativar unidade" }));
   await user.type(await screen.findByLabelText("Senha"), "segredo123");
@@ -76,16 +77,40 @@ const reauth = async (user: User) => {
 };
 
 describe("DeactivateUnitDialog (RF-ORG-07)", () => {
-  it("CA10 / CA11: sem impedimento habilita ao digitar o nome, pede a senha, só então chama a rota com o token; a lista mostra a unidade desativada e o aviso", async () => {
+  it("CA7: com alunos e turmas ativos mostra o texto, o checklist com os links, a orientação e não deixa continuar", async () => {
+    const user = userEvent.setup();
+    setup({ check: () => HttpResponse.json({ ...free, activeStudents: 83, activeClasses: 5, canDeactivate: false }) });
+    const dialog = await open(user);
+    expect(await within(dialog).findByText("Desativar exige que não haja alunos com modalidade ativa nem turmas ativas. O histórico fica para consulta.")).toBeInTheDocument();
+    expect(within(dialog).getByText("O que impede agora")).toBeInTheDocument();
+    expect(dialog).toHaveTextContent("83 alunos com modalidade ativa");
+    expect(dialog).toHaveTextContent("5 turmas ativas");
+    expect(dialog).toHaveTextContent("Nenhuma cobrança em conferência");
+    expect(within(dialog).getByRole("link", { name: "Ver alunos" })).toHaveAttribute("href", "/alunos?unitId=u2&status=ACTIVE");
+    expect(within(dialog).getByRole("link", { name: "Ver turmas" })).toHaveAttribute("href", "/turmas?unitId=u2&status=ACTIVE");
+    expect(within(dialog).getByText("Transfira ou encerre as modalidades antes. Depois volte aqui para confirmar digitando DESATIVAR e sua senha.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
+    expect(within(dialog).queryByLabelText(WORD)).toBeNull();
+  });
+
+  it("CA10: cobrança em conferência impede e mostra a contagem", async () => {
+    const user = userEvent.setup();
+    setup({ check: () => HttpResponse.json({ ...free, pendingProofs: 1, canDeactivate: false }) });
+    const dialog = await open(user);
+    expect(await within(dialog).findByText("1 cobrança em conferência")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
+  });
+
+  it("CA8: sem impedimento habilita ao digitar DESATIVAR (qualquer caixa, com espaços), pede a senha, só então chama a rota; a lista mostra a data e o aviso", async () => {
     const user = userEvent.setup();
     setup();
     await open(user);
     const next = screen.getByRole("button", { name: "Desativar unidade" });
     expect(next).toBeDisabled();
-    await user.type(screen.getByLabelText(NAME), "unidade");
+    await user.type(screen.getByLabelText(WORD), "Barra");
     expect(next).toBeDisabled();
-    await user.clear(screen.getByLabelText(NAME));
-    await user.type(screen.getByLabelText(NAME), " unidade CENTRO ");
+    await user.clear(screen.getByLabelText(WORD));
+    await user.type(screen.getByLabelText(WORD), " desativar ");
     expect(next).toBeEnabled();
     await user.click(next);
     await screen.findByRole("dialog", { name: "Confirme que é você" });
@@ -93,31 +118,13 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     await user.type(screen.getByLabelText("Senha"), "segredo123");
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(await screen.findByText(/Unidade desativada\./)).toBeInTheDocument();
-    expect(calls).toEqual([{ token: "tok", body: { confirmation: "unidade CENTRO" } }]);
+    expect(calls).toEqual([{ token: "tok", body: { confirmation: "desativar" } }]);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /Desativar\s*Unidade Centro/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Desativar\s*Unidade Norte/ })).toBeInTheDocument();
+    expect(screen.getByText("Desativada em 17/11/2026")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desativar a Barra…" })).not.toBeInTheDocument();
   });
 
-  it("CA10: com alunos e turmas ativos mostra as contagens e não deixa continuar", async () => {
-    const user = userEvent.setup();
-    setup({ check: () => HttpResponse.json({ activeStudents: 2, activeClasses: 1, lastActiveUnit: false, canDeactivate: false }) });
-    const dialog = await open(user);
-    expect(await screen.findByText(/2 alunos com modalidade ativa/)).toBeInTheDocument();
-    expect(dialog).toHaveTextContent("1 turma ativa");
-    expect(screen.getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
-    expect(screen.getByLabelText(NAME)).toBeDisabled();
-  });
-
-  it("CA10: a única unidade ativa mostra o aviso", async () => {
-    const user = userEvent.setup();
-    setup({ check: () => HttpResponse.json({ activeStudents: 0, activeClasses: 0, lastActiveUnit: true, canDeactivate: false }) });
-    await open(user);
-    expect(await screen.findByText("É a única unidade ativa da organização")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
-  });
-
-  it("CA11: 400 mostra a mensagem no campo; 409 volta a consultar e mostra o que impede", async () => {
+  it("CA8: 400 mostra a mensagem no campo; 409 volta a consultar e mostra o que impede", async () => {
     const user = userEvent.setup();
     let blocked = false;
     setup({
@@ -128,10 +135,10 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
       },
     });
     await open(user);
-    await user.type(screen.getByLabelText(NAME), "Unidade Centro");
+    await user.type(screen.getByLabelText(WORD), "DESATIVAR");
     await reauth(user);
-    expect(await screen.findByText("O nome digitado não confere com o da unidade.")).toBeInTheDocument();
-    expect(screen.getByLabelText(NAME)).toHaveAttribute("aria-invalid", "true");
+    expect(await screen.findByText("Digite a palavra DESATIVAR para confirmar.")).toBeInTheDocument();
+    expect(screen.getByLabelText(WORD)).toHaveAttribute("aria-invalid", "true");
 
     blocked = true;
     await user.click(screen.getByRole("button", { name: "Desativar unidade" }));
@@ -141,7 +148,7 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     expect(screen.getByRole("button", { name: "Desativar unidade" })).toBeDisabled();
   });
 
-  it("CA11: erro da consulta e do envio mostram o erro com nova tentativa; 403 mostra o estado sem permissão", async () => {
+  it("CA13: erro da consulta e do envio mostram o erro com nova tentativa; 403 mostra o estado sem permissão", async () => {
     const user = userEvent.setup();
     let checks = 0;
     let status = 500;
@@ -151,7 +158,7 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     });
     await open(user);
     await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
-    await user.type(await screen.findByLabelText(NAME), "Unidade Centro");
+    await user.type(await screen.findByLabelText(WORD), "DESATIVAR");
     await reauth(user);
     await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
     status = 403;
@@ -160,14 +167,14 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
   });
 
-  it("CA11: 403 na consulta mostra o estado sem permissão", async () => {
+  it("CA13: 403 na consulta mostra o estado sem permissão", async () => {
     const user = userEvent.setup();
     setup({ check: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     await open(user);
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
   });
 
-  it("CA12: o Administrador não vê o botão", async () => {
+  it("CA14: o Administrador não vê o botão", async () => {
     setup({ role: "ADMINISTRATOR" });
     expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Desativar/ })).not.toBeInTheDocument();
@@ -176,15 +183,19 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
   it.each([
     ["claro", false],
     ["escuro", true],
-  ])("CA12: a 360 px, sem violações no axe no tema %s, na lista e na janela", async (_n, dark) => {
+  ])("CA13: a 360 px, sem violações no axe no tema %s, na janela com impedimento e na com a confirmação", async (_n, dark) => {
     const user = userEvent.setup();
     setDevicePrefersDark(dark);
     window.innerWidth = 360;
-    const { container } = setup();
-    await screen.findAllByRole("button", { name: /Desativar\s*Unidade Centro/ });
-    expect(await axeViolations(container)).toEqual([]);
+    let blocked = true;
+    setup({ check: () => HttpResponse.json(blocked ? { ...free, activeStudents: 2, canDeactivate: false } : free) });
     const dialog = await open(user);
-    await screen.findByLabelText(NAME);
+    await within(dialog).findByText("2 alunos com modalidade ativa");
     expect(await axeViolations(dialog)).toEqual([]);
+    blocked = false;
+    await user.click(within(dialog).getAllByRole("button", { name: "Fechar" })[1]);
+    const again = await open(user);
+    await within(again).findByLabelText(WORD);
+    expect(await axeViolations(again)).toEqual([]);
   });
 });

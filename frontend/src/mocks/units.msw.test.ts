@@ -91,16 +91,25 @@ describe("desativação de unidade x OpenAPI (RF-ORG-07, CA13)", () => {
 
   it("a única unidade ativa dá 409 UNIT_HAS_BLOCKERS; unidade já desativada 409; nome errado 400; sem token 403; sucesso 204", async () => {
     await login("ana@exemplo.com");
-    const last = await deactivate(FIRST, "Unidade Centro", "t");
+    const last = await deactivate(FIRST, "DESATIVAR", "t");
     expect(last.status).toBe(409);
     const error = await last.json();
     expect(error.code).toBe("UNIT_HAS_BLOCKERS");
-    expect(error.fields.map((f: { field: string }) => f.field).sort()).toEqual(["activeClasses", "activeStudents", "lastActiveUnit"]);
+    expect(error.fields.map((f: { field: string }) => f.field).sort()).toEqual(["activeClasses", "activeStudents", "lastActiveUnit", "pendingProofs"]);
     expect((await (await check(FIRST)).json()).canDeactivate).toBe(false);
-    expect((await deactivate(SECOND, "Unidade Norte", "t")).status).toBe(409);
+    expect((await deactivate(SECOND, "DESATIVAR", "t")).status).toBe(409);
 
+    // com outra unidade ativa: a confirmação é DESATIVAR (D1), não o nome; sem token 403; sucesso 204 grava deactivatedAt (D7)
+    const csrf = { ...json };
+    const created = await (await fetch("/api/v1/units", { method: "POST", headers: csrf, body: JSON.stringify({ name: "Barra" }) })).json();
+    expect((await deactivate(created.unit.id, "Barra", "t")).status).toBe(400);
+    expect((await deactivate(created.unit.id, "desativar")).status).toBe(403);
+    expect((await deactivate(created.unit.id, " desativar ", "t")).status).toBe(204);
+    const listed = (await (await fetch("/api/v1/units")).json()) as { id: string; deactivatedAt: string | null }[];
+    expect(listed.find((u) => u.id === created.unit.id)?.deactivatedAt).not.toBeNull();
+    expect(listed.find((u) => u.id === FIRST)?.deactivatedAt).toBeNull();
     const reactivated = await (await fetch("/api/v1/units/mine")).json();
-    expect(reactivated).toHaveLength(2);
+    expect(reactivated).toHaveLength(3);
     for (const status of [204, 400, 401, 403, 404, 409]) expect(declared("/units/{id}/deactivation", "post")).toContain(String(status));
     expect(openapi.components.schemas.Error.properties.code.enum).toContain("UNIT_HAS_BLOCKERS");
   });
