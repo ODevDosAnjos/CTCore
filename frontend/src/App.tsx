@@ -19,6 +19,7 @@ import { ModalitiesPage } from "@/features/modalities/ModalitiesPage";
 import { NewUnitPage } from "@/features/units/NewUnitPage";
 import { ScopeLine } from "@/features/units/UnitSwitcher";
 import { UnitSettingsPage } from "@/features/units/UnitSettingsPage";
+import { SettingsIndexPage } from "@/features/units/SettingsIndexPage";
 import { UnitsPage } from "@/features/units/UnitsPage";
 import { BirthdaysCard } from "@/features/students/BirthdaysCard";
 import { EnrollmentWizardPage } from "@/features/students/enrollment-wizard/EnrollmentWizardPage";
@@ -157,6 +158,7 @@ export function App() {
             <Route path="/cobrancas/conferencia" element={<PaymentProofsPage />} />
             <Route path="/professores" element={<TeachersPage />} />
             <Route path="/professores/:id" element={<TeacherPanelPage />} />
+            <Route path="/configuracoes" element={<SettingsIndexPage />} />
             <Route path="/configuracoes/organizacao" element={<OrganizationSettingsPage />} />
             <Route path="/configuracoes/unidade" element={<UnitSettingsPage />} />
             <Route path="/configuracoes/modalidades" element={<ModalitiesPage />} />

@@ -44,11 +44,12 @@ export interface UnitDetail {
   whatsapp: string | null;
   cnpj: string | null;
   active: boolean;
+  timezone: string;
   settings: UnitSettingsData;
   version: number;
   lastChange: LastChangeValue | null;
 }
-export type UnitUpdate = Omit<UnitDetail, "id" | "shortName" | "active" | "settings" | "version" | "lastChange"> & {
+export type UnitUpdate = Omit<UnitDetail, "id" | "shortName" | "active" | "timezone" | "settings" | "version" | "lastChange"> & {
   settings: Omit<UnitSettingsData, "paymentAccount" | "enrollmentFeeCents"> & { enrollmentFeeCents: number | null };
 };
 

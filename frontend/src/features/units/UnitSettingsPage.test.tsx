@@ -33,6 +33,7 @@ const detail = (id: string, name: string): UnitDetail => ({
   whatsapp: null,
   cnpj: null,
   active: true,
+  timezone: "America/Sao_Paulo",
   version: 0,
   lastChange: null,
   settings: {
@@ -68,7 +69,7 @@ function setup(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
     http.get("/api/v1/units/reachable", opts.reachable ?? (() => HttpResponse.json({ allUnits: role === "COORDINATOR", units: units.map(reach) }))),
-    http.get("/api/v1/units/:id/modalities", () => HttpResponse.json({ canManage: true, items: [{ id: "m1", name: "Judô", offered: true }] })),
+    http.get("/api/v1/units/:id/modalities", () => HttpResponse.json({ canManage: true, items: [{ id: "m1", name: "Judô", offered: true, classCount: 1, planCount: 3 }] })),
     http.get("/api/v1/units/:id", opts.read ?? (({ params }) => HttpResponse.json(stored[String(params.id)]))),
     http.put("/api/v1/units/:id", async ({ request, params }) => {
       const body = (await request.json()) as Sent;
@@ -92,49 +93,118 @@ function setup(
   );
 }
 
-const ready = async () => {
-  await screen.findByRole("heading", { name: "Configurações da unidade", level: 1 });
-  await screen.findByLabelText("Nome da unidade");
+const ready = async (title = "Unidade A") => {
+  await screen.findByRole("heading", { name: title, level: 1 });
+  await screen.findByLabelText("Nome");
 };
-const save = () => screen.getByRole("button", { name: "Salvar" });
+const save = () => screen.getByRole("button", { name: "Salvar alterações" });
+const discard = () => screen.getByRole("button", { name: "Descartar" });
+const openTab = (user: ReturnType<typeof userEvent.setup>, name: string) => user.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
 
 describe("UnitSettingsPage (RF-ORG-04)", () => {
-  it("CA17: o Coordenador altera dados, vencimentos, taxas e permissões e salva em centavos; vê a confirmação e os valores novos", async () => {
+  it("CA1: mostra o título, o subtítulo, a última alteração e as cinco abas na ordem do canvas", async () => {
+    setup("COORDINATOR", { units: [{ ...detail(A, "Tijuca"), lastChange: { at: "2026-05-20T15:30:00Z", by: "Bia" } }] });
+    await ready("Unidade Tijuca");
+    expect(screen.getByText("tijuca · cada unidade tem seus dados, recebimentos e links")).toBeInTheDocument();
+    expect(screen.getByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]);
+  });
+
+  it("CA2: o que foi digitado numa aba continua depois de trocar de aba e voltar, inclusive nos campos com máscara", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    await user.type(screen.getByLabelText("Nome"), "!");
+    fireEvent.change(screen.getByLabelText("Telefone"), { target: { value: "21999998888" } });
+    await openTab(user, "Lembretes");
+    expect(screen.queryByLabelText("Nome")).not.toBeInTheDocument();
+    await openTab(user, "Dados");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Unidade A!");
+    expect(screen.getByLabelText("Telefone")).toHaveValue("(21) 99999-8888");
+  });
+
+  it("CA3: sem alteração os dois botões ficam desabilitados; alterado, ativos; Descartar volta tudo ao salvo; Salvar mostra Salvo", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    expect(save()).toBeDisabled();
+    expect(discard()).toBeDisabled();
+    await user.type(screen.getByLabelText("Nome"), "!");
+    await openTab(user, "Permissões do Professor");
+    await user.click(screen.getByRole("switch", { name: "Ver ficha do aluno" }));
+    expect(save()).toBeEnabled();
+    expect(discard()).toBeEnabled();
+    await user.click(discard());
+    expect(screen.getByRole("switch", { name: "Ver ficha do aluno" })).not.toBeChecked();
+    await openTab(user, "Dados");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Unidade A");
+    expect(save()).toBeDisabled();
+    expect(discard()).toBeDisabled();
+    await user.type(screen.getByLabelText("Nome"), "!");
+    await user.click(save());
+    expect(await screen.findByText("Salvo")).toBeInTheDocument();
+    expect(puts).toHaveLength(1);
+    expect(save()).toBeDisabled();
+    expect(discard()).toBeDisabled();
+  });
+
+  it("CA17: salva as cinco abas num único PUT, em centavos, com o telefone limpo", async () => {
     const user = userEvent.setup({ delay: null });
     setup("COORDINATOR");
     await ready();
     fireEvent.change(screen.getByLabelText("Telefone"), { target: { value: "21999998888" } });
-    await user.click(screen.getByRole("checkbox", { name: "15" }));
-    await user.click(screen.getByRole("checkbox", { name: "20" }));
-    await user.click(screen.getByRole("checkbox", { name: "Cobrar taxa de matrícula" }));
-    fireEvent.change(screen.getByLabelText("Valor da taxa de matrícula"), { target: { value: "15000" } });
-    expect(screen.getByLabelText("Valor da taxa de matrícula")).toHaveValue("R$ 150,00");
+    await user.click(screen.getByRole("button", { name: "Dia 15" }));
+    await user.click(screen.getByRole("button", { name: "Dia 20" }));
+    await user.click(screen.getByRole("switch", { name: "Cobrar taxa de matrícula" }));
+    fireEvent.change(screen.getByLabelText("Valor da taxa"), { target: { value: "15000" } });
+    expect(screen.getByLabelText("Valor da taxa")).toHaveValue("R$ 150,00");
+    await openTab(user, "Pagamentos");
     fireEvent.change(screen.getByLabelText("Pix"), { target: { value: "199" } });
-    expect(screen.getByRole("checkbox", { name: "Ver ficha do aluno" })).not.toBeChecked();
-    await user.click(screen.getByRole("checkbox", { name: "Editar a agenda" }));
-    await user.click(screen.getByRole("checkbox", { name: "Ver ficha do aluno" }));
+    await openTab(user, "Lembretes");
+    await user.click(screen.getByRole("switch", { name: "3 dias depois" }));
+    await openTab(user, "Links");
+    await user.click(screen.getByRole("switch", { name: "Pedido de aula experimental" }));
+    await openTab(user, "Permissões do Professor");
+    await user.click(screen.getByRole("switch", { name: "Editar e cancelar aulas" }));
+    await user.click(screen.getByRole("switch", { name: "Ver ficha do aluno" }));
     await user.click(save());
-    expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
+    expect(await screen.findByText("Salvo")).toBeInTheDocument();
     expect(puts).toHaveLength(1);
     const { settings, ...data } = puts[0]!.body;
     expect(data).toMatchObject({ name: "Unidade A", phone: "21999998888", cnpj: null, latitude: null });
     expect(settings.dueDays).toEqual([1, 5, 10, 20]);
-    expect(settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000, reminderDays: [-3, 0, 3, 10] });
+    expect(settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000, reminderDays: [-3, 0, 10], trialLinkEnabled: false, directoryEnabled: false });
     expect((settings.feesCents as Record<string, number>).pix).toBe(199);
     expect(settings.teacherPermissions).toEqual({ announcements: true, agendaEdit: false, studentContacts: true, trialClasses: true, studentRecord: true });
+    await openTab(user, "Dados");
     expect(screen.getByLabelText("Telefone")).toHaveValue("(21) 99999-8888");
-    expect(save()).toBeDisabled();
   });
 
-  it("CA17: erro 400 do servidor aparece junto do campo", async () => {
+  it("CA17: erro 400 do servidor abre a aba do campo, marca a aba e aparece junto do campo", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await user.type(screen.getByLabelText("Chave Pix"), "recusada");
+    await openTab(user, "Pagamentos");
+    await user.selectOptions(screen.getByLabelText("Tipo"), "RANDOM");
+    await user.type(screen.getByLabelText("Chave"), "recusada");
     await user.click(save());
     expect(await screen.findByText("chave recusada pelo servidor")).toBeInTheDocument();
-    expect(screen.getByLabelText("Chave Pix")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByRole("alert", { name: "" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Chave")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("tab", { name: /Pagamentos/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
+    expect(screen.getByRole("alert", { name: "" })).toHaveTextContent("Não foi possível salvar");
+  });
+
+  it("CA17: o erro do servidor em outra aba leva à aba do campo", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    await openTab(user, "Pagamentos");
+    await user.selectOptions(screen.getByLabelText("Tipo"), "RANDOM");
+    await user.type(screen.getByLabelText("Chave"), "recusada");
+    await openTab(user, "Dados");
+    await user.click(save());
+    expect(await screen.findByText("chave recusada pelo servidor")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
   });
 
   it("CA17: CEP novo vai sem coordenadas (o servidor busca)", async () => {
@@ -146,27 +216,87 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await user.clear(screen.getByLabelText("CEP"));
     await user.type(screen.getByLabelText("CEP"), "20040020");
     await user.click(save());
-    await screen.findByText("Dados salvos.");
+    await screen.findByText("Salvo");
     expect(puts[0]!.body).toMatchObject({ postalCode: "20040020", latitude: null, longitude: null });
   });
 
-  it("CA18: sem alterações salvas ainda mostra os padrões, com Salvar desabilitado; campo inválido bloqueia", async () => {
+  it("CA5: nome vazio, e-mail inválido, nenhum vencimento ou coordenadas incompletas mostram o erro no campo, bloqueiam o Salvar e marcam a aba", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    expect(save()).toBeDisabled();
-    expect(screen.getByLabelText("Dias de lembrete")).toHaveValue("-3, 0, 3, 10");
-    expect(screen.getByRole("checkbox", { name: "Link público de aula experimental" })).toBeChecked();
     await user.type(screen.getByLabelText("E-mail"), "ruim");
     expect(screen.getByText("Confira o e-mail digitado.")).toBeInTheDocument();
     expect(save()).toBeDisabled();
+    expect(screen.getByRole("tab", { name: /Dados/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
     await user.clear(screen.getByLabelText("E-mail"));
-    await user.clear(screen.getByLabelText("Dias de lembrete"));
-    await user.type(screen.getByLabelText("Dias de lembrete"), "1, 1");
-    expect(screen.getByText(/Use números inteiros de -30 a 60/)).toBeInTheDocument();
-    expect(save()).toBeDisabled();
-    await user.clear(screen.getByLabelText("Nome da unidade"));
+    expect(save()).toBeDisabled(); // nada mudou de fato
+    await user.clear(screen.getByLabelText("Nome"));
     expect(screen.getByText("Informe o nome da unidade.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Nome"), "N");
+    for (const day of [1, 5, 10, 15]) await user.click(screen.getByRole("button", { name: `Dia ${day}` }));
+    expect(screen.getByText("Escolha ao menos um dia de vencimento.")).toBeInTheDocument();
+    expect(save()).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Dia 7" }));
+    await user.click(screen.getByText("Ajustar latitude e longitude"));
+    await user.type(screen.getByLabelText("Latitude"), "10");
+    expect(screen.getByText(/Informe latitude e longitude juntas/)).toBeInTheDocument();
+    expect(save()).toBeDisabled();
+  });
+
+  it("CA5: Enter com erro, em outra aba, abre a aba Dados e leva o foco ao primeiro campo inválido", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    await user.type(screen.getByLabelText("E-mail"), "ruim");
+    await openTab(user, "Pagamentos");
+    await user.type(screen.getByLabelText("Chave"), "{Enter}");
+    expect(screen.getByRole("tab", { name: /Dados/ })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => expect(screen.getByLabelText("E-mail")).toHaveFocus());
+    expect(puts).toHaveLength(0);
+    // Trocar de aba depois não puxa o foco de volta.
+    await openTab(user, "Lembretes");
+    expect(screen.getByRole("tab", { name: /Lembretes/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("CA6: com a taxa de matrícula desligada o valor fica desabilitado; ligada e vazia, grava 0", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    expect(screen.getByLabelText("Valor da taxa")).toBeDisabled();
+    await user.click(screen.getByRole("switch", { name: "Cobrar taxa de matrícula" }));
+    expect(screen.getByLabelText("Valor da taxa")).toBeEnabled();
+    await user.click(save());
+    await screen.findByText("Salvo");
+    expect(puts[0]!.body.settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 0 });
+  });
+
+  it("CA7: o cartão de modalidades mostra turmas e planos e o diretório fica desabilitado com Em breve (CA8)", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    expect(await screen.findByText("1 turma · 3 planos")).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Judô" })).toBeChecked();
+    expect(screen.getByText("Só aparecem as modalidades ativas na organização")).toBeInTheDocument();
+    const directory = screen.getByRole("switch", { name: "Aparecer no diretório ctcore.com.br/academias" });
+    expect(directory).toHaveAttribute("aria-disabled", "true");
+    await user.click(directory);
+    expect(directory).not.toBeChecked();
+    expect(save()).toBeDisabled();
+    expect(screen.getByText("Fuso horário")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fuso horário")).toBeDisabled();
+    expect(screen.getByLabelText("Fuso horário")).toHaveDisplayValue("Brasília (UTC−3)");
+  });
+
+  it("CA8: o valor salvo do diretório segue o mesmo no PUT", async () => {
+    const user = userEvent.setup();
+    const on = detail(A, "Unidade A");
+    on.settings.directoryEnabled = true;
+    setup("COORDINATOR", { units: [on] });
+    await ready();
+    await user.type(screen.getByLabelText("Nome"), "!");
+    await user.click(save());
+    await screen.findByText("Salvo");
+    expect(puts[0]!.body.settings).toMatchObject({ directoryEnabled: true });
   });
 
   it("CA18: carregando, erro com Tentar de novo, sem permissão e Professor veem os estados certos", async () => {
@@ -185,9 +315,13 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await ready();
     second.unmount();
 
-    const third = setup("ADMINISTRATOR", { reachable: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
+    const third = setup("COORDINATOR", { read: () => HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
     third.unmount();
+
+    const fourth = setup("ADMINISTRATOR", { reachable: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
+    expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    fourth.unmount();
 
     setup("TEACHER");
     expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
@@ -202,62 +336,41 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     const user = userEvent.setup();
     setup("ADMINISTRATOR", { units: [detail(A, "Unidade A"), detail(B, "Unidade B")] });
     await ready();
-    expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Unidade A");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Unidade A");
     expect(screen.queryByRole("option", { name: "Todas as unidades" })).not.toBeInTheDocument();
     await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
     await user.click(screen.getByRole("button", { name: "Unidade B" }));
-    await waitFor(() => expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Unidade B"));
-    expect(screen.queryByLabelText("Unidade")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveValue("Unidade B"));
   });
 
   it("CA7: Coordenador em \"Todas as unidades\" vê o pedido de escolha e nenhum campo; ao escolher uma, o formulário aparece", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", { units: [detail(A, "Unidade A"), detail(B, "Unidade B")] });
     expect(await screen.findByText(/Escolha uma unidade no topo/)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Nome da unidade")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Nome")).not.toBeInTheDocument();
     await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
     await user.click(screen.getByRole("button", { name: "Unidade B" }));
-    await waitFor(() => expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Unidade B"));
-  });
-
-  it("CA20: Mercado Pago não conectado aparece por texto e ícone, com o aviso, sem botão de conectar", async () => {
-    setup("COORDINATOR");
-    await ready();
-    const status = screen.getByText("Mercado Pago não conectado");
-    expect(status.parentElement?.parentElement?.querySelector("svg")).not.toBeNull();
-    expect(screen.getByText(/chega em uma próxima entrega/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /conectar/i })).not.toBeInTheDocument();
-  });
-
-  it("CA20: conectado mostra o texto de conectado", async () => {
-    const connected = detail(A, "Unidade A");
-    connected.settings.paymentAccount = "CONNECTED";
-    setup("COORDINATOR", { units: [connected] });
-    await ready();
-    expect(screen.getByText("Mercado Pago conectado")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveValue("Unidade B"));
   });
 
   it.each([
     ["claro", false],
     ["escuro", true],
-  ])("CA18: a 360 px não tem violações no axe no tema %s, com erros visíveis", async (_n, dark) => {
+  ])("CA18: a 360 px nenhuma aba tem violações no axe no tema %s, com erros visíveis", async (_n, dark) => {
     const user = userEvent.setup();
     setDevicePrefersDark(dark);
     window.innerWidth = 360;
     const { container } = setup("COORDINATOR");
     await ready();
-    expect(await axeViolations(container)).toEqual([]);
-    await user.clear(screen.getByLabelText("Nome da unidade"));
+    await screen.findByText("1 turma · 3 planos");
+    for (const tab of ["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]) {
+      await openTab(user, tab);
+      expect(await axeViolations(container)).toEqual([]);
+    }
+    await openTab(user, "Dados");
+    await user.clear(screen.getByLabelText("Nome"));
     await user.type(screen.getByLabelText("E-mail"), "ruim");
     expect(await axeViolations(container)).toEqual([]);
-  });
-
-  it("as permissões do Professor e a Divulgação estão na tela", async () => {
-    setup("COORDINATOR");
-    await ready();
-    const teacher = screen.getByText("O que o Professor pode fazer nesta unidade.").closest("fieldset")!;
-    expect(within(teacher).getAllByRole("checkbox")).toHaveLength(5);
-    expect(screen.getByRole("heading", { name: "Divulgação", level: 2 })).toBeInTheDocument();
   });
 });
 
@@ -289,33 +402,28 @@ function conflicting(putStatuses: number[] = [409]) {
 }
 
 describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-08, RNF-15)", () => {
-  it("CA9: mostra quem alterou por último e quando, ou 'Ainda sem alterações'", async () => {
-    setup("ADMINISTRATOR", { units: [{ ...detail(A, "Unidade A"), lastChange: BIA }] });
-    await ready();
-    expect(screen.getByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
-  });
-
   it("CA9: sem registro mostra 'Ainda sem alterações'", async () => {
     setup("COORDINATOR");
     await ready();
     expect(screen.getByText("Ainda sem alterações")).toBeInTheDocument();
   });
 
-  it("CA10: o 409 abre a janela com quem alterou, os campos diferentes com os dois valores e os dois botões; a gravação levou o If-Match lido", async () => {
+  it("CA4: o 409 abre a janela com quem alterou e os campos diferentes das cinco abas, com os dois valores; a gravação levou o If-Match lido", async () => {
     const user = userEvent.setup();
     const { sent } = conflicting();
-    await ready();
-    await user.clear(screen.getByLabelText("Nome da unidade"));
-    await user.type(screen.getByLabelText("Nome da unidade"), "Meu nome");
-    await user.click(await screen.findByRole("checkbox", { name: "Editar a agenda" }));
+    await ready("Unidade Nome da outra pessoa");
+    await user.clear(screen.getByLabelText("Nome"));
+    await user.type(screen.getByLabelText("Nome"), "Meu nome");
+    await openTab(user, "Permissões do Professor");
+    await user.click(await screen.findByRole("switch", { name: "Editar e cancelar aulas" }));
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     expect(sent[0]?.version).toBe("3");
     expect(await within(dialog).findByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
-    const nome = within(dialog).getByText("Nome da unidade").closest("li")!;
+    const nome = within(dialog).getByText("Nome").closest("li")!;
     expect(nome).toHaveTextContent("Seu valor: Meu nome");
     expect(nome).toHaveTextContent("Valor atual: Nome da outra pessoa");
-    const agenda = within(dialog).getByText("Editar a agenda").closest("li")!;
+    const agenda = within(dialog).getByText("Editar e cancelar aulas").closest("li")!;
     expect(agenda).toHaveTextContent("Seu valor: Não");
     expect(agenda).toHaveTextContent("Valor atual: Sim");
     expect(within(dialog).getAllByRole("listitem")).toHaveLength(2);
@@ -323,55 +431,55 @@ describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-0
     expect(within(dialog).getByRole("button", { name: "Sobrescrever" })).toBeInTheDocument();
   });
 
-  it("CA10: Recarregar preenche o formulário com o atual, fecha e devolve o foco ao Salvar", async () => {
+  it("CA4: Recarregar preenche o formulário com o atual, fecha e deixa o Salvar desabilitado", async () => {
     const user = userEvent.setup();
     conflicting();
-    await ready();
-    await user.clear(screen.getByLabelText("Nome da unidade"));
-    await user.type(screen.getByLabelText("Nome da unidade"), "Meu nome");
+    await ready("Unidade Nome da outra pessoa");
+    await user.clear(screen.getByLabelText("Nome"));
+    await user.type(screen.getByLabelText("Nome"), "Meu nome");
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await user.click(await within(dialog).findByRole("button", { name: "Recarregar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Nome da outra pessoa");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Nome da outra pessoa");
     expect(save()).toBeDisabled();
   });
 
-  it("CA10: Sobrescrever regrava com a versão atual e mostra 'Dados salvos.'", async () => {
+  it("CA4: Sobrescrever regrava com a versão atual e mostra Salvo", async () => {
     const user = userEvent.setup();
     const { sent } = conflicting([409, 200]);
-    await ready();
-    await user.clear(screen.getByLabelText("Nome da unidade"));
-    await user.type(screen.getByLabelText("Nome da unidade"), "Meu nome");
+    await ready("Unidade Nome da outra pessoa");
+    await user.clear(screen.getByLabelText("Nome"));
+    await user.type(screen.getByLabelText("Nome"), "Meu nome");
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await user.click(await within(dialog).findByRole("button", { name: "Sobrescrever" }));
-    expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
+    expect(await screen.findByText("Salvo")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(sent.map((s) => s.version)).toEqual(["3", "3"]);
     expect(sent[1]?.body.name).toBe("Meu nome");
-    expect(screen.getByLabelText("Nome da unidade")).toHaveValue("Meu nome");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Meu nome");
   });
 
-  it("CA10: novo 409 durante o Sobrescrever reabre o aviso", async () => {
+  it("CA4: novo 409 durante o Sobrescrever reabre o aviso", async () => {
     const user = userEvent.setup();
     const { sent, reads } = conflicting([409, 409]);
-    await ready();
-    await user.type(screen.getByLabelText("Nome da unidade"), "!");
+    await ready("Unidade Nome da outra pessoa");
+    await user.type(screen.getByLabelText("Nome"), "!");
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     await user.click(await within(dialog).findByRole("button", { name: "Sobrescrever" }));
     await waitFor(() => expect(sent).toHaveLength(2));
     await waitFor(() => expect(reads.count).toBe(3));
     expect(await within(screen.getByRole("dialog")).findByRole("button", { name: "Sobrescrever" })).toBeEnabled();
-    expect(screen.queryByText("Dados salvos.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Salvo")).not.toBeInTheDocument();
   });
 
-  it("CA10: erro de rede na consulta do estado atual mostra o erro com 'Tentar de novo'", async () => {
+  it("CA4: erro de rede na consulta do estado atual mostra o erro com 'Tentar de novo'", async () => {
     const user = userEvent.setup();
     conflicting();
-    await ready();
-    await user.type(screen.getByLabelText("Nome da unidade"), "!");
+    await ready("Unidade Nome da outra pessoa");
+    await user.type(screen.getByLabelText("Nome"), "!");
     server.use(http.get("/api/v1/units/:id", () => HttpResponse.error(), { once: true }));
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
@@ -380,100 +488,33 @@ describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-0
     expect(await within(dialog).findByRole("button", { name: "Sobrescrever" })).toBeInTheDocument();
   });
 
-  it.each([
-    ["claro", false],
-    ["escuro", true],
-  ])("CA11: a janela de conflito a 360 px não tem violações no axe no tema %s", async (_n, dark) => {
-    const user = userEvent.setup();
-    setDevicePrefersDark(dark);
-    window.innerWidth = 360;
-    conflicting();
-    await ready();
-    await user.type(screen.getByLabelText("Nome da unidade"), "!");
-    await user.click(save());
-    const dialog = await screen.findByRole("dialog", { name: DIALOG });
-    await within(dialog).findByRole("button", { name: "Sobrescrever" });
-    expect(await axeViolations(document.body)).toEqual([]);
-  });
-});
-
-describe("UnitSettingsPage: lembretes automáticos (RF-COB-09)", () => {
-  it("CA7 / CA10: mostra interruptor, hora, dias, padrão e aviso fixo; salvar envia os três campos", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR");
-    await ready();
-    expect(screen.getByRole("checkbox", { name: /Enviar lembretes automáticos/ })).toBeChecked();
-    expect(screen.getByLabelText("Hora dos lembretes")).toHaveValue("9");
-    expect(screen.getByLabelText("Dias de lembrete")).toHaveValue("-3, 0, 3, 10");
-    expect(screen.getByText(/Padrão: 3 dias antes/)).toBeInTheDocument();
-    expect(screen.getByText(/Aviso fixo: 5 dias antes do bloqueio/)).toBeInTheDocument();
-    await user.clear(screen.getByLabelText("Hora dos lembretes"));
-    await user.type(screen.getByLabelText("Hora dos lembretes"), "14");
-    await user.click(save());
-    expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
-    expect(puts[0]!.body.settings).toMatchObject({ remindersEnabled: true, remindersHour: 14, reminderDays: [-3, 0, 3, 10] });
-  });
-
-  it("CA8: hora 25 ou vazia mostra o erro no campo, bloqueia o envio e o Enter leva o foco ao campo", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR");
-    await ready();
-    const hour = screen.getByLabelText("Hora dos lembretes");
-    await user.clear(hour);
-    await user.type(hour, "25");
-    expect(screen.getByText("Informe um número inteiro de 0 a 23.")).toBeInTheDocument();
-    expect(hour).toHaveAttribute("aria-invalid", "true");
-    expect(save()).toBeDisabled();
-    await user.type(screen.getByLabelText("Nome da unidade"), "{Enter}");
-    expect(hour).toHaveFocus();
-    expect(puts).toHaveLength(0);
-    await user.clear(hour);
-    expect(screen.getByText("Informe um número inteiro de 0 a 23.")).toBeInTheDocument();
-  });
-
-  it("CA9: desligado, hora e dias ficam desabilitados com o aviso; ao ligar voltam editáveis com os valores", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR");
-    await ready();
-    await user.click(screen.getByRole("checkbox", { name: /Enviar lembretes automáticos/ }));
-    expect(screen.getByLabelText("Hora dos lembretes")).toBeDisabled();
-    expect(screen.getByLabelText("Dias de lembrete")).toBeDisabled();
-    expect(screen.getByText(/Nenhum lembrete automático será enviado/)).toBeInTheDocument();
-    await user.click(screen.getByRole("checkbox", { name: /Enviar lembretes automáticos/ }));
-    expect(screen.getByLabelText("Hora dos lembretes")).toBeEnabled();
-    expect(screen.getByLabelText("Hora dos lembretes")).toHaveValue("9");
-    expect(screen.getByLabelText("Dias de lembrete")).toHaveValue("-3, 0, 3, 10");
-    expect(screen.queryByText(/Nenhum lembrete automático será enviado/)).not.toBeInTheDocument();
-  });
-
-  it("CA11: o conflito lista Lembretes automáticos e Hora dos lembretes", async () => {
+  it("CA4: o conflito lista Lembretes automáticos e Horário de envio", async () => {
     const user = userEvent.setup();
     conflicting();
-    await ready();
+    await ready("Unidade Nome da outra pessoa");
     stored[A] = { ...stored[A]!, settings: { ...stored[A]!.settings, remindersEnabled: false, remindersHour: 14 } };
-    await user.type(screen.getByLabelText("Nome da unidade"), "!");
+    await user.type(screen.getByLabelText("Nome"), "!");
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     const on = (await within(dialog).findByText("Lembretes automáticos")).closest("li")!;
     expect(on).toHaveTextContent("Seu valor: Sim");
     expect(on).toHaveTextContent("Valor atual: Não");
-    expect(within(dialog).getByText("Hora dos lembretes").closest("li")).toHaveTextContent("Valor atual: 14");
+    expect(within(dialog).getByText("Horário de envio").closest("li")).toHaveTextContent("Valor atual: 14");
   });
 
   it.each([
     ["claro", false],
     ["escuro", true],
-  ])("CA12: a 360 px, com lembretes desligados e com erro, não tem violações no axe no tema %s", async (_n, dark) => {
+  ])("CA4: a janela de conflito a 360 px não tem violações no axe no tema %s", async (_n, dark) => {
     const user = userEvent.setup();
     setDevicePrefersDark(dark);
     window.innerWidth = 360;
-    const { container } = setup("COORDINATOR");
-    await ready();
-    await user.click(screen.getByRole("checkbox", { name: /Enviar lembretes automáticos/ }));
-    expect(await axeViolations(container)).toEqual([]);
-    await user.click(screen.getByRole("checkbox", { name: /Enviar lembretes automáticos/ }));
-    await user.clear(screen.getByLabelText("Hora dos lembretes"));
-    await user.type(screen.getByLabelText("Hora dos lembretes"), "25");
-    expect(await axeViolations(container)).toEqual([]);
+    conflicting();
+    await ready("Unidade Nome da outra pessoa");
+    await user.type(screen.getByLabelText("Nome"), "!");
+    await user.click(save());
+    const dialog = await screen.findByRole("dialog", { name: DIALOG });
+    await within(dialog).findByRole("button", { name: "Sobrescrever" });
+    expect(await axeViolations(document.body)).toEqual([]);
   });
 });

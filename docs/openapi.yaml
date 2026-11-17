@@ -4111,11 +4111,13 @@ components:
         graduationEnabled: { type: boolean }
     UnitModality:
       type: object
-      required: [id, name, offered]
+      required: [id, name, offered, classCount, planCount]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         offered: { type: boolean }
+        classCount: { type: integer, minimum: 0, description: Turmas ativas da modalidade na unidade. }
+        planCount: { type: integer, minimum: 0, description: Planos ativos da modalidade na unidade. }
     UnitModalities:
       type: object
       required: [canManage, items]
@@ -5320,7 +5322,7 @@ components:
         remindersHour: { type: integer, minimum: 0, maximum: 23, description: Hora cheia de envio dos lembretes (hora da unidade). }
     UnitDetail:
       type: object
-      required: [id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, active, settings, version, lastChange]
+      required: [id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, active, timezone, settings, version, lastChange]
       properties:
         version: { type: integer, minimum: 0, description: 'Versão para o If-Match da próxima gravação (RNF-15).' }
         lastChange: { $ref: '#/components/schemas/LastChange' }
@@ -5337,6 +5339,7 @@ components:
         whatsapp: { type: string, nullable: true }
         cnpj: { type: string, nullable: true, description: 14 dígitos. }
         active: { type: boolean }
+        timezone: { type: string, description: "Fuso horário IANA da unidade, somente leitura (o PUT o ignora).", example: America/Sao_Paulo }
         settings: { $ref: '#/components/schemas/UnitSettingsView' }
     UnitUpdateSettings:
       type: object

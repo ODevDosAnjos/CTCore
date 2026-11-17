@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ApiError } from "@/lib/api";
 import { Banner } from "@/components/ui/banner";
+import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { useUnitModalities } from "./useUnitModalities";
@@ -45,39 +46,40 @@ export function UnitModalitiesSection({ unitId }: { unitId: string }) {
             )}
           </Banner>
         )}
-        <ul className="flex flex-col divide-y">
+        <ul className="flex flex-col">
           {items.map((m) => (
-            <li key={m.id}>
-              <label className="flex min-h-11 items-center justify-between gap-2 py-2">
-                <span className="min-w-0 break-words">{m.name}</span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="size-5 shrink-0"
-                  checked={m.offered}
-                  disabled={!canManage}
-                  onChange={(e) => {
-                    setFailed(undefined);
-                    api.setOffered(m.id, e.target.checked).catch((err) =>
-                      setFailed({
-                        name: m.name,
-                        classes: err instanceof ApiError && err.code === "UNIT_MODALITY_IN_USE" ? err.fields.filter((f) => f.field === "class").map((f) => f.message) : [],
-                      }),
-                    );
-                  }}
-                />
-              </label>
+            <li key={m.id} className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
+                <p className="break-words text-sm font-medium">{m.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t(m.classCount === 1 ? "unitModalities.classOne" : "unitModalities.classMany", { count: m.classCount })} · {t(m.planCount === 1 ? "unitModalities.planOne" : "unitModalities.planMany", { count: m.planCount })}
+                </p>
+              </div>
+              <Switch
+                label={m.name}
+                checked={m.offered}
+                disabled={!canManage}
+                onCheckedChange={(offered) => {
+                  setFailed(undefined);
+                  api.setOffered(m.id, offered).catch((err) =>
+                    setFailed({
+                      name: m.name,
+                      classes: err instanceof ApiError && err.code === "UNIT_MODALITY_IN_USE" ? err.fields.filter((f) => f.field === "class").map((f) => f.message) : [],
+                    }),
+                  );
+                }}
+              />
             </li>
           ))}
         </ul>
         {!canManage && <p className="mt-2 text-sm text-muted-foreground">{t("unitModalities.readOnly")}</p>}
+        <p className="mt-2 text-xs text-muted-foreground">{t("unitModalities.note")}</p>
       </>
     );
   }
 
   return (
     <Card heading="h2" title={t("unitModalities.title")}>
-      <p className="mb-2 text-sm text-muted-foreground">{t("unitModalities.help")}</p>
       {body()}
     </Card>
   );

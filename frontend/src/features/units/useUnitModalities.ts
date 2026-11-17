@@ -6,6 +6,8 @@ export interface UnitModality {
   id: string;
   name: string;
   offered: boolean;
+  classCount: number;
+  planCount: number;
 }
 interface Listing {
   canManage: boolean;

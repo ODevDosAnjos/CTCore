@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada") {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -118,6 +118,54 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (unidadeCanvas) {
+      // #483: a unidade única "Tijuca" (a Sul do MSW) com os dados de ConfigUnidade, as taxas de ConfigPagamentos (R$ 180,90, 186,30, 183,59, 183,49 e 186,30), as modalidades com turmas e planos e a conta do Mercado Pago conectada ou não; o cenário compartilhado não muda
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async (conta) => {
+        type Json = { units: { id: string; name: string }[]; [k: string]: unknown };
+        const get = async (url: string) => (await (await fetch(`/api/v1${url}`)).json()) as Json;
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const reach = await get("/units/reachable");
+        const sul = { ...reach.units.find((u) => u.name === "Unidade Sul"), name: "Tijuca" } as { id: string; name: string; shortName: string };
+        const base = (await get(`/units/${sul.id}`)) as Json & { settings: Record<string, unknown> };
+        const modalities = (await get("/modalities")) as unknown as { id: string; name: string }[];
+        const jiu = modalities.find((m) => m.name === "Jiu-Jitsu") ?? modalities[0];
+        const muay = modalities.find((m) => m.name === "Muay Thai") ?? modalities[1];
+        override({ method: "get", path: "/units/reachable", status: 200, body: { ...reach, allUnits: false, units: [sul] } });
+        override({
+          method: "get",
+          path: `/units/${sul.id}`,
+          status: 200,
+          body: {
+            ...base,
+            name: "Tijuca",
+            shortName: "Tijuca",
+            cnpj: "11222333000181",
+            postalCode: "20270000",
+            address: "Rua Conde de Bonfim, 600 · Tijuca · Rio de Janeiro/RJ",
+            city: "Rio de Janeiro",
+            whatsapp: "21970001200",
+            email: "tijuca@academialeao.example",
+            lastChange: { at: "2026-10-05T19:22:00Z", by: "Carla Mendes" },
+            settings: {
+              ...base.settings,
+              dueDays: [5, 10, 15],
+              enrollmentFeeEnabled: true,
+              enrollmentFeeCents: 8000,
+              feesCents: { cash: 0, pix: 90, bankSlip: 349, creditCard: 630, debitCard: 359, automaticDebit: 630, manualPix: 0, terminalCard: 0, transfer: 0 },
+              pixKey: "11222333000181",
+              paymentAccount: conta === "conectada" ? "CONNECTED" : "NOT_CONNECTED",
+            },
+          },
+        });
+        override({
+          method: "get",
+          path: `/units/${sul.id}/modalities`,
+          status: 200,
+          body: { canManage: true, items: [{ ...jiu, offered: true, classCount: 5, planCount: 4 }, { ...muay, offered: true, classCount: 1, planCount: 1 }] },
+        });
+      }, unidadeCanvas);
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -192,7 +240,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

@@ -38,6 +38,8 @@ describe("modalidades da unidade x OpenAPI (RF-MOD-03, CA9)", () => {
     expect(view.canManage).toBe(true);
     expect(view.items.map((m: { name: string }) => m.name)).toEqual(["Boxe", "Judô"]);
     for (const m of view.items) expect(Object.keys(m).sort()).toEqual(required("UnitModality"));
+    // CA19: contagens só de turmas e planos ativos da unidade e da modalidade (Judô tem turma e plano ativos na unidade; Boxe, nenhum).
+    expect(view.items.map((m: { classCount: number; planCount: number }) => [m.classCount, m.planCount])).toEqual([[0, 0], [1, 1]]);
 
     const marked = await offer(FIRST, judo, { offered: true });
     expect(marked.status).toBe(200);

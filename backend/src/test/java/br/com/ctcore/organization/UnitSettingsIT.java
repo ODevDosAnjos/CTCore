@@ -38,7 +38,7 @@ class UnitSettingsIT extends UnitBase {
         var a = tenant();
         var unit = get(a, a.unitId(), coordinator(a));
         assertThat(fieldNames(unit)).containsExactlyInAnyOrder("id", "name", "shortName", "postalCode", "address", "city", "latitude", "longitude",
-                "phone", "email", "whatsapp", "cnpj", "active", "settings", "version", "lastChange");
+                "phone", "email", "whatsapp", "cnpj", "active", "timezone", "settings", "version", "lastChange");
         var s = unit.path("settings");
         assertThat(fieldNames(s)).containsExactlyInAnyOrder("dueDays", "enrollmentFeeEnabled", "enrollmentFeeCents", "feesCents", "pixKey",
                 "paymentAccount", "reminderDays", "teacherPermissions", "directoryEnabled", "trialLinkEnabled", "selfRegistrationLinkEnabled", "remindersEnabled", "remindersHour");
