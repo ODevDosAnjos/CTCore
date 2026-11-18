@@ -25,6 +25,7 @@ export type Caso = {
   unidadesCanvas?: "lista" | "unica"; // #484: antes de abrir a tela, a lista de unidades do canvas (Tijuca, Barra e Méier desativada) ou só a unidade única; a Barra tem 83 alunos e 5 turmas ativos
   faixasCanvas?: boolean; // #486: antes de abrir a tela, as três faixas do canvas com "Usada em" e a última alteração de Marcos Leão
   modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa"; // #485: antes de abrir a tela, Jiu-Jitsu (19 níveis) e Muay Thai (8) ativas em Tijuca e Barra e o resto do catálogo disponível; administrador mostra só as duas, em consulta; desativar recusa o Muay Thai (3 turmas, 63 alunos); recusa não deixa a Tijuca largar o Muay Thai (turma da noite, 26 alunos)
+  usuariosCanvas?: boolean; // #487: antes de abrir a tela, as unidades Tijuca e Barra e a equipe do canvas que a regra permite à Coordenação (Carla Mendes e Diego Alves, Administradores, e o convite pendente de Paula Ribeiro)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -104,7 +105,8 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-links", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
-  { nome: "configuracoes-usuarios", rota: "/configuracoes/usuarios", perfil: ana, canvas: "ConfigUsuarios" },
+  { nome: "configuracoes-usuarios", rota: "/configuracoes/usuarios", perfil: ana, canvas: "ConfigUsuarios", usuariosCanvas: true },
+  { nome: "configuracoes-permissoes", rota: "/configuracoes/usuarios/permissoes", perfil: ana, canvas: "PermissoesTabela", fullPage: true },
   { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos" },
   { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: ana, canvas: "ConfigTextos" },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
@@ -140,7 +142,7 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", unidadesCanvas: "lista", passos: [{ clicar: "Desativar a Barra" }] },
   { nome: "configuracoes-unidade-unica", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeUnica", unidadesCanvas: "unica", passos: [{ clicar: "Desativar a Academia" }] },
   { nome: "configuracoes-unidade-professor", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPermProf", unidadeCanvas: "conectada", passos: [{ clicar: "Permissões do Professor", papel: "tab" }], fullPage: true },
-  { nome: "configuracoes-usuario-convidar", rota: "/configuracoes/usuarios", perfil: ana, canvas: "UsuarioConvidar", passos: [{ clicar: "Convidar" }], limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #487 trata a tela e remove esta exceção)" } },
+  { nome: "configuracoes-usuario-convidar", rota: "/configuracoes/usuarios", perfil: ana, canvas: "UsuarioConvidar", usuariosCanvas: true, passos: [{ clicar: "Convidar" }, { preencher: ["Nome *", "Fernanda Rocha"] }, { preencher: ["E-mail *", "fernanda@academialeao.example"] }, { clicar: "Tijuca", papel: "checkbox" }] },
   // Modalidades, faixas, professores, turmas, agenda e dias sem aula (#420). Janelas abrem pelos passos.
   // Sem caso: painel da aula, editar, cancelar e corrigir aula (o id da aula é gerado pelo MSW, sem rota fixa); GM* são as mesmas telas a 390 px (D1).
   { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin", modalidadesCanvas: "administrador" },
@@ -228,7 +230,7 @@ export const temas = [
 export const semCaso: Record<string, string[]> = {
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
-    "InicioCoordenador", "AguardandoAprovacao", "ComunicadoOrganizacao", "PermissoesTabela", "SuporteAcesso",
+    "InicioCoordenador", "AguardandoAprovacao", "ComunicadoOrganizacao", "SuporteAcesso",
     "PortalEmDia", "PortalMConfirmarModalidade", "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
   ],
   // tela de funcionalidade ainda sem rota em App.tsx (sprint futura)

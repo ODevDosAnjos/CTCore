@@ -9,12 +9,12 @@ test("@critical Coordenador convida um Administrador e desativa outro", async ({
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await page.evaluate(`history.pushState({}, "", "/configuracoes/usuarios"); dispatchEvent(new PopStateEvent("popstate"))`);
-  await expect(page.getByRole("heading", { name: "Usuários da gestão", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Usuários", level: 1, exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Convidar" }).click();
   const invite = page.getByRole("dialog");
-  await invite.getByLabel("Nome").fill("Fabio");
-  await invite.getByLabel("E-mail").fill("fabio@exemplo.com");
+  await invite.getByLabel(/^Nome/).fill("Fabio");
+  await invite.getByLabel(/^E-mail/).fill("fabio@exemplo.com");
   await invite.getByRole("checkbox", { name: "Unidade Centro" }).check();
   await invite.getByRole("button", { name: "Enviar convite" }).click();
   const fabio = page.getByRole("row").filter({ hasText: "fabio@exemplo.com" });

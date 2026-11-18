@@ -336,7 +336,20 @@
     }
   },
   "users": {
-    "title": "Usuários da gestão",
+    "title": "Usuários",
+    "subtitle": "Equipe da gestão · 3 perfis fixos, sem edição de perfis",
+    "permissionsTable": "Tabela de permissões",
+    "profiles": {
+      "COORDINATOR": { "scope": "1 por organização", "text": "Vê e faz tudo, em todas as unidades. Duas etapas obrigatória." },
+      "ADMINISTRATOR": { "scope": "por unidade", "text": "Tudo nas suas unidades. O Coordenador convida Administradores." },
+      "TEACHER": { "scope": "por unidade", "text": "Só as suas turmas, nunca vê valores. 4 permissões ligáveis por unidade." }
+    },
+    "search": "Nome ou e-mail",
+    "filter": { "role": "Perfil", "allRoles": "Todos", "unit": "Unidade", "allUnits": "Todas", "status": "Situação", "allStatuses": "Ativos e convites" },
+    "noMatchTitle": "Nenhum usuário encontrado",
+    "noMatchText": "Nenhum usuário bate com a busca e os filtros.",
+    "clearFilters": "Limpar filtros",
+    "person": "Pessoa",
     "actions": "Ações",
     "filters": { "all": "Todos", "ACTIVE": "Ativos", "PENDING": "Convite enviado" },
     "email": "E-mail",
@@ -354,7 +367,11 @@
     "resendError": "Não foi possível reenviar o convite. Tente de novo mais tarde.",
     "invite": {
       "button": "Convidar",
-      "title": "Convidar usuário",
+      "title": "Convidar para a equipe",
+      "role": "Perfil",
+      "roleAdministrator": "Tudo nas unidades marcadas",
+      "roleTeacher": "Cadastre em Pessoas › Professores",
+      "notice": "O convite vale 7 dias. Se não for aceito, você recebe uma notificação para reenviar.",
       "name": "Nome",
       "email": "E-mail",
       "nameRequired": "Informe o nome.",
@@ -389,6 +406,43 @@
       "coordinatorHelp": "Nomeie você mesmo como Administrador delas, convide outro Administrador ou altere as unidades de outro.",
       "adminHelp": "Peça ao Coordenador para nomear outro Administrador antes.",
       "appoint": "Nomear a mim mesmo"
+    }
+  },
+  "permissionsTable": {
+    "title": "Tabela de permissões",
+    "subtitle": "Fixa: não existe edição de perfis",
+    "back": "Voltar aos usuários",
+    "legend": "● pode · ○ só consulta · — não acessa · U só nas suas unidades · T só nas suas turmas · * depende da permissão da unidade",
+    "area": "Área ou ação",
+    "rows": {
+      "home": {"label":"Início da unidade","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T"},
+      "consolidated": {"label":"\"Todas as unidades\" (consolidado)","COORDINATOR":"○","ADMINISTRATOR":"—","TEACHER":"—"},
+      "studentsSimple": {"label":"Alunos: lista simples na turma e na aula (nome e ativo ou bloqueado)","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T, sempre"},
+      "studentsFull": {"label":"Alunos: lista completa","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "studentRecord": {"label":"Alunos: abrir a ficha","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T* (ver ficha do aluno), sem financeiro, CPF ou endereço"},
+      "studentContacts": {"label":"Alunos: contatos e emergência","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T*"},
+      "studentManage": {"label":"Alunos: cadastrar, editar, matricular, encerrar","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "plansBenefits": {"label":"Planos e benefícios","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "collections": {"label":"Cobranças, pagamentos, estorno, renegociação","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "classes": {"label":"Turmas: lista, painel, criar, editar e desativar","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"— (vê as suas pela Agenda)"},
+      "agendaView": {"label":"Agenda: ver","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T"},
+      "agendaEdit": {"label":"Agenda: editar e cancelar aula","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T*"},
+      "noClassDays": {"label":"Dias sem aula","COORDINATOR":"● várias unidades","ADMINISTRATOR":"U","TEACHER":"—"},
+      "graduation": {"label":"Graduação: registrar","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"— (consulta T)"},
+      "announcements": {"label":"Comunicados","COORDINATOR":"● todas as unidades","ADMINISTRATOR":"U","TEACHER":"T*"},
+      "trial": {"label":"Aulas experimentais","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"T* (ver)"},
+      "teachers": {"label":"Professores","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "staffUsers": {"label":"Usuários da gestão","COORDINATOR":"● Administradores","ADMINISTRATOR":"U Professores","TEACHER":"—"},
+      "unitSettings": {"label":"Configurações da unidade","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "orgSettings": {"label":"Configurações da organização","COORDINATOR":"●","ADMINISTRATOR":"○","TEACHER":"—"},
+      "units": {"label":"Unidades","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"},
+      "subscription": {"label":"Assinatura e faturas","COORDINATOR":"●","ADMINISTRATOR":"faixa de aviso","TEACHER":"—"},
+      "audit": {"label":"Auditoria","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "reports": {"label":"Relatórios","COORDINATOR":"● consolidado","ADMINISTRATOR":"U","TEACHER":"o próprio resumo"},
+      "exportLists": {"label":"Exportar listas","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "exportFull": {"label":"Exportação completa","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"},
+      "import": {"label":"Importar","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
+      "support": {"label":"Liberar acesso de suporte","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"}
     }
   },
   "birthdays": {

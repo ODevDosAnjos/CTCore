@@ -41,6 +41,7 @@ import { BenefitsPage } from "@/features/benefits/BenefitsPage";
 import { AgendaPage } from "@/features/agenda/AgendaPage";
 import { LessonPanelPage } from "@/features/agenda/LessonPanelPage";
 import { NoClassDaysPage } from "@/features/noClassDays/NoClassDaysPage";
+import { PermissionsTablePage } from "@/features/users/PermissionsTablePage";
 import { UsersPage } from "@/features/users/UsersPage";
 import { AccountPage } from "@/features/account/AccountPage";
 import { ConfirmEmailPage } from "@/features/account/ConfirmEmailPage";
@@ -166,6 +167,7 @@ export function App() {
             <Route path="/configuracoes/termos" element={<TermsPage />} />
             <Route path="/configuracoes/textos" element={<TextsPage />} />
             <Route path="/configuracoes/usuarios" element={<UsersPage />} />
+            <Route path="/configuracoes/usuarios/permissoes" element={<PermissionsTablePage />} />
           </Route>
           <Route element={<RequireArea roles={["COORDINATOR"]} />}>
             <Route path="/configuracoes/unidades" element={<UnitsPage />} />

@@ -31,4 +31,11 @@ describe("ChoiceCards (CA3)", () => {
     expect(screen.getAllByRole("radio").filter((r) => (r as HTMLInputElement).checked)).toHaveLength(1);
     expect(screen.getByLabelText("Dois")).toBeChecked();
   });
+  it("opção desabilitada não troca a escolha", async () => {
+    const change = vi.fn();
+    render(<ChoiceCards legend="Perfil" value="a" onChange={change} options={[{ value: "a", label: "Um" }, { value: "b", label: "Dois", disabled: true }]} />);
+    expect(screen.getByLabelText("Dois")).toBeDisabled();
+    await userEvent.click(screen.getByLabelText("Dois"));
+    expect(change).not.toHaveBeenCalled();
+  });
 });

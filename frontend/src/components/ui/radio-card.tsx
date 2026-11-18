@@ -12,7 +12,7 @@ export function RadioCard({
   return (
     <label
       className={cn(
-        "flex min-h-11 cursor-pointer items-start gap-3 rounded-card border border-input bg-card p-3 text-sm has-[:checked]:border-brand has-[:checked]:bg-acc has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+        "flex min-h-11 cursor-pointer items-start gap-3 rounded-card border border-input bg-card p-3 text-sm has-[:checked]:border-brand has-[:checked]:bg-acc has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60",
         className,
       )}
     >
