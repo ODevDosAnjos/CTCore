@@ -148,6 +148,7 @@
     "weak": "A senha não atende às exigências abaixo.",
     "rules": {
       "title": "Regras da senha",
+      "classicTitle": "A senha precisa ter:",
       "length": "8 ou mais caracteres",
       "number": "1 número",
       "upper": "1 letra maiúscula",

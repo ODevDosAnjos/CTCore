@@ -172,7 +172,7 @@ Achados: o achado 1 (ordem) está corrigido; o achado 2 (divergências) foi igua
 
 O que muda: as telas de acesso (login, trava, duas etapas, código de reserva, recuperar senha, nova senha, convite, convite vencido, link vencido, escolha de organização e sem acesso) ficam no visual do canvas, nos dois temas, a 1440 e 390 px. Back-end: migração `V55` (coluna `account_link.last_access_at` e duas políticas só de leitura, para o convite e a escolha de vínculo lerem organização, unidades e quem convidou).
 
-Verificação: rodada 2, OK (estado `e72f7e2e04ec2030807a57c7dc9ad262c0c7adf1`). `visual:canvas -- --exige`: 147 comparadas, 0 reprovadas. `test:visual:docker` nas 13 telas de acesso: 56 passaram sem `--update-snapshots`. Backend `verify`: BUILD SUCCESS. `npm run e2e` (`@critical`): 4 falhas corrigidas e rodadas de novo, passaram. Lint e typecheck limpos.
+Verificação: rodada 3, OK (estado `67106bad05adf740c7fb6d8ae70e5b2d87b913de`), que cobre a correção da falha do CI de `/conta` (abaixo). Rodada 2 (estado `e72f7e2e04ec2030807a57c7dc9ad262c0c7adf1`): `visual:canvas -- --exige`: 147 comparadas, 0 reprovadas. `test:visual:docker` nas 13 telas de acesso: 56 passaram sem `--update-snapshots`. Backend `verify`: BUILD SUCCESS. `npm run e2e` (`@critical`): 4 falhas corrigidas e rodadas de novo, passaram. Lint e typecheck limpos.
 
 Decisões: D4 (link vencido aparece depois da recusa da API, sem rota nova de checagem). Divergências com o canvas achadas na comparação e como foram resolvidas: ordem do convite com conta existente, marca e slogan do painel, notas da trava e do convite (rodada 1, "Correção da rodada 1"); desvios 1 a 13 em "Construção". Nenhuma exceção de `limiteCanvas` nas telas de acesso.
 
@@ -184,3 +184,26 @@ Regressão local, anotada:
 Limitações: CA14 parcial até o CI (e2e completo e test:cov completo). Não entregue, sem bloquear: WhatsApp do suporte só aparece com `VITE_SUPPORT_WHATSAPP` (sem contato real no repositório), e o destaque do primeiro vínculo e a cor do avatar na escolha de organização (desvio 13); sugestões da rodada 2.
 
 Não é do item: nenhum.
+
+Falha do CI (run 44254130353, PR #595, SHA 75583646e106483c2967ba440bcfa2a11a6d2db3, `--ci 1`): job `visual` reprovou 12 casos de `/conta` (cliente e aluno, 1440 e 390 px, claro e escuro), `npm run test:visual` com `561 passed` e 12 `failed`. Exemplo: `portal-conta-390-escuro` com 7415 pixels diferentes (0,03 da imagem). Casos: `conta-{1440,390}-{claro,escuro}`, `conta-aluno-{1440,390}-{claro,escuro}`, `portal-conta-{1440,390}-{claro,escuro}`. Causa provável: a verificação rodou só as telas de acesso, e o branch mudou componentes compartilhados usados em `/conta` (`PasswordRules.tsx`, `PasswordFields.tsx`, `CodeField.tsx`, `ui/field.tsx`, `ui/banner.tsx`, `AuthShell.tsx`, `SupportContact`). A divergência não é mudança pedida para `/conta`: corrigir no código para que `/conta` volte a igualar as referências, sem regerar essas referências. Demais jobs do CI passaram (`e2e`, `backend`, `frontend`, `security`, imagens). `ci-gate` falhou por causa do `visual`.
+
+### Correção da entrega
+
+- 12 casos de `/conta` reprovados no job `visual` (causa: `ChangePasswordForm` usa `PasswordFields`/`PasswordRules`, que mudaram para o visual do canvas; o desvio 9 estava errado ao aceitar isso, pois Minha conta é da #490) — arquivos: `PasswordFields.tsx` e `PasswordRules.tsx` (prop `classic`: botão "Mostrar" ao lado e lista simples, como antes), `ChangePasswordForm.tsx` (`classic`), `pt-BR.json` (`password.rules.classicTitle` com o título antigo "A senha precisa ter:") — prova: `npm run test:visual:docker -- -g "conta"` sem `--update-snapshots` → 24 passaram (os 12 que falhavam inclusos), nenhuma referência de `/conta` regerada; `npm run test:visual:docker` inteiro → 573 passaram; `npx vitest run src/features/auth src/features/account src/i18n` → 163 passaram; lint e typecheck limpos.
+Visual do CI: conta, conta-aluno, portal-conta (e as 13 telas de acesso) → passou localmente, sem `--update-snapshots`.
+Desvio 9 corrigido: Minha conta mantém o visual anterior até a #490.
+Regressão: `verify`, `test:cov` e `e2e` não rodados de novo (mudança só no front, em um formulário); vale o CI.
+Referências visuais: nenhuma regerada nesta correção.
+Não é do item: nenhum.
+
+### Rodada 3 — OK — 2026-11-18, estado 67106bad05adf740c7fb6d8ae70e5b2d87b913de
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA13, CA16 | mantido da rodada 2 | o diff desde o commit 7558364 só toca `PasswordFields`, `PasswordRules`, `ChangePasswordForm` e `pt-BR.json` (prop `classic`, usada só por Minha conta); `classic` reproduz o código de `dev` (conferido com `git show dev:`) |
+| CA14 | PASSOU (parcial, como antes) | vitest auth/account/i18n: 17 arquivos, 163 testes, 0 falhas; e2e e test:cov inteiros ficam para o CI |
+| CA15 | PASSOU | `test:visual:docker -g "conta\|entrar\|convite\|redefinir\|esqueci\|login\|sem-acesso\|escolha"` sem `--update-snapshots`: 76 passaram (inclui os 12 casos de `/conta` que falharam no CI); nenhuma referência alterada (`git status`) |
+
+Comandos: `npm run lint` e `typecheck` limpos; vitest acima; visual docker acima. `visual:canvas` não repetido: nenhuma tela de acesso mudou nesta correção.
+Achados: a falha do CI (12 casos de `/conta`) está corrigida no código, sem regerar referências. Nenhum obrigatório.
+- sugestão, código, `SupportContact.tsx` e `ChooseLinkPage.tsx` — as mesmas das rodadas anteriores.

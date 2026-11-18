@@ -92,6 +92,7 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
           error={newError}
           inputRef={newRef}
           idPrefix="acc"
+          classic
         />
         {formError && <Banner tone="danger">{formError}</Banner>}
         {done && <Banner tone="ok">{t("account.password.done")}</Banner>}
