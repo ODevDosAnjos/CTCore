@@ -10,6 +10,7 @@ export interface TermsVersion {
   reaccept: boolean;
   publishedAt: string | null;
   publishedBy: string | null;
+  acceptances: number;
 }
 export interface TermsView {
   canManage: boolean;

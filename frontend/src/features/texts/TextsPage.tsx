@@ -1,18 +1,21 @@
+import { Clock, Undo2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { Badge } from "@/components/ui/badge";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
 import { ManagementLayout } from "@/features/permissions/ManagementLayout";
-import { useTexts, type TextGroup, type TextModel } from "./useTexts";
+import { useTexts, type TextModel } from "./useTexts";
 import { PageHeader } from "@/components/ui/page-header";
 
-const GROUPS: TextGroup[] = ["REMINDERS", "WELCOME", "ANNOUNCEMENTS"];
-const when = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(iso)) : "");
+// Ordem do canvas: boas-vindas, lembretes, comunicados.
+const ORDER = ["WELCOME", "REMINDER_BEFORE", "REMINDER_DUE", "REMINDER_OVERDUE", "ANNOUNCEMENT_CANCELED_CLASS", "ANNOUNCEMENT_TEACHER_CHANGE", "ANNOUNCEMENT_SCHEDULE_CHANGE", "ANNOUNCEMENT_NO_CLASS_DAY", "ANNOUNCEMENT_GENERAL"];
+const day = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(iso)) : "");
+const hour = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso)).replace(":", "h") : "");
 
 type Field = "subject" | "body";
 type Api = ReturnType<typeof useTexts>;
@@ -88,24 +91,32 @@ function Editor({ model, canManage, api }: { model: TextModel; canManage: boolea
   }
 
   return (
-    <Card heading="h2" title={t("texts.editor.title", { name })}>
-      <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">
-          {model.custom ? t("texts.editor.updated", { date: when(model.updatedAt), by: model.updatedBy ?? "" }) : t("texts.origin.platform")}
-        </p>
-        {model.key === "WELCOME" && <p className="text-sm text-muted-foreground">{t("texts.welcomeNote")}</p>}
-        {!canManage && <p className="text-sm text-muted-foreground">{t("texts.editor.readOnly")}</p>}
-        {message && <p role="status" className="text-sm">{message}</p>}
-        {errors.top && <Banner tone="danger">{errors.top}</Banner>}
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (canManage && changed && !busy) void save();
-          }}
-        >
+    <div className="flex min-w-0 flex-col gap-4">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canManage && changed && !busy) void save();
+        }}
+      >
+        <section aria-labelledby="texts-editor-title" className="flex flex-col gap-3 rounded-card border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="texts-editor-title" className="text-base font-semibold">
+              {t("texts.editor.title", { name })}
+            </h2>
+            {model.custom && (
+              <Button type="button" variant="ghost" size="sm" className="min-h-11" disabled={!canManage || busy} onClick={() => setConfirming(true)}>
+                <Undo2 aria-hidden className="size-4" />
+                {t("texts.reset")}
+              </Button>
+            )}
+          </div>
+          {model.key === "WELCOME" && <p className="text-sm text-muted-foreground">{t("texts.welcomeNote")}</p>}
+          {!canManage && <p className="text-sm text-muted-foreground">{t("texts.editor.readOnly")}</p>}
+          {message && <p role="status" className="text-sm">{message}</p>}
+          {errors.top && <Banner tone="danger">{errors.top}</Banner>}
           <div>
-            <label htmlFor="texts-subject" className="text-sm font-medium">
+            <label htmlFor="texts-subject" className="text-xs font-medium text-muted-foreground">
               {t("texts.editor.subject")}
             </label>
             <Input
@@ -125,7 +136,7 @@ function Editor({ model, canManage, api }: { model: TextModel; canManage: boolea
             )}
           </div>
           <div>
-            <label htmlFor="texts-body" className="text-sm font-medium">
+            <label htmlFor="texts-body" className="text-xs font-medium text-muted-foreground">
               {t("texts.editor.body")}
             </label>
             <Textarea
@@ -145,40 +156,40 @@ function Editor({ model, canManage, api }: { model: TextModel; canManage: boolea
               </p>
             )}
           </div>
-          <fieldset className="flex flex-col gap-2" disabled={!canManage}>
-            <legend className="text-sm font-medium">{t("texts.editor.fields")}</legend>
-            <p className="text-sm text-muted-foreground">{t("texts.editor.fieldsHelp")}</p>
-            <div className="flex flex-wrap gap-2">
-              {model.fields.map((f) => (
-                <Button key={f} type="button" variant="outline" size="sm" className="min-h-11" aria-label={t("texts.editor.insert", { field: t(`texts.fieldLabels.${f}`) })} onClick={() => insert(f)}>
-                  {`{${f}}`}
-                </Button>
-              ))}
-            </div>
-            {model.fields.includes("link_pagamento") && <p className="text-sm text-muted-foreground">{t("texts.editor.linkNote")}</p>}
-          </fieldset>
-          {canManage && (
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="min-h-11" disabled={busy || !changed}>
-                {t("texts.save")}
+          <fieldset className="flex flex-wrap items-center gap-2" disabled={!canManage} aria-label={t("texts.editor.fields")}>
+            <span aria-hidden="true" className="text-xs text-muted-foreground">
+              {t("texts.editor.fields")}
+            </span>
+            {model.fields.map((f) => (
+              <Button key={f} type="button" variant="outline" size="sm" className="min-h-11 rounded-full text-xs" aria-label={t("texts.editor.insert", { field: t(`texts.fieldLabels.${f}`) })} onClick={() => insert(f)}>
+                {`{${f}}`}
               </Button>
-              {model.custom && (
-                <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={() => setConfirming(true)}>
-                  {t("texts.reset")}
-                </Button>
-              )}
-            </div>
-          )}
-        </form>
-        <section aria-label={t("texts.preview.title")} className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">{t("texts.preview.title")}</h3>
-          <p className="break-words text-sm text-muted-foreground">{t("texts.preview.subject", { subject: fill(subject) })}</p>
-          <div className="mx-auto w-full max-w-xl rounded-card border bg-card p-4">
-            <p className="whitespace-pre-wrap break-words text-lg">{fill(body)}</p>
-            <p className="mt-4 text-sm text-muted-foreground">{t("texts.preview.footer")}</p>
-          </div>
+            ))}
+          </fieldset>
+          {model.fields.includes("link_pagamento") && <p className="text-sm text-muted-foreground">{t("texts.editor.linkNote")}</p>}
         </section>
-      </div>
+        <section aria-labelledby="texts-preview-title" className="flex flex-col gap-2 rounded-card border bg-muted p-4">
+          <h3 id="texts-preview-title" className="text-base font-semibold">
+            {t("texts.preview.title")}
+          </h3>
+          <p className="break-words text-sm text-muted-foreground">{t("texts.preview.subject", { subject: fill(subject) })}</p>
+          <p className="whitespace-pre-wrap break-words">{fill(body)}</p>
+          <p className="text-sm text-muted-foreground">{t("texts.preview.footer")}</p>
+        </section>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            {model.custom && (
+              <>
+                <Clock aria-hidden className="size-3.5 shrink-0" />
+                {t("texts.editor.updated", { date: day(model.updatedAt), time: hour(model.updatedAt), by: model.updatedBy ?? "" })}
+              </>
+            )}
+          </p>
+          <Button type="submit" className="min-h-11" disabled={!canManage || busy || !changed}>
+            {t("texts.save")}
+          </Button>
+        </div>
+      </form>
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
@@ -187,7 +198,7 @@ function Editor({ model, canManage, api }: { model: TextModel; canManage: boolea
         confirmLabel={t("texts.resetConfirm.confirm")}
         onConfirm={reset}
       />
-    </Card>
+    </div>
   );
 }
 
@@ -200,34 +211,34 @@ function Content() {
   if (!api.data) return <ErrorState onRetry={api.retry} />;
 
   const { canManage, models } = api.data;
-  const selected = models.find((m) => m.key === key);
+  const ordered = ORDER.map((k) => models.find((m) => m.key === k)).filter((m): m is TextModel => !!m);
+  const selected = ordered.find((m) => m.key === key) ?? ordered[0];
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("texts.title")} />
-      <p className="text-muted-foreground">{t("texts.intro")}</p>
-      {models.length === 0 && <EmptyState title={t("texts.emptyTitle")} text={t("texts.emptyText")} />}
-      {GROUPS.map((g) => {
-        const items = models.filter((m) => m.group === g);
-        if (items.length === 0) return null;
-        return (
-          <Card key={g} heading="h2" title={t(`texts.groups.${g}`)}>
-            <ul className="flex flex-col divide-y">
-              {items.map((m) => (
-                <li key={m.key} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span className="break-words">
-                    <span className="font-medium">{t(`texts.models.${m.key}`)}</span>
-                    <span className="text-muted-foreground">{` · ${t(m.custom ? "texts.origin.custom" : "texts.origin.platform")}`}</span>
-                  </span>
-                  <Button variant={m.key === key ? "default" : "outline"} size="sm" className="min-h-11" aria-pressed={m.key === key} aria-label={`${t(canManage ? "texts.edit" : "texts.view")} ${t(`texts.models.${m.key}`)}`} onClick={() => setKey(m.key)}>
-                    {t(canManage ? "texts.edit" : "texts.view")}
-                  </Button>
+      <PageHeader title={t("texts.title")} subtitle={t("texts.subtitle")} />
+      {ordered.length === 0 && <EmptyState title={t("texts.emptyTitle")} text={t("texts.emptyText")} />}
+      {selected && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+          <nav aria-label={t("texts.list")}>
+            <ul className="flex flex-col divide-y rounded-card border bg-card p-2">
+              {ordered.map((m) => (
+                <li key={m.key}>
+                  <button
+                    type="button"
+                    aria-current={m.key === selected.key ? "true" : undefined}
+                    className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-acc focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[current=true]:bg-acc aria-[current=true]:font-semibold"
+                    onClick={() => setKey(m.key)}
+                  >
+                    <span className="break-words">{t(`texts.models.${m.key}`)}</span>
+                    {m.custom ? <Badge tone="info">{t("texts.origin.custom")}</Badge> : <span className="text-xs text-muted-foreground">{t("texts.origin.platform")}</span>}
+                  </button>
                 </li>
               ))}
             </ul>
-          </Card>
-        );
-      })}
-      {selected && <Editor key={selected.key} model={selected} canManage={canManage} api={api} />}
+          </nav>
+          <Editor key={selected.key} model={selected} canManage={canManage} api={api} />
+        </div>
+      )}
     </div>
   );
 }

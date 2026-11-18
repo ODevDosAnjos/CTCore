@@ -30,7 +30,7 @@ const model = (key: string, group: TextModel["group"], fields: string[], subject
 const initial = (): TextModel[] => [
   model("REMINDER_DUE", "REMINDERS", REMINDER, "Vence hoje", "Sua cobrança {descricao} de {valor} vence hoje."),
   model("WELCOME", "WELCOME", ["nome", "unidade"], "Bem-vindo(a)", "Olá, {nome}!"),
-  model("ANNOUNCEMENT_GENERAL", "ANNOUNCEMENTS", ["unidade"], "Aviso geral", "Aviso de {unidade}.", { subject: "Meu aviso", body: "Texto próprio de {unidade}." }),
+  model("ANNOUNCEMENT_GENERAL", "ANNOUNCEMENTS", ["unidade"], "Comunicado: Aviso geral", "Aviso de {unidade}.", { subject: "Meu aviso", body: "Texto próprio de {unidade}." }),
 ];
 
 let models: TextModel[];
@@ -75,49 +75,60 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
 }
 
 const ready = () => screen.findByRole("heading", { name: "Textos", level: 1 });
-const open = async (user: ReturnType<typeof userEvent.setup>, name: string, action = "Editar") => {
-  await user.click(await screen.findByRole("button", { name: `${action} ${name}` }));
+const open = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
 };
 
 describe("TextsPage", () => {
-  it("CA14: lista os modelos em três grupos com a marca de origem", async () => {
-    setup("COORDINATOR");
-    await ready();
-    for (const g of ["Lembretes de cobrança", "Boas-vindas", "Comunicados"]) expect(screen.getByRole("heading", { name: g, level: 2 })).toBeInTheDocument();
-    expect(screen.getByText("Lembrete no dia do vencimento").parentElement).toHaveTextContent("Texto da plataforma");
-    expect(screen.getByText("Aviso geral").parentElement).toHaveTextContent("Texto próprio");
-  });
-
-  it("CA14: abre o editor com a prévia, que muda ao digitar; clicar num campo o insere; Salvar envia o PUT e confirma", async () => {
+  it("CA9, CA10, CA11: subtítulo, lista única na ordem do canvas com selos, sem botão Editar, e o primeiro modelo já aberto", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await open(user, "Lembrete no dia do vencimento");
+    expect(screen.getByText(/Nove modelos que a organização edita/)).toBeInTheDocument();
+    const items = within(screen.getByRole("navigation", { name: "Modelos de texto" })).getAllByRole("button");
+    expect(items.map((b) => b.textContent)).toEqual(["Boas-vindasTexto da plataforma", "Lembrete: no diaTexto da plataforma", "Comunicado: Aviso geralEditado"]);
+    expect(screen.queryByRole("button", { name: /^Editar/ })).toBeNull();
+    expect(items[0]).toHaveAttribute("aria-current", "true");
+    expect(await screen.findByLabelText("Texto do e-mail")).toHaveValue("Olá, {nome}!");
+    expect(screen.queryByRole("button", { name: "Voltar ao texto da plataforma" })).toBeNull();
+    expect(screen.queryByText(/Última alteração/)).toBeNull();
+    await user.click(items[2]);
+    expect(items[2]).toHaveAttribute("aria-current", "true");
+    expect(items[0]).not.toHaveAttribute("aria-current");
+    expect(await screen.findByText(/Última alteração em .+ às \d\dh\d\d por Ana/)).toBeInTheDocument();
+    expect(screen.getByText("Campos:")).toBeInTheDocument();
+  });
+
+  it("CA10: abre o editor com a prévia, que muda ao digitar; clicar num campo o insere; Salvar texto envia o PUT e confirma", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    await open(user, "Lembrete: no dia");
     const body = await screen.findByLabelText("Texto do e-mail");
     expect(body).toHaveValue("Sua cobrança {descricao} de {valor} vence hoje.");
-    const preview = screen.getByRole("region", { name: "Prévia com dados de exemplo" });
-    expect(preview).toHaveTextContent("Sua cobrança Mensalidade 11/2026 de R$ 150,00 vence hoje.");
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    const preview = screen.getByRole("region", { name: "Prévia" });
+    expect(preview).toHaveTextContent("Sua cobrança Jiu-Jitsu de R$ 180,00 vence hoje.");
+    expect(screen.getByRole("button", { name: "Salvar texto" })).toBeDisabled();
 
     await user.clear(body);
     await user.type(body, "Oi ");
     await user.click(screen.getByRole("button", { name: "Inserir o campo nome" }));
     expect(body).toHaveValue("Oi {nome}");
-    expect(preview).toHaveTextContent("Oi Maria Souza");
+    expect(preview).toHaveTextContent("Oi Marina");
     expect(within(preview).getByText("feito com ctcore")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.click(screen.getByRole("button", { name: "Salvar texto" }));
     expect(await screen.findByText("Texto salvo.")).toBeInTheDocument();
     expect(puts).toEqual([{ key: "REMINDER_DUE", body: { subject: "Vence hoje", body: "Oi {nome}" } }]);
-    expect(screen.getByText("Lembrete no dia do vencimento").parentElement).toHaveTextContent("Texto próprio");
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Lembrete: no dia/ })).toHaveTextContent("Editado");
+    expect(screen.getByRole("button", { name: "Salvar texto" })).toBeDisabled();
   });
 
   it("CA15: voltar ao texto da plataforma só envia o DELETE depois de confirmar; cancelar não envia nada", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await open(user, "Aviso geral");
+    await open(user, "Comunicado: Aviso geral");
     const body = await screen.findByLabelText("Texto do e-mail");
     expect(body).toHaveValue("Texto próprio de {unidade}.");
     await user.click(screen.getByRole("button", { name: "Voltar ao texto da plataforma" }));
@@ -137,10 +148,10 @@ describe("TextsPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR", { put: () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "body", message: "campo automático desconhecido: {cpf}" }] }, { status: 400 }) });
     await ready();
-    await open(user, "Boas-vindas ao aluno");
+    await open(user, "Boas-vindas");
     const body = await screen.findByLabelText("Texto do e-mail");
     await user.type(body, " {{cpf}");
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.click(screen.getByRole("button", { name: "Salvar texto" }));
     expect(await screen.findByText(/Confira o texto/)).toBeInTheDocument();
     expect(body).toHaveFocus();
     expect(body).toHaveAccessibleDescription(/Confira o texto/);
@@ -150,20 +161,19 @@ describe("TextsPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR", { put: () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "body", message: "igual ao texto da plataforma" }] }, { status: 400 }) });
     await ready();
-    await open(user, "Boas-vindas ao aluno");
+    await open(user, "Boas-vindas");
     await user.type(await screen.findByLabelText("Texto do e-mail"), "x");
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.click(screen.getByRole("button", { name: "Salvar texto" }));
     expect(await screen.findByText(/igual ao da plataforma/)).toBeInTheDocument();
   });
 
-  it("CA17: o Administrador vê o editor desabilitado e sem Salvar", async () => {
-    const user = userEvent.setup();
+  it("CA11: o Administrador vê o mesmo layout com campos e Salvar texto desabilitados e o aviso de somente leitura", async () => {
     setup("ADMINISTRATOR");
     await ready();
-    await open(user, "Boas-vindas ao aluno", "Ver");
     expect(await screen.findByLabelText("Texto do e-mail")).toBeDisabled();
     expect(screen.getByLabelText("Assunto")).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Salvar texto" })).toBeDisabled();
+    expect(screen.getByText(/só o Coordenador altera/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Voltar ao texto da plataforma" })).toBeNull();
     expect(screen.getByRole("button", { name: "Inserir o campo nome" })).toBeDisabled();
   });
@@ -203,13 +213,13 @@ describe("TextsPage", () => {
     window.innerWidth = 360;
     const first = setup("COORDINATOR");
     await ready();
-    await open(user, "Lembrete no dia do vencimento");
+    await open(user, "Lembrete: no dia");
     await screen.findByLabelText("Texto do e-mail");
     expect(await axeViolations(first.container)).toEqual([]);
     first.unmount();
     const second = setup("ADMINISTRATOR");
     await ready();
-    await open(user, "Aviso geral", "Ver");
+    await open(user, "Comunicado: Aviso geral");
     await screen.findByLabelText("Texto do e-mail");
     expect(await axeViolations(second.container)).toEqual([]);
   });

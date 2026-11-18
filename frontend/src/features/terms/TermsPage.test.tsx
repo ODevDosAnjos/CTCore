@@ -17,8 +17,8 @@ const session = (role: string): SessionView => ({
   activeLinkId: "l1",
   twoFactor: { enabled: false, required: false },
 });
-const MODEL: TermsVersion = { version: 0, body: "Texto padrão da plataforma para o termo.", reaccept: false, publishedAt: null, publishedBy: null };
-const v1: TermsVersion = { version: 1, body: "Primeira versão publicada do termo.", reaccept: false, publishedAt: "2026-03-01T12:00:00Z", publishedBy: "Ana" };
+const MODEL: TermsVersion = { version: 0, body: "Texto padrão da plataforma para o termo.", reaccept: false, publishedAt: null, publishedBy: null, acceptances: 0 };
+const v1: TermsVersion = { version: 1, body: "Primeira versão publicada do termo.", reaccept: false, publishedAt: "2026-03-01T12:00:00Z", publishedBy: "Ana", acceptances: 96 };
 
 let versions: TermsVersion[];
 let posts: { kind: string; body: { body: string; reaccept: boolean } }[];
@@ -38,7 +38,7 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
       posts.push({ kind: params.kind as string, body });
       const failure = over.post?.(posts.length);
       if (failure) return failure;
-      const created = { version: (versions[0]?.version ?? 0) + 1, body: body.body, reaccept: body.reaccept, publishedAt: "2026-04-01T12:00:00Z", publishedBy: "X" };
+      const created = { version: (versions[0]?.version ?? 0) + 1, body: body.body, reaccept: body.reaccept, publishedAt: "2026-04-01T12:00:00Z", publishedBy: "X", acceptances: 0 };
       versions = [created, ...versions];
       return HttpResponse.json(created, { status: 201 });
     }),
@@ -56,7 +56,7 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
 
 const ready = () => screen.findByRole("heading", { name: "Termos", level: 1 });
 const editor = () => screen.findByLabelText("Texto do termo");
-const publishButton = () => screen.getByRole("button", { name: "Publicar nova versão" });
+const publishButton = () => screen.getByRole("button", { name: /^Publicar versão [0-9]+$/ });
 
 describe("TermsPage", () => {
   it("CA9: sem versão publicada mostra o histórico vazio e o texto padrão no editor; publicar começa desabilitado", async () => {
@@ -64,8 +64,8 @@ describe("TermsPage", () => {
     await ready();
     expect(await editor()).toHaveValue(MODEL.body);
     expect(screen.getByRole("heading", { name: "Nenhuma versão publicada ainda" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Só para novos alunos")).not.toBeChecked();
-    expect(screen.getByLabelText("Todos aceitam de novo no próximo acesso")).not.toBeChecked();
+    expect(screen.getByLabelText(/Só para novos alunos/)).not.toBeChecked();
+    expect(screen.getByLabelText(/Todos aceitam de novo/)).not.toBeChecked();
     expect(publishButton()).toBeDisabled();
   });
 
@@ -78,14 +78,15 @@ describe("TermsPage", () => {
     await user.clear(box);
     await user.type(box, "Segunda versão do termo, com mais texto.");
     expect(publishButton()).toBeDisabled();
-    await user.click(screen.getByLabelText("Todos aceitam de novo no próximo acesso"));
+    await user.click(screen.getByLabelText(/Todos aceitam de novo/));
     expect(publishButton()).toBeEnabled();
     await user.click(publishButton());
     expect(await screen.findByText("Nova versão publicada.")).toBeInTheDocument();
     expect(posts).toEqual([{ kind: "ENROLLMENT", body: { body: "Segunda versão do termo, com mais texto.", reaccept: true } }]);
-    expect(screen.getByText(/Versão atual: 2/)).toBeInTheDocument();
-    expect(screen.getAllByText("Versão 2").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Versão 1").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Versão 2 publicada em/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publicar versão 3" })).toBeDisabled();
+    expect(screen.getByRole("cell", { name: "2" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "96" })).toBeInTheDocument();
     expect(publishButton()).toBeDisabled();
   });
 
@@ -93,12 +94,12 @@ describe("TermsPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await user.click(screen.getByRole("button", { name: "Termo de uso de imagem" }));
+    await user.click(screen.getByRole("tab", { name: "Uso de imagem" }));
     const box = await editor();
     await user.clear(box);
     await user.type(box, "Texto novo do termo de imagem.");
-    await user.click(screen.getByLabelText("Só para novos alunos"));
-    await user.click(publishButton());
+    await user.click(screen.getByLabelText(/Só para novos alunos/));
+    await user.click(screen.getByRole("button", { name: "Publicar versão 1" }));
     await screen.findByText("Nova versão publicada.");
     expect(posts[0].kind).toBe("IMAGE_USE");
   });
@@ -111,7 +112,7 @@ describe("TermsPage", () => {
     const box = await editor();
     await user.clear(box);
     await user.type(box, "Texto novo com mais de vinte letras.");
-    await user.click(screen.getByLabelText("Só para novos alunos"));
+    await user.click(screen.getByLabelText(/Só para novos alunos/));
     await user.click(publishButton());
     expect(await screen.findByRole("alert")).toHaveTextContent("de 20 a 20000 caracteres");
     await user.click(publishButton());
@@ -119,15 +120,51 @@ describe("TermsPage", () => {
     expect(versions).toEqual([]);
   });
 
-  it("CA9: o Administrador vê o texto e o histórico, com a leitura de cada versão, sem editor nem botão", async () => {
-    const user = userEvent.setup();
+  it("CA9: o Administrador vê o texto e o histórico, sem editor, rascunho, botão nem escolha", async () => {
     setup("ADMINISTRATOR", { initial: [v1] });
     await ready();
-    expect((await screen.findAllByText("Versão 1")).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("cell", { name: "96" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Texto do termo")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Publicar nova versão" })).toBeNull();
-    await user.click(screen.getByText("Ler o texto"));
-    expect(screen.getAllByText(v1.body).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole("button", { name: /^Publicar versão/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Salvar rascunho/ })).toBeNull();
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByText(v1.body)).toBeInTheDocument();
+    expect(screen.getByText(/O uso de imagem é uma caixa separada/)).toBeInTheDocument();
+  });
+
+  it("CA1, CA2, CA3, CA6: subtítulo, abas com sublinhado, barra desabilitada, linha da versão e rodapé lado a lado; nota nas duas abas", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { initial: [v1] });
+    await ready();
+    expect(screen.getByText(/cada alteração vira uma nova versão/)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Termo de matrícula" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("toolbar", { name: "Formatação do texto" })).toHaveTextContent("Lista");
+    expect(screen.getByRole("button", { name: "Lista" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(/Versão 1 publicada em .+ por Ana/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Salvar rascunho" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Publicar versão 2" })).toBeInTheDocument();
+    expect(screen.getByText(/O uso de imagem é uma caixa separada/)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Uso de imagem" }));
+    expect(await screen.findByRole("tab", { name: "Uso de imagem", selected: true })).toBeInTheDocument();
+    expect(screen.getByText(/O uso de imagem é uma caixa separada/)).toBeInTheDocument();
+  });
+
+  it("CA3: sem versão publicada, a linha traz a mensagem do texto padrão e o botão é Publicar versão 1", async () => {
+    setup("COORDINATOR");
+    await ready();
+    expect(await screen.findByText(/Ainda não há versão publicada/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publicar versão 1" })).toBeDisabled();
+    expect(screen.getByText("Ao publicar a versão 1")).toBeInTheDocument();
+  });
+
+  it("CA5, CA13: a tabela mostra versão, data e aceites; as opções são botões de opção do componente base", async () => {
+    const mk = (version: number, acceptances: number): TermsVersion => ({ ...v1, version, acceptances });
+    setup("COORDINATOR", { initial: [mk(3, 187), mk(2, 142), mk(1, 96)] });
+    await editor();
+    const rows = screen.getAllByRole("row").slice(1).map((r) => r.textContent);
+    expect(rows).toEqual(["301/03/2026187", "201/03/2026142", "101/03/202696"]);
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.getByText("Quem já aceitou continua na versão 3")).toBeInTheDocument();
   });
 
   it("CA9: carregando, erro com nova tentativa e sem permissão", async () => {
@@ -169,7 +206,7 @@ describe("TermsPage", () => {
     expect(await axeViolations(first.container)).toEqual([]);
     first.unmount();
     const second = setup("ADMINISTRATOR", { initial: [v1] });
-    await screen.findAllByText("Versão 1");
+    await screen.findByRole("cell", { name: "96" });
     expect(await axeViolations(second.container)).toEqual([]);
   });
 });
