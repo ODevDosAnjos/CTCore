@@ -59,6 +59,16 @@ describe("LoginPage", () => {
     expect(senha).toHaveAttribute("type", "password");
   });
 
+  it("CA2: subtítulo, Esqueci minha senha entre a senha e o botão e Mostrar dentro do campo", async () => {
+    open("/entrar");
+    const senha = await screen.findByLabelText("Senha");
+    expect(screen.getByText("Gestão e portal do aluno, com a mesma conta.")).toBeInTheDocument();
+    expect(senha.parentElement).toContainElement(screen.getByRole("button", { name: "Mostrar" }));
+    const forgot = screen.getByRole("link", { name: "Esqueci minha senha" });
+    expect(senha.compareDocumentPosition(forgot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(forgot.compareDocumentPosition(screen.getByRole("button", { name: "Entrar" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("CA3: 401 mostra a mensagem única, limpa a senha e devolve o foco", async () => {
     const user = userEvent.setup();
     server.use(http.post(URL_LOGIN, () => err(401, "INVALID_CREDENTIALS")));
@@ -252,6 +262,7 @@ describe("LoginPage", () => {
       await submit(user);
       const alert = await screen.findByRole("alert");
       expect(alert).toHaveTextContent(/Muitas tentativas\. Por segurança, este e-mail fica travado por 15 minutos\. Tente de novo às \d{2}h\d{2} ou crie uma nova senha\./);
+      expect(screen.getByText("A trava vale só para este e-mail. Quem já está dentro continua normalmente.")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Criar nova senha" })).toHaveAttribute("href", "/esqueci-senha");
       expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
       await waitFor(() => expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled(), { timeout: 3000 });

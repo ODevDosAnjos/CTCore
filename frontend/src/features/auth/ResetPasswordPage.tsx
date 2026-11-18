@@ -1,11 +1,11 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { ErrorState } from "@/components/states";
 import { AuthShell } from "@/components/layout/AuthShell";
-import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { ApiError, api } from "@/lib/api";
+import { ResetLinkRequest } from "./ForgotPasswordPage";
 import { PasswordFields } from "./PasswordFields";
 import { isStrongPassword } from "./PasswordRules";
 import { useSession, type SessionView } from "./SessionProvider";
@@ -53,12 +53,8 @@ export function ResetPasswordPage() {
   if (invalid) {
     return (
       <AuthShell title={t("reset.invalid.title")} focusTitle>
-        <Banner tone="warn">{t("reset.invalid.text")}</Banner>
-        <p>
-          <Link className="underline" to="/esqueci-senha">
-            {t("reset.invalid.ask")}
-          </Link>
-        </p>
+        <p className="text-sm text-muted-foreground">{t("reset.invalid.text")}</p>
+        <ResetLinkRequest submitLabel={t("reset.invalid.ask")} />
       </AuthShell>
     );
   }
@@ -70,7 +66,7 @@ export function ResetPasswordPage() {
     );
   }
   return (
-    <AuthShell title={t("reset.title")}>
+    <AuthShell title={t("reset.title")} subtitle={t("reset.intro")}>
       <form noValidate onSubmit={submit} className="space-y-4" aria-busy={sending}>
         <PasswordFields
           password={password}
@@ -80,7 +76,9 @@ export function ResetPasswordPage() {
           error={fieldError}
           inputRef={passwordRef}
           idPrefix="reset"
+          labels={{ password: t("reset.password"), confirm: t("reset.confirm") }}
         />
+        <p className="text-sm text-muted-foreground">{t("reset.sessionsNote")}</p>
         <Button type="submit" size="lg" className="w-full" disabled={sending || !valid}>
           {sending ? t("reset.sending") : t("reset.submit")}
         </Button>

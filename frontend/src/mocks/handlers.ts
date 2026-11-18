@@ -26,7 +26,7 @@ const error = (status: number, code: string, message: string, fields: { field: s
 const session = {
   account: { id: "00000000-0000-0000-0000-000000000001", email: "ana@exemplo.com", name: "Ana" },
   links: [
-    { id: "00000000-0000-0000-0000-000000000002", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "COORDINATOR", unitIds: [] },
+    { id: "00000000-0000-0000-0000-000000000002", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "COORDINATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: null },
   ],
   activeLinkId: "00000000-0000-0000-0000-000000000002" as string | null,
   twoFactor: { enabled: false, required: false },
@@ -36,9 +36,9 @@ const session = {
 const many = {
   account: { id: "00000000-0000-0000-0000-000000000009", email: "varios@exemplo.com", name: "Vera" },
   links: [
-    { id: "00000000-0000-0000-0000-000000000011", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [] },
-    { id: "00000000-0000-0000-0000-000000000012", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [] },
-    { id: "00000000-0000-0000-0000-000000000013", organizationId: "00000000-0000-0000-0000-000000000004", organizationName: "Academia Beta", role: "TEACHER", unitIds: [] },
+    { id: "00000000-0000-0000-0000-000000000011", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: "2026-11-17T22:10:00Z" },
+    { id: "00000000-0000-0000-0000-000000000012", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null },
+    { id: "00000000-0000-0000-0000-000000000013", organizationId: "00000000-0000-0000-0000-000000000004", organizationName: "Academia Beta", role: "TEACHER", unitIds: [], unitNames: ["Norte", "Sul"], lastAccessAt: null },
   ],
   activeLinkId: null as string | null,
   twoFactor: { enabled: false, required: false },
@@ -60,36 +60,36 @@ const accounts: Record<string, ReturnType<typeof withTwoFactor>> = {
   // Aluno adulto com matrícula e termo pendente (#85): o portal leva ao aceite antes de qualquer tela.
   "termo@exemplo.com": {
     ...withTwoFactor("termo@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000014", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [] }],
+    links: [{ id: "00000000-0000-0000-0000-000000000014", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000014",
   },
   // Aluno cujas modalidades acabaram (#88): o portal abre reduzido (sem Agenda nem Avisos), sem termo pendente.
   "reduzido@exemplo.com": {
     ...withTwoFactor("reduzido@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000015", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [] }],
+    links: [{ id: "00000000-0000-0000-0000-000000000015", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000015",
   },
   // Responsável com dois filhos (#89): o Início mostra a faixa de cartões e o total da família.
   "familia@exemplo.com": {
     ...withTwoFactor("familia@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000016", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "GUARDIAN", unitIds: [] }],
+    links: [{ id: "00000000-0000-0000-0000-000000000016", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "GUARDIAN", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000016",
   },
   // Aluno adulto com portal completo (#418, teste visual da moldura do portal).
   "aluno@exemplo.com": {
     ...withTwoFactor("aluno@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-0000000000a1", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [] }],
+    links: [{ id: "00000000-0000-0000-0000-0000000000a1", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-0000000000a1",
   },
   // Gestão por perfil (#417, teste visual da moldura): Administrador e Professor com vínculo ativo.
   "admin@exemplo.com": {
     ...withTwoFactor("admin@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000017", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [] }],
+    links: [{ id: "00000000-0000-0000-0000-000000000017", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000017",
   },
   "prof@exemplo.com": {
     ...withTwoFactor("prof@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000018", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "TEACHER", unitIds: [] }],
+    links: [{ id: "00000000-0000-0000-0000-000000000018", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "TEACHER", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000018",
   },
 };
@@ -575,9 +575,9 @@ const unitSettingsAccess = (id: string) => {
 };
 
 // Convites simulados: "valido" (conta nova), "existente" (já tem senha), "vencido", "usado", "cancelado"; outro código é desconhecido.
-const invites: Record<string, { email: string; name: string | null; existingAccount: boolean }> = {
-  valido: { email: "novo@exemplo.com", name: "Nova Pessoa", existingAccount: false },
-  existente: { email: "ana@exemplo.com", name: null, existingAccount: true },
+const invites: Record<string, { email: string; name: string | null; existingAccount: boolean; organizationName: string; invitedByName: string | null; unitNames: string[] }> = {
+  valido: { email: "novo@exemplo.com", name: "Nova Pessoa", existingAccount: false, organizationName: "Academia Alfa", invitedByName: "Ana", unitNames: ["Centro"] },
+  existente: { email: "ana@exemplo.com", name: null, existingAccount: true, organizationName: "Academia Alfa", invitedByName: "Ana", unitNames: ["Centro", "Norte"] },
 };
 const reasons: Record<string, string> = { vencido: "EXPIRED", usado: "USED", cancelado: "CANCELED" };
 const gone = (code: string) =>
@@ -2018,7 +2018,7 @@ export const routes: Route[] = [
       const account = accounts[email ?? ""];
       if (account?.twoFactor.enabled) {
         ticketAccount = account.account.email;
-        return HttpResponse.json({ twoFactorRequired: true, ticket: email === "vencida@exemplo.com" ? "vencido" : "bilhete" });
+        return HttpResponse.json({ twoFactorRequired: true, ticket: email === "vencida@exemplo.com" ? "vencido" : "bilhete", backupCodesRemaining: 8 });
       }
       loggedIn = true;
       current = account ?? (email === many.account.email ? { ...many } : session);

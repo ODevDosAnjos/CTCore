@@ -60,6 +60,13 @@ public class TwoFactorService {
         return new AuditActor(AuditActor.Type.ACCOUNT, accountId, null);
     }
 
+    /** Backup codes not yet used; shown on the login screen only after the password was right (#489, D3). */
+    public int backupCodesRemaining(UUID accountId) {
+        return accountTx.forAccount(accountId, () -> jdbc.sql(
+                "select count(*) from account_backup_code where account_id = :a and used_at is null")
+                .param("a", accountId).query(Integer.class).single());
+    }
+
     public boolean enabled(UUID accountId) {
         return accountTx.forAccount(accountId, () -> jdbc.sql(
                 "select exists (select 1 from account_two_factor where account_id = :a and enabled_at is not null)")

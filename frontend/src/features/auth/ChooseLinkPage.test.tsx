@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -68,40 +68,36 @@ const err = (status: number) =>
     { code: "X", message: "m", changed: false, fields: [], traceId: "t" },
     { status },
   );
-const TITLE = "Escolher organização e área";
+const TITLE = "Onde você quer entrar?";
 
 describe("ChooseLink", () => {
-  it("CA1, CA4: abre sozinho, uma opção por vínculo com a área do papel, e não fecha por Esc nem clique fora", async () => {
+  it("CA12: abre sozinha, uma opção por vínculo com a área do papel, e não sai por Esc nem clique fora", async () => {
     const user = userEvent.setup();
     setup();
-    const dlg = await screen.findByRole("dialog", { name: TITLE });
+    const dlg = await screen.findByRole("heading", { name: TITLE });
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
     for (const name of [
-      /Alfa Gestão \(Administrador\)/,
-      /Alfa Portal \(Aluno\)/,
-      /Beta Portal \(Responsável\)/,
-      /Beta Gestão \(Professor\)/,
-      /Beta Gestão \(Coordenador\)/,
+      /Alfa Gestão · Administrador/,
+      /Alfa Portal · Aluno/,
+      /Beta Portal · Responsável/,
+      /Beta Gestão · Professor/,
+      /Beta Gestão · Coordenador/,
     ]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
     expect(
       screen.queryByRole("button", { name: "Fechar" }),
     ).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(dlg).toContainElement(document.activeElement as HTMLElement),
-    );
+    await waitFor(() => expect(dlg).toHaveFocus());
     await user.keyboard("{Escape}");
-    fireEvent.pointerDown(document.body);
-    fireEvent.click(document.body);
-    expect(screen.getByRole("dialog", { name: TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: TITLE })).toBeInTheDocument();
     expect(puts).toEqual([]);
   });
 
   it("CA2: com um vínculo o modal não abre e não há gatilho", async () => {
     setup({ links: [links[0]], activeLinkId: "l1" });
     await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Trocar organização ou área" }),
     ).not.toBeInTheDocument();
@@ -112,15 +108,15 @@ describe("ChooseLink", () => {
     setup();
     await user.click(
       await screen.findByRole("button", {
-        name: /Alfa Gestão \(Administrador\)/,
+        name: /Alfa Gestão · Administrador/,
       }),
     );
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument(),
     );
     expect(puts).toEqual([{ linkId: "l1" }]);
     expect(
-      screen.getByRole("heading", { name: "Bem-vindo ao ctcore" }),
+      await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Trocar organização ou área" }),
@@ -133,25 +129,25 @@ describe("ChooseLink", () => {
     const trigger = await screen.findByRole("button", {
       name: "Trocar organização ou área",
     });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument();
     await user.click(trigger);
     expect(
-      screen.getByRole("button", { name: /Alfa Gestão \(Administrador\)/ }),
+      screen.getByRole("button", { name: /Alfa Gestão · Administrador/ }),
     ).toHaveAttribute("aria-current", "true");
     expect(
       screen.getByRole("button", { name: /Alfa Portal/ }),
     ).not.toHaveAttribute("aria-current");
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveFocus());
     expect(puts).toEqual([]);
     await user.click(trigger);
     await user.click(
-      screen.getByRole("button", { name: /Beta Gestão \(Professor\)/ }),
+      screen.getByRole("button", { name: /Beta Gestão · Professor/ }),
     );
     await waitFor(() => expect(puts).toEqual([{ linkId: "l4" }]));
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument(),
     );
   });
 
@@ -171,7 +167,7 @@ describe("ChooseLink", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Enviando a escolha...",
     );
-    for (const b of screen.getAllByRole("button")) expect(b).toBeDisabled();
+    for (const li of screen.getAllByRole("listitem")) expect(within(li).getByRole("button")).toBeDisabled();
     await user.click(opt);
     release();
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -182,7 +178,7 @@ describe("ChooseLink", () => {
     fail = false;
     await user.click(screen.getByRole("button", { name: "Tentar de novo" }));
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument(),
     );
     expect(puts).toEqual([{ linkId: "l2" }, { linkId: "l2" }]);
   });
@@ -205,7 +201,7 @@ describe("ChooseLink", () => {
       return err(404);
     });
     await user.click(
-      await screen.findByRole("button", { name: /Beta Gestão \(Professor\)/ }),
+      await screen.findByRole("button", { name: /Beta Gestão · Professor/ }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Essa opção não existe mais",
@@ -228,7 +224,7 @@ describe("ChooseLink", () => {
       window.innerWidth = 360;
       const user = userEvent.setup();
       setup({}, () => err(500));
-      await screen.findByRole("dialog", { name: TITLE });
+      await screen.findByRole("heading", { name: TITLE });
       expect(await axeViolations(document.body)).toEqual([]);
       await user.click(screen.getByRole("button", { name: /Alfa Portal/ }));
       await screen.findByRole("alert");
@@ -266,10 +262,10 @@ describe("ChooseLink", () => {
       await screen.findByRole("button", { name: "Trocar organização ou área" }),
     );
     const coordinator = screen.getByRole("button", {
-      name: /Alfa Gestão \(Coordenador\)/,
+      name: /Alfa Gestão · Coordenador/,
     });
     const administrator = screen.getByRole("button", {
-      name: /Alfa Gestão \(Administrador\)/,
+      name: /Alfa Gestão · Administrador/,
     });
     expect(coordinator).toHaveAttribute("aria-current", "true");
     expect(administrator).not.toHaveAttribute("aria-current");
@@ -279,10 +275,58 @@ describe("ChooseLink", () => {
       await screen.findByRole("button", { name: "Trocar organização ou área" }),
     );
     await user.click(
-      screen.getByRole("button", { name: /Alfa Gestão \(Coordenador\)/ }),
+      screen.getByRole("button", { name: /Alfa Gestão · Coordenador/ }),
     );
     await waitFor(() =>
       expect(puts).toEqual([{ linkId: "a1" }, { linkId: "c1" }]),
     );
+  });
+});
+
+describe("ChooseLinkPage: dados do canvas (R12, D2, D6)", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("CA12: saudação, avatar, unidades, último acesso e Sair", async () => {
+    const user = userEvent.setup();
+    setup({
+      account: { id: "a", email: "x@x.com", name: "Carla Mendes" },
+      links: [
+        { ...L("l1", "Academia Leão", "ADMINISTRATOR"), unitNames: ["Tijuca", "Barra"], lastAccessAt: "2026-10-02T15:00:00Z" },
+        { ...L("l2", "Dojô Kaizen", "TEACHER"), unitNames: ["Méier"], lastAccessAt: null },
+      ],
+    });
+    await screen.findByRole("heading", { name: TITLE });
+    expect(screen.getByText(/Olá, Carla\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Academia Leão Gestão · Administrador · Tijuca e Barra Último acesso em 02\/10\/2026/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Dojô Kaizen Gestão · Professor · Méier Nunca entrou/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Lembrar esta escolha neste aparelho")).not.toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Sair" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument());
+  });
+
+  it("CA12: com Lembrar marcado guarda só o id e a próxima entrada aplica o vínculo sem a página; 404 limpa e mostra a lista", async () => {
+    const user = userEvent.setup();
+    const first = setup();
+    await user.click(await screen.findByLabelText("Lembrar esta escolha neste aparelho"));
+    await user.click(screen.getByRole("button", { name: /Beta Gestão · Professor/ }));
+    await waitFor(() => expect(puts).toEqual([{ linkId: "l4" }]));
+    expect(localStorage.getItem("ctcore.rememberedLink")).toBe("l4");
+    first.unmount();
+
+    setup();
+    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    expect(puts).toEqual([{ linkId: "l4" }]);
+  });
+
+  it("CA12: vínculo lembrado que não existe mais (404) mostra o aviso e a lista", async () => {
+    localStorage.setItem("ctcore.rememberedLink", "l1");
+    setup({}, () => {
+      view = { ...view, links: links.slice(1) };
+      return err(404);
+    });
+    expect(await screen.findByText(/Essa opção não existe mais/)).toBeInTheDocument();
+    expect(localStorage.getItem("ctcore.rememberedLink")).toBeNull();
+    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(4));
   });
 });

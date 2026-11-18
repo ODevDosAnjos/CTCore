@@ -147,6 +147,33 @@ class AuthRoutesIT extends AuthBase {
     }
 
     @Test
+    @DisplayName("CA16: sessão traz unidades e último acesso por vínculo; escolher grava só o vínculo escolhido, da própria conta")
+    void linkUnitNamesAndLastAccess() throws Exception {
+        UUID orgA = org("Academia Alfa"), orgB = org("Academia Beta");
+        UUID multi = account("multi@x.com"), other = account("other@x.com");
+        UUID linkA = link(multi, orgA, "ADMINISTRATOR", "ACTIVE");
+        UUID linkB = link(multi, orgB, "STUDENT", "ACTIVE");
+        UUID otherLink = link(other, orgB, "STUDENT", "ACTIVE");
+        UUID unitA = UUID.randomUUID();
+        admin.update("insert into unit (id, organization_id, name, short_name) values (?, ?, 'Centro', ?)", unitA, orgA, "u-" + unitA);
+        admin.update("insert into account_link_unit (link_id, organization_id, unit_id) values (?, ?, ?)", linkA, orgA, unitA);
+        Cookie cookie = login("multi@x.com", PASSWORD).getResponse().getCookie("SESSION");
+
+        var links = body(get("/api/v1/auth/session", cookie).andReturn()).path("links");
+        for (var l : links) {
+            boolean a = l.path("id").asText().equals(linkA.toString());
+            assertThat(l.path("unitNames").toString()).isEqualTo(a ? "[\"Centro\"]" : "[]");
+            assertThat(l.path("lastAccessAt").isNull()).isTrue();
+        }
+        put("/api/v1/auth/session/link", Map.of("linkId", linkB), cookie).andReturn();
+        put("/api/v1/auth/session/link", Map.of("linkId", otherLink), cookie).andReturn();
+        for (var l : body(get("/api/v1/auth/session", cookie).andReturn()).path("links")) {
+            assertThat(l.path("lastAccessAt").isNull()).isEqualTo(!l.path("id").asText().equals(linkB.toString()));
+        }
+        assertThat(count("select count(*) from account_link where last_access_at is not null")).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("RN-ACE-11, RN-ACE-12: CA10, CA11: senha errada, e-mail inexistente, convite não aceito e conta desativada dão resposta idêntica")
     void identicalLoginFailures() throws Exception {
         UUID org = org();

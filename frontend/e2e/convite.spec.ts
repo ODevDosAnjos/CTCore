@@ -8,17 +8,16 @@ test("@critical Convite e criação de senha", async ({ page }) => {
 
   const botao = page.getByRole("button", { name: "Criar senha e entrar" });
   await page.getByLabel("Senha", { exact: true }).fill("fraca");
-  await page.getByLabel("Confirmar senha").fill("fraca");
+  await page.getByLabel("Repita a senha").fill("fraca");
   await expect(botao).toBeDisabled();
 
   await page.getByLabel("Senha", { exact: true }).fill("Senha123");
-  await page.getByLabel("Confirmar senha").fill("Senha123");
+  await page.getByLabel("Repita a senha").fill("Senha123");
   await expect(botao).toBeEnabled();
   await botao.click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
 
   await page.goto("/convite/vencido");
-  await expect(page.getByRole("heading", { name: "Este convite não é válido" })).toBeVisible();
-  await expect(page.getByText("Este convite venceu")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Este convite venceu" })).toBeVisible();
 });

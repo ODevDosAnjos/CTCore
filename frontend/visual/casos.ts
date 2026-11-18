@@ -113,9 +113,10 @@ export const casos: Caso[] = [
   { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
   // Acesso, conta, organização, unidades e usuários (#419). Estados e janelas abrem pelos passos.
-  // Fora: EscolhaOrganizacao/EscolhaOrgM (o login simulado já entra com o vínculo ativo).
+  // Escolha de organização (#489): o login de "varios@" entra sem vínculo ativo e cai na página de escolha.
+  { nome: "escolha-organizacao", rota: "/entrar", canvas: "EscolhaOrganizacao", canvasCelular: "EscolhaOrgM", passos: [{ preencher: ["E-mail", "varios@exemplo.com"] }, { preencher: ["Senha", "segredo123"] }, { clicar: "Entrar" }] },
   { nome: "login-travado", rota: "/entrar", canvas: "LoginTravado", canvasCelular: "LoginTravadoM", passos: [{ preencher: ["E-mail", "limite@exemplo.com"] }, { preencher: ["Senha", "segredo123"] }, { clicar: "Entrar" }] },
-  { nome: "login-duas-etapas", rota: "/entrar", canvas: "LoginDuasEtapas", passos: [{ preencher: ["E-mail", "duas@exemplo.com"] }, { preencher: ["Senha", "segredo123"] }, { clicar: "Entrar" }, { preencher: ["Código do app", "482"] }] },
+  { nome: "login-duas-etapas", rota: "/entrar", canvas: "LoginDuasEtapas", passos: [{ preencher: ["E-mail", "duas@exemplo.com"] }, { preencher: ["Senha", "segredo123"] }, { clicar: "Entrar" }, { preencher: ["Código", "482"] }] },
   {
     nome: "login-codigo-reserva",
     rota: "/entrar",
@@ -129,7 +130,7 @@ export const casos: Caso[] = [
     nome: "redefinir-senha-vencida",
     rota: "/redefinir-senha/vencido",
     canvas: "LinkSenhaVencido",
-    passos: [{ preencher: ["Senha", "Senhaforte1"] }, { preencher: ["Confirmar senha", "Senhaforte1"] }, { clicar: "Criar senha e entrar" }],
+    passos: [{ preencher: ["Nova senha", "Senhaforte1"] }, { preencher: ["Repita a nova senha", "Senhaforte1"] }, { clicar: "Criar senha e entrar" }],
   },
   { nome: "convite", rota: "/convite/valido", canvas: "PrimeiroAcesso" },
   { nome: "convite-conta-existente", rota: "/convite/existente", canvas: "PrimeiroAcessoConta" },
@@ -245,7 +246,7 @@ export const semCaso: Record<string, string[]> = {
   ],
   // janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)
   "janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)": [
-    "BuscaVazia", "EscolhaOrganizacao", "EstadoCarregando", "EstadoSemResultados", "ExportarAlunos",
+    "BuscaVazia","EstadoCarregando", "EstadoSemResultados", "ExportarAlunos",
     "AlunoInativar", "AlunoReativar",
     "AlunoAnonimizar",
     "PedidoEncerramentoRecusar",

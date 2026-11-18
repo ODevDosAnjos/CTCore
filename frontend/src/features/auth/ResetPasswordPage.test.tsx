@@ -33,23 +33,23 @@ function open(path: string) {
 type User = ReturnType<typeof userEvent.setup>;
 const submitBtn = () => screen.getByRole("button", { name: "Criar senha e entrar" });
 async function fill(user: User, password = "Senha123", confirm = password) {
-  await user.type(await screen.findByLabelText("Senha"), password);
-  await user.type(screen.getByLabelText("Confirmar senha"), confirm);
+  await user.type(await screen.findByLabelText("Nova senha"), password);
+  await user.type(screen.getByLabelText("Repita a nova senha"), confirm);
 }
 
 describe("ResetPasswordPage", () => {
   it("CA6: exigências trocam ao digitar, confirmação divergente avisa e o botão só habilita com senha válida e igual", async () => {
     const user = userEvent.setup();
     open("/redefinir-senha/valido");
-    expect(await screen.findByLabelText("Senha")).toHaveAttribute("autocomplete", "new-password");
+    expect(await screen.findByLabelText("Nova senha")).toHaveAttribute("autocomplete", "new-password");
     await fill(user, "Senha123", "Senha124");
     expect(screen.getByText("As senhas não são iguais.")).toBeInTheDocument();
     expect(submitBtn()).toBeDisabled();
-    await user.clear(screen.getByLabelText("Confirmar senha"));
-    await user.type(screen.getByLabelText("Confirmar senha"), "Senha123");
+    await user.clear(screen.getByLabelText("Repita a nova senha"));
+    await user.type(screen.getByLabelText("Repita a nova senha"), "Senha123");
     expect(submitBtn()).toBeEnabled();
-    await user.clear(screen.getByLabelText("Senha"));
-    await user.type(screen.getByLabelText("Senha"), "fraca");
+    await user.clear(screen.getByLabelText("Nova senha"));
+    await user.type(screen.getByLabelText("Nova senha"), "fraca");
     expect(submitBtn()).toBeDisabled();
   });
 
@@ -68,9 +68,12 @@ describe("ResetPasswordPage", () => {
     await fill(user, "Password1");
     await user.click(submitBtn());
     expect(await screen.findByText("Essa senha é muito conhecida. Escolha outra.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Senha")).toHaveFocus();
-    expect(screen.getByLabelText("Senha")).toHaveValue("Password1");
-    expect(screen.getByLabelText("Confirmar senha")).toHaveValue("Password1");
+    expect(screen.getByLabelText("Nova senha")).toHaveFocus();
+    expect(screen.getByText(/vazamentos conhecidos/).closest("li")).toHaveTextContent("não atendida");
+    expect(screen.getByText("As sessões abertas em outros aparelhos serão encerradas.")).toBeInTheDocument();
+    expect(screen.getByText("Depois de criar, você entra direto.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nova senha")).toHaveValue("Password1");
+    expect(screen.getByLabelText("Repita a nova senha")).toHaveValue("Password1");
   });
 
   it("CA7: senha fraca para o servidor mostra o erro com as exigências e o mesmo link serve de novo", async () => {
@@ -79,20 +82,22 @@ describe("ResetPasswordPage", () => {
     await fill(user);
     await user.click(submitBtn());
     expect(await screen.findByText("A senha não atende às exigências abaixo.")).toBeInTheDocument();
-    expect(screen.getByText("A senha precisa ter:")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Regras da senha" })).toBeInTheDocument();
     expect(submitBtn()).toBeEnabled();
   });
 
-  it.each(["vencido", "desconhecido"])("CA8: link %s (410) explica, oferece Pedir novo link e esconde o formulário", async (code) => {
+  it.each(["vencido", "desconhecido"])("CA8: link %s (410) explica, oferece Enviar um link novo e esconde o formulário", async (code) => {
     const user = userEvent.setup();
     open(`/redefinir-senha/${code}`);
     await fill(user);
     await user.click(submitBtn());
-    expect(await screen.findByRole("heading", { name: "Este link não é válido ou já foi usado" })).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("Peça outro link");
-    expect(screen.queryByLabelText("Senha")).toBeNull();
-    await user.click(screen.getByRole("link", { name: "Pedir novo link" }));
-    expect(await screen.findByRole("heading", { name: "Recuperar senha" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Este link venceu" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nova senha")).toBeNull();
+    expect(screen.getByText("O link de nova senha vale 1 hora e só funciona uma vez.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("E-mail"), "a@exemplo.com");
+    await user.click(screen.getByRole("button", { name: "Enviar um link novo" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Confira também a caixa de spam.");
+    expect(screen.getByRole("link", { name: "Voltar para o login" })).toHaveAttribute("href", "/entrar");
   });
 
   it("CA10: durante o envio o botão fica desabilitado, sem envio duplo; rede fora mostra erro e repete com os dados", async () => {
@@ -148,7 +153,7 @@ describe("ResetPasswordPage", () => {
     window.innerWidth = 360;
     const user = userEvent.setup();
     const { container, unmount } = open("/redefinir-senha/valido");
-    await screen.findByLabelText("Senha");
+    await screen.findByLabelText("Nova senha");
     expect(await axeViolations(container)).toEqual([]);
     unmount();
     const second = open("/redefinir-senha/vazada");
@@ -160,7 +165,7 @@ describe("ResetPasswordPage", () => {
     const third = open("/redefinir-senha/vencido");
     await fill(user, "Senha123");
     await user.click(submitBtn());
-    await screen.findByRole("heading", { name: "Este link não é válido ou já foi usado" });
+    await screen.findByRole("heading", { name: "Este link venceu" });
     expect(await axeViolations(third.container)).toEqual([]);
   });
 });

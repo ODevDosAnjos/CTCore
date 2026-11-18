@@ -105,14 +105,14 @@ public class AuthService {
         }
         if (twoFactor.enabled(account.id())) {
             // Password right, but no session yet and no SUCCESS (it would reset the failure streak the code attempts feed).
-            return new LoginOutcome(null, newTicket(account.id()));
+            return new LoginOutcome(null, newTicket(account.id()), twoFactor.backupCodesRemaining(account.id()));
         }
         attempts.record(email, ip, Result.SUCCESS);
-        return new LoginOutcome(sessions.create(account.id(), ip, device), null);
+        return new LoginOutcome(sessions.create(account.id(), ip, device), null, 0);
     }
 
     /** Either a session or, when the account has two-step on, a ticket for the second step (RN-ACE-17). */
-    public record LoginOutcome(SessionService.Created session, String ticket) {}
+    public record LoginOutcome(SessionService.Created session, String ticket, int backupCodesRemaining) {}
 
     private String newTicket(UUID accountId) {
         String ticket = Codes.random();

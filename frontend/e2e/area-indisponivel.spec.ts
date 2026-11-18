@@ -6,7 +6,7 @@ test("@critical área indisponível para o perfil", async ({ page }) => {
   await page.getByLabel("E-mail").fill("varios@exemplo.com");
   await page.getByLabel("Senha").fill("segredo123");
   await page.getByRole("button", { name: "Entrar" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /Academia Beta Gestão \(Professor\)/ }).click();
+  await page.getByRole("button", { name: /Academia Beta Gestão · Professor/ }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
 
   // Navegação sem recarregar: a sessão do mock vive na página.

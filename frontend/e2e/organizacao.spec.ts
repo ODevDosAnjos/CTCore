@@ -38,7 +38,7 @@ test("@critical configurações da organização: Coordenador edita e Administra
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");
   await loginAs(page, "varios@exemplo.com");
-  await page.getByRole("dialog").getByRole("button", { name: /Academia Alfa Gestão \(Administrador\)/ }).click();
+  await page.getByRole("button", { name: /Academia Alfa Gestão · Administrador/ }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/organizacao");
   await expect(page.getByRole("heading", { name: "Organização", level: 1 })).toBeVisible();

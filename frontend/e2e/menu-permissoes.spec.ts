@@ -18,7 +18,7 @@ test("@critical menu da gestão por perfil", async ({ page }) => {
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");
   await loginAs(page, "varios@exemplo.com");
-  await page.getByRole("dialog").getByRole("button", { name: /Academia Beta Gestão \(Professor\)/ }).click();
+  await page.getByRole("button", { name: /Academia Beta Gestão · Professor/ }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Início" })).toBeVisible();
   await expect(nav.getByText("Financeiro")).toHaveCount(0);

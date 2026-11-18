@@ -35,9 +35,9 @@ async function call(page: Page, method: string, path: string, body?: unknown) {
 
 // O simulado guarda o estado na página: a mesma conta tem vínculo de gestão e de portal e troca de um para o outro sem recarregar.
 async function chooseLink(page: Page, name: RegExp) {
-  const modal = page.getByRole("dialog", { name: "Escolher organização e área" });
+  const modal = page.getByRole("heading", { name: "Onde você quer entrar?" });
   if (!(await modal.waitFor({ timeout: 3000 }).then(() => true, () => false))) await page.getByRole("button", { name: "Trocar organização ou área" }).click();
-  await modal.getByRole("button", { name }).click();
+  await page.getByRole("button", { name }).click();
   await expect(modal).toBeHidden();
 }
 
@@ -52,13 +52,13 @@ test.describe("pedidos do portal a 360 px", () => {
       await page.getByLabel("E-mail").fill("varios@exemplo.com");
       await page.getByLabel("Senha").fill("segredo123");
       await page.getByRole("button", { name: "Entrar" }).click();
-      await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
+      await chooseLink(page, /Academia Alfa Gestão · Administrador/);
       await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
       await call(page, "POST", "/classes", { unitId: CENTRO, name: "Jiu-Jitsu Noite", modalityId: JIU_JITSU, ageRangeId: null, schedule: [{ weekday: 2, startsAt: "19:00", endsAt: "20:00" }], capacity: null, headTeacherId: ANA, assistantIds: [], groupLink: null });
       await call(page, "POST", `/students/${ALUNO_ADULTO}/modalities`, { modalities: [{ unitId: CENTRO, modalityId: JIU_JITSU, primaryClassId: TURMA_ADULTO, otherClassIds: [], planId: PLANO_LIVRE, dueDay: 5 }] });
 
       // Aluno: aceita o termo, abre os pedidos e faz dois.
-      await chooseLink(page, /Academia Alfa Portal \(Aluno\)/);
+      await chooseLink(page, /Academia Alfa Portal · Aluno/);
       await expect(page).toHaveURL(/\/portal\/termo$/);
       await page.getByLabel("Li e aceito o termo de matrícula").check();
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
@@ -85,7 +85,7 @@ test.describe("pedidos do portal a 360 px", () => {
       await expect(page.getByText("Judô: para a turma Jiu-Jitsu Noite").or(page.getByText(/para a turma Jiu-Jitsu Noite/))).toBeVisible();
 
       // Gestão: recusa o encerramento com mensagem e aprova a troca de turma.
-      await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
+      await chooseLink(page, /Academia Alfa Gestão · Administrador/);
       await open(page, "/pedidos");
       await expect(page.getByRole("heading", { name: "Pedidos", level: 1 })).toBeVisible();
       await expect(page.getByText("Troca de turma").first()).toBeVisible();

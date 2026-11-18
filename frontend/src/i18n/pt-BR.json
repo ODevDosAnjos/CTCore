@@ -13,6 +13,7 @@
       "pending": "Saindo..."
     },
     "title": "Entrar",
+    "subtitle": "Gestão e portal do aluno, com a mesma conta.",
     "email": "E-mail",
     "password": "Senha",
     "show": "Mostrar",
@@ -21,6 +22,7 @@
     "sending": "Entrando...",
     "forgot": "Esqueci minha senha",
     "createPassword": "Criar nova senha",
+    "lockedNote": "A trava vale só para este e-mail. Quem já está dentro continua normalmente.",
     "errors": {
       "emailRequired": "Informe o seu e-mail.",
       "passwordRequired": "Informe a sua senha.",
@@ -44,15 +46,20 @@
     "classes": "Ver minhas turmas"
   },
   "chooseLink": {
-    "title": "Escolher organização e área",
-    "intro": "Você tem acesso a mais de uma organização ou área. Escolha onde quer trabalhar agora.",
+    "title": "Onde você quer entrar?",
+    "intro": "Olá, {{name}}. Sua conta tem acesso a mais de um lugar. Você pode trocar depois pelo menu da sua foto.",
+    "never": "Nunca entrou",
+    "lastToday": "Último acesso hoje às {{time}}",
+    "lastOn": "Último acesso em {{date}}",
+    "remember": "Lembrar esta escolha neste aparelho",
+    "back": "Voltar",
+    "logout": "Sair",
     "current": "Atual",
     "trigger": "Trocar organização ou área",
     "sending": "Enviando a escolha...",
     "retry": "Tentar de novo",
     "errorFailed": "Não conseguimos salvar a escolha. Tente de novo.",
     "errorGone": "Essa opção não existe mais. Atualizamos a lista; escolha de novo.",
-    "areaOption": "{{area}} ({{role}})",
     "areas": {
       "management": "Gestão",
       "portal": "Portal"
@@ -67,19 +74,22 @@
   },
   "twoFactor": {
     "login": {
-      "title": "Verificação em duas etapas",
-      "intro": "Digite o código de 6 dígitos do seu app autenticador.",
-      "introBackup": "Digite um dos seus códigos de reserva.",
-      "codeLabel": "Código do app",
+      "title": "Duas etapas",
+      "backupTitle": "Código de reserva",
+      "intro": "Digite o código de 6 números do seu app autenticador.",
+      "introBackup": "Use um dos 10 códigos que você guardou ao ativar as duas etapas.",
+      "backupHint": "Cada código vale uma vez.",
+      "backupInfo": "Depois de entrar, gere códigos novos em Minha conta: restam {{n}}.",
+      "backupInfoNoCount": "Depois de entrar, gere códigos novos em Minha conta.",
+      "codeLabel": "Código",
       "backupLabel": "Código de reserva",
       "useBackup": "Usar um código de reserva",
-      "useApp": "Usar o código do app",
+      "useApp": "Voltar para o código do app",
       "submit": "Confirmar",
       "sending": "Confirmando...",
-      "back": "Voltar",
       "invalid": "Código incorreto, já usado ou vencido. Confira e tente de novo.",
       "expired": "A verificação venceu. Entre de novo com o seu e-mail e a sua senha.",
-      "lost": "Perdeu o celular e os códigos de reserva? Abra um chamado com o suporte.",
+      "note": "O código vale 5 minutos depois da senha. Errando 5 vezes, você volta para o login.",
       "required": "Informe o código."
     },
     "setup": {
@@ -137,10 +147,13 @@
     "leaked": "Essa senha é muito conhecida. Escolha outra.",
     "weak": "A senha não atende às exigências abaixo.",
     "rules": {
-      "title": "A senha precisa ter:",
+      "title": "Regras da senha",
+      "classicTitle": "A senha precisa ter:",
       "length": "8 ou mais caracteres",
       "number": "1 número",
       "upper": "1 letra maiúscula",
+      "leak": "Não aparece em vazamentos conhecidos",
+      "failed": "não atendida",
       "met": "atendida",
       "pending": "pendente"
     }
@@ -151,35 +164,49 @@
     "name": "Nome",
     "email": "E-mail",
     "validUntil": "Vale até {{date}}",
+    "existingNote": "O novo vínculo aparece na escolha de organização, ao lado dos que você já tem.",
     "submit": "Criar senha e entrar",
-    "submitExisting": "Aceitar convite e entrar",
+    "submitExisting": "Aceitar e entrar",
     "sending": "Entrando...",
     "currentPassword": "Sua senha atual",
-    "existingNotice": "Você já tem uma conta com este e-mail. O novo acesso entra na conta que você já tem.",
-    "help": "Peça um novo convite a quem convidou você.",
+    "subtitle": "Convite da {{organization}} · vale até {{date}}",
+    "subtitleExisting": "Você já tem conta no ctcore com este e-mail.",
+    "password": "Senha",
+    "confirm": "Repita a senha",
+    "card": {
+      "role": "{{role}} na {{organization}}",
+      "units_one": "Unidade {{list}}",
+      "units_other": "Unidades {{list}}",
+      "invitedBy": "convite de {{name}}",
+      "validUntil": "vale até {{date}}"
+    },
     "invalid": {
-      "title": "Este convite não é válido",
-      "EXPIRED": "Este convite venceu. Os convites valem por 7 dias.",
-      "USED": "Este convite já foi usado. Se foi você, entre com o seu e-mail e a sua senha.",
-      "CANCELED": "Este convite foi cancelado por quem convidou você.",
-      "GENERIC": "O link não leva a um convite que possa ser usado."
+      "title": "Este convite venceu",
+      "text": "Convites valem 7 dias e só podem ser usados uma vez.",
+      "help": "Peça um novo convite para quem te convidou. Se você já criou a sua senha, é só entrar.",
+      "login": "Ir para o login"
     }
   },
   "forgot": {
-    "title": "Recuperar senha",
-    "intro": "Informe o e-mail da sua conta. Se ele tiver uma conta, enviamos um link para criar uma nova senha.",
+    "title": "Esqueci minha senha",
+    "intro": "Enviamos um link para criar uma nova senha.",
+    "sent": "Se este e-mail tiver conta, você vai receber o link em alguns minutos. Confira também a caixa de spam.",
     "submit": "Enviar link",
     "sending": "Enviando...",
-    "back": "Entrar"
+    "back": "Voltar para o login"
   },
   "reset": {
     "title": "Nova senha",
+    "intro": "Depois de criar, você entra direto.",
+    "password": "Nova senha",
+    "confirm": "Repita a nova senha",
+    "sessionsNote": "As sessões abertas em outros aparelhos serão encerradas.",
     "submit": "Criar senha e entrar",
     "sending": "Entrando...",
     "invalid": {
-      "title": "Este link não é válido ou já foi usado",
-      "text": "O link venceu, já foi usado ou foi substituído por um mais novo. Peça outro link para criar a sua senha.",
-      "ask": "Pedir novo link"
+      "title": "Este link venceu",
+      "text": "O link de nova senha vale 1 hora e só funciona uma vez.",
+      "ask": "Enviar um link novo"
     }
   },
   "theme": {
@@ -2521,7 +2548,7 @@
   "authShell": {
     "tagline": "A academia em dia, sem planilha.",
     "text": "Gestão, portal do aluno e cobrança no mesmo lugar.",
-    "help": "Ajuda",
+    "help": "Precisa de ajuda para entrar?",
     "icon": "ct"
   },
   "comingSoon": {

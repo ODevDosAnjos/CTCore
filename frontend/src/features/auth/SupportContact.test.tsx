@@ -23,7 +23,7 @@ describe("SupportContact (CA2)", () => {
 
   it("unidade: telefone, WhatsApp e e-mail", () => {
     render(<SupportContact title="Sua unidade" contact={{ phone: "(92) 3333-4444", whatsapp: "92991234567", email: "u@x.com" }} />);
-    expect(screen.getByRole("heading", { name: "Sua unidade" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Sua unidade" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "(92) 3333-4444" })).toHaveAttribute("href", "tel:9233334444");
     expect(screen.getByRole("link", { name: "u@x.com" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /WhatsApp/ })).toBeInTheDocument();

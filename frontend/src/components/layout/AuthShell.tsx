@@ -25,12 +25,12 @@ export function AuthShell({
   return (
     <div className="min-h-screen md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <aside className="hidden flex-col justify-between gap-10 bg-sidebar p-12 text-sidebar-foreground md:flex" data-testid="auth-brand">
-        <Brand className="text-3xl" />
+        <Brand className="text-2xl" />
         <div className="space-y-3">
-          <p className="max-w-sm font-heading text-5xl font-semibold uppercase leading-tight">{t("authShell.tagline")}</p>
+          <p className="max-w-sm font-heading text-[56px] font-semibold uppercase leading-tight">{t("authShell.tagline")}</p>
           <p className="max-w-sm text-sm">{t("authShell.text")}</p>
         </div>
-        <SupportContact contact={contact} title={t("authShell.help")} />
+        <SupportContact contact={contact} title={t("authShell.help")} onDark />
       </aside>
       <div className="flex min-h-screen flex-col">
         <header className="px-4 py-4 md:hidden">
@@ -57,7 +57,7 @@ export function AuthShell({
 function Brand({ className }: { className?: string }) {
   const { t } = useTranslation();
   return (
-    <span className={`flex items-center gap-2 font-heading font-semibold uppercase tracking-wide ${className ?? ""}`}>
+    <span className={`flex items-center gap-2 font-heading font-semibold ${className ?? ""}`}>
       <span aria-hidden="true" className="inline-flex size-9 items-center justify-center rounded-lg bg-brand text-lg normal-case text-brand-foreground">
         {t("authShell.icon")}
       </span>

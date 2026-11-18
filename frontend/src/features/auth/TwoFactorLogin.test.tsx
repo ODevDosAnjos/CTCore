@@ -37,7 +37,7 @@ async function toSecondStep(user: User, email = "duas@exemplo.com") {
   await user.type(await screen.findByLabelText("E-mail"), email);
   await user.type(screen.getByLabelText("Senha"), "segredo123");
   await user.click(screen.getByRole("button", { name: "Entrar" }));
-  return screen.findByLabelText("Código do app");
+  return screen.findByLabelText("Código");
 }
 
 describe("login com duas etapas (CA21)", () => {
@@ -45,10 +45,10 @@ describe("login com duas etapas (CA21)", () => {
     const user = userEvent.setup();
     open();
     const code = await toSecondStep(user);
-    expect(screen.getByRole("heading", { name: "Verificação em duas etapas" })).toBeInTheDocument();
-    expect(screen.getByText(/Abra um chamado com o suporte/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Duas etapas" })).toBeInTheDocument();
+    expect(screen.getByText(/O código vale 5 minutos depois da senha/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Voltar" })).toBeNull();
     await user.type(code, "123456");
-    await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeInTheDocument();
   });
 
@@ -59,8 +59,8 @@ describe("login com duas etapas (CA21)", () => {
     await user.type(code, "000000");
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Código incorreto, já usado ou vencido");
-    expect(screen.getByLabelText("Código do app")).toHaveValue("000000");
-    expect(screen.getByLabelText("Código do app")).toHaveFocus();
+    expect(screen.getByLabelText("Código")).toHaveValue("000000");
+    expect(screen.getByLabelText("Código")).toHaveFocus();
   });
 
   it("código vazio não chama a API", async () => {
@@ -71,17 +71,26 @@ describe("login com duas etapas (CA21)", () => {
     expect(await screen.findByText("Informe o código.")).toBeInTheDocument();
   });
 
-  it("usa um código de reserva e volta ao e-mail e senha", async () => {
+  it("CA3: 6 dígitos enviam sozinhos, sem apertar Confirmar", async () => {
+    const user = userEvent.setup();
+    open();
+    const code = await toSecondStep(user);
+    await user.type(code, "123456");
+    expect(await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeInTheDocument();
+  });
+
+  it("CA4: tela do código de reserva com dica, quantos restam e volta ao código do app", async () => {
     const user = userEvent.setup();
     open();
     await toSecondStep(user);
     await user.click(screen.getByRole("button", { name: "Usar um código de reserva" }));
-    const backup = screen.getByLabelText("Código de reserva");
-    await user.type(backup, "RESERVA001");
-    await user.click(screen.getByRole("button", { name: "Usar o código do app" }));
-    expect(screen.getByLabelText("Código do app")).toHaveValue("");
-    await user.click(screen.getByRole("button", { name: "Voltar" }));
-    expect(await screen.findByLabelText("Senha")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Código de reserva" })).toBeInTheDocument();
+    expect(screen.getByText("Use um dos 10 códigos que você guardou ao ativar as duas etapas.")).toBeInTheDocument();
+    expect(screen.getByText("Cada código vale uma vez.")).toBeInTheDocument();
+    expect(screen.getByText("Depois de entrar, gere códigos novos em Minha conta: restam 8.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Código de reserva"), "RESERVA001");
+    await user.click(screen.getByRole("button", { name: "Voltar para o código do app" }));
+    expect(screen.getByLabelText("Código")).toHaveValue("");
   });
 
   it("código de reserva válido entra", async () => {
@@ -99,7 +108,6 @@ describe("login com duas etapas (CA21)", () => {
     open();
     const code = await toSecondStep(user, "vencida@exemplo.com");
     await user.type(code, "123456");
-    await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("A verificação venceu");
     expect(screen.getByLabelText("Senha")).toBeInTheDocument();
   });

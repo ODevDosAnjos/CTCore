@@ -35,7 +35,7 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");
   await loginAs(page, "varios@exemplo.com");
-  await page.getByRole("dialog").getByRole("button", { name: /Academia Beta Gestão \(Professor\)/ }).click();
+  await page.getByRole("button", { name: /Academia Beta Gestão · Professor/ }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/unidade");
   await expect(page.getByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeVisible();

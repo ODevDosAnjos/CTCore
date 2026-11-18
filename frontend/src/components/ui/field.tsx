@@ -17,6 +17,7 @@ export function Field({
   hint,
   error,
   alertError,
+  hideLabel,
   className,
   children,
 }: {
@@ -28,6 +29,8 @@ export function Field({
   error?: string;
   /** Anuncia o erro na hora (role alert). */
   alertError?: boolean;
+  /** Rótulo só para leitor de tela (o canvas não mostra rótulo, como nas caixas de código). */
+  hideLabel?: boolean;
   className?: string;
   children: (control: ControlProps) => React.ReactNode;
 }) {
@@ -36,7 +39,7 @@ export function Field({
   const describedBy = [hint && `${id}-dica`, error && `${id}-erro`].filter(Boolean).join(" ");
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={id} className="text-sm font-medium">
+      <label htmlFor={id} className={cn("text-sm font-medium", hideLabel && "sr-only")}>
         {label}
         {required && <span aria-hidden> *</span>}
       </label>

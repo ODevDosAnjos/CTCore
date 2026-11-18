@@ -14,23 +14,24 @@ export const platformContact = (): Contact => ({
   whatsapp: (import.meta.env.VITE_SUPPORT_WHATSAPP as string | undefined) || undefined,
 });
 
-/** Bloco de contato da plataforma ou da unidade (D3). */
-export function SupportContact({ contact, title }: { contact: Contact; title?: string }) {
+/** Contato da plataforma ou da unidade numa linha só: "Precisa de ajuda? e-mail · WhatsApp" (canvas). */
+export function SupportContact({ contact, title, onDark = false }: { contact: Contact; title?: string; onDark?: boolean }) {
   const { t } = useTranslation();
+  const label = title ?? t("auth.support.title");
   return (
-    <section aria-label={title ?? t("auth.support.title")} className="space-y-2 text-sm">
-      <h2 className="font-medium">{title ?? t("auth.support.title")}</h2>
+    <section aria-label={label} className={`flex flex-wrap items-center gap-x-2 text-sm ${onDark ? "text-sidebar-foreground" : "text-muted-foreground"}`}>
+      <span>{label}</span>
       {contact.phone && (
-        <p>
-          {t("auth.support.phone")}: <a className="underline" href={`tel:${contact.phone.replace(/\D/g, "")}`}>{contact.phone}</a>
-        </p>
+        <a className="underline" href={`tel:${contact.phone.replace(/\D/g, "")}`}>
+          {contact.phone}
+        </a>
       )}
       {contact.email && (
-        <p>
-          {t("auth.support.email")}: <a className="underline" href={`mailto:${contact.email}`}>{contact.email}</a>
-        </p>
+        <a className="underline" href={`mailto:${contact.email}`}>
+          {contact.email}
+        </a>
       )}
-      <WhatsAppButton phone={contact.whatsapp} />
+      <WhatsAppButton phone={contact.whatsapp} variant="ghost" className="h-auto min-h-0 px-1 underline" />
     </section>
   );
 }
