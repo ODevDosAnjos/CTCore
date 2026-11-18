@@ -8,6 +8,8 @@ export interface Modality {
   active: boolean;
   canManage: boolean;
   graduationEnabled: boolean;
+  levelCount: number;
+  offeredUnits: string[];
 }
 export interface ModalityRequest {
   id: string;
@@ -20,7 +22,6 @@ export interface ModalityRequest {
 type Loaded = {
   tick: number;
   items?: Modality[];
-  requests?: ModalityRequest[];
   forbidden?: boolean;
 };
 
@@ -31,11 +32,8 @@ export function useModalities() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([
-      api<Modality[]>("/modalities"),
-      api<ModalityRequest[]>("/modalities/requests"),
-    ]).then(
-      ([items, requests]) => alive && setDone({ tick, items, requests }),
+    api<Modality[]>("/modalities").then(
+      (items) => alive && setDone({ tick, items }),
       (e) =>
         alive &&
         setDone({ tick, forbidden: e instanceof ApiError && e.status === 403 }),
@@ -57,7 +55,6 @@ export function useModalities() {
   return {
     status,
     items: current?.items,
-    requests: current?.requests ?? [],
     retry: () => setTick((n) => n + 1),
     // Erros sobem (ApiError) para a tela explicar; a lista passa a mostrar a situação nova.
     setActive: async (id: string, active: boolean) => {
@@ -72,25 +69,23 @@ export function useModalities() {
       );
     },
     // Depois de salvar a graduação, a linha passa a refletir o interruptor sem recarregar a lista.
-    setGraduationEnabled: (id: string, graduationEnabled: boolean) =>
+    setGraduationEnabled: (id: string, graduationEnabled: boolean, levelCount: number) =>
       setDone((d) =>
         d?.items
           ? {
               ...d,
               items: d.items.map((m) =>
-                m.id === id ? { ...m, graduationEnabled } : m,
+                m.id === id ? { ...m, graduationEnabled, levelCount } : m,
               ),
             }
           : d,
       ),
     sendRequest: async (name: string, note: string) => {
-      const created = await api<ModalityRequest>("/modalities/requests", {
+      // RN-MOD-04: o pedido só é enviado; a plataforma o lê no painel dela (a tela não lista pedidos).
+      await api<ModalityRequest>("/modalities/requests", {
         method: "POST",
         body: { name, note: note || null },
       });
-      setDone((d) =>
-        d ? { ...d, requests: [created, ...(d.requests ?? [])] } : d,
-      );
     },
   } as const;
 }

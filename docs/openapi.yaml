@@ -620,7 +620,7 @@ paths:
         nova auditoria. Sem `If-Match`: cada marcação é independente e idempotente. Grava `unit.modality.offered` ou
         `unit.modality.withdrawn` na auditoria. Corpo sem `offered`, 400. Unidade de outra organização ou inexistente, 404; Professor,
         portal e Administrador de outra unidade, 403. Desmarcar com turma ativa dessa modalidade na unidade responde 409
-        `UNIT_MODALITY_IN_USE`, `fields` traz um item `class` por turma que impede (o nome em `message`), em ordem de nome, e nada muda.
+        `UNIT_MODALITY_IN_USE`, `fields` traz, por turma que impede e em ordem de nome, um item `class` (o nome em `message`) seguido de `classStudents` (alunos ativos da turma, em texto numérico), e nada muda.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
         - { name: unitId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -661,7 +661,7 @@ paths:
       summary: Ativa ou desativa a modalidade para a organização (RN-MOD-02, RN-MOD-06). Só o Coordenador.
       description: |
         Repetir o mesmo valor responde 200 sem nova auditoria. Desativar com turma ativa ou aluno com a modalidade ativa responde
-        409 `MODALITY_IN_USE` e `fields` traz `activeClasses` e `activeStudents` (valores em texto); nada muda. Grava
+        409 `MODALITY_IN_USE` e `fields` traz `activeClasses` e `activeStudents` (valores em texto) e um item `class` por turma ativa, em ordem de nome, com `message` "<turma> (<unidade>)"; nada muda. Grava
         `modality.activated` ou `modality.deactivated` na auditoria. Id fora do catálogo responde 404; corpo sem `active`, 400.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
@@ -4104,22 +4104,25 @@ components:
         canDeactivate: { type: boolean }
     Modality:
       type: object
-      required: [id, name, active, canManage, graduationEnabled]
+      required: [id, name, active, canManage, graduationEnabled, levelCount, offeredUnits]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         active: { type: boolean }
         canManage: { type: boolean }
         graduationEnabled: { type: boolean }
+        levelCount: { type: integer, minimum: 0, description: Níveis de graduação da organização na modalidade. }
+        offeredUnits: { type: array, items: { type: string }, description: "Nomes das unidades ativas que oferecem a modalidade, só as do alcance do perfil (o Coordenador vê todas), em ordem de nome; vazio se inativa." }
     UnitModality:
       type: object
-      required: [id, name, offered, classCount, planCount]
+      required: [id, name, offered, classCount, planCount, graduationEnabled]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         offered: { type: boolean }
         classCount: { type: integer, minimum: 0, description: Turmas ativas da modalidade na unidade. }
         planCount: { type: integer, minimum: 0, description: Planos ativos da modalidade na unidade. }
+        graduationEnabled: { type: boolean }
     UnitModalities:
       type: object
       required: [canManage, items]

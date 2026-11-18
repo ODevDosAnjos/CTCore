@@ -8,6 +8,7 @@ export interface UnitModality {
   offered: boolean;
   classCount: number;
   planCount: number;
+  graduationEnabled: boolean;
 }
 interface Listing {
   canManage: boolean;

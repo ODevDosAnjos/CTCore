@@ -29,6 +29,7 @@ class ModalityIT extends OrganizationBase {
     @AfterEach
     void cleanModalityTables() {
         adminJdbc().update("delete from modality_request");
+        adminJdbc().update("delete from unit_modality");
         adminJdbc().update("delete from graduation_level");
         adminJdbc().update("delete from organization_modality");
     }
@@ -97,6 +98,59 @@ class ModalityIT extends OrganizationBase {
         assertThat(audits(t, "modality.deactivated")).isEqualTo(1);
         assertThat(send(activate(UUID.randomUUID(), "{\"active\":true}"), coordinator).getStatus()).isEqualTo(404);
         assertThat(send(activate(id("Judô"), "{}"), coordinator).getStatus()).isEqualTo(400);
+    }
+
+    private JsonNode itemOf(JsonNode list, UUID id) {
+        for (JsonNode n : list) if (n.get("id").asText().equals(id.toString())) return n;
+        throw new AssertionError("modalidade fora da lista: " + id);
+    }
+
+    @Test
+    @DisplayName("CA10, D1, D3: a lista traz levelCount e offeredUnits (unidades ativas que oferecem, em ordem de nome); o Administrador só as do alcance dele; outra organização não aparece")
+    void levelCountAndOfferedUnits() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        var coordinator = member(t, Role.COORDINATOR);
+        UUID judo = id("Judô");
+        send(activate(judo, "{\"active\":true}"), coordinator);
+        send(activate(judo, "{\"active\":true}"), member(other, Role.COORDINATOR));
+        UUID second = UUID.randomUUID();
+        adminJdbc().update("insert into unit (id, organization_id, name, short_name) values (?, ?, 'Barra', ?)", second, t.orgId(), "barra-" + second);
+        for (UUID unit : new UUID[] {t.unitId(), second}) {
+            adminJdbc().update("insert into unit_modality (organization_id, unit_id, modality_id, offered) values (?, ?, ?, true)", t.orgId(), unit, judo);
+        }
+        adminJdbc().update("insert into unit_modality (organization_id, unit_id, modality_id, offered) values (?, ?, ?, true)", other.orgId(), other.unitId(), judo);
+        int levels = adminJdbc().queryForObject("select count(*) from graduation_level where organization_id = ? and modality_id = ?", Integer.class, t.orgId(), judo);
+
+        var mine = itemOf(body(send(list(), coordinator)), judo);
+        assertThat(mine.get("levelCount").asInt()).isEqualTo(levels);
+        assertThat(json.convertValue(mine.get("offeredUnits"), List.class)).containsExactly("Barra", "Unit");
+        var scoped = itemOf(body(send(list(), member(t, Role.ADMINISTRATOR))), judo);
+        assertThat(json.convertValue(scoped.get("offeredUnits"), List.class)).containsExactly("Unit");
+        var inactive = itemOf(body(send(list(), coordinator)), id("Boxe"));
+        assertThat(inactive.get("offeredUnits")).isEmpty();
+        assertThat(inactive.get("levelCount").asInt()).isZero();
+        assertThat(itemOf(body(send(list(), member(other, Role.COORDINATOR))), judo).get("offeredUnits")).hasSize(1);
+
+        adminJdbc().update("update unit set active = false where id = ?", second);
+        assertThat(json.convertValue(itemOf(body(send(list(), coordinator)), judo).get("offeredUnits"), List.class)).containsExactly("Unit");
+        assertThat(send(list(), member(t, Role.TEACHER)).getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    @DisplayName("CA11, D2: a recusa de desativar traz, além das contagens, um item class por turma ativa")
+    void inUseListsClasses() throws Exception {
+        var t = tenant();
+        var coordinator = member(t, Role.COORDINATOR);
+        UUID judo = id("Judô");
+        send(activate(judo, "{\"active\":true}"), coordinator);
+        when(usage.activeClasses(judo)).thenReturn(2);
+        when(usage.activeClassNames(judo)).thenReturn(List.of("Judô Adulto (Unit)", "Judô Kids (Barra)"));
+        var refused = body(send(activate(judo, "{\"active\":false}"), coordinator));
+        assertThat(refused.get("code").asText()).isEqualTo("MODALITY_IN_USE");
+        List<String> fields = new java.util.ArrayList<>();
+        refused.get("fields").forEach(f -> fields.add(f.get("field").asText() + "=" + f.get("message").asText()));
+        assertThat(fields).containsExactly("activeClasses=2", "activeStudents=0", "class=Judô Adulto (Unit)", "class=Judô Kids (Barra)");
     }
 
     @Test

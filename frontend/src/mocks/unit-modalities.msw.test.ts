@@ -69,7 +69,7 @@ describe("modalidades da unidade x OpenAPI (RF-MOD-03, CA9)", () => {
     expect(refused.status).toBe(409);
     const body = await refused.json();
     expect(body.code).toBe("UNIT_MODALITY_IN_USE");
-    expect(body.fields).toEqual([{ field: "class", message: "Judô Infantil" }]);
+    expect(body.fields).toEqual([{ field: "class", message: "Judô Infantil" }, { field: "classStudents", message: "22" }]);
     expect((await (await list(FIRST)).json()).items.find((m: { id: string }) => m.id === judo).offered).toBe(true);
     expect((await offer(SECOND, boxe, { offered: false })).status).toBe(200);
     expect(declared("/units/{unitId}/modalities/{modalityId}", "put")).toContain("409");

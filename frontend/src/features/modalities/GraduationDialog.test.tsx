@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -72,6 +72,8 @@ function setup(
           active: true,
           canManage: manage,
           graduationEnabled: false,
+          levelCount: 3,
+          offeredUnits: [],
         },
         {
           id: "m2",
@@ -79,10 +81,11 @@ function setup(
           active: false,
           canManage: manage,
           graduationEnabled: false,
+          levelCount: 0,
+          offeredUnits: [],
         },
       ]),
     ),
-    http.get("/api/v1/modalities/requests", () => HttpResponse.json([])),
     http.get(
       "/api/v1/modalities/:id/graduation",
       over.get ?? (() => HttpResponse.json(graduation)),
@@ -108,7 +111,7 @@ function setup(
   );
 }
 
-async function open(name = /Graduação\s*Jiu-Jitsu|Ver graduação\s*Jiu-Jitsu/) {
+async function open(name = /^Graduação\s*Jiu-Jitsu$|^Jiu-Jitsu$/) {
   const user = userEvent.setup();
   await screen.findByRole("heading", { name: "Modalidades", level: 1 });
   await user.click(await screen.findByRole("button", { name }));
@@ -191,11 +194,11 @@ describe("GraduationDialog", () => {
       within(dialog).getByRole("button", { name: "Adicionar nível" }),
     );
     await user.type(within(dialog).getByLabelText("Nome do nível 3"), "Marrom");
-    await user.click(within(dialog).getByRole("switch"));
+    await user.click(within(dialog).getByRole("switch", { name: "Graduação ligada" }));
     await user.click(
-      within(dialog).getByLabelText(
-        "Exigir comprovante da graduação de origem",
-      ),
+      within(dialog).getByRole("switch", {
+        name: "Exigir comprovante da graduação de origem",
+      }),
     );
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -256,12 +259,69 @@ describe("GraduationDialog", () => {
         }),
     });
     const { user, dialog } = await open();
-    await user.click(await within(dialog).findByRole("switch"));
+    await user.click(await within(dialog).findByRole("switch", { name: "Graduação ligada" }));
     await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
     expect(within(dialog).getByRole("alert")).toHaveTextContent(
       "ao menos um nível",
     );
     expect(puts).toEqual([]);
+  });
+
+  it("CA6: título em caixa alta por CSS, interruptores com descrição, texto do padrão só no Jiu-Jitsu, tabela com alça e 'Voltar ao padrão' em breve", async () => {
+    setup("COORDINATOR");
+    const { dialog } = await open();
+    await within(dialog).findByLabelText("Nome do nível 1");
+    expect(within(dialog).getByRole("heading", { name: "Graduação · Jiu-Jitsu" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Desligada, a modalidade não registra faixa")).toBeInTheDocument();
+    expect(within(dialog).getByText("Começa com o padrão do catálogo (IBJJF completo). Arraste para mudar a ordem.")).toBeInTheDocument();
+    expect(within(dialog).getByText("Na matrícula, quem chega de outra academia anexa o certificado")).toBeInTheDocument();
+    const table = within(dialog).getByRole("table", { name: "Níveis da graduação" });
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Ordem", "Nível e cor", "Grau máximo", "Idades", "Ações"]);
+    expect(within(dialog).getAllByTestId("graduation-handle")).toHaveLength(3);
+    expect(within(dialog).getByRole("button", { name: "Adicionar nível" })).toBeInTheDocument();
+    const back = within(dialog).getByRole("button", { name: "Voltar ao padrão do catálogo" });
+    expect(back).toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).getByText("Em breve")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+  });
+
+  it("CA6: arrastar o nível 3 para o 1 muda a ordem gravada", async () => {
+    setup("COORDINATOR");
+    const { user, dialog } = await open();
+    await within(dialog).findByLabelText("Nome do nível 1");
+    const handles = within(dialog).getAllByTestId("graduation-handle");
+    const rows = within(dialog).getAllByTestId("graduation-row");
+    fireEvent.dragStart(handles[2]);
+    fireEvent.dragOver(rows[0]);
+    fireEvent.drop(rows[0]);
+    expect(levelNames(dialog)).toEqual(["Roxa", "Branca", "Azul"]);
+    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect((puts[0] as { levels: { id: string }[] }).levels.map((l) => l.id)).toEqual(["n3", "n1", "n2"]);
+  });
+
+  it("CA7: idade mínima maior que a máxima volta do servidor no campo da idade", async () => {
+    setup("COORDINATOR", {
+      put: () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "levels[0].minAge", message: "mínima maior que a máxima" }] }, { status: 400 }),
+    });
+    const { user, dialog } = await open();
+    await within(dialog).findByLabelText("Nome do nível 1");
+    await user.click(within(dialog).getByRole("button", { name: "Salvar" }));
+    expect(await within(dialog).findByText("mínima maior que a máxima")).toBeInTheDocument();
+  });
+
+  it("CA6: a modalidade sem padrão não mostra o texto do padrão", async () => {
+    setup("COORDINATOR", {
+      get: () => HttpResponse.json({ enabled: true, requireOriginProof: false, canManage: true, levels: [level("n1", "Única")] }),
+    });
+    server.use(
+      http.get("/api/v1/modalities", () =>
+        HttpResponse.json([{ id: "m1", name: "Judô", active: true, canManage: true, graduationEnabled: true, levelCount: 1, offeredUnits: [] }]),
+      ),
+    );
+    const { dialog } = await open(/^Graduação\s*Judô$/);
+    await within(dialog).findByLabelText("Nome do nível 1");
+    expect(within(dialog).queryByText(/padrão do catálogo \(IBJJF/)).toBeNull();
   });
 
   it.each([

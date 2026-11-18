@@ -1982,6 +1982,39 @@
   },
   "modalities": {
     "title": "Modalidades",
+    "subtitle": "O Coordenador ativa para a organização; cada unidade marca quais oferece",
+    "subtitleReadOnly": "Catálogo da organização · só consulta para o Administrador",
+    "readOnlyBanner": "Quem ativa e desativa modalidades e edita a graduação é o Coordenador. Você marca as modalidades oferecidas na sua unidade em Configurações › Unidade.",
+    "note": "Variações como No-Gi, Kids ou Competição ficam no nome da turma. Desativar exige que não haja turma ativa nem aluno com a modalidade ativa.",
+    "catalog": "Catálogo ctcore",
+    "graduationOn": "Graduação ligada",
+    "graduationOff": "Graduação desligada",
+    "levels_one": "{{count}} nível",
+    "levels_other": "{{count}} níveis",
+    "activated": "{{name}} ativada.",
+    "deactivated": "{{name}} desativada.",
+    "tableLabel": "Modalidades da organização",
+    "table": {
+      "modality": "Modalidade",
+      "graduation": "Graduação",
+      "units": "Unidades que oferecem",
+      "status": "Situação",
+      "on": "Ligada",
+      "off": "Desligada",
+      "none": "—",
+      "active": "Ativa",
+      "available": "Disponível"
+    },
+    "deactivateDialog": {
+      "title": "Desativar modalidade",
+      "head": "Não dá para desativar o {{name}} agora",
+      "classes_one": "{{count}} turma ativa: {{list}}",
+      "classes_other": "{{count}} turmas ativas: {{list}}",
+      "students_one": "{{count}} aluno com {{name}} ativo",
+      "students_other": "{{count}} alunos com {{name}} ativo",
+      "guidance": "Desative as turmas e encerre ou transfira as matrículas de {{name}} antes. As marcações das unidades ficam guardadas e voltam se a modalidade for reativada.",
+      "understood": "Entendi"
+    },
     "mine": "Suas modalidades",
     "mineEmpty": "Nenhuma modalidade ativa ainda. Ative uma da lista abaixo para começar.",
     "available": "Disponíveis para ativar",
@@ -1991,12 +2024,22 @@
     "activate": "Ativar",
     "deactivate": "Desativar",
     "notFound": "Não achei minha modalidade",
-    "inUse": "Não é possível desativar {{name}}: há {{classes}} turma(s) ativa(s) e {{students}} aluno(s) ativo(s) nela.",
     "changeError": "Não foi possível alterar {{name}}. Nada foi alterado. Tente de novo.",
     "graduation": {
       "button": "Graduação",
       "view": "Ver graduação",
       "title": "Sistema de graduação",
+      "dialogTitle": "Graduação · {{name}}",
+      "enabledHelp": "Desligada, a modalidade não registra faixa",
+      "defaultNote": "Começa com o padrão do catálogo (IBJJF completo). Arraste para mudar a ordem.",
+      "tableLabel": "Níveis da graduação",
+      "levelHeader": "Nível e cor",
+      "maxDegreeHeader": "Grau máximo",
+      "agesHeader": "Idades",
+      "order": "Ordem",
+      "actions": "Ações",
+      "requireProofHelp": "Na matrícula, quem chega de outra academia anexa o certificado",
+      "backToDefault": "Voltar ao padrão do catálogo",
       "saved": "Sistema de graduação salvo",
       "enabled": "Graduação ligada",
       "requireProof": "Exigir comprovante da graduação de origem",
@@ -2023,15 +2066,6 @@
       "nameInvalid": "Informe o nome com 1 a 40 caracteres.",
       "needLevel": "Inclua ao menos um nível para ligar a graduação.",
       "saveError": "Não foi possível salvar o sistema de graduação. Nada foi alterado. Tente de novo."
-    },
-    "requests": {
-      "title": "Pedidos enviados",
-      "empty": "Você ainda não enviou pedidos.",
-      "status": {
-        "OPEN": "Em análise",
-        "ADDED": "Incluída no catálogo",
-        "DISMISSED": "Não aceito"
-      }
     },
     "dialog": {
       "title": "Não achei minha modalidade",
@@ -2164,18 +2198,19 @@
     }
   },
   "unitModalities": {
-    "title": "Modalidades oferecidas",
-    "note": "Só aparecem as modalidades ativas na organização",
-    "classOne": "{{count}} turma",
-    "classMany": "{{count}} turmas",
-    "planOne": "{{count}} plano",
-    "planMany": "{{count}} planos",
+    "title": "Modalidades oferecidas na {{unit}}",
+    "graduationOn": "Graduação ligada",
+    "graduationOff": "Graduação desligada",
+    "studentOne": "{{count}} aluno",
+    "studentMany": "{{count}} alunos",
     "emptyTitle": "Nenhuma modalidade ativa",
     "emptyText": "Ative modalidades na organização para escolher quais esta unidade oferece.",
     "emptyLink": "Ir para Configurações › Modalidades",
     "readOnly": "Você pode ver as modalidades, mas não alterá-las.",
     "changeError": "Não foi possível alterar {{name}}. Nada foi alterado. Tente de novo.",
-    "inUse": "A unidade não pode deixar de oferecer {{name}} enquanto houver turmas ativas dela. Nada foi alterado. Desative estas turmas antes:"
+    "inUseTitle": "{{name}} não pode sair da {{unit}}",
+    "inUseClass": "Turma ativa: {{name}} ({{students}})",
+    "inUseGuidance": "Desative a turma em Operação › Turmas e tente de novo."
   },
   "unitSettings": {
     "generalTitle": "Configurações da unidade",

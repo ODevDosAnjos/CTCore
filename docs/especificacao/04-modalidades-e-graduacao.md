@@ -24,7 +24,7 @@ Modalidades vêm de um catálogo da plataforma. A organização ativa as que ofe
 - **RN-MOD-03.** Modalidade não ativa não aparece em turmas, planos, aula experimental, diretório nem portal. O aluno vê só as modalidades em que está matriculado.
 - **RN-MOD-04.** "Não achei minha modalidade" envia um pedido ao painel da plataforma. A equipe inclui a modalidade no catálogo para todos.
 - **RN-MOD-05.** Variações (No-Gi, Kids, Competição) ficam no nome da turma e na faixa etária. Não existe cadastro extra.
-- **RN-MOD-06.** Desativar uma modalidade exige que não haja turma ativa nem aluno com ela ativa na organização; havendo, a desativação é recusada e a tela mostra o que impede, sem "desativar assim mesmo". Desmarcar a modalidade numa unidade exige o mesmo recorte: não pode haver turma ativa dessa modalidade naquela unidade; havendo, a recusa lista as turmas que impedem. Aluno só impede a desativação na organização.
+- **RN-MOD-06.** Desativar uma modalidade exige que não haja turma ativa nem aluno com ela ativa na organização; havendo, a desativação é recusada e a tela mostra o que impede, sem "desativar assim mesmo". Desmarcar a modalidade numa unidade exige o mesmo recorte: não pode haver turma ativa dessa modalidade naquela unidade; havendo, a recusa lista as turmas que impedem e o número de alunos de cada uma. A recusa da desativação na organização lista as turmas ativas por unidade, "turma (unidade)". Aluno só impede a desativação na organização.
 
 ### Faixas etárias
 
@@ -48,9 +48,9 @@ Modalidades vêm de um catálogo da plataforma. A organização ativa as que ofe
 
 ## Requisitos
 
-- **RF-MOD-01.** Configurações › Modalidades: blocos "Suas modalidades" e "Disponíveis para ativar", botão "Não achei minha modalidade".
+- **RF-MOD-01.** Configurações › Modalidades: o Coordenador vê "Suas modalidades" em cartões (nome, "Graduação ligada · N níveis · unidades que oferecem", "Graduação" e "Desativar") e "Disponíveis para ativar" com "+ Ativar", botão "Não achei minha modalidade" e a nota sobre variações no nome da turma; o pedido é enviado e confirmado por aviso, sem lista de pedidos na tela. O Administrador vê só uma tabela de consulta (modalidade, graduação, unidades do alcance dele que oferecem, situação), sem botões.
 - **RF-MOD-02.** Por modalidade ativa: graduação ligada ou desligada, editor do sistema de graduação (níveis em ordem, cor, grau máximo, idades), exigir comprovante de origem.
-- **RF-MOD-03.** Configurações › Unidade › Modalidades oferecidas. Desmarcar uma modalidade com turma ativa na unidade é recusado, e a tela mostra as turmas que impedem (RN-MOD-06).
+- **RF-MOD-03.** Configurações › Unidade › Modalidades oferecidas é o primeiro bloco da aba Dados, com caixa de marcar por modalidade e o estado da graduação. Desmarcar uma modalidade com turma ativa na unidade é recusado, e a tela mostra cada turma que impede com o número de alunos ativos (RN-MOD-06).
 - **RF-MOD-04.** Configurações › Faixas etárias (ver RN-MOD-07).
 - **RF-GRA-01.** Operação › Graduações: lista com aluno, modalidade, turma, graduação anterior, nova, data e quem registrou; resumo do período (graduações, novos graus, trocas de faixa); filtros por modalidade, turma, nível e período.
 - **RF-GRA-02.** "Registrar graduação": aluno (ou já preenchido a partir da ficha), modalidade, atual e nova lado a lado, data, decidido por, observação, avisar o aluno.

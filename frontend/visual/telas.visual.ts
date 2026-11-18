@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica") {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa") {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -162,7 +162,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
           method: "get",
           path: `/units/${sul.id}/modalities`,
           status: 200,
-          body: { canManage: true, items: [{ ...jiu, offered: true, classCount: 5, planCount: 4 }, { ...muay, offered: true, classCount: 1, planCount: 1 }] },
+          body: { canManage: true, items: [{ ...jiu, offered: true, classCount: 5, planCount: 4, graduationEnabled: true }, { ...muay, offered: true, classCount: 1, planCount: 1, graduationEnabled: true }] },
         });
       }, unidadeCanvas);
     }
@@ -179,6 +179,60 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         override({ method: "get", path: "/units", status: 200, body: cenario === "unica" ? [unica] : [tijuca, barra, meier] });
         override({ method: "get", path: `/units/${barra.id}/deactivation-check`, status: 200, body: { activeStudents: 83, activeClasses: 5, pendingProofs: 0, lastActiveUnit: false, canDeactivate: false } });
       }, unidadesCanvas);
+    }
+    if (modalidadesCanvas) {
+      // #485: Jiu-Jitsu (19 níveis) e Muay Thai (8) ativas em Tijuca e Barra, as outras do catálogo disponíveis; "desativar" recusa o Muay Thai (3 turmas e 63 alunos); "recusa" recusa desmarcar o Muay Thai na Tijuca (a turma da noite, 26 alunos)
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async (cenario) => {
+        type Item = { id: string; name: string };
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const catalogo = (await (await fetch("/api/v1/modalities")).json()) as Item[];
+        const jiu = catalogo.find((m) => m.name === "Jiu-Jitsu") ?? catalogo[0];
+        const muay = catalogo.find((m) => m.name === "Muay Thai") ?? catalogo[1];
+        const ativa = (m: Item, niveis: number, canManage: boolean) => ({ ...m, active: true, canManage, graduationEnabled: true, levelCount: niveis, offeredUnits: ["Tijuca", "Barra"] });
+        const todas = (canManage: boolean) => catalogo.map((m) => (m.id === jiu.id ? ativa(m, 19, canManage) : m.id === muay.id ? ativa(m, 8, canManage) : { ...m, active: false, canManage, graduationEnabled: false, levelCount: 0, offeredUnits: [] }));
+        const admin = cenario === "administrador";
+        if (cenario !== "recusa") override({ method: "get", path: "/modalities", status: 200, body: admin ? todas(false).filter((m) => m.active) : todas(true) });
+        const nivel = (id: string, name: string, color: string, minAge: number | null, maxAge: number | null, maxDegree = 4, kids = false) => ({ id, name, color, secondaryColor: null, maxDegree, minAge, maxAge, kids });
+        override({
+          method: "get",
+          path: `/modalities/${jiu.id}/graduation`,
+          status: 200,
+          body: {
+            enabled: true,
+            requireOriginProof: false,
+            canManage: true,
+            levels: [
+              nivel("n1", "Branca", "#FFFFFF", 4, null), nivel("n2", "Cinza (e variações)", "#9E9E9E", 4, 15, 4, true), nivel("n3", "Amarela (e variações)", "#E8C23A", 7, 15, 4, true),
+              nivel("n4", "Laranja (e variações)", "#E07B20", 10, 15, 4, true), nivel("n5", "Verde (e variações)", "#2F8F4E", 13, 15, 4, true), nivel("n6", "Azul", "#2350A8", 16, null),
+              nivel("n7", "Roxa", "#6B3FA0", 16, null), nivel("n8", "Marrom", "#6B3F1F", 18, null), nivel("n9", "Preta", "#1B1B1F", 19, null, 6),
+            ],
+          },
+        });
+        if (cenario === "desativar") {
+          override({
+            method: "put",
+            path: `/modalities/${muay.id}/activation`,
+            status: 409,
+            body: {
+              code: "MODALITY_IN_USE", message: "Em uso.", changed: false, traceId: "t",
+              fields: [
+                { field: "activeClasses", message: "3" }, { field: "activeStudents", message: "63" },
+                { field: "class", message: "Muay Thai Adulto · Noite (Tijuca)" }, { field: "class", message: "Muay Thai Iniciante (Barra)" }, { field: "class", message: "Muay Thai Avançado (Barra)" },
+              ],
+            },
+          });
+        }
+        if (cenario === "recusa") {
+          const reach = (await (await fetch("/api/v1/units/reachable")).json()) as { units: { id: string }[] };
+          override({
+            method: "put",
+            path: `/units/${reach.units[0].id}/modalities/${muay.id}`,
+            status: 409,
+            body: { code: "UNIT_MODALITY_IN_USE", message: "Há turmas ativas.", changed: false, traceId: "t", fields: [{ field: "class", message: "Muay Thai Adulto · Noite" }, { field: "classStudents", message: "26" }] },
+          });
+        }
+      }, modalidadesCanvas);
     }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
@@ -254,7 +308,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

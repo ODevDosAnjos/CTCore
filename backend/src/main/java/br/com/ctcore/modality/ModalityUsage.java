@@ -11,6 +11,9 @@ public interface ModalityUsage {
 
     int activeStudents(UUID modalityId);
 
+    /** Turmas ativas como "turma (unidade)", em ordem de nome. */
+    java.util.List<String> activeClassNames(UUID modalityId);
+
     /** Turmas ativas e alunos distintos com a modalidade ativa na matrícula (#63, R12). */
     @Component
     class Jdbc implements ModalityUsage {
@@ -24,6 +27,13 @@ public interface ModalityUsage {
         public int activeClasses(UUID modalityId) {
             return jdbc.sql("select count(*) from training_class where modality_id = :id and status = 'ACTIVE'")
                     .param("id", modalityId).query(Integer.class).single();
+        }
+
+        @Override
+        public java.util.List<String> activeClassNames(UUID modalityId) {
+            return jdbc.sql("select c.name || ' (' || u.name || ')' from training_class c join unit u on u.id = c.unit_id "
+                    + "where c.modality_id = :id and c.status = 'ACTIVE' order by c.name, u.name, c.id")
+                    .param("id", modalityId).query(String.class).list();
         }
 
         @Override

@@ -299,6 +299,17 @@ const jiuJitsuDefault = (): MockLevel[] =>
     ([name, color, maxDegree, minAge]) => ({ id: crypto.randomUUID(), name: name as string, color: color as string, secondaryColor: null, maxDegree: maxDegree as number, minAge: minAge as number, maxAge: null, kids: false }),
   );
 const graduationOf = (id: string) => graduations.get(id) ?? { enabled: false, requireOriginProof: false, levels: [] };
+// D1 (#485): níveis da organização e nomes das unidades ativas que oferecem a modalidade, no alcance do perfil (D3).
+const modalityView = (m: { id: string; name: string }, canManage: boolean) => {
+  const role = activeRole();
+  const offeredUnits = !activeModalities.has(m.id)
+    ? []
+    : units
+        .filter((u) => u.active && unitModalities.get(u.id)?.has(m.id) && (role !== "ADMINISTRATOR" || u.id === ADMIN_UNIT))
+        .map((u) => u.name)
+        .sort((a, b) => a.localeCompare(b));
+  return { ...m, active: activeModalities.has(m.id), canManage, graduationEnabled: graduationOf(m.id).enabled, levelCount: graduationOf(m.id).levels.length, offeredUnits };
+};
 let modalityRequests: { id: string; name: string; note: string | null; status: string; createdAt: string }[] = [];
 // Faixas etárias (RF-MOD-04), em memória: as três padrão; nome único sem acento nem maiúsculas.
 type MockAgeRange = { id: string; name: string; minAge: number; maxAge: number | null };
@@ -2345,7 +2356,7 @@ export const routes: Route[] = [
       const denied = organizationAccess(false);
       if (denied) return denied;
       const canManage = activeRole() === "COORDINATOR";
-      return HttpResponse.json(modalityCatalog.map((m) => ({ ...m, active: activeModalities.has(m.id), canManage, graduationEnabled: graduationOf(m.id).enabled })));
+      return HttpResponse.json(modalityCatalog.map((m) => modalityView(m, canManage)));
     },
   },
   {
@@ -2363,13 +2374,15 @@ export const routes: Route[] = [
         return error(409, "MODALITY_IN_USE", "Em uso.", [
           { field: "activeClasses", message: "2" },
           { field: "activeStudents", message: "3" },
+          { field: "class", message: "Boxe Noite (Unidade Centro)" },
+          { field: "class", message: "Boxe Noturno (Unidade Norte)" },
         ]);
       }
       if (active) {
         activeModalities.add(found.id);
         if (!graduations.has(found.id)) graduations.set(found.id, { enabled: false, requireOriginProof: false, levels: found.name === "Jiu-Jitsu" ? jiuJitsuDefault() : [] });
       } else activeModalities.delete(found.id);
-      return HttpResponse.json({ ...found, active, canManage: true, graduationEnabled: graduationOf(found.id).enabled });
+      return HttpResponse.json(modalityView(found, true));
     },
   },
   {
@@ -2386,6 +2399,7 @@ export const routes: Route[] = [
         .map((m) => ({
           ...m,
           offered: offered.has(m.id),
+          graduationEnabled: graduationOf(m.id).enabled,
           classCount: mockClasses.filter((c) => c.unitId === unit && c.modalityId === m.id && c.status === "ACTIVE").length,
           planCount: mockPlans.filter((p) => p.unitId === unit && modalityCatalog[p.modalityIndex].id === m.id && p.status === "ACTIVE").length,
         }));
@@ -2404,8 +2418,8 @@ export const routes: Route[] = [
       const { offered } = (await request.json()) as { offered?: boolean };
       if (typeof offered !== "boolean") return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "offered", message: "obrigatório" }]);
       // RN-MOD-06: desmarcar com turma ativa da modalidade na unidade é recusado e lista as turmas.
-      const blocking = mockClasses.filter((c) => c.unitId === unitId && c.modalityId === found.id && c.status === "ACTIVE").map((c) => c.name).sort((a, b) => a.localeCompare(b));
-      if (!offered && unitModalities.get(unitId)?.has(found.id) && blocking.length > 0) return error(409, "UNIT_MODALITY_IN_USE", "Há turmas ativas.", blocking.map((name) => ({ field: "class", message: name })));
+      const blocking = mockClasses.filter((c) => c.unitId === unitId && c.modalityId === found.id && c.status === "ACTIVE").sort((a, b) => a.name.localeCompare(b.name));
+      if (!offered && unitModalities.get(unitId)?.has(found.id) && blocking.length > 0) return error(409, "UNIT_MODALITY_IN_USE", "Há turmas ativas.", blocking.flatMap((c) => [{ field: "class", message: c.name }, { field: "classStudents", message: String(c.scenario?.activeStudents ?? c.blocking ?? 0) }]));
       const set = unitModalities.get(unitId) ?? new Set<string>();
       if (offered) set.add(found.id);
       else set.delete(found.id);
@@ -2413,6 +2427,7 @@ export const routes: Route[] = [
       return HttpResponse.json({
         ...found,
         offered,
+        graduationEnabled: graduationOf(found.id).enabled,
         classCount: mockClasses.filter((c) => c.unitId === unitId && c.modalityId === found.id && c.status === "ACTIVE").length,
         planCount: mockPlans.filter((p) => p.unitId === unitId && modalityCatalog[p.modalityIndex].id === found.id && p.status === "ACTIVE").length,
       });

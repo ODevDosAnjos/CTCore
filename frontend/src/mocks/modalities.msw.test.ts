@@ -159,3 +159,20 @@ describe("modalidades x OpenAPI (RF-MOD-01, CA14)", () => {
     expect(put.status).toBe(403);
   });
 });
+
+describe("modalidades: levelCount e offeredUnits (#485, D1 e D3)", () => {
+  it("traz os níveis e as unidades ativas que oferecem, só as do alcance do Administrador", async () => {
+    await login("ana@exemplo.com");
+    const items = await (await list()).json();
+    const bjj = items.find((m: { name: string }) => m.name === "Jiu-Jitsu").id;
+    const unit = (n: string) => (n === "a" ? "00000000-0000-0000-0000-000000000021" : "00000000-0000-0000-0000-000000000022");
+    await activate(bjj, { active: true });
+    for (const u of ["a", "b"]) await fetch(`/api/v1/units/${unit(u)}/modalities/${bjj}`, { method: "PUT", headers: json, body: JSON.stringify({ offered: true }) });
+    const mine = (await (await list()).json()).find((m: { id: string }) => m.id === bjj);
+    expect(mine.levelCount).toBeGreaterThan(0);
+    expect(mine.offeredUnits).toEqual(["Unidade Centro"]); // a Norte está desativada
+    expect((await (await list()).json()).find((m: { name: string }) => m.name === "Boxe").offeredUnits).toEqual([]);
+    await login("admin@exemplo.com");
+    expect((await (await list()).json()).find((m: { id: string }) => m.id === bjj).offeredUnits).toEqual(["Unidade Centro"]);
+  });
+});

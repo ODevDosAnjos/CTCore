@@ -69,7 +69,7 @@ function setup(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
     http.get("/api/v1/units/reachable", opts.reachable ?? (() => HttpResponse.json({ allUnits: role === "COORDINATOR", units: units.map(reach) }))),
-    http.get("/api/v1/units/:id/modalities", () => HttpResponse.json({ canManage: true, items: [{ id: "m1", name: "Judô", offered: true, classCount: 1, planCount: 3 }] })),
+    http.get("/api/v1/units/:id/modalities", () => HttpResponse.json({ canManage: true, items: [{ id: "m1", name: "Judô", offered: true, classCount: 1, planCount: 3, graduationEnabled: true }] })),
     http.get("/api/v1/units/:id", opts.read ?? (({ params }) => HttpResponse.json(stored[String(params.id)]))),
     http.put("/api/v1/units/:id", async ({ request, params }) => {
       const body = (await request.json()) as Sent;
@@ -270,13 +270,13 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     expect(puts[0]!.body.settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 0 });
   });
 
-  it("CA7: o cartão de modalidades mostra turmas e planos e o diretório fica desabilitado com Em breve (CA8)", async () => {
+  it("CA7: o cartão de modalidades mostra as modalidades da unidade com a graduação e o diretório fica desabilitado com Em breve (CA8)", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    expect(await screen.findByText("1 turma · 3 planos")).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Judô" })).toBeChecked();
-    expect(screen.getByText("Só aparecem as modalidades ativas na organização")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /^Modalidades oferecidas na / })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Judô" })).toBeChecked();
+    expect(screen.getByRole("heading", { name: /^Modalidades oferecidas na / }).compareDocumentPosition(screen.getByRole("heading", { name: "Dados da unidade" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const directory = screen.getByRole("switch", { name: "Aparecer no diretório ctcore.com.br/academias" });
     expect(directory).toHaveAttribute("aria-disabled", "true");
     await user.click(directory);
@@ -362,7 +362,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     window.innerWidth = 360;
     const { container } = setup("COORDINATOR");
     await ready();
-    await screen.findByText("1 turma · 3 planos");
+    await screen.findByRole("checkbox", { name: "Judô" });
     for (const tab of ["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]) {
       await openTab(user, tab);
       expect(await axeViolations(container)).toEqual([]);
