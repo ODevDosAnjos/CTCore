@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -251,6 +251,27 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (usuariosCanvas) {
+      // #487: Tijuca e Barra e a equipe do canvas que a regra permite à Coordenação (só Administradores): Carla Mendes (Tijuca e Barra), Diego Alves (Barra) e o convite pendente de Paula Ribeiro (Barra)
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(() => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const tijuca = { id: "00000000-0000-0000-0000-0000000004a1", name: "Tijuca" };
+        const barra = { id: "00000000-0000-0000-0000-0000000004a2", name: "Barra" };
+        const pessoa = (n: number, name: string, email: string, units: object[], lastAccessAt: string | null, status: string) => ({ linkId: `00000000-0000-0000-0000-0000000004b${n}`, name, email, role: "ADMINISTRATOR", units, lastAccessAt, status, canManage: true });
+        override({ method: "get", path: "/units/reachable", status: 200, body: { allUnits: true, units: [tijuca, barra].map((u) => ({ ...u, shortName: u.name.toLowerCase() })) } });
+        override({
+          method: "get",
+          path: "/users",
+          status: 200,
+          body: [
+            pessoa(1, "Carla Mendes", "carla@academialeao.example", [tijuca, barra], "2026-10-29T10:42:00Z", "ACTIVE"),
+            pessoa(2, "Diego Alves", "diego@academialeao.example", [barra], "2026-10-28T15:00:00Z", "ACTIVE"),
+            pessoa(3, "Paula Ribeiro", "paula.ribeiro@email.example", [barra], null, "PENDING"),
+          ],
+        });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -325,7 +346,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }
