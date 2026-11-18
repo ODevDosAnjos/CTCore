@@ -321,14 +321,14 @@ const initialAgeRanges = (): MockAgeRange[] => [
 ];
 let ageRanges = initialAgeRanges();
 // Termos da organização (RF-MAT-05), em memória: sem publicação vale o texto padrão como versão 0. Texto igual ao atual ou fora de 20 a 20000 é 400.
-type MockTermsVersion = { version: number; body: string; reaccept: boolean; publishedAt: string | null; publishedBy: string | null };
+type MockTermsVersion = { version: number; body: string; reaccept: boolean; publishedAt: string | null; publishedBy: string | null; acceptances: number };
 const TERMS_TEMPLATES: Record<string, string> = {
   ENROLLMENT: "TERMO DE MATRÍCULA\n\nAo matricular-se, o aluno declara conhecer e aceitar o regulamento da academia.",
   IMAGE_USE: "TERMO DE USO DE IMAGEM\n\nO aluno autoriza o uso de fotos e vídeos das aulas nos canais da academia.",
 };
 let termsVersions: Record<string, MockTermsVersion[]> = { ENROLLMENT: [], IMAGE_USE: [] };
 const termsCurrent = (kind: string): MockTermsVersion =>
-  termsVersions[kind][0] ?? { version: 0, body: TERMS_TEMPLATES[kind], reaccept: false, publishedAt: null, publishedBy: null };
+  termsVersions[kind][0] ?? { version: 0, body: TERMS_TEMPLATES[kind], reaccept: false, publishedAt: null, publishedBy: null, acceptances: 0 };
 // Textos dos modelos de e-mail (RF-COM-03, #83), em memória: sem texto próprio vale o da plataforma. Mesmas validações do servidor.
 type MockTextModel = { group: string; fields: string[]; subject: string; body: string };
 const REMINDER_FIELDS = ["nome", "valor", "vencimento", "unidade", "descricao", "link_pagamento"];
@@ -2533,7 +2533,7 @@ export const routes: Route[] = [
       if (text.length < 20 || text.length > 20000) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "body", message: "de 20 a 20000 caracteres" }]);
       if (typeof input.reaccept !== "boolean") return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "reaccept", message: "obrigatório" }]);
       if (text === termsCurrent(kind).body.trim()) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "body", message: "igual ao texto atual" }]);
-      const created = { version: termsCurrent(kind).version + 1, body: text, reaccept: input.reaccept, publishedAt: new Date().toISOString(), publishedBy: current.account.name };
+      const created = { version: termsCurrent(kind).version + 1, body: text, reaccept: input.reaccept, publishedAt: new Date().toISOString(), publishedBy: current.account.name, acceptances: 0 };
       termsVersions[kind] = [created, ...termsVersions[kind]];
       return HttpResponse.json(created, { status: 201 });
     },

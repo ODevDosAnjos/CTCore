@@ -1875,26 +1875,34 @@
   },
   "terms": {
     "title": "Termos",
-    "intro": "Cada publicação cria uma versão que não muda mais; o aceite do aluno aponta a versão exata.",
+    "subtitle": "Termo de matrícula e termo de uso de imagem · cada alteração vira uma nova versão",
     "tabs": "Tipo de termo",
     "kinds": {
       "ENROLLMENT": "Termo de matrícula",
-      "IMAGE_USE": "Termo de uso de imagem"
+      "IMAGE_USE": "Uso de imagem"
     },
     "current": {
       "title": "Texto atual",
       "model": "Ainda não há versão publicada: vale o texto padrão da plataforma.",
-      "published": "Versão atual: {{version}}, publicada em {{date}} por {{by}}."
+      "published": "Versão {{version}} publicada em {{date}} por {{by}}"
     },
     "editor": {
-      "label": "Texto do termo"
+      "label": "Texto do termo",
+      "toolbar": "Formatação do texto",
+      "bold": "B",
+      "italic": "I",
+      "list": "Lista",
+      "link": "Link"
     },
+    "draft": "Salvar rascunho",
+    "publish": "Publicar versão {{version}}",
     "reaccept": {
-      "legend": "Quem precisa aceitar esta versão",
+      "legend": "Ao publicar a versão {{version}}",
       "newOnly": "Só para novos alunos",
-      "everyone": "Todos aceitam de novo no próximo acesso"
+      "newOnlyText": "Quem já aceitou continua na versão {{version}}",
+      "everyone": "Todos aceitam de novo",
+      "everyoneText": "No próximo acesso ao portal, antes de qualquer outra tela"
     },
-    "publish": "Publicar nova versão",
     "published": "Nova versão publicada.",
     "errors": {
       "invalid": "O texto precisa ter de 20 a 20000 caracteres e ser diferente do atual. Nada foi publicado.",
@@ -1902,52 +1910,44 @@
       "generic": "Não foi possível publicar. Nada foi alterado. Tente de novo."
     },
     "history": {
-      "title": "Histórico de versões",
+      "title": "Versões",
       "empty": "Nenhuma versão publicada ainda",
       "emptyText": "O texto padrão da plataforma está no editor. Publique para criar a versão 1.",
-      "version": "Versão {{version}}",
-      "reacceptAll": "Todos aceitam de novo",
-      "reacceptNew": "Só novos alunos",
-      "read": "Ler o texto"
-    }
+      "version": "Versão",
+      "publishedAt": "Publicada",
+      "acceptances": "Aceites"
+    },
+    "imageNote": "O uso de imagem é uma caixa separada e opcional, que o aluno pode revogar no portal. Cada aceite guarda conta, versão, data, hora e IP."
   },
   "texts": {
     "title": "Textos",
-    "intro": "Os e-mails da plataforma que a academia pode personalizar. Sem texto próprio, vale o texto da plataforma.",
-    "groups": {
-      "REMINDERS": "Lembretes de cobrança",
-      "WELCOME": "Boas-vindas",
-      "ANNOUNCEMENTS": "Comunicados"
-    },
     "models": {
-      "REMINDER_BEFORE": "Lembrete antes do vencimento",
-      "REMINDER_DUE": "Lembrete no dia do vencimento",
-      "REMINDER_OVERDUE": "Lembrete de cobrança em atraso",
-      "WELCOME": "Boas-vindas ao aluno",
-      "ANNOUNCEMENT_CANCELED_CLASS": "Aula cancelada",
-      "ANNOUNCEMENT_TEACHER_CHANGE": "Troca de professor",
-      "ANNOUNCEMENT_SCHEDULE_CHANGE": "Mudança de horário",
-      "ANNOUNCEMENT_NO_CLASS_DAY": "Dia sem aula",
-      "ANNOUNCEMENT_GENERAL": "Aviso geral"
+      "WELCOME": "Boas-vindas",
+      "REMINDER_BEFORE": "Lembrete: antes do vencimento",
+      "REMINDER_DUE": "Lembrete: no dia",
+      "REMINDER_OVERDUE": "Lembrete: depois do vencimento",
+      "ANNOUNCEMENT_CANCELED_CLASS": "Comunicado: Aula cancelada",
+      "ANNOUNCEMENT_TEACHER_CHANGE": "Comunicado: Troca de professor",
+      "ANNOUNCEMENT_SCHEDULE_CHANGE": "Comunicado: Alteração de horário",
+      "ANNOUNCEMENT_NO_CLASS_DAY": "Comunicado: Dia sem aula",
+      "ANNOUNCEMENT_GENERAL": "Comunicado: Aviso geral"
     },
     "origin": {
-      "custom": "Texto próprio",
+      "custom": "Editado",
       "platform": "Texto da plataforma"
     },
-    "modelsList": "Modelos de {{group}}",
     "emptyTitle": "Nenhum modelo de texto",
     "emptyText": "Quando houver textos para personalizar, eles aparecem aqui.",
     "welcomeNote": "O envio das boas-vindas começa com o convite do portal; o texto já pode ser preparado.",
     "editor": {
-      "title": "Texto: {{name}}",
+      "title": "{{name}}",
       "subject": "Assunto",
       "body": "Texto do e-mail",
-      "fields": "Campos automáticos",
-      "fieldsHelp": "Clique para inserir o campo onde o cursor estiver. Ele é trocado pelo dado real no envio.",
+      "fields": "Campos:",
       "insert": "Inserir o campo {{field}}",
       "linkNote": "Enquanto não houver pagamento online, o campo link_pagamento sai vazio.",
       "readOnly": "Você pode consultar os textos, mas só o Coordenador altera.",
-      "updated": "Texto próprio salvo em {{date}} por {{by}}."
+      "updated": "Última alteração em {{date}} às {{time}} por {{by}}"
     },
     "fieldLabels": {
       "nome": "nome",
@@ -1963,11 +1963,11 @@
       "motivo": "motivo"
     },
     "sample": {
-      "nome": "Maria Souza",
-      "valor": "R$ 150,00",
-      "vencimento": "10/11/2026",
-      "unidade": "Unidade Centro",
-      "descricao": "Mensalidade 11/2026",
+      "nome": "Marina",
+      "valor": "R$ 180,00",
+      "vencimento": "10/10/2026",
+      "unidade": "Academia Leão Tijuca",
+      "descricao": "Jiu-Jitsu",
       "link_pagamento": "",
       "turma": "Jiu-Jitsu Adulto",
       "data": "15/11/2026",
@@ -1976,13 +1976,11 @@
       "motivo": "feriado"
     },
     "preview": {
-      "title": "Prévia com dados de exemplo",
+      "title": "Prévia",
       "subject": "Assunto: {{subject}}",
       "footer": "feito com ctcore"
     },
-    "edit": "Editar",
-    "view": "Ver",
-    "save": "Salvar",
+    "save": "Salvar texto",
     "saved": "Texto salvo.",
     "reset": "Voltar ao texto da plataforma",
     "resetConfirm": {
@@ -1997,7 +1995,9 @@
       "same": "O texto é igual ao da plataforma. Para usá-lo, volte ao texto da plataforma.",
       "generic": "Não foi possível salvar. Nada foi alterado. Tente de novo.",
       "resetGeneric": "Não foi possível voltar ao texto da plataforma. Nada foi alterado. Tente de novo."
-    }
+    },
+    "subtitle": "Nove modelos que a organização edita, iguais para todas as unidades · ficam fora: conta e segurança, recibo, cobrança gerada, reajuste, diferença e aviso de bloqueio",
+    "list": "Modelos de texto"
   },
   "ageRanges": {
     "title": "Faixas etárias",

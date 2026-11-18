@@ -30,6 +30,8 @@ class TermsIT extends OrganizationBase {
 
     @AfterEach
     void clean() {
+        adminJdbc().update("delete from term_acceptance where student_id in (select id from student where name like 'Aluno Termos%')");
+        adminJdbc().update("delete from student where name like 'Aluno Termos%'");
         adminJdbc().update("delete from terms_version");
         adminJdbc().update("delete from account where email like 'terms-%@example.com'");
     }
@@ -67,6 +69,43 @@ class TermsIT extends OrganizationBase {
 
     private int audits(Tenant t) {
         return adminJdbc().queryForObject("select count(*) from audit_log where organization_id = ? and action = 'terms.published'", Integer.class, t.orgId());
+    }
+
+    private java.util.UUID accepted(Tenant t, java.util.UUID account, String name, String kind, int version) {
+        java.util.UUID id = java.util.UUID.randomUUID();
+        adminJdbc().update("insert into student (id, organization_id, registered_unit_id, name, name_key, birth_date, postal_code, street, number, district, city, state) "
+                + "values (?, ?, ?, ?, ?, '1990-01-01'::date, '01001000', 'Rua', '1', 'Bairro', 'Cidade', 'SP')", id, t.orgId(), t.unitId(), name, name.toLowerCase());
+        accept(t, account, id, kind, version);
+        return id;
+    }
+
+    private void accept(Tenant t, java.util.UUID account, java.util.UUID student, String kind, int version) {
+        adminJdbc().update("insert into term_acceptance (id, organization_id, student_id, kind, event, version, account_id, ip) values (?, ?, ?, ?, 'ACCEPTED', ?, ?, '127.0.0.1')",
+                java.util.UUID.randomUUID(), t.orgId(), student, kind, version, account);
+    }
+
+    @Test
+    @DisplayName("CA8: acceptances conta alunos distintos por versão, só da organização consultada; sem publicação é 0")
+    void acceptances() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        var c = account(t, Role.COORDINATOR);
+        var co = account(other, Role.COORDINATOR);
+        assertThat(body(send(read("ENROLLMENT"), c)).get("current").get("acceptances").asInt()).isZero();
+        send(publishRequest("ENROLLMENT", payload(TEXT_A, false)), c);
+        send(publishRequest("ENROLLMENT", payload(TEXT_B, true)), c);
+        send(publishRequest("ENROLLMENT", payload(TEXT_A + " v3", true)), co);
+        send(publishRequest("ENROLLMENT", payload(TEXT_A, true)), co);
+        send(publishRequest("ENROLLMENT", payload(TEXT_B, true)), co);
+        var one = accepted(t, c.accountId(), "Aluno Termos Um", "ENROLLMENT", 1);
+        accept(t, c.accountId(), one, "ENROLLMENT", 2);
+        accepted(t, c.accountId(), "Aluno Termos Dois", "ENROLLMENT", 2);
+        accepted(other, co.accountId(), "Aluno Termos Outro", "ENROLLMENT", 2);
+        var view = body(send(read("ENROLLMENT"), c));
+        assertThat(view.get("versions").get(0).get("acceptances").asInt()).isEqualTo(2);
+        assertThat(view.get("versions").get(1).get("acceptances").asInt()).isEqualTo(1);
+        assertThat(view.get("current").get("acceptances").asInt()).isEqualTo(2);
+        assertThat(body(send(publishRequest("ENROLLMENT", payload(TEXT_B + " novo", false)), c)).get("acceptances").asInt()).isZero();
     }
 
     @Test

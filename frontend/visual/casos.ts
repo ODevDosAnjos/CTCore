@@ -26,6 +26,8 @@ export type Caso = {
   faixasCanvas?: boolean; // #486: antes de abrir a tela, as três faixas do canvas com "Usada em" e a última alteração de Marcos Leão
   modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa"; // #485: antes de abrir a tela, Jiu-Jitsu (19 níveis) e Muay Thai (8) ativas em Tijuca e Barra e o resto do catálogo disponível; administrador mostra só as duas, em consulta; desativar recusa o Muay Thai (3 turmas, 63 alunos); recusa não deixa a Tijuca largar o Muay Thai (turma da noite, 26 alunos)
   usuariosCanvas?: boolean; // #487: antes de abrir a tela, as unidades Tijuca e Barra e a equipe do canvas que a regra permite à Coordenação (Carla Mendes e Diego Alves, Administradores, e o convite pendente de Paula Ribeiro)
+  termosCanvas?: boolean; // #488: antes de abrir a tela, o termo de matrícula na versão 3 e as versões 3, 2 e 1 do canvas com 187, 142 e 96 aceites
+  textosCanvas?: boolean; // #488: antes de abrir a tela, os nove modelos do canvas (Boas-vindas, Lembrete antes e depois com texto próprio), como o Administrador os vê
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -107,8 +109,8 @@ export const casos: Caso[] = [
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
   { nome: "configuracoes-usuarios", rota: "/configuracoes/usuarios", perfil: ana, canvas: "ConfigUsuarios", usuariosCanvas: true },
   { nome: "configuracoes-permissoes", rota: "/configuracoes/usuarios/permissoes", perfil: ana, canvas: "PermissoesTabela", fullPage: true },
-  { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos" },
-  { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: ana, canvas: "ConfigTextos" },
+  { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
+  { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
   // Acesso, conta, organização, unidades e usuários (#419). Estados e janelas abrem pelos passos.
   // Fora: EscolhaOrganizacao/EscolhaOrgM (o login simulado já entra com o vínculo ativo).

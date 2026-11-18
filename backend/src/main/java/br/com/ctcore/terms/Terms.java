@@ -57,7 +57,7 @@ public class Terms {
         }
     }
 
-    public record Version(int version, String body, boolean reaccept, Instant publishedAt, String publishedBy) {}
+    public record Version(int version, String body, boolean reaccept, Instant publishedAt, String publishedBy, int acceptances) {}
 
     public record View(boolean canManage, Version current, List<Version> versions) {}
 
@@ -117,17 +117,19 @@ public class Terms {
     }
 
     private List<Version> versions(UUID organizationId, Kind kind) {
-        return jdbc.sql("select t.version, t.body, t.reaccept, t.published_at, a.name from terms_version t "
+        return jdbc.sql("select t.version, t.body, t.reaccept, t.published_at, a.name, "
+                + "(select count(distinct s.student_id) from term_acceptance s where s.organization_id = t.organization_id and s.kind = t.kind "
+                + "and s.version = t.version and s.event = 'ACCEPTED') from terms_version t "
                 + "left join account a on a.id = t.published_by_account_id where t.organization_id = :org and t.kind = :kind order by t.version desc")
                 .param("org", organizationId).param("kind", kind.name()).query(Terms::map).list();
     }
 
     private static Version model(Kind kind) {
-        return new Version(0, kind.template, false, null, null);
+        return new Version(0, kind.template, false, null, null, 0);
     }
 
     private static Version map(ResultSet rs, int row) throws SQLException {
-        return new Version(rs.getInt(1), rs.getString(2), rs.getBoolean(3), rs.getObject(4, OffsetDateTime.class).toInstant(), rs.getString(5));
+        return new Version(rs.getInt(1), rs.getString(2), rs.getBoolean(3), rs.getObject(4, OffsetDateTime.class).toInstant(), rs.getString(5), rs.getInt(6));
     }
 
     private Access access(AccountPrincipal who) {

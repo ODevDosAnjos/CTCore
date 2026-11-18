@@ -4214,13 +4214,14 @@ components:
       enum: [ENROLLMENT, IMAGE_USE]
     TermsVersion:
       type: object
-      required: [version, body, reaccept, publishedAt, publishedBy]
+      required: [version, body, reaccept, publishedAt, publishedBy, acceptances]
       properties:
         version: { type: integer, minimum: 0, description: '0 é o texto padrão da plataforma, sem publicação.' }
         body: { type: string }
         reaccept: { type: boolean, description: Verdadeiro quando todos aceitam de novo no próximo acesso. }
         publishedAt: { type: string, format: date-time, nullable: true }
         publishedBy: { type: string, nullable: true }
+        acceptances: { type: integer, minimum: 0, description: Alunos distintos que aceitaram esta versão (ACCEPTED); 0 no texto padrão. }
     TermsView:
       type: object
       required: [canManage, current, versions]

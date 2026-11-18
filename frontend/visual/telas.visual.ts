@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -272,6 +272,39 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (termosCanvas) {
+      // #488: o termo de matrícula do canvas, na versão 3, com as versões 3, 2 e 1 e seus aceites
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(() => {
+        const versao = (version: number, publishedAt: string, acceptances: number, body: string) => ({ version, body, reaccept: false, publishedAt, publishedBy: "Marcos Leão", acceptances });
+        const corpo = "Termo de matrícula · Academia Leão\n\n1. A mensalidade vence no dia escolhido na matrícula e é cobrada por modalidade.\n2. Não há juros, multa ou pagamento parcial. A taxa do meio de pagamento online é somada ao valor.\n3. Com 30 dias de atraso, a modalidade é bloqueada até o pagamento.\n4. O aluno declara estar apto à prática esportiva. A academia não guarda dados de saúde.\n5. O encerramento pode ser pedido pelo portal a qualquer momento.";
+        const versions = [versao(3, "2026-09-01T15:00:00Z", 187, corpo), versao(2, "2025-01-10T15:00:00Z", 142, corpo + " "), versao(1, "2022-03-05T15:00:00Z", 96, corpo + "  ")];
+        (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/organization/terms/ENROLLMENT", status: 200, body: { canManage: true, current: versions[0], versions } });
+      });
+    }
+    if (textosCanvas) {
+      // #488: os nove modelos do canvas; Boas-vindas, "antes do vencimento" e "depois do vencimento" têm texto próprio (a última alteração, de Carla Mendes, é a do canvas); o perfil é o Administrador, que só consulta
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(() => {
+        const lembrete = ["nome", "valor", "vencimento", "unidade", "descricao", "link_pagamento"];
+        const modelo = (key: string, group: string, fields: string[], subject: string, body: string, custom: { subject: string; body: string } | null = null) => ({
+          key, group, fields, platform: { subject, body }, custom, updatedAt: custom ? "2026-09-15T12:30:00Z" : null, updatedBy: custom ? "Carla Mendes" : null,
+        });
+        const antes = "Oi, {nome}! Passando para lembrar que a mensalidade de {descricao} da {unidade}, de {valor}, vence em {vencimento}.\nVocê pode pagar por Pix, cartão ou boleto aqui: {link_pagamento}\nBons treinos!";
+        const models = [
+          modelo("WELCOME", "WELCOME", ["nome", "unidade"], "Bem-vindo(a) à {unidade}", "Olá, {nome}! Seja bem-vindo(a).", { subject: "Bem-vindo(a) à {unidade}", body: "Oi, {nome}! Que bom ter você na {unidade}." }),
+          modelo("REMINDER_BEFORE", "REMINDERS", lembrete, "Lembrete: sua cobrança vence em breve", "Lembrete de cobrança: {descricao}, {valor}, {vencimento}.", { subject: "Sua mensalidade vence em breve: {descricao}", body: antes }),
+          modelo("REMINDER_DUE", "REMINDERS", lembrete, "Lembrete: sua cobrança vence hoje", "Sua cobrança vence hoje: {descricao}, {valor}."),
+          modelo("REMINDER_OVERDUE", "REMINDERS", lembrete, "Lembrete: cobrança em atraso", "Há uma cobrança em atraso: {descricao}, {valor}.", { subject: "Sua mensalidade está em atraso: {descricao}", body: "Oi, {nome}! A mensalidade de {descricao}, de {valor}, venceu em {vencimento}." }),
+          modelo("ANNOUNCEMENT_CANCELED_CLASS", "ANNOUNCEMENTS", ["unidade", "turma", "data", "horario"], "Aula cancelada", "A aula de {turma} do dia {data} foi cancelada."),
+          modelo("ANNOUNCEMENT_TEACHER_CHANGE", "ANNOUNCEMENTS", ["unidade", "turma", "data"], "Troca de professor", "A aula de {turma} terá outro professor."),
+          modelo("ANNOUNCEMENT_SCHEDULE_CHANGE", "ANNOUNCEMENTS", ["unidade", "turma", "data", "horario"], "Alteração de horário", "A aula de {turma} muda de horário."),
+          modelo("ANNOUNCEMENT_NO_CLASS_DAY", "ANNOUNCEMENTS", ["unidade", "periodo", "motivo"], "Dia sem aula", "Não haverá aula em {periodo}: {motivo}."),
+          modelo("ANNOUNCEMENT_GENERAL", "ANNOUNCEMENTS", ["unidade"], "Aviso geral", "Aviso de {unidade}."),
+        ];
+        (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/organization/texts", status: 200, body: { canManage: false, models } });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -346,7 +379,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }
