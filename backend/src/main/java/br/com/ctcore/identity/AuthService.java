@@ -216,7 +216,7 @@ public class AuthService {
             }
             jdbc.sql("update password_reset set canceled_at = :now where account_id = :a and used_at is null and canceled_at is null")
                     .param("now", now()).param("a", accountId).update();
-            jdbc.sql("update account set password_hash = :h where id = :a").param("h", hash).param("a", accountId).update();
+            jdbc.sql("update account set password_hash = :h, password_changed_at = now() where id = :a").param("h", hash).param("a", accountId).update();
             sessions.endAll(accountId, null);
             return null;
         });
@@ -252,7 +252,7 @@ public class AuthService {
         requireStrong(policy, next);
         String hash = encoder.encode(next);
         accountTx.forAccount(accountId, () -> {
-            jdbc.sql("update account set password_hash = :h where id = :a").param("h", hash).param("a", accountId).update();
+            jdbc.sql("update account set password_hash = :h, password_changed_at = now() where id = :a").param("h", hash).param("a", accountId).update();
             sessions.endAll(accountId, keepSession);
             return null;
         });

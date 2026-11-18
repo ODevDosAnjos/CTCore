@@ -55,11 +55,10 @@ export function useUnreadCount() {
 
 type Loaded = { tick: number; data?: NotificationList; forbidden?: boolean };
 
-// Painel: lista do vínculo ativo e preferência "receber tudo". Só consulta com o painel aberto.
+// Painel: lista do vínculo ativo. Só consulta com o painel aberto.
 export function useNotificationPanel(open: boolean) {
   const [tick, setTick] = useState(0);
   const [done, setDone] = useState<Loaded>();
-  const [prefs, setPrefs] = useState<NotificationPreferences>();
 
   useEffect(() => {
     if (!open) return;
@@ -67,10 +66,6 @@ export function useNotificationPanel(open: boolean) {
     api<NotificationList>("/notifications").then(
       (data) => alive && setDone({ tick, data }),
       (e) => alive && setDone({ tick, forbidden: e instanceof ApiError && e.status === 403 }),
-    );
-    api<NotificationPreferences>("/notifications/preferences").then(
-      (p) => alive && setPrefs(p),
-      () => undefined,
     );
     return () => {
       alive = false;
@@ -82,7 +77,6 @@ export function useNotificationPanel(open: boolean) {
   return {
     status,
     data: current?.data,
-    prefs,
     retry: () => setTick((n) => n + 1),
     // Erros sobem (ApiError) para a tela.
     readAll: async () => {
@@ -90,6 +84,5 @@ export function useNotificationPanel(open: boolean) {
       const now = new Date().toISOString();
       setDone((d) => (d?.data ? { ...d, data: { items: d.data.items.map((n) => ({ ...n, readAt: n.readAt ?? now })), unreadCount: 0 } } : d));
     },
-    setReceiveAll: async (receiveAll: boolean) => setPrefs(await api<NotificationPreferences>("/notifications/preferences", { method: "PUT", body: { receiveAll } })),
   } as const;
 }

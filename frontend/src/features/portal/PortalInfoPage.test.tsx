@@ -343,7 +343,7 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     expect(await within(requests).findByText("Troca de turma · Aberto · 20/10/2026")).toBeInTheDocument();
     expect(within(requests).getByText("Troca de plano · Recusado · 10/10/2026")).toBeInTheDocument();
     expect(within(requests).getByRole("link", { name: "Fazer um pedido" })).toHaveAttribute("href", "/portal/pedidos");
-    for (const name of ["Senha", "E-mail", "Duas etapas", "Sessões"]) expect(screen.getAllByRole("heading", { name: new RegExp(`^${name}`) }).length).toBeGreaterThan(0);
+    for (const name of ["Senha", "E-mail", "Verificação em duas etapas", "Sessões"]) expect(screen.getAllByRole("heading", { name: new RegExp(`^${name}`) }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Baixar meus dados" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Excluir minha conta" })).toBeDisabled();
     expect(calls).toEqual([]);

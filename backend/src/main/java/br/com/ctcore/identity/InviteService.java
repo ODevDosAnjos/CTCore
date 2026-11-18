@@ -360,7 +360,7 @@ public class InviteService {
             }
             jdbc.sql("update account_link set status = 'ACTIVE', starts_on = :d, ends_on = null where id = :l")
                     .param("d", now().toLocalDate()).param("l", f.linkId()).update();
-            if (hashToSet != null && jdbc.sql("update account set password_hash = :h, status = 'ACTIVE' where id = :a and password_hash is null")
+            if (hashToSet != null && jdbc.sql("update account set password_hash = :h, password_changed_at = now(), status = 'ACTIVE' where id = :a and password_hash is null")
                     .param("h", hashToSet).param("a", f.accountId()).update() == 0) {
                 throw new IdentityException(Code.INVITE_INVALID, "USED");
             }

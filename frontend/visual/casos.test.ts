@@ -9,7 +9,7 @@ const larguraDe = new Map(indice.map((t) => [nomeTela(t), t.largura]));
 const app = readFileSync("src/App.tsx", "utf8");
 const paths = [...app.matchAll(/<Route path=(?:"|\{)([^"}]+)/g)].map((m) => m[1]);
 const casa = (rota: string) =>
-  paths.some((p) => new RegExp(`^${p.replace(/\/:\w+\??/g, "(/[^/]+)?")}/?$`).test(rota));
+  paths.some((p) => new RegExp(`^${p.replace(/\/:\w+\??/g, "(/[^/]+)?")}/?$`).test(rota.split("?")[0]));
 
 describe("casos do teste visual", () => {
   it("nomes únicos", () => expect(new Set(casos.map((c) => c.nome)).size).toBe(casos.length));

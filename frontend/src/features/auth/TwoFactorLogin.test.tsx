@@ -156,9 +156,9 @@ describe("Coordenador sem duas etapas (CA24)", () => {
     expect(await screen.findByRole("button", { name: "Sair da conta" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ativar duas etapas" }));
-    await user.type(await screen.findByLabelText("Código de 6 dígitos"), "123456");
-    await user.click(screen.getByRole("button", { name: "Ativar" }));
-    await user.click(await screen.findByLabelText("Já guardei os códigos"));
+    await user.type(await screen.findByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    await user.click(await screen.findByLabelText("Guardei os códigos em lugar seguro"));
     await user.click(screen.getByRole("button", { name: "Concluir" }));
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(/^\/$/));
     expect(await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeInTheDocument();

@@ -4,6 +4,7 @@ import { Card } from "@/components/Card";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { BackupCodesDialog } from "@/features/auth/BackupCodesDialog";
@@ -11,6 +12,7 @@ import { CodeField } from "@/features/auth/CodeField";
 import { useSession } from "@/features/auth/SessionProvider";
 import { TwoFactorSetupDialog } from "@/features/auth/TwoFactorSetupDialog";
 import { ApiError, api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import { useReloadSession } from "./useAccount";
 
 type Dialog = "setup" | "codes" | "disable" | null;
@@ -23,7 +25,7 @@ export function TwoFactorSection() {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [failed, setFailed] = useState(false);
   if (state.status !== "ready") return null;
-  const { enabled, required } = state.session.twoFactor;
+  const { enabled, required, enabledAt } = state.session.twoFactor;
 
   async function changed() {
     setDialog(null);
@@ -38,16 +40,15 @@ export function TwoFactorSection() {
   return (
     <Card title={t("account.twoFactor.title")} heading="h2">
       <div className="space-y-4">
-        <Banner tone={enabled ? "ok" : "info"}>
-          {t(enabled ? "account.twoFactor.on" : "account.twoFactor.off")}
-        </Banner>
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge tone={enabled ? "ok" : "neutral"}>{t(enabled ? "account.twoFactor.on" : "account.twoFactor.off")}</Badge>
+          <span className="text-sm text-muted-foreground">
+            {enabled && enabledAt ? t("account.twoFactor.detailOn", { date: formatDate(enabledAt) }) : enabled ? "" : t("account.twoFactor.detailOff")}
+          </span>
+        </div>
         {failed && <ErrorState onRetry={() => void changed()} />}
         <div className="flex flex-wrap gap-2">
-          {!enabled && (
-            <Button onClick={() => setDialog("setup")}>
-              {t("account.twoFactor.enable")}
-            </Button>
-          )}
+          {!enabled && <Button onClick={() => setDialog("setup")}>{t("account.twoFactor.enable")}</Button>}
           {enabled && (
             <Button variant="secondary" onClick={() => setDialog("codes")}>
               {t("account.twoFactor.newCodes")}
@@ -59,10 +60,12 @@ export function TwoFactorSection() {
             </Button>
           )}
         </div>
+        <p className="text-sm text-muted-foreground">{t("account.twoFactor.note")}</p>
       </div>
       {dialog === "setup" && (
         <TwoFactorSetupDialog
           open
+          required={required}
           onClose={() => setDialog(null)}
           onEnabled={() => void changed()}
         />
@@ -135,6 +138,19 @@ function DisableDialog({
       open
       onOpenChange={(o) => !o && !sending && onClose()}
       title={t("account.twoFactor.disableTitle")}
+      size="sm"
+      footer={
+        phase === "form" && (
+          <>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="disable-two-factor" disabled={sending}>
+              {sending ? t("account.twoFactor.disabling") : t("account.twoFactor.disableSubmit")}
+            </Button>
+          </>
+        )
+      }
     >
       {phase === "forbidden" ? (
         <ForbiddenState />
@@ -142,6 +158,7 @@ function DisableDialog({
         <ErrorState onRetry={() => void submit()} />
       ) : (
         <form
+          id="disable-two-factor"
           noValidate
           onSubmit={submit}
           className="space-y-4"
@@ -172,16 +189,6 @@ function DisableDialog({
             onChange={setCode}
             error={errors.code}
           />
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={sending}>
-              {sending
-                ? t("account.twoFactor.disabling")
-                : t("account.twoFactor.disableSubmit")}
-            </Button>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              {t("common.cancel")}
-            </Button>
-          </div>
         </form>
       )}
     </Modal>

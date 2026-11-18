@@ -195,7 +195,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 487 | Usuários: lista, convidar e tabela de permissões no visual do canvas | issue #487 | Sprint 10.5 | #456, #457, #458, #459, #460, #461, #452 | agente | feito |
 | 488 | Termos e Textos no visual do canvas | issue #488 | Sprint 10.5 | #453, #460, #461 | agente | feito |
 | 489 | Telas de acesso: login, duas etapas, travado, recuperar e nova senha, convite, escolha de organização e sem acesso no visual do canvas | issue #489 | Sprint 10.5 | #455, #453, #464 | agente | feito |
-| 490 | Minha conta: abas, duas etapas, códigos de reserva, notificações e sessões no visual do canvas | issue #490 | Sprint 10.5 | #453, #460, #461, #450 | agente | a fazer |
+| 490 | Minha conta: abas, duas etapas, códigos de reserva, notificações e sessões no visual do canvas | issue #490 | Sprint 10.5 | #453, #460, #461, #450 | agente | feito |
 | 491 | Comunicados: lista, novo, cancelar agendado, limite diário e organização inteira no visual do canvas | issue #491 | Sprint 10.5 | #456, #457, #453, #458, #459, #460, #461, #450 | agente | a fazer |
 | 492 | Notificações: popover, grupos e "Marcar todas como lidas" no visual do canvas | issue #492 | Sprint 10.5 | #463, #450 | agente | a fazer |
 | 493 | Início do portal: tudo em dia, estados, responsável e Toda a família no visual do canvas | issue #493 | Sprint 10.5 | #455, #464, #450 | agente | a fazer |

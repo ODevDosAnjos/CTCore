@@ -61,4 +61,22 @@ class AccountRoutesIsolationIT extends AuthBase {
         assertThat(count("select count(*) from account where email = 'b@x.com'")).isEqualTo(1);
         assertThat(count("select count(*) from account_email_change where used_at is null and canceled_at is null")).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("CA4, CA14: /auth/session traz as duas datas só da própria conta; nulas sem troca de senha e sem duas etapas")
+    void sessionDatesAreOwn() throws Exception {
+        UUID orgA = org();
+        UUID a = account("da@x.com"), b = account("db@x.com");
+        link(a, orgA, "COORDINATOR", "ACTIVE");
+        link(b, orgA, "ADMINISTRATOR", "ACTIVE");
+        enableTwoFactor(a, "da@x.com");
+        admin.update("update account set password_changed_at = '2026-08-12T10:00:00Z' where id = ?", a);
+        var va = body(get("/api/v1/auth/session", sessionOf("da@x.com")).andReturn());
+        assertThat(va.path("account").path("passwordChangedAt").asText()).startsWith("2026-08-12");
+        assertThat(va.path("twoFactor").path("enabledAt").asText()).isNotEmpty();
+        var vb = body(get("/api/v1/auth/session", sessionOf("db@x.com")).andReturn());
+        assertThat(vb.path("account").path("passwordChangedAt").isNull()).isTrue();
+        assertThat(vb.path("twoFactor").path("enabledAt").isNull()).isTrue();
+        assertThat(vb.toString()).doesNotContain("2026-08-12");
+    }
 }

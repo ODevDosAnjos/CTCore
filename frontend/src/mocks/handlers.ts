@@ -24,24 +24,24 @@ const error = (status: number, code: string, message: string, fields: { field: s
   HttpResponse.json({ code, message, changed: false, fields, traceId: "mock" }, { status });
 
 const session = {
-  account: { id: "00000000-0000-0000-0000-000000000001", email: "ana@exemplo.com", name: "Ana" },
+  account: { id: "00000000-0000-0000-0000-000000000001", email: "ana@exemplo.com", name: "Ana", passwordChangedAt: "2026-08-12T12:00:00Z" as string | null },
   links: [
     { id: "00000000-0000-0000-0000-000000000002", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "COORDINATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: null },
   ],
   activeLinkId: "00000000-0000-0000-0000-000000000002" as string | null,
-  twoFactor: { enabled: false, required: false },
+  twoFactor: { enabled: false, required: false, enabledAt: null as string | null },
 };
 
 // D7: "varios@exemplo.com" tem vínculos de Gestão e Portal em duas organizações e entra sem vínculo ativo.
 const many = {
-  account: { id: "00000000-0000-0000-0000-000000000009", email: "varios@exemplo.com", name: "Vera" },
+  account: { id: "00000000-0000-0000-0000-000000000009", email: "varios@exemplo.com", name: "Vera", passwordChangedAt: null as string | null },
   links: [
     { id: "00000000-0000-0000-0000-000000000011", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: "2026-11-17T22:10:00Z" },
     { id: "00000000-0000-0000-0000-000000000012", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null },
     { id: "00000000-0000-0000-0000-000000000013", organizationId: "00000000-0000-0000-0000-000000000004", organizationName: "Academia Beta", role: "TEACHER", unitIds: [], unitNames: ["Norte", "Sul"], lastAccessAt: null },
   ],
   activeLinkId: null as string | null,
-  twoFactor: { enabled: false, required: false },
+  twoFactor: { enabled: false, required: false, enabledAt: null as string | null },
 };
 
 // Duas etapas simuladas (RN-ACE-17): "duas@exemplo.com" tem as duas ligadas (login devolve bilhete);
@@ -51,7 +51,7 @@ const many = {
 const withTwoFactor = (email: string, enabled: boolean, required: boolean) => ({
   ...session,
   account: { ...session.account, email },
-  twoFactor: { enabled, required },
+  twoFactor: { enabled, required, enabledAt: enabled ? "2026-08-12T12:00:00Z" : null },
 });
 const accounts: Record<string, ReturnType<typeof withTwoFactor>> = {
   "duas@exemplo.com": withTwoFactor("duas@exemplo.com", true, true),
@@ -94,7 +94,7 @@ const accounts: Record<string, ReturnType<typeof withTwoFactor>> = {
   },
 };
 const VALID_CODES = ["123456", "RESERVA001"];
-const backupCodes = () => ({ backupCodes: Array.from({ length: 10 }, (_, i) => `RESERVA${String(i + 1).padStart(3, "0")}`) });
+const backupCodes = () => ({ backupCodes: Array.from({ length: 10 }, (_, i) => `RES${String(i + 1).padStart(2, "0")}A7K${String(i + 1).padStart(2, "0")}`) });
 let current: typeof session = session;
 
 const initialSessions = () => [
@@ -2064,7 +2064,7 @@ export const routes: Route[] = [
       if (!loggedIn) return unauthenticated();
       const { code } = (await request.json()) as { code?: string };
       if (code !== "123456") return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
-      current = { ...current, twoFactor: { ...current.twoFactor, enabled: true } };
+      current = { ...current, twoFactor: { ...current.twoFactor, enabled: true, enabledAt: new Date().toISOString() } };
       return HttpResponse.json(backupCodes());
     },
   },
@@ -2078,7 +2078,7 @@ export const routes: Route[] = [
       if (password === "errada") return error(401, "INVALID_CREDENTIALS", "E-mail ou senha incorretos.");
       if (!code || !VALID_CODES.includes(code)) return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
       if (current.twoFactor.required) return error(403, "FORBIDDEN", "Sem permissão.");
-      current = { ...current, twoFactor: { ...current.twoFactor, enabled: false } };
+      current = { ...current, twoFactor: { ...current.twoFactor, enabled: false, enabledAt: null } };
       return new HttpResponse(null, { status: 204 });
     },
   },

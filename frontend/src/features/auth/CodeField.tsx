@@ -13,6 +13,7 @@ export function CodeField({
   kind = "totp",
   error,
   inputRef,
+  placeholder,
 }: {
   id?: string;
   label: string;
@@ -24,12 +25,13 @@ export function CodeField({
   kind?: "totp" | "any";
   error?: string | null;
   inputRef?: Ref<HTMLInputElement>;
+  placeholder?: string;
 }) {
   return (
     <Field label={label} hint={hint} error={error ?? undefined} alertError hideLabel={hideLabel}>
       {(c) =>
         kind === "totp" ? (
-          <CodeInput {...c} ref={inputRef} value={value} onChange={onChange} onComplete={onComplete} />
+          <CodeInput {...c} ref={inputRef} placeholder={placeholder} value={value} onChange={onChange} onComplete={onComplete} />
         ) : (
           <Input
             {...c}

@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/Card";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -66,7 +65,6 @@ export function ChangeEmailForm() {
   }
 
   return (
-    <Card title={t("account.email.title")} heading="h2">
       <form
         noValidate
         onSubmit={submit}
@@ -122,6 +120,5 @@ export function ChangeEmailForm() {
           {sending ? t("account.email.sending") : t("account.email.submit")}
         </Button>
       </form>
-    </Card>
   );
 }

@@ -9,7 +9,7 @@ import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { PortalLayout } from "@/features/portal/PortalLayout";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 
-const MANAGEMENT = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"];
+export const MANAGEMENT = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"];
 
 /** Atalho "Minha conta" para os cabeçalhos de gestão e de portal (D1: uma só tela para os dois). */
 export function AccountLink({ roleLabel }: { roleLabel?: string }) {

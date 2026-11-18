@@ -137,8 +137,11 @@ export const casos: Caso[] = [
   { nome: "convite-vencido", rota: "/convite/vencido", canvas: "ConviteVencido" },
   { nome: "sem-acesso", rota: "/configuracoes/usuarios", perfil: prof, canvas: "EstadoSemAcesso", canvasCelular: "SemAcessoM" },
   { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #498 trata a tela e remove esta exceção)" } },
-  { nome: "conta-duas-etapas", rota: "/conta", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img', limiteCanvas: { valor: 0.70, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
-  { nome: "conta-codigos-reserva", rota: "/conta", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Gerar códigos de reserva novos" }], aguardar: '[role="dialog"] ul li:nth-child(10)', limiteCanvas: { valor: 0.75, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #490 trata a tela e remove esta exceção)" } },
+  { nome: "conta-duas-etapas", rota: "/conta?aba=duas-etapas", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img' },
+  { nome: "conta-codigos-reserva", rota: "/conta?aba=duas-etapas", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Ver códigos de reserva novos" }, { clicar: "Guardei os códigos em lugar seguro", papel: "checkbox" }], aguardar: '[role="dialog"] ul li:nth-child(10)' },
+  // #490: aba Notificações (Administrador: Receber tudo desabilitado) e a lista de atalhos do celular (GMConta é de 390 px: a 1440 não há comparação, o 390 é conferido nas capturas)
+  { nome: "conta-notificacoes", rota: "/conta?aba=notificacoes", perfil: admin, canvas: "MinhaContaNotificacoes", aguardar: '[role="switch"]' },
+  { nome: "conta-celular", rota: "/conta", perfil: ana, canvas: "GMConta" },
   { nome: "configuracoes-organizacao-contraste", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigOrgContraste", organizacaoCanvas: true, passos: [{ preencher: ["Cor principal", "#F4C430"] }] },
   { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: "duas@exemplo.com", canvas: "TransferirCoordenacao", organizacaoCanvas: true, passos: [{ clicar: "Transferir coordenação" }, { escolher: ["Novo Coordenador", "Carla Mendes"] }, { preencher: ["Sua senha", "segredo123"] }] },
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
@@ -241,7 +244,7 @@ export const semCaso: Record<string, string[]> = {
     "Busca", "FaixasTopo", "Experimentais", "Graduacoes", "GraduacaoLote", "Financeiro",
     "Relatorios", "RelatoriosAlunos", "RelatoriosExperimentais", "RelatoriosAulas", "RelatorioConsolidado", "RelatorioProfessor",
     "ConfigAssinatura", "Historico", "ImportarDados",
-    "ConvitesPortal", "MinhaContaNotificacoes", "Ajuda", "AjudaTour", "Novidades", "PortalMInstalar",
+    "ConvitesPortal", "Ajuda", "AjudaTour", "Novidades", "PortalMInstalar",
     "PortalMPush",
   ],
   // janela, painel, ficha ou etapa que o MSW não alcança por rota ou passo (id gerado, fluxo longo ou dado ausente)
@@ -262,7 +265,7 @@ export const semCaso: Record<string, string[]> = {
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
   "celular a 360 px: o teste visual captura 390 (D5 da #435)": [
     "GMInicio", "GMBusca", "GMInicioCoord", "GMInicioProfessor", "GMNotificacoes",
-    "GMConta", "GMAlunos", "GMFicha", "GMFichaMatricula", "GMFichaFinanceiro",
+    "GMAlunos", "GMFicha", "GMFichaMatricula", "GMFichaFinanceiro",
     "GMFichaResponsaveis", "GMAlunoEditar", "GMEncerrar", "GMAgenda", "GMAulaPainel", "GMAulaEditar",
     "GMAulaCancelar", "GMDiasSemAula", "GMAgendaProfessor", "GMAulaProfessor", "GMCobrancas", "GMPagamento",
     "GMMatricula1", "GMMatricula2", "GMMatricula4", "GMProfessores", "GMProfessorPainel", "GMPedidos",

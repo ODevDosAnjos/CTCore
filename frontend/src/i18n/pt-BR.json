@@ -94,27 +94,36 @@
     },
     "setup": {
       "title": "Ativar duas etapas",
-      "intro": "Leia o QR code com um app autenticador ou digite a chave no app.",
+      "subtitle": "Obrigatória para o Coordenador · configurada no primeiro acesso",
+      "stepRead": "Ler o QR code",
+      "stepConfirm": "Confirmar código",
+      "stepSave": "Guardar códigos",
+      "step1": "Abra o app autenticador no celular (Google Authenticator, Microsoft Authenticator ou outro).",
+      "step2": "Leia o QR code ou digite a chave:",
       "qrAlt": "QR code para ativar as duas etapas",
       "keyLabel": "Chave para digitar",
-      "codeLabel": "Código de 6 dígitos",
-      "submit": "Ativar",
-      "sending": "Ativando...",
+      "codeLabel": "Digite o código de 6 números que aparece no app",
+      "placeholder": "000 000",
+      "warning": "Não existe código por e-mail ou SMS. Guarde os códigos de reserva da próxima etapa.",
+      "submit": "Confirmar",
+      "sending": "Confirmando...",
+      "later": "Agora não",
       "invalid": "Código incorreto. Confira o app e tente de novo.",
       "loading": "Preparando as duas etapas...",
       "codeRequired": "Informe o código de 6 dígitos."
     },
     "codes": {
       "title": "Códigos de reserva",
-      "warning": "Guarde estes códigos num lugar seguro. Eles aparecem só desta vez e cada um vale uma única vez.",
       "list": "Seus códigos de reserva",
-      "copy": "Copiar códigos",
+      "copy": "Copiar",
       "copied": "Códigos copiados.",
-      "download": "Baixar códigos",
+      "download": "Baixar .txt",
       "fileName": "codigos-de-reserva-ctcore.txt",
-      "saved": "Já guardei os códigos",
+      "saved": "Guardei os códigos em lugar seguro",
       "done": "Concluir",
-      "required": "Preencha a senha e o código."
+      "required": "Preencha a senha e o código.",
+      "description": "Cada código vale uma vez. Use quando estiver sem o celular. Os códigos anteriores deixam de valer.",
+      "support": "Sem o celular e sem códigos, só o suporte desliga as duas etapas, depois de confirmar sua identidade."
     },
     "required": {
       "title": "Ative as duas etapas para continuar",
@@ -3606,7 +3615,8 @@
       "currentWrong": "A senha atual está incorreta.",
       "submit": "Trocar senha",
       "sending": "Trocando...",
-      "done": "Senha alterada. As outras sessões foram encerradas."
+      "done": "Senha alterada. As outras sessões foram encerradas.",
+      "modalTitle": "Trocar senha"
     },
     "email": {
       "title": "E-mail",
@@ -3617,31 +3627,40 @@
       "invalid": "Informe outro e-mail válido.",
       "submit": "Enviar link de confirmação",
       "sending": "Enviando...",
-      "sent": "Se o endereço {{email}} puder ser usado, enviamos um link de confirmação. Ele vale por 24 horas."
+      "sent": "Se o endereço {{email}} puder ser usado, enviamos um link de confirmação. Ele vale por 24 horas.",
+      "modalTitle": "Trocar e-mail"
     },
     "twoFactor": {
-      "title": "Duas etapas",
-      "on": "As duas etapas estão ligadas.",
-      "off": "As duas etapas estão desligadas.",
+      "title": "Verificação em duas etapas",
+      "on": "Ativa",
+      "off": "Desligada",
+      "detailOn": "app autenticador · ativada em {{date}}",
+      "detailOff": "As duas etapas estão desligadas.",
       "enable": "Ativar duas etapas",
-      "newCodes": "Gerar códigos de reserva novos",
-      "disable": "Desligar duas etapas",
+      "newCodes": "Ver códigos de reserva novos",
+      "disable": "Desligar",
       "disableTitle": "Desligar duas etapas",
       "disableIntro": "Para desligar, confirme a sua senha e um código.",
       "disableSubmit": "Desligar",
-      "disabling": "Desligando..."
+      "disabling": "Desligando...",
+      "note": "Opcional para Administradores. Obrigatória para o Coordenador."
     },
     "sessions": {
       "title": "Sessões ativas",
-      "current": "Esta sessão",
-      "lastUse": "Último uso:",
+      "current": "Este aparelho",
+      "lastUse": "Último uso",
       "end": "Encerrar",
       "endOne": "Encerrar a sessão em {{device}}",
       "endAll": "Encerrar todas as outras",
       "endAllTitle": "Encerrar as outras sessões?",
       "endAllSummary": "Todos os outros aparelhos vão precisar entrar de novo. Esta sessão continua.",
       "endFailed": "Não conseguimos encerrar a sessão. Tente de novo.",
-      "empty": "Não há outras sessões ativas."
+      "empty": "Não há outras sessões ativas.",
+      "device": "Aparelho",
+      "place": "Local",
+      "note": "Sessões da gestão duram 12 horas; do portal, 30 dias.",
+      "actions": "Ações",
+      "list": "Sessões ativas"
     },
     "confirm": {
       "title": "Confirmar novo e-mail",
@@ -3651,6 +3670,66 @@
       "done": "E-mail alterado. Use o endereço novo para entrar.",
       "invalid": "Este link venceu, já foi usado ou não é desta conta. Peça um novo na tela Minha conta.",
       "back": "Ir para Minha conta"
+    },
+    "subtitle_one": "{{name}} · {{role}} da {{units}}",
+    "subtitle_other": "{{name}} · {{role}} de {{units}}",
+    "subtitleNoUnits": "{{name}} · {{role}}",
+    "tabs": {
+      "label": "Seções de Minha conta",
+      "access": "Acesso",
+      "twoFactor": "Duas etapas",
+      "sessions": "Sessões",
+      "notifications": "Notificações"
+    },
+    "back": "Voltar para Minha conta",
+    "access": {
+      "title": "Acesso",
+      "email": "E-mail",
+      "password": "Senha",
+      "changedAt": "alterada em {{date}}",
+      "never": "nunca alterada",
+      "changeEmail": "Trocar e-mail",
+      "changePassword": "Trocar senha",
+      "note": "O novo e-mail só vale depois de confirmado pelo link (24 horas). O endereço antigo recebe um aviso."
+    },
+    "menu": {
+      "senha": "Senha",
+      "email": "E-mail",
+      "twoFactor": "Duas etapas",
+      "sessions": "Sessões ativas",
+      "notifications": "Notificações",
+      "passwordMonths_one": "alterada há {{count}} mês",
+      "passwordMonths_other": "alterada há {{count}} meses",
+      "passwordRecent": "alterada há menos de 1 mês",
+      "passwordNever": "nunca alterada",
+      "on": "Ligada",
+      "off": "Desligada",
+      "profile": "{{role}} · {{units}}",
+      "profileNoUnits": "{{role}}",
+      "logout": "Sair"
+    },
+    "notifications": {
+      "bell": {
+        "title": "Sino da gestão",
+        "unit": "Notificações da minha unidade",
+        "unitHint": "Pagamentos, comprovantes, pedidos, autocadastros, e-mails com problema",
+        "receiveAll": "Receber tudo",
+        "receiveAllHint": "Receba também o que é de todas as unidades.",
+        "receiveAllLocked": "Só o Coordenador muda. Recebe também o que é das unidades."
+      },
+      "daily": {
+        "title": "Resumo diário por e-mail",
+        "label": "Receber o “Precisa de atenção” todo dia às 7h"
+      },
+      "welcome": {
+        "title": "E-mails de boas-vindas",
+        "label": "Dicas dos primeiros dias"
+      },
+      "discard": "Descartar",
+      "save": "Salvar alterações",
+      "saving": "Salvando...",
+      "saveFailed": "Não foi possível salvar. Sua mudança foi mantida; tente de novo.",
+      "saved": "Preferências salvas."
     }
   },
   "notifications": {
@@ -3678,10 +3757,6 @@
     "empty": {
       "title": "Nenhuma notificação",
       "text": "Quando algo precisar da sua atenção, aparece aqui."
-    },
-    "receiveAll": {
-      "label": "Receber tudo",
-      "hint": "Receber também os avisos de todas as unidades."
     },
     "failed": "Não foi possível concluir. Nada foi alterado; tente de novo.",
     "time": {

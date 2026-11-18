@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { StrictMode } from "react";
@@ -14,7 +14,7 @@ import { TwoFactorSetupDialog } from "./TwoFactorSetupDialog";
 
 const err = (status: number, code: string) =>
   HttpResponse.json({ code, message: "m", changed: false, fields: [], traceId: "t" }, { status });
-const tenCodes = Array.from({ length: 10 }, (_, i) => `CODIGO000${i}`);
+const tenCodes = Array.from({ length: 10 }, (_, i) => `CODIGO00${i}0`);
 const session = (enabled: boolean) =>
   http.get("/api/v1/auth/session", () =>
     HttpResponse.json({ account: { id: "1", email: "a@x.com" }, links: [], twoFactor: { enabled, required: false } }),
@@ -41,22 +41,55 @@ describe("TwoFactorSetupDialog (CA22)", () => {
     const onEnabled = vi.fn();
     wrap(<TwoFactorSetupDialog open onClose={() => {}} onEnabled={onEnabled} />);
     expect(await screen.findByAltText("QR code para ativar as duas etapas")).toHaveAttribute("src", expect.stringContaining("data:image/png"));
-    expect(screen.getByText("JBSWY3DPEHPK3PXP")).toBeInTheDocument();
+    expect(screen.getByText("JBSW Y3DP EHPK 3PXP")).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Código de 6 dígitos"), "111111");
-    await user.click(screen.getByRole("button", { name: "Ativar" }));
+    await user.type(screen.getByLabelText("Digite o código de 6 números que aparece no app"), "111111");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(await screen.findByText("Código incorreto. Confira o app e tente de novo.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Código de 6 dígitos")).toHaveValue("111111");
+    expect(screen.getByLabelText("Digite o código de 6 números que aparece no app")).toHaveValue("111111");
 
-    await user.clear(screen.getByLabelText("Código de 6 dígitos"));
-    await user.type(screen.getByLabelText("Código de 6 dígitos"), "123456");
-    await user.click(screen.getByRole("button", { name: "Ativar" }));
-    expect(await screen.findAllByRole("listitem")).toHaveLength(10);
+    await user.clear(screen.getByLabelText("Digite o código de 6 números que aparece no app"));
+    await user.type(screen.getByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(within(await screen.findByRole("list", { name: "Seus códigos de reserva" })).getAllByRole("listitem")).toHaveLength(10);
     const done = screen.getByRole("button", { name: "Concluir" });
     expect(done).toBeDisabled();
-    await user.click(screen.getByLabelText("Já guardei os códigos"));
+    await user.click(screen.getByLabelText("Guardei os códigos em lugar seguro"));
     await user.click(done);
     expect(onEnabled).toHaveBeenCalledTimes(1);
+  });
+
+  it("mostra os 3 passos, o placeholder e o aviso; Agora não só para quem não é obrigado (CA7)", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const first = wrap(<TwoFactorSetupDialog open onClose={onClose} onEnabled={() => {}} />);
+    await screen.findByAltText("QR code para ativar as duas etapas");
+    expect(screen.getByRole("list", { name: "Etapas" }).textContent).toMatch(/Ler o QR code.*Confirmar código.*Guardar códigos/);
+    expect(screen.getByPlaceholderText("000 000")).toBeInTheDocument();
+    expect(screen.getByText(/Não existe código por e-mail ou SMS/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Agora não" }));
+    expect(onClose).toHaveBeenCalled();
+    first.unmount();
+    wrap(<TwoFactorSetupDialog open required onClose={() => {}} onEnabled={() => {}} />);
+    await screen.findByAltText("QR code para ativar as duas etapas");
+    expect(screen.queryByRole("button", { name: "Agora não" })).toBeNull();
+  });
+
+  it("429 e 403 ao confirmar; o passo 3 não fecha com Esc nem tem botão de fechar (CA7, CA8)", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    server.use(http.post("/api/v1/auth/two-factor/enable", () => err(429, "TOO_MANY_REQUESTS")));
+    wrap(<TwoFactorSetupDialog open onClose={onClose} onEnabled={() => {}} />);
+    await user.type(await screen.findByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText(/Muitas tentativas/)).toBeInTheDocument();
+    server.use(http.post("/api/v1/auth/two-factor/enable", () => HttpResponse.json({ backupCodes: tenCodes })));
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    await screen.findByRole("list", { name: "Seus códigos de reserva" });
+    expect(screen.queryByRole("button", { name: "Fechar" })).toBeNull();
+    await user.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(/Sem o celular e sem códigos/)).toBeInTheDocument();
   });
 
   it("copia e baixa os códigos", async () => {
@@ -65,12 +98,17 @@ describe("TwoFactorSetupDialog (CA22)", () => {
     URL.createObjectURL = vi.fn(() => "blob:x");
     URL.revokeObjectURL = vi.fn();
     wrap(<TwoFactorSetupDialog open onClose={() => {}} onEnabled={() => {}} />);
-    await user.type(await screen.findByLabelText("Código de 6 dígitos"), "123456");
-    await user.click(screen.getByRole("button", { name: "Ativar" }));
-    await screen.findAllByRole("listitem");
-    await user.click(screen.getByRole("button", { name: "Copiar códigos" }));
+    await user.type(await screen.findByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    await screen.findByRole("list", { name: "Seus códigos de reserva" });
+    const writes: string[] = [];
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: (v: string) => { writes.push(v); return Promise.resolve(); } }, configurable: true });
+    await user.click(screen.getByRole("button", { name: "Copiar" }));
     expect(await screen.findByText("Códigos copiados.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Baixar códigos" }));
+    const lines = writes[0].split("\n");
+    expect(lines).toHaveLength(10);
+    expect(lines[0]).toMatch(/^[A-Z0-9]{5}-[A-Z0-9]{5}$/);
+    await user.click(screen.getByRole("button", { name: "Baixar .txt" }));
     expect(click).toHaveBeenCalled();
     click.mockRestore();
   });
@@ -78,7 +116,7 @@ describe("TwoFactorSetupDialog (CA22)", () => {
   it("código incompleto não chama a API; erro e 403 têm estados próprios", async () => {
     const user = userEvent.setup();
     wrap(<TwoFactorSetupDialog open onClose={() => {}} onEnabled={() => {}} />);
-    await user.click(await screen.findByRole("button", { name: "Ativar" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmar" }));
     expect(screen.getByText("Informe o código de 6 dígitos.")).toBeInTheDocument();
   });
 
@@ -113,9 +151,9 @@ describe("TwoFactorSetupDialog (CA22)", () => {
     wrap(<TwoFactorSetupDialog open onClose={() => {}} onEnabled={() => {}} />);
     await screen.findByAltText("QR code para ativar as duas etapas");
     expect(await axeViolations(document.body)).toEqual([]);
-    await user.type(screen.getByLabelText("Código de 6 dígitos"), "123456");
-    await user.click(screen.getByRole("button", { name: "Ativar" }));
-    await screen.findAllByRole("listitem");
+    await user.type(screen.getByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    await screen.findByRole("list", { name: "Seus códigos de reserva" });
     expect(await axeViolations(document.body)).toEqual([]);
   });
 });
@@ -126,12 +164,12 @@ describe("BackupCodesDialog (CA22)", () => {
   it("com códigos, mostra-os e não fecha sem confirmar", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    wrap(<BackupCodesDialog open codes={["AAAAAAAAAA", "BBBBBBBBBB"]} onClose={onClose} />);
-    expect(await screen.findByText("AAAAAAAAAA")).toBeInTheDocument();
+    wrap(<BackupCodesDialog open codes={["AAAAABBBBB", "CCCCCDDDDD"]} onClose={onClose} />);
+    expect(await screen.findByText("AAAAA-BBBBB")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fechar" })).toBeNull();
     await user.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
-    await user.click(screen.getByLabelText("Já guardei os códigos"));
+    await user.click(screen.getByLabelText("Guardei os códigos em lugar seguro"));
     await user.click(screen.getByRole("button", { name: "Concluir" }));
     expect(onClose).toHaveBeenCalled();
   });
@@ -166,9 +204,9 @@ describe("BackupCodesDialog (CA22)", () => {
     server.use(http.post("/api/v1/auth/two-factor/backup-codes", () => err(500, "INTERNAL_ERROR")));
     await user.click(screen.getByRole("button", { name: "Tentar de novo" }));
     expect(await screen.findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
-    server.use(http.post("/api/v1/auth/two-factor/backup-codes", () => HttpResponse.json({ backupCodes: ["AAAAAAAAAA"] })));
+    server.use(http.post("/api/v1/auth/two-factor/backup-codes", () => HttpResponse.json({ backupCodes: ["AAAAABBBBB"] })));
     await user.click(screen.getByRole("button", { name: "Tentar de novo" }));
-    expect(await screen.findByText("AAAAAAAAAA")).toBeInTheDocument();
+    expect(await screen.findByText("AAAAA-BBBBB")).toBeInTheDocument();
     first.unmount();
 
     server.use(http.post("/api/v1/auth/two-factor/backup-codes", () => err(403, "FORBIDDEN")));
@@ -182,7 +220,7 @@ describe("BackupCodesDialog (CA22)", () => {
       window.innerWidth = 360;
       server.use(http.post("/api/v1/auth/two-factor/backup-codes", () => HttpResponse.json({ backupCodes: tenCodes })));
       const { unmount } = wrap(<BackupCodesDialog open onClose={() => {}} />);
-      await screen.findAllByRole("listitem");
+      await screen.findByRole("list", { name: "Seus códigos de reserva" });
       expect(await axeViolations(document.body)).toEqual([]);
       unmount();
     }
