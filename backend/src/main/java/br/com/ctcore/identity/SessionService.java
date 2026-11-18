@@ -23,10 +23,10 @@ public class SessionService {
     static final Duration WRITE_EVERY = Duration.ofMinutes(1);
 
     public record Created(UUID accountId, String token, UUID activeLinkId) {}
-    public record AccountView(UUID id, String email, String name) {}
+    public record AccountView(UUID id, String email, String name, OffsetDateTime passwordChangedAt) {}
     public record LinkView(UUID id, UUID organizationId, String organizationName, String role, Set<UUID> unitIds,
             List<String> unitNames, OffsetDateTime lastAccessAt) {}
-    public record TwoFactorView(boolean enabled, boolean required) {}
+    public record TwoFactorView(boolean enabled, boolean required, OffsetDateTime enabledAt) {}
     public record SessionView(AccountView account, List<LinkView> links, UUID activeLinkId, TwoFactorView twoFactor) {}
 
     record Link(UUID id, UUID organizationId, Role role) {}
@@ -138,13 +138,14 @@ public class SessionService {
     /** Account, active links and the active one, for the front to decide where to go (RN-ACE-16). */
     public SessionView view(UUID accountId, UUID activeLinkId) {
         return accountTx.forAccount(accountId, () -> {
-            AccountView account = jdbc.sql("select id, email, name from account where id = :a").param("a", accountId)
-                    .query((rs, n) -> new AccountView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3))).single();
+            AccountView account = jdbc.sql("select id, email, name, password_changed_at from account where id = :a").param("a", accountId)
+                    .query((rs, n) -> new AccountView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getObject(4, OffsetDateTime.class))).single();
+            OffsetDateTime enabledAt = twoFactor.enabledAt(accountId);
             List<LinkView> links = activeLinks(accountId).stream()
                     .map(l -> new LinkView(l.id(), l.organizationId(), organizationName(l.organizationId()), l.role().name(), unitsOf(l.id()),
                             unitNames(l.id()), lastAccessAt(l.id()))).toList();
             return new SessionView(account, links, activeLinkId,
-                    new TwoFactorView(twoFactor.enabled(accountId), twoFactor.requiredFor(accountId)));
+                    new TwoFactorView(enabledAt != null, twoFactor.requiredFor(accountId), enabledAt));
         });
     }
 

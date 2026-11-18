@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { notificationTarget, relativeTime } from "./notificationActions";
 import { useNotificationPanel, type AppNotification } from "./useNotifications";
@@ -56,7 +55,6 @@ export function NotificationPanel({ onClose, onUnread }: { onClose: () => void; 
   const close = onClose;
 
   const markAll = () => panel.readAll().then(() => setFailed(false), () => setFailed(true));
-  const toggle = (value: boolean) => panel.setReceiveAll(value).then(() => setFailed(false), () => setFailed(true));
 
   let body;
   if (panel.status === "loading") body = <LoadingState />;
@@ -95,15 +93,6 @@ export function NotificationPanel({ onClose, onUnread }: { onClose: () => void; 
   return (
     <div className="flex flex-col gap-4">
         <h2 className="font-heading text-xl font-semibold">{t("notifications.title")}</h2>
-        {panel.prefs?.canReceiveAll && (
-          <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
-            <span className="flex flex-col">
-              <span className="font-medium">{t("notifications.receiveAll.label")}</span>
-              <span className="text-muted-foreground">{t("notifications.receiveAll.hint")}</span>
-            </span>
-            <Switch checked={panel.prefs.receiveAll} onCheckedChange={toggle} label={t("notifications.receiveAll.label")} />
-          </label>
-        )}
         {panel.status === "ready" && items.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div role="group" aria-label={t("notifications.filters.label")} className="flex gap-2">

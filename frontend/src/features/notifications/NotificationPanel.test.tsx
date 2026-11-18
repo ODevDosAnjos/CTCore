@@ -40,13 +40,12 @@ const initial = (): NotificationList => ({
 
 let data: NotificationList;
 let readAlls: number;
-let puts: unknown[];
+let prefsCalls: number;
 
 function setup(role: string, over: { list?: () => Response | Promise<Response>; count?: () => Response | Promise<Response>; prefs?: boolean } = {}) {
   data = initial();
   readAlls = 0;
-  puts = [];
-  let receiveAll = false;
+  prefsCalls = 0;
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
@@ -59,12 +58,9 @@ function setup(role: string, over: { list?: () => Response | Promise<Response>; 
       data = { items: data.items.map((n) => ({ ...n, readAt: n.readAt ?? "2026-10-24T11:00:00Z" })), unreadCount: 0 };
       return HttpResponse.json({ changed });
     }),
-    http.get("/api/v1/notifications/preferences", () => HttpResponse.json({ receiveAll, canReceiveAll: role === "COORDINATOR" })),
-    http.put("/api/v1/notifications/preferences", async ({ request }) => {
-      const body = (await request.json()) as { receiveAll: boolean };
-      puts.push(body);
-      receiveAll = body.receiveAll;
-      return HttpResponse.json({ receiveAll, canReceiveAll: true });
+    http.get("/api/v1/notifications/preferences", () => {
+      prefsCalls += 1;
+      return HttpResponse.json({ receiveAll: false, canReceiveAll: role === "COORDINATOR" });
     }),
   );
   return render(
@@ -136,15 +132,15 @@ describe("NotificationPanel (RF-NOT-01)", () => {
     expect(within(button).queryByText(/\d/)).not.toBeInTheDocument();
   });
 
-  it("CA16: o Coordenador vê Receber tudo e a mudança envia o PUT; o Administrador não vê a chave", async () => {
+  it("CA11 (#490): o painel do Coordenador não tem Receber tudo e não consulta as preferências; sobram filtros e Marcar todas como lidas", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     const panel = await openPanel(user);
-    const toggle = await within(panel).findByRole("switch", { name: /Receber tudo/ });
-    expect(toggle).not.toBeChecked();
-    await user.click(toggle);
-    await waitFor(() => expect(puts).toEqual([{ receiveAll: true }]));
-    await waitFor(() => expect(toggle).toBeChecked());
+    expect(await within(panel).findByRole("button", { name: "Marcar todas como lidas" })).toBeInTheDocument();
+    expect(within(panel).getByRole("group", { name: "Filtrar notificações" })).toBeInTheDocument();
+    expect(within(panel).queryByText("Receber tudo")).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("switch")).not.toBeInTheDocument();
+    expect(prefsCalls).toBe(0);
   });
 
   it("CA17: carregando, vazio, erro com tentar de novo e sem permissão", async () => {
@@ -199,7 +195,6 @@ describe("NotificationPanel (RF-NOT-01)", () => {
     setup("COORDINATOR");
     const panel = await openPanel(user);
     await within(panel).findByRole("heading", { name: "Hoje" });
-    await within(panel).findByRole("switch");
     expect(await axeViolations(document.body)).toEqual([]);
   });
 });

@@ -20,6 +20,7 @@ export function Modal({
   headless,
   fullOnMobile,
   tone,
+  subtitle,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +42,8 @@ export function Modal({
   fullOnMobile?: boolean;
   /** "danger": título em vermelho (janelas de desativar do canvas). */
   tone?: "danger";
+  /** Linha de apoio sob o título (janelas em assistente do canvas). */
+  subtitle?: string;
 }) {
   const { t } = useTranslation();
   const opener = useRef<HTMLElement | null>(null);
@@ -78,7 +81,14 @@ export function Modal({
                   </Button>
                 </Dialog.Close>
               )}
-              <Dialog.Title className={cn("font-heading font-semibold", tone === "danger" && "text-danger-foreground", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
+              {subtitle ? (
+                <div className="min-w-0 flex-1">
+                  <Dialog.Title className={cn("font-heading font-semibold", tone === "danger" && "text-danger-foreground", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
+                  <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+                </div>
+              ) : (
+                <Dialog.Title className={cn("font-heading font-semibold", tone === "danger" && "text-danger-foreground", size ? "text-[28px] uppercase leading-none" : "text-xl")}>{title}</Dialog.Title>
+              )}
               {dismissible && (
                 <Dialog.Close asChild>
                   <Button variant="ghost" size="icon" aria-label={t("common.close")}>

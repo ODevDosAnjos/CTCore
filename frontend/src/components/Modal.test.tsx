@@ -95,6 +95,16 @@ describe("CA15/CA17: visual", () => {
     expect(corpo).not.toContainElement(rodape);
   });
 
+  it("#490: subtitle aparece sob o título, na faixa do cabeçalho", () => {
+    render(
+      <Modal open onOpenChange={() => {}} title="Ativar" subtitle="Apoio do título" size="md">
+        <p>corpo</p>
+      </Modal>,
+    );
+    expect(screen.getByText("Apoio do título")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Ativar" })).toBeInTheDocument();
+  });
+
   it("dismissible=false: sem X", () => {
     render(<Modal open onOpenChange={() => {}} title="Detalhes" dismissible={false}>x</Modal>);
     expect(screen.queryByRole("button", { name: "Fechar" })).not.toBeInTheDocument();

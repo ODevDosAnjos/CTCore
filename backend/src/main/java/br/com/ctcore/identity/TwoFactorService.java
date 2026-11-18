@@ -73,6 +73,11 @@ public class TwoFactorService {
                 .param("a", accountId).query(Boolean.class).single());
     }
 
+    public java.time.OffsetDateTime enabledAt(UUID accountId) {
+        return accountTx.forAccount(accountId, () -> jdbc.sql("select enabled_at from account_two_factor where account_id = :a")
+                .param("a", accountId).query((rs, n) -> rs.getObject(1, java.time.OffsetDateTime.class)).optional().orElse(null));
+    }
+
     /** The one place that says who must have two-step: an active Coordinator link (the platform staff joins here, D2). */
     public boolean requiredFor(UUID accountId) {
         return accountTx.forAccount(accountId, () -> jdbc.sql(

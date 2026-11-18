@@ -140,8 +140,12 @@ export function PortalAccount() {
       <h2 id="portal-account" className="text-xl font-semibold">
         {t("portalInfo.account.title")}
       </h2>
-      <ChangePasswordForm onChanged={sessions.reload} />
-      <ChangeEmailForm />
+      <Card title={t("account.password.title")} heading="h2">
+        <ChangePasswordForm onChanged={sessions.reload} />
+      </Card>
+      <Card title={t("account.email.title")} heading="h2">
+        <ChangeEmailForm />
+      </Card>
       <TwoFactorSection />
       <SessionsSection {...sessions} />
     </section>

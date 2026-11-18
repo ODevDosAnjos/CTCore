@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { WindowSteps } from "@/components/ui/window-steps";
 import { ApiError, api } from "@/lib/api";
-import { BackupCodesPanel } from "./BackupCodesDialog";
+import { BackupCodesBody, BackupCodesFooter } from "./BackupCodesDialog";
 import { CodeField } from "./CodeField";
 
 type Setup = { secret: string; otpauthUri: string };
@@ -16,26 +17,25 @@ type Phase =
   | { name: "form"; setup: Setup; qr: string }
   | { name: "codes"; codes: string[] };
 
-/** Janela "Ativar duas etapas" (canvas DuasEtapas): QR e chave, código, e por fim os códigos de reserva. */
-export function TwoFactorSetupDialog({ open, onClose, onEnabled }: { open: boolean; onClose: () => void; onEnabled: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <Modal open={open} onOpenChange={(o) => !o && onClose()} title={t("twoFactor.setup.title")}>
-      <Body onClose={onClose} onEnabled={onEnabled} />
-    </Modal>
-  );
-}
+/** Chave em grupos de 4 ("JBSW Y3DP EHPK 3PXP"), mais fácil de digitar no app. */
+const groupKey = (secret: string) => secret.replace(/\s/g, "").match(/.{1,4}/g)?.join(" ") ?? secret;
 
-// Só existe com a janela aberta: cada abertura gera um segredo novo (o servidor substitui o pendente).
-function Body({ onClose, onEnabled }: { onClose: () => void; onEnabled: () => void }) {
+/**
+ * Janela "Ativar duas etapas" (canvas DuasEtapas): passos 1 e 2 na mesma tela (QR, chave e código) e o 3 nos códigos de reserva (D4).
+ * `required`: quem é obrigado (Coordenador) não tem "Agora não" (RN-ACE-17).
+ */
+export function TwoFactorSetupDialog({ open, onClose, onEnabled, required = false }: { open: boolean; onClose: () => void; onEnabled: () => void; required?: boolean }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [saved, setSaved] = useState(false);
 
+  // Só com a janela aberta: cada abertura gera um segredo novo (o servidor substitui o pendente).
   useEffect(() => {
+    if (!open) return;
     let live = true;
     api<Setup>("/auth/two-factor/setup", { method: "POST" })
       .then(async (setup) => {
@@ -48,7 +48,7 @@ function Body({ onClose, onEnabled }: { onClose: () => void; onEnabled: () => vo
     return () => {
       live = false;
     };
-  }, [attempt]);
+  }, [open, attempt]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -71,13 +71,19 @@ function Body({ onClose, onEnabled }: { onClose: () => void; onEnabled: () => vo
     }
   }
 
+  const inCodes = phase.name === "codes";
+  const steps = [t("twoFactor.setup.stepRead"), t("twoFactor.setup.stepConfirm"), t("twoFactor.setup.stepSave")];
+  let body;
+  let footer;
   switch (phase.name) {
     case "loading":
-      return <LoadingState text={t("twoFactor.setup.loading")} />;
+      body = <LoadingState text={t("twoFactor.setup.loading")} />;
+      break;
     case "forbidden":
-      return <ForbiddenState />;
+      body = <ForbiddenState />;
+      break;
     case "failed":
-      return (
+      body = (
         <ErrorState
           onRetry={() => {
             setPhase({ name: "loading" });
@@ -85,27 +91,47 @@ function Body({ onClose, onEnabled }: { onClose: () => void; onEnabled: () => vo
           }}
         />
       );
+      break;
     case "codes":
-      return <BackupCodesPanel codes={phase.codes} onDone={onEnabled} />;
+      body = <BackupCodesBody codes={phase.codes} />;
+      footer = <BackupCodesFooter saved={saved} onSaved={setSaved} onDone={onEnabled} />;
+      break;
     case "form":
-      return (
-        <form noValidate onSubmit={submit} className="space-y-4" aria-busy={sending}>
-          <p className="text-sm">{t("twoFactor.setup.intro")}</p>
-          <img src={phase.qr} width={192} height={192} alt={t("twoFactor.setup.qrAlt")} className="mx-auto rounded-md" />
-          <div>
-            <p className="text-sm font-medium">{t("twoFactor.setup.keyLabel")}</p>
-            <p className="break-all font-mono text-sm">{phase.setup.secret}</p>
-          </div>
-          <CodeField id="setup-code" label={t("twoFactor.setup.codeLabel")} value={code} onChange={setCode} error={error} />
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={sending}>
-              {sending ? t("twoFactor.setup.sending") : t("twoFactor.setup.submit")}
-            </Button>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              {t("common.cancel")}
-            </Button>
+      body = (
+        <form id="two-factor-setup" noValidate onSubmit={submit} className="grid gap-6 sm:grid-cols-[auto_1fr]" aria-busy={sending}>
+          <img src={phase.qr} width={192} height={192} alt={t("twoFactor.setup.qrAlt")} className="mx-auto size-48 rounded-md border" />
+          <div className="min-w-0 space-y-4">
+            <p className="text-sm">{t("twoFactor.setup.step1")}</p>
+            <div className="space-y-2">
+              <p className="text-sm">{t("twoFactor.setup.step2")}</p>
+              <p aria-label={t("twoFactor.setup.keyLabel")} className="break-all rounded-md border bg-surface-soft px-3 py-2 font-mono text-base">{groupKey(phase.setup.secret)}</p>
+            </div>
+            <CodeField id="setup-code" label={t("twoFactor.setup.codeLabel")} placeholder={t("twoFactor.setup.placeholder")} value={code} onChange={setCode} error={error} />
+            <p className="text-sm text-muted-foreground">{t("twoFactor.setup.warning")}</p>
           </div>
         </form>
       );
+      footer = (
+        <>
+          {!required && (
+            <Button type="button" variant="ghost" onClick={onClose}>
+              {t("twoFactor.setup.later")}
+            </Button>
+          )}
+          <Button type="submit" form="two-factor-setup" disabled={sending}>
+            {sending ? t("twoFactor.setup.sending") : t("twoFactor.setup.submit")}
+          </Button>
+        </>
+      );
+      break;
   }
+
+  return (
+    <Modal open={open} onOpenChange={(o) => !o && !inCodes && onClose()} title={t("twoFactor.setup.title")} subtitle={t("twoFactor.setup.subtitle")} size="md" scrim="canvas" dismissible={!inCodes} footer={footer}>
+      <div className="space-y-4">
+        <WindowSteps steps={steps} current={inCodes ? 3 : code ? 2 : 1} />
+        {body}
+      </div>
+    </Modal>
+  );
 }

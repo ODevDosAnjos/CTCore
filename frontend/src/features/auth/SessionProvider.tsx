@@ -2,10 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api, ApiError } from "@/lib/api";
 
 export interface SessionView {
-  account: { id: string; email: string; name?: string | null };
+  account: { id: string; email: string; name?: string | null; passwordChangedAt?: string | null };
   links: { id: string; organizationId: string; organizationName: string; role: string; unitIds: string[]; unitNames?: string[]; lastAccessAt?: string | null }[];
   activeLinkId?: string | null;
-  twoFactor: { enabled: boolean; required: boolean };
+  twoFactor: { enabled: boolean; required: boolean; enabledAt?: string | null };
 }
 
 type State = { status: "loading" | "anon" | "error"; out?: boolean } | { status: "ready"; session: SessionView };

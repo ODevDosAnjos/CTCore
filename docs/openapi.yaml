@@ -3862,6 +3862,7 @@ components:
         id: { type: string, format: uuid }
         email: { type: string }
         name: { type: string, nullable: true }
+        passwordChangedAt: { type: string, format: date-time, nullable: true, description: "Última troca de senha (troca, redefinição ou senha do convite); vazio para conta que nunca trocou a senha desde a criação." }
     LinkView:
       type: object
       required: [id, organizationId, organizationName, role, unitIds, unitNames]
@@ -3954,6 +3955,7 @@ components:
       required: [enabled, required]
       properties:
         enabled: { type: boolean }
+        enabledAt: { type: string, format: date-time, nullable: true, description: "Quando as duas etapas foram ativadas; vazio com elas desligadas." }
         required: { type: boolean, description: "Verdadeiro para quem tem vínculo ativo de Coordenador; sem as duas etapas a sessão só alcança a configuração (403 TWO_FACTOR_SETUP_REQUIRED nas demais rotas)." }
     SessionView:
       type: object

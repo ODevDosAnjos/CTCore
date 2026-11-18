@@ -1,6 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/Card";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -61,7 +60,6 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
   }
 
   return (
-    <Card title={t("account.password.title")} heading="h2">
       <form
         noValidate
         onSubmit={submit}
@@ -102,6 +100,5 @@ export function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
             : t("account.password.submit")}
         </Button>
       </form>
-    </Card>
   );
 }

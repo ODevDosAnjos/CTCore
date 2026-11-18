@@ -23,7 +23,7 @@ export function TwoFactorRequiredPage() {
           {pending ? t("auth.logout.pending") : t("auth.logout.label")}
         </Button>
       </div>
-      <TwoFactorSetupDialog open={open} onClose={() => setOpen(false)} onEnabled={() => void refresh()} />
+      {open && <TwoFactorSetupDialog open required onClose={() => setOpen(false)} onEnabled={() => void refresh()} />}
     </AuthShell>
   );
 }

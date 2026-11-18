@@ -12,15 +12,20 @@ test("@critical troca de senha encerrando as outras sessões", async ({ page }) 
   await page.getByRole("button", { name: /Menu da conta/ }).click();
   await page.getByRole("menuitem", { name: "Minha conta" }).click();
   await expect(page.getByRole("heading", { name: "Minha conta", level: 1 })).toBeVisible();
+  await page.getByRole("tab", { name: "Sessões" }).click();
   await expect(page.getByText("Safari em iOS")).toBeVisible();
-
-  await page.getByLabel("Senha atual").fill("Atual12345");
-  await page.locator("#acc-senha").fill("NovaSenha123");
-  await page.getByLabel("Confirmar senha").fill("NovaSenha123");
+  await page.getByRole("tab", { name: "Acesso" }).click();
   await page.getByRole("button", { name: "Trocar senha" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Senha atual").fill("Atual12345");
+  await dialog.locator("#acc-senha").fill("NovaSenha123");
+  await dialog.getByLabel("Confirmar senha").fill("NovaSenha123");
+  await dialog.getByRole("button", { name: "Trocar senha" }).click();
 
-  await expect(page.getByText("Senha alterada. As outras sessões foram encerradas.")).toBeVisible();
+  await expect(dialog.getByText("Senha alterada. As outras sessões foram encerradas.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: "Sessões" }).click();
   await expect(page.getByText("Safari em iOS")).toHaveCount(0);
   await expect(page.getByText("Chrome em Windows")).toBeVisible();
-  await expect(page.getByText("Esta sessão")).toBeVisible();
+  await expect(page.getByText("Este aparelho")).toBeVisible();
 });
