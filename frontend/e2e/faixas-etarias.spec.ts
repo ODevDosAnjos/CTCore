@@ -16,17 +16,17 @@ test("@critical Coordenador cria uma faixa etária", async ({ page }) => {
   await expect(nav.getByRole("link", { name: "Faixas etárias" })).toBeVisible();
   await open(page, "/configuracoes/faixas-etarias"); // o link recarrega a página e a sessão simulada se perderia
   await expect(page.getByRole("heading", { name: "Faixas etárias", level: 1 })).toBeVisible();
-  await expect(page.getByText("Adulto · 18 anos ou mais")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Adulto", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Nova faixa" }).click();
+  await page.getByRole("button", { name: "Nova faixa etária" }).click();
   const dialog = page.getByRole("dialog", { name: "Nova faixa etária" });
   await dialog.getByLabel("Nome da faixa").fill("Master");
   await dialog.getByLabel("Idade mínima").fill("35");
   await dialog.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText("Master · 35 anos ou mais")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Master", exact: true })).toBeVisible();
 
   await open(page, "/");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/faixas-etarias");
-  await expect(page.getByText("Master · 35 anos ou mais")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Master", exact: true })).toBeVisible();
 });

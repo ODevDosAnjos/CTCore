@@ -369,7 +369,14 @@ const checkText = (key: string, field: "subject" | "body", text: string, max: nu
   }
   return null;
 };
-const sortedAgeRanges = () => [...ageRanges].sort((a, b) => a.minAge - b.minAge || a.name.localeCompare(b.name));
+// "Usada em" (RF-MOD-04): turmas da faixa, ativas ou não; até dois nomes em ordem. Última alteração fixa do simulado (RF-ORG-08).
+const usedIn = (r: MockAgeRange) => {
+  const names = mockClasses.filter((c) => c.ageRange === r.name).map((c) => c.name).sort((a, b) => a.localeCompare(b));
+  return { count: names.length, names: names.slice(0, 2) };
+};
+const withUsage = (r: MockAgeRange) => ({ ...r, usedIn: usedIn(r) });
+const AGE_RANGE_LAST_CHANGE = { at: "2026-10-02T17:12:00Z", by: "Marcos Leão" };
+const sortedAgeRanges = () => [...ageRanges].sort((a, b) => a.minAge - b.minAge || a.name.localeCompare(b.name)).map(withUsage);
 const checkAgeRange = (body: AgeRangeInput, id: string | null): MockAgeRange | Response => {
   const bad = (field: string, message: string) => error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field, message }]);
   const name = body.name?.trim() ?? "";
@@ -2573,7 +2580,7 @@ export const routes: Route[] = [
   {
     method: "get",
     path: "/age-ranges",
-    resolver: () => organizationAccess(false) ?? HttpResponse.json({ canManage: activeRole() === "COORDINATOR", items: sortedAgeRanges() }),
+    resolver: () => organizationAccess(false) ?? HttpResponse.json({ canManage: activeRole() === "COORDINATOR", items: sortedAgeRanges(), lastChange: AGE_RANGE_LAST_CHANGE }),
   },
   {
     method: "post",
@@ -2584,7 +2591,7 @@ export const routes: Route[] = [
       const checked = checkAgeRange((await request.json()) as AgeRangeInput, null);
       if (checked instanceof Response) return checked;
       ageRanges = [...ageRanges, checked];
-      return HttpResponse.json(checked, { status: 201 });
+      return HttpResponse.json(withUsage(checked), { status: 201 });
     },
   },
   {
@@ -2597,7 +2604,7 @@ export const routes: Route[] = [
       const checked = checkAgeRange((await request.json()) as AgeRangeInput, params.id as string);
       if (checked instanceof Response) return checked;
       ageRanges = ageRanges.map((r) => (r.id === params.id ? checked : r));
-      return HttpResponse.json(checked);
+      return HttpResponse.json(withUsage(checked));
     },
   },
   {

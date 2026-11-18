@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa") {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -234,6 +234,23 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         }
       }, modalidadesCanvas);
     }
+    if (faixasCanvas) {
+      // #486: as três faixas do canvas, com "Usada em" (duas turmas, uma, sete) e a última alteração de Marcos Leão
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(() => {
+        const faixa = (id: string, name: string, minAge: number, maxAge: number | null, count: number, names: string[]) => ({ id, name, minAge, maxAge, usedIn: { count, names } });
+        (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({
+          method: "get",
+          path: "/age-ranges",
+          status: 200,
+          body: {
+            canManage: true,
+            items: [faixa("r1", "Infantil", 4, 12, 2, ["Turmas Kids", "Muay Thai Kids"]), faixa("r2", "Juvenil", 13, 17, 1, ["Jiu-Jitsu Juvenil"]), faixa("r3", "Adulto", 18, null, 7, ["A", "B"])],
+            lastChange: { at: "2026-10-02T17:12:00Z", by: "Marcos Leão" },
+          },
+        });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -308,7 +325,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

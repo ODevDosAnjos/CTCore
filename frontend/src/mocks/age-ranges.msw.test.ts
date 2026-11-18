@@ -33,6 +33,9 @@ describe("faixas etárias x OpenAPI (RF-MOD-04, CA11)", () => {
     expect(data.items.map((i: { name: string }) => i.name)).toEqual(["Infantil", "Juvenil", "Adulto"]);
     expect(Object.keys(data.items[0]).sort()).toEqual([...openapi.components.schemas.AgeRange.required].sort());
     expect(data.items[2].maxAge).toBeNull();
+    expect(data.items.map((i: { usedIn: { count: number } }) => i.usedIn.count)).toEqual([1, 0, 1]);
+    expect(data.items[0].usedIn.names).toEqual(["Judô Infantil"]);
+    expect(data.lastChange.by).toBe("Marcos Leão");
 
     const created = await create({ name: "Master", minAge: 35 });
     expect(created.status).toBe(201);
@@ -44,7 +47,7 @@ describe("faixas etárias x OpenAPI (RF-MOD-04, CA11)", () => {
     expect((await create({ name: "Teste", minAge: 10, maxAge: 9 })).status).toBe(400);
     const changed = await change(master.id, { name: "Veterano", minAge: 40, maxAge: 60 });
     expect(changed.status).toBe(200);
-    expect(await changed.json()).toEqual({ id: master.id, name: "Veterano", minAge: 40, maxAge: 60 });
+    expect(await changed.json()).toEqual({ id: master.id, name: "Veterano", minAge: 40, maxAge: 60, usedIn: { count: 0, names: [] } });
     expect((await change(master.id, { name: "adulto", minAge: 40 })).status).toBe(409);
     expect((await change("00000000-0000-0000-0000-0000000009ff", { name: "Z1", minAge: 1 })).status).toBe(404);
     expect((await remove(master.id)).status).toBe(204);

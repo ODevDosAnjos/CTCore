@@ -1947,13 +1947,27 @@
   },
   "ageRanges": {
     "title": "Faixas etárias",
-    "intro": "As faixas organizam turmas, aulas experimentais e o diretório. A idade de cada aluno continua calculada pelo nascimento.",
-    "listTitle": "Faixas da organização",
+    "subtitle": "Administrativas: organizam turmas, diretório e aula experimental. A idade do aluno é sempre calculada pelo nascimento.",
+    "columns": {
+      "name": "Nome",
+      "minAge": "Idade mínima",
+      "maxAge": "Idade máxima",
+      "usedIn": "Usada em",
+      "actions": "Ações"
+    },
+    "noMax": "—",
+    "usedIn": {
+      "none": "Sem turmas",
+      "two": "{{first}} e {{second}}",
+      "many": "{{count}} turmas"
+    },
+    "competitionNote": "Categorias de competição (IBJJF, CBJ e outras) não entram no cadastro: variam por modalidade e regulamento. Fora da faixa, o sistema só avisa.",
     "range": "{{min}} a {{max}} anos",
     "openEnded_one": "{{count}} ano ou mais",
     "openEnded_other": "{{count}} anos ou mais",
-    "create": "Nova faixa",
+    "create": "Nova faixa etária",
     "edit": "Editar",
+    "editFor": "Editar {{name}}",
     "delete": "Apagar",
     "saved": "Faixa etária salva",
     "deleted": "Faixa {{name}} apagada",
