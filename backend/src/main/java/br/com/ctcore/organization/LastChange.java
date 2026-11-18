@@ -20,4 +20,15 @@ public record LastChange(OffsetDateTime at, String by) {
                 .param("org", organizationId).param("type", entityType).param("entity", entityId.toString()).param("actions", actions)
                 .query((rs, i) -> new LastChange(rs.getObject(1, OffsetDateTime.class), rs.getString(2))).optional().orElse(null);
     }
+
+    /** Como {@link #find}, mas do último registro de qualquer entidade do tipo na organização (listas sem entidade única). */
+    public static LastChange findByType(JdbcClient jdbc, UUID organizationId, String entityType, List<String> actions) {
+        return jdbc.sql("""
+                select a.occurred_at, coalesce(nullif(btrim(c.name), ''), c.email)
+                from audit_log a left join account c on c.id = a.actor_id
+                where a.organization_id = :org and a.entity_type = :type and a.action in (:actions)
+                order by a.occurred_at desc limit 1""")
+                .param("org", organizationId).param("type", entityType).param("actions", actions)
+                .query((rs, i) -> new LastChange(rs.getObject(1, OffsetDateTime.class), rs.getString(2))).optional().orElse(null);
+    }
 }

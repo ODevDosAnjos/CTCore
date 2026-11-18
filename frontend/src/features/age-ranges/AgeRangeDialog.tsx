@@ -45,11 +45,14 @@ export function AgeRangeDialog({
   open,
   onClose,
   onSave,
+  onDelete,
 }: {
   range: AgeRange | null;
   open: boolean;
   onClose: () => void;
   onSave: (input: AgeRangeInput) => Promise<unknown>;
+  /** Só na edição: "Apagar" no rodapé, que abre a confirmação (RN-ORG-17). */
+  onDelete?: () => void;
 }) {
   const { t } = useTranslation();
   // A janela é montada de novo a cada abertura (key no chamador): o estado inicial vem da faixa.
@@ -97,9 +100,31 @@ export function AgeRangeDialog({
     }
   }
 
+  const formId = "age-range-form";
   return (
-    <Modal open={open} onOpenChange={(o) => !o && onClose()} title={range ? t("ageRanges.dialog.editTitle") : t("ageRanges.dialog.createTitle")}>
+    <Modal
+      open={open}
+      scrim="canvas"
+      onOpenChange={(o) => !o && onClose()}
+      title={range ? t("ageRanges.dialog.editTitle") : t("ageRanges.dialog.createTitle")}
+      footer={
+        <>
+          {onDelete && (
+            <Button type="button" variant="dangerSolid" className="mr-auto" disabled={busy} onClick={onDelete}>
+              {t("ageRanges.delete")}
+            </Button>
+          )}
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit" form={formId} disabled={busy}>
+            {busy ? t("ageRanges.dialog.saving") : t("ageRanges.dialog.save")}
+          </Button>
+        </>
+      }
+    >
       <form
+        id={formId}
         className="flex flex-col gap-3"
         noValidate
         onSubmit={(e) => {
@@ -111,14 +136,6 @@ export function AgeRangeDialog({
         <FieldInput id="minAge" label={t("ageRanges.dialog.minAge")} value={min} error={error("minAge")} numeric onChange={(v) => change(setMin, v)} />
         <FieldInput id="maxAge" label={t("ageRanges.dialog.maxAge")} value={max} error={error("maxAge")} numeric onChange={(v) => change(setMax, v)} />
         <p className="text-sm text-muted-foreground">{t("ageRanges.dialog.hint")}</p>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button type="submit" disabled={busy}>
-            {busy ? t("ageRanges.dialog.saving") : t("ageRanges.dialog.save")}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

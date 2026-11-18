@@ -141,6 +141,49 @@ class AgeRangeIT extends OrganizationBase {
         assertThat(audits(t, "age_range.deleted")).isEqualTo(1);
     }
 
+    private void klass(Tenant t, UUID modality, UUID teacher, UUID range, String name, String status) {
+        adminJdbc().update("insert into training_class (id, organization_id, unit_id, name, name_key, modality_id, age_range_id, head_teacher_id, status) "
+                + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)", UUID.randomUUID(), t.orgId(), t.unitId(), name, name.toLowerCase(), modality, range, teacher, status);
+    }
+
+    @Test
+    @DisplayName("CA9: usedIn conta turmas (até dois nomes, em ordem, desativadas contam), sem vazar de outra organização; lastChange nulo e depois preenchido")
+    void usedInAndLastChange() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        var c = who(t, Role.COORDINATOR);
+        UUID modality = adminJdbc().queryForObject("select id from modality limit 1", UUID.class);
+        UUID teacher = UUID.randomUUID();
+        adminJdbc().update("insert into teacher (id, organization_id, name, name_key) values (?, ?, 'Prof', 'prof')", teacher, t.orgId());
+        adminJdbc().update("insert into teacher (id, organization_id, name, name_key) values (?, ?, 'Prof', 'prof')", UUID.randomUUID(), other.orgId());
+        UUID teacherOther = adminJdbc().queryForObject("select id from teacher where organization_id = ?", UUID.class, other.orgId());
+        for (UUID org : new UUID[] {t.orgId(), other.orgId()})
+            adminJdbc().update("insert into organization_modality (organization_id, modality_id, active) values (?, ?, true) on conflict do nothing", org, modality);
+        klass(t, modality, teacher, idOf(t, "Infantil"), "Turma B", "ACTIVE");
+        klass(t, modality, teacher, idOf(t, "Infantil"), "Turma A", "INACTIVE");
+        klass(t, modality, teacher, idOf(t, "Infantil"), "Turma C", "ACTIVE");
+        klass(t, modality, teacher, idOf(t, "Juvenil"), "Turma J", "ACTIVE");
+        klass(other, modality, teacherOther, idOf(other, "Adulto"), "Turma X", "ACTIVE");
+
+        var first = body(send(list(), c));
+        assertThat(first.get("lastChange").isNull()).isTrue();
+        var items = first.get("items");
+        assertThat(items.get(0).get("usedIn").get("count").asInt()).isEqualTo(3);
+        assertThat(items.get(0).get("usedIn").get("names")).hasSize(2);
+        assertThat(items.get(0).get("usedIn").get("names").get(0).asText()).isEqualTo("Turma A");
+        assertThat(items.get(0).get("usedIn").get("names").get(1).asText()).isEqualTo("Turma B");
+        assertThat(items.get(1).get("usedIn").get("count").asInt()).isEqualTo(1);
+        assertThat(items.get(2).get("usedIn").get("count").asInt()).isZero();
+        assertThat(items.get(2).get("usedIn").get("names")).isEmpty();
+
+        assertThat(send(create("{\"name\":\"Master\",\"minAge\":35}"), c).getStatus()).isEqualTo(201);
+        var last = body(send(list(), c)).get("lastChange");
+        assertThat(last.get("at").isNull()).isFalse();
+        assertThat(body(send(list(), who(other, Role.COORDINATOR))).get("lastChange").isNull()).isTrue();
+        var put = body(send(change(idOf(t, "Infantil"), "{\"name\":\"Infantil\",\"minAge\":4,\"maxAge\":11}"), c));
+        assertThat(put.get("usedIn").get("count").asInt()).isEqualTo(3);
+    }
+
     @Test
     @DisplayName("CA6: Administrador lê sem gerenciar e não escreve; Professor e portal 403; anônimo 401")
     void permissions() throws Exception {

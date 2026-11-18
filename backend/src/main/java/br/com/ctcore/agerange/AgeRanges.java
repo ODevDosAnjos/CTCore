@@ -8,12 +8,14 @@ import br.com.ctcore.audit.AuditEntry;
 import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.isolation.OrganizationTransactions;
+import br.com.ctcore.organization.LastChange;
 import br.com.ctcore.modality.Modalities;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +33,14 @@ public class AgeRanges {
     static final int MAX_NAME = 40;
     static final int MAX_AGE = 120;
 
-    public record Item(UUID id, String name, int minAge, Integer maxAge) {}
+    /** Turmas que usam a faixa: total e até dois nomes, em ordem (RF-MOD-04; só turmas guardam faixa hoje). */
+    public record UsedIn(int count, List<String> names) {
+        static final UsedIn NONE = new UsedIn(0, List.of());
+    }
 
-    public record Listing(boolean canManage, List<Item> items) {}
+    public record Item(UUID id, String name, int minAge, Integer maxAge, UsedIn usedIn) {}
+
+    public record Listing(boolean canManage, List<Item> items, LastChange lastChange) {}
 
     private record Input(String name, int min, Integer max) {}
 
@@ -51,8 +58,27 @@ public class AgeRanges {
 
     public Listing list(AccountPrincipal who) {
         boolean manage = access(who) == Access.FULL;
-        return new Listing(manage, transactions.execute(() -> jdbc.sql("select id, name, min_age, max_age from age_range "
-                + "where organization_id = :org order by min_age, name").param("org", who.organizationId()).query(AgeRanges::map).list()));
+        return transactions.execute(() -> {
+            var used = usage(who, null);
+            var items = jdbc.sql("select id, name, min_age, max_age from age_range where organization_id = :org order by min_age, name")
+                    .param("org", who.organizationId()).query(AgeRanges::map).list().stream()
+                    .map(i -> new Item(i.id(), i.name(), i.minAge(), i.maxAge(), used.getOrDefault(i.id(), UsedIn.NONE))).toList();
+            var last = LastChange.findByType(jdbc, who.organizationId(), "age_range", List.of("age_range.created", "age_range.updated", "age_range.deleted"));
+            return new Listing(manage, items, last);
+        });
+    }
+
+    /** Turmas (ativas ou não) por faixa da organização; {@code only} limita a uma faixa. */
+    private Map<UUID, UsedIn> usage(AccountPrincipal who, UUID only) {
+        var out = new HashMap<UUID, UsedIn>();
+        jdbc.sql("select age_range_id, count(*), array_agg(name order by name) from training_class where organization_id = :org "
+                + "and age_range_id is not null and (cast(:only as uuid) is null or age_range_id = :only) group by age_range_id")
+                .param("org", who.organizationId()).param("only", only).query((rs, n) -> {
+                    var names = (String[]) rs.getArray(3).getArray();
+                    out.put(rs.getObject(1, UUID.class), new UsedIn(rs.getInt(2), List.of(names).subList(0, Math.min(2, names.length))));
+                    return null;
+                }).list();
+        return out;
     }
 
     public Item create(AccountPrincipal who, String name, Integer minAge, Integer maxAge, String ip) {
@@ -69,7 +95,7 @@ public class AgeRanges {
                 throw new ApiStatusException(ErrorCode.AGE_RANGE_NAME_TAKEN);
             }
             audit.record(new AuditEntry(actor(who), "age_range.created", "age_range", id.toString(), null, Map.of(), snapshot(input), null, ip));
-            return new Item(id, input.name(), input.min(), input.max());
+            return new Item(id, input.name(), input.min(), input.max(), UsedIn.NONE);
         });
     }
 
@@ -90,7 +116,7 @@ public class AgeRanges {
                 throw new ApiStatusException(ErrorCode.AGE_RANGE_NAME_TAKEN);
             }
             audit.record(new AuditEntry(actor(who), "age_range.updated", "age_range", id.toString(), null, before, after, null, ip));
-            return new Item(id, input.name(), input.min(), input.max());
+            return new Item(id, input.name(), input.min(), input.max(), current.usedIn());
         });
     }
 
@@ -124,13 +150,14 @@ public class AgeRanges {
 
     private static Item map(ResultSet rs, int row) throws SQLException {
         Integer max = rs.getObject(4, Integer.class);
-        return new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), max);
+        return new Item(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3), max, UsedIn.NONE);
     }
 
     private Item find(AccountPrincipal who, UUID id) {
-        return jdbc.sql("select id, name, min_age, max_age from age_range where id = :id and organization_id = :org")
+        var found = jdbc.sql("select id, name, min_age, max_age from age_range where id = :id and organization_id = :org")
                 .param("id", id).param("org", who.organizationId()).query(AgeRanges::map).optional()
                 .orElseThrow(() -> new ApiStatusException(ErrorCode.NOT_FOUND));
+        return new Item(found.id(), found.name(), found.minAge(), found.maxAge(), usage(who, id).getOrDefault(id, UsedIn.NONE));
     }
 
     /** Nome único por organização, sem acento nem diferença de maiúsculas; {@code except} é a própria faixa ao alterar. */

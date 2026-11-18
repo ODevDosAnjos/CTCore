@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/Card";
+import { Pencil, Plus } from "lucide-react";
+import { LastChange } from "@/components/LastChange";
+import { DataTable, type Column } from "@/components/query/DataTable";
+import { RowCard } from "@/components/query/RowCard";
+import { useBelowSm } from "@/components/query/useBelowSm";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
@@ -16,6 +20,7 @@ type Editing = { n: number; target: AgeRange | null };
 function Content() {
   const { t } = useTranslation();
   const api = useAgeRanges();
+  const narrow = useBelowSm();
   const [editing, setEditing] = useState<Editing>();
   const [removing, setRemoving] = useState<AgeRange>();
   const [message, setMessage] = useState<{ kind: "status" | "alert"; text: string }>();
@@ -30,50 +35,75 @@ function Content() {
   const ages = (r: AgeRange) =>
     r.maxAge === null ? t("ageRanges.openEnded", { count: r.minAge }) : t("ageRanges.range", { min: r.minAge, max: r.maxAge });
 
+  const usedIn = (r: AgeRange) => {
+    const { count, names } = r.usedIn;
+    if (count === 0) return t("ageRanges.usedIn.none");
+    if (count === 1) return names[0];
+    return count === 2 ? t("ageRanges.usedIn.two", { first: names[0], second: names[1] }) : t("ageRanges.usedIn.many", { count });
+  };
   const create = api.canManage && (
     <Button size="sm" onClick={() => open(null)}>
+      <Plus aria-hidden="true" />
       {t("ageRanges.create")}
     </Button>
   );
+  const pencil = (r: AgeRange) =>
+    api.canManage ? (
+      <Button type="button" variant="outline" size="icon" className="min-h-11 min-w-11" aria-label={t("ageRanges.editFor", { name: r.name })} title={t("ageRanges.edit")} onClick={() => open(r)}>
+        <Pencil aria-hidden="true" />
+      </Button>
+    ) : null;
+  const columns: Column<AgeRange>[] = [
+    { key: "name", label: t("ageRanges.columns.name"), render: (r) => <span className="font-medium">{r.name}</span> },
+    { key: "minAge", label: t("ageRanges.columns.minAge"), numeric: true, render: (r) => r.minAge },
+    { key: "maxAge", label: t("ageRanges.columns.maxAge"), numeric: true, render: (r) => r.maxAge ?? t("ageRanges.noMax") },
+    { key: "usedIn", label: t("ageRanges.columns.usedIn"), render: (r) => <span className="break-words">{usedIn(r)}</span> },
+    ...(api.canManage ? [{ key: "actions", label: t("ageRanges.columns.actions"), hideLabel: true, render: pencil }] : []),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("ageRanges.title")} />
-      <p className="text-muted-foreground">{t("ageRanges.intro")}</p>
+      <PageHeader title={t("ageRanges.title")} subtitle={t("ageRanges.subtitle")} actions={api.items.length > 0 ? create : undefined} />
       {message && <Banner tone={message.kind === "alert" ? "danger" : "ok"}>{message.text}</Banner>}
       {api.items.length === 0 ? (
         <EmptyState title={t("ageRanges.emptyTitle")} text={t("ageRanges.emptyText")} action={create || undefined} />
+      ) : narrow ? (
+        <ul className="flex flex-col divide-y rounded-card border bg-card px-4">
+          {api.items.map((r) => (
+            <li key={r.id} className="py-3">
+              <RowCard
+                title={r.name}
+                meta={
+                  <>
+                    <span>{ages(r)}</span>
+                    <span>{usedIn(r)}</span>
+                  </>
+                }
+                action={pencil(r)}
+              />
+            </li>
+          ))}
+        </ul>
       ) : (
-        <Card heading="h2" title={t("ageRanges.listTitle")} actions={create || undefined}>
-          <ul className="flex flex-col divide-y">
-            {api.items.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="min-w-0 break-words">
-                  <span className="font-medium">{r.name}</span>
-                  <span className="text-muted-foreground"> · {ages(r)}</span>
-                </span>
-                {api.canManage && (
-                  <span className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => open(r)}>
-                      {t("ageRanges.edit")}
-                      <span className="sr-only"> {r.name}</span>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setRemoving(r)}>
-                      {t("ageRanges.delete")}
-                      <span className="sr-only"> {r.name}</span>
-                    </Button>
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <div className="overflow-hidden rounded-card border bg-card [&_th]:normal-case">
+          <DataTable columns={columns} rows={api.items} rowKey={(r) => r.id} order="" onOrder={() => undefined} />
+        </div>
       )}
+      <Banner tone="info">{t("ageRanges.competitionNote")}</Banner>
+      <LastChange value={api.lastChange} />
       {editing && (
         <AgeRangeDialog
           key={editing.n}
           range={editing.target}
           open
+          onDelete={
+            editing.target
+              ? () => {
+                  setRemoving(editing.target ?? undefined);
+                  setEditing(undefined);
+                }
+              : undefined
+          }
           onClose={() => setEditing(undefined)}
           onSave={async (input) => {
             await (editing.target ? api.update(editing.target.id, input) : api.create(input));

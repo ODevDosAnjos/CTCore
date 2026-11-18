@@ -1360,7 +1360,8 @@ paths:
       summary: Faixas etárias da organização do vínculo ativo (RF-MOD-04, RN-MOD-07). Coordenador e Administrador.
       description: |
         Ordenadas por idade mínima e depois por nome. `maxAge` nulo significa sem limite ("18 anos ou mais"); `canManage` é verdadeiro só
-        para o Coordenador. Professor e portal recebem 403. Toda organização nasce com Infantil 4–12, Juvenil 13–17 e Adulto 18+.
+        para o Coordenador. Professor e portal recebem 403. Toda organização nasce com Infantil 4–12, Juvenil 13–17 e Adulto 18+. Cada faixa traz `usedIn` (turmas que a usam: total e até dois nomes
+        em ordem; turmas desativadas contam) e a lista traz `lastChange` (última criação, alteração ou remoção de faixa, da auditoria).
       security: [{ sessionCookie: [] }]
       responses:
         '200':
@@ -4181,12 +4182,19 @@ components:
         createdAt: { type: string, format: date-time }
     AgeRange:
       type: object
-      required: [id, name, minAge, maxAge]
+      required: [id, name, minAge, maxAge, usedIn]
       properties:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 2, maxLength: 40 }
         minAge: { type: integer, minimum: 0, maximum: 120 }
         maxAge: { type: integer, minimum: 0, maximum: 120, nullable: true, description: Nulo = sem limite. }
+        usedIn:
+          type: object
+          description: Turmas da organização que usam a faixa (só turmas guardam faixa hoje).
+          required: [count, names]
+          properties:
+            count: { type: integer, minimum: 0 }
+            names: { type: array, maxItems: 2, items: { type: string }, description: 'Até dois nomes de turma, em ordem alfabética.' }
     AgeRangeBody:
       type: object
       required: [name, minAge]
@@ -4196,10 +4204,11 @@ components:
         maxAge: { type: integer, minimum: 0, maximum: 120, nullable: true }
     AgeRangeList:
       type: object
-      required: [canManage, items]
+      required: [canManage, items, lastChange]
       properties:
         canManage: { type: boolean }
         items: { type: array, items: { $ref: '#/components/schemas/AgeRange' } }
+        lastChange: { $ref: '#/components/schemas/LastChange' }
     TermsKind:
       type: string
       enum: [ENROLLMENT, IMAGE_USE]
@@ -6051,7 +6060,16 @@ components:
       required: [studentAge, ageRange, ageOutOfRange, capacity, activeStudents, overCapacity]
       properties:
         studentAge: { type: integer, minimum: 0 }
-        ageRange: { allOf: [{ $ref: '#/components/schemas/AgeRange' }], nullable: true, description: Nulo quando a turma não tem faixa. }
+        ageRange:
+          type: object
+          nullable: true
+          description: Nulo quando a turma não tem faixa.
+          required: [id, name, minAge, maxAge]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            minAge: { type: integer }
+            maxAge: { type: integer, nullable: true }
         ageOutOfRange: { type: boolean }
         capacity: { type: integer, nullable: true }
         activeStudents: { type: integer, minimum: 0 }
