@@ -32,6 +32,6 @@ test("@critical Cancelamento de aula com aviso à turma", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Comunicados", level: 1 })).toBeVisible();
   await expect(page.getByText("Comunicado enviado.")).toBeVisible();
-  const row = page.getByRole("row").filter({ hasText: "Aula cancelada" }).filter({ hasText: "Turma Jiu-Jitsu Adulto" }).first();
+  const row = page.getByRole("row").filter({ hasText: "Aula cancelada" }).filter({ hasText: "Turma · Jiu-Jitsu Adulto" }).first();
   await expect(row).toContainText("Enviado");
 });

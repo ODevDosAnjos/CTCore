@@ -175,7 +175,9 @@ Achados:
 
 **O que muda:** comunicados no visual do canvas. Lista com faixa de limite diário, filtros de período, turma e tipo, cancelar agendado, novo comunicado em duas colunas com chips de tipo e editor, janela "Todas as unidades" (organização inteira) e celular em tela cheia. A API ganha `pinnedUntil`, `estimatedRecipients`, `GET /announcements/daily-limit` e `adults`/`guardians` no preview; contrato (`docs/openapi.yaml`), MSW e RF-COM-01/RF-COM-02 mudam junto.
 
-**Verificação:** rodada 1 `OK` (estado `6dcc1f053cb1b97cf74a3fe7d50071eef1fe18c1`). Lint, typecheck e build sem erro; `test:cov` com 2617 testes; `mvnw verify` com 905 testes e BUILD SUCCESS; `test:visual:docker -g comunicados` com os 28 casos passando contra as referências commitadas. Comparação com o canvas feita pelas capturas em `.capturas/491/` (1440 e 390 px, pt-BR); `visual:canvas --exige`: 151 comparadas, 0 reprovadas. Nenhum `limiteCanvas`.
+**Verificação:** rodada 2 `OK` (estado `dacb6c3148d42878bcccea34ead114ebd85f3e7c`); a rodada 1 (`6dcc1f053cb1b97cf74a3fe7d50071eef1fe18c1`) foi a base da correção que o CI do PR #599 pediu. Lint, typecheck e build sem erro; `test:cov` com 2617 testes; `mvnw verify` com 905 testes e BUILD SUCCESS; `test:visual:docker -g comunicados` com os 28 casos passando contra as referências commitadas (rodada 2: 44 passaram com `comunicados|moldura-coordenacao|inicio`). Comparação com o canvas feita pelas capturas em `.capturas/491/` (1440 e 390 px, pt-BR); `visual:canvas --exige`: 151 comparadas, 0 reprovadas. Nenhum `limiteCanvas`.
+
+**Correção do CI do PR #599:** `PageHeader` perdia `leading-tight` (o tailwind-merge descartava a classe), o que mudava a altura do título em todas as telas; corrigido em `page-header.tsx` e `page-header.test.tsx`. O e2e de comunicados passa a esperar "Turma · Jiu-Jitsu Adulto". Referências visuais regeradas só para `comunicados*`. O job `backend` cancelou por timeout de 20 min no CI sem falha de teste (rodar de novo no CI); `recuperar-senha` falhou só na primeira tentativa e passou no retry (instável, anotado no PR).
 
 **Decisões:**
 1. Estimativa de destinatários do agendado calculada por linha com `AnnouncementRecipients.find`; sem plano B.
@@ -189,3 +191,24 @@ Achados:
 **Limitações:** `e2e` não rodado localmente (NÃO CONFERIDO; vale o CI do PR, Autonomia 2). Achado de E-mail desmarcado no celular segue em aberto (ver "Achados"). `AnnounceLessonDialog` (#560) segue com as chaves `channelPortal` e `sendAt` antigas, que a tela nova não usa mais.
 
 Closes #491
+
+## Construção (continuação)
+
+### Correção da entrega
+- CI do PR #599 vermelho: `visual` (368 casos fora do 491) e `e2e` (comunicados). Causa 1: `PageHeader` passou a usar `cn("font-semibold leading-tight", ... "text-[28px]")` e o tailwind-merge descartava `leading-tight` (tamanho de fonte vem depois), mudando a altura do título em todas as telas — arquivos: `frontend/src/components/ui/page-header.tsx` (leading-tight por último), `page-header.test.tsx` (afirma `leading-tight`) — prova: `npm run test:visual:docker -- -g "moldura-coordenacao|inicio|vitrine"` (volta a passar) e suíte visual inteira: 579 passaram, só os 22 casos `comunicados*` divergiam (referências geradas com o título quebrado).
+- Referências visuais: regeradas só `comunicados*` (`npm run test:visual:docker -- --update-snapshots -g "comunicados"`, 24 PNGs em `frontend/visual/referencias/`).
+- Visual do CI: comunicados → passou (28 passaram sem `--update-snapshots`); `npm run visual:canvas -- --exige` → 151 comparadas, 0 reprovadas.
+- Causa 2: a lista passou a mostrar "Turma · {nome}"; `e2e/comunicados.spec.ts` filtrava "Turma Jiu-Jitsu Adulto" → ajustado para "Turma · Jiu-Jitsu Adulto". e2e não rodou local (falha de data da máquina na Agenda, antes do trecho alterado): NAO_CONFERIDO, vale o CI (Autonomia 2).
+- `backend` cancelado por timeout de 20 min no CI (sem falha de teste): rodar de novo no CI. `recuperar-senha` falhou só na 1ª tentativa (instável, passou no retry).
+- Lint, typecheck, `npm test -- page-header AnnouncementsPage` ok.
+
+### Rodada 2 — OK — 2026-11-18, estado dacb6c3148d42878bcccea34ead114ebd85f3e7c
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA19 | mantido da rodada 1 | a correção só toca `PageHeader` (ordem de classes), o e2e e referências visuais; vitest page-header, AnnouncementsPage, NewAnnouncementPage, OrganizationAnnouncementDialog, BodyEditor: 6 arquivos, 63 testes ok |
+| CA20 | PASSOU | `npm run test:visual:docker -- -g "comunicados\|moldura-coordenacao\|inicio"` sem `--update-snapshots`: 44 passaram (comunicados e telas fora do item) |
+
+Comandos: `npm run lint` e `typecheck` ok; vitest acima ok; visual 44 passaram. e2e e backend: NÃO CONFERIDO local, vale o CI do PR (Autonomia 2); ajuste do e2e ("Turma · Jiu-Jitsu Adulto") confere com o texto da lista.
+Achados:
+- sugestão, código, celular — E-mail desmarcado na captura do sistema (rodada 1), ainda em aberto.
