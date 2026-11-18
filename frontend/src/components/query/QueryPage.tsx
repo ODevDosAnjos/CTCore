@@ -31,6 +31,7 @@ export function QueryPage<T>({
   search = true,
   searchPlaceholder,
   canvasPagination,
+  pagerOnlyIfNeeded,
   canvasStates,
   tableCard,
   header,
@@ -62,6 +63,8 @@ export function QueryPage<T>({
   searchPlaceholder?: string;
   /** Paginação do canvas ("1–25 de 131"); sem ela vale a de sempre, até cada tela migrar. */
   canvasPagination?: boolean;
+  /** Verdadeiro: com uma página só, não há rodapé de paginação (canvas de Comunicados). */
+  pagerOnlyIfNeeded?: boolean;
   /** Os quatro estados no visual do canvas (cartão); sem isso valem os de sempre, até cada tela migrar. */
   canvasStates?: boolean;
   /** Cabeçalho da tela acima da busca; recebe os totais da lista (ex.: subtítulo com a contagem). */
@@ -187,6 +190,7 @@ export function QueryPage<T>({
             ))}
           </ul>
         )}
+        {!(pagerOnlyIfNeeded && pages === 1) && (
         <Pager
           page={pagina}
           pages={pages}
@@ -196,6 +200,7 @@ export function QueryPage<T>({
           // Trocar o tamanho volta para a página 1; o padrão não aparece no endereço.
           onSize={(s) => set({ tamanho: s === DEFAULT_PAGE_SIZE ? "" : String(s) })}
         />
+        )}
         {footer?.(state.data!)}
       </>
     );

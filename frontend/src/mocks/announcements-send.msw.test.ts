@@ -62,7 +62,7 @@ describe("comunicados: novo comunicado x OpenAPI (RF-COM-02, #82, CA27)", () => 
   it("prévia: conta pessoas e canais, WhatsApp em grupo ou conversa, PUSH 400, outro destino 404 e turma desativada 400", async () => {
     await login("ana@exemplo.com");
     expect(await (await post("/announcements/preview", { targetKind: "CLASS", classId: CLASS, channels: ["EMAIL", "WHATSAPP"] })).json()).toEqual({
-      recipients: 8, portal: 8, email: 6, whatsapp: { mode: "GROUP", groupLink: "https://chat.example.com/jiu-jitsu-adulto" }, channels: ["PORTAL", "EMAIL", "WHATSAPP"],
+      recipients: 8, adults: 6, guardians: 2, portal: 8, email: 6, whatsapp: { mode: "GROUP", groupLink: "https://chat.example.com/jiu-jitsu-adulto" }, channels: ["PORTAL", "EMAIL", "WHATSAPP"],
     });
     const noLink = await (await post("/announcements/preview", { targetKind: "CLASS", classId: OTHER_CLASS, channels: ["WHATSAPP"] })).json();
     expect(noLink.whatsapp).toEqual({ mode: "CONVERSATION", groupLink: null });

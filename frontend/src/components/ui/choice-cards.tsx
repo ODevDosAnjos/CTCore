@@ -4,8 +4,8 @@ import { RadioCard } from "./radio-card";
 
 export type ChoiceOption = { value: string; label: string; description?: string; aside?: string; disabled?: boolean };
 
-/** Escolha de uma opção entre várias, em cartões (1 ou 2 colunas); a legenda dá o nome ao grupo. */
-export function ChoiceCards({ legend, options, value, onChange, columns = 1, required, className }: { legend: string; options: ChoiceOption[]; value: string; onChange: (value: string) => void; columns?: 1 | 2; required?: boolean; className?: string }) {
+/** Escolha de uma opção entre várias, em cartões (1, 2 ou 4 colunas; 4 vira 2 no celular); a legenda dá o nome ao grupo. */
+export function ChoiceCards({ legend, options, value, onChange, columns = 1, required, className }: { legend: string; options: ChoiceOption[]; value: string; onChange: (value: string) => void; columns?: 1 | 2 | 4; required?: boolean; className?: string }) {
   const name = useId();
   return (
     <fieldset className={cn("flex flex-col gap-2", className)}>
@@ -16,7 +16,7 @@ export function ChoiceCards({ legend, options, value, onChange, columns = 1, req
           </span>
         )}
       </legend>
-      <div className={cn("grid gap-2", columns === 2 && "grid-cols-2")}>
+      <div className={cn("grid gap-2", columns === 2 && "grid-cols-2", columns === 4 && "grid-cols-2 md:grid-cols-4")}>
         {options.map((o) => (
           <RadioCard key={o.value} name={name} label={o.label} description={o.description} aside={o.aside} disabled={o.disabled} checked={value === o.value} onChange={() => onChange(o.value)} />
         ))}

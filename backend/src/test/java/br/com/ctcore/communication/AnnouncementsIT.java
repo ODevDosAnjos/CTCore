@@ -48,6 +48,27 @@ class AnnouncementsIT extends AnnouncementBase {
     }
 
     @Test
+    @DisplayName("CA4 e CA6: pinnedUntil em ISO ou nulo; estimatedRecipients só no agendado (pessoas que receberiam hoje) e nulo no enviado")
+    void pinnedAndEstimate() throws Exception {
+        Tenant t = tenant();
+        AccountPrincipal coordinator = account(t, Role.COORDINATOR);
+        UUID teacher = teacher(t, null), klass = klass(t, "Turma Estimada", teacher);
+        enrolled(t, klass, teacher, "1990-01-01", "a@example.test", "ACTIVE");
+        enrolled(t, klass, teacher, "1991-01-01", "b@example.test", "ACTIVE");
+        UUID scheduled = announcement(t, coordinator, "CLASS", t.unitId(), klass, "GENERAL", "Agendado", "2099-01-01T12:00:00Z", null);
+        UUID sent = sentToUnit(t, coordinator, "Enviado", "2026-10-05T15:00:00Z");
+        adminJdbc().update("update announcement set pinned_until = date '2026-10-17' where id = ?", sent);
+
+        JsonNode items = ok(send(HttpMethod.GET, "/announcements", coordinator), 200).get("items");
+        assertThat(items.get(0).get("title").asText()).isEqualTo("Agendado");
+        assertThat(items.get(0).get("estimatedRecipients").asInt()).isEqualTo(2);
+        assertThat(items.get(0).get("pinnedUntil").isNull()).isTrue();
+        assertThat(items.get(1).get("estimatedRecipients").isNull()).isTrue();
+        assertThat(items.get(1).get("pinnedUntil").asText()).isEqualTo("2026-10-17");
+        assertThat(scheduled).isNotNull();
+    }
+
+    @Test
     @DisplayName("CA2: filtros por tipo, turma e período no fuso da unidade (inclusive nos extremos); to antes de from e tipo inválido dão 400")
     void filters() throws Exception {
         Tenant t = tenant();

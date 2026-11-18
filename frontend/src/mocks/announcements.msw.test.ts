@@ -83,3 +83,43 @@ describe("comunicados x OpenAPI (RF-COM-01, #81, CA13)", () => {
     expect((await send("DELETE", `/announcements/${SCHEDULED_TEACHER}`)).status).toBe(204);
   });
 });
+
+describe("comunicados x OpenAPI (#491): pinnedUntil, estimatedRecipients, adults/guardians e daily-limit", () => {
+  const UNIT = "00000000-0000-0000-0000-000000000021";
+  const get = async (path: string) => (await send("GET", path)).json();
+
+  it("o contrato declara os campos e a rota novos", () => {
+    expect(openapi.components.schemas.AnnouncementItem.properties).toHaveProperty("pinnedUntil");
+    expect(openapi.components.schemas.AnnouncementItem.properties).toHaveProperty("estimatedRecipients");
+    expect(openapi.components.schemas.AnnouncementPreview.required).toEqual(expect.arrayContaining(["adults", "guardians"]));
+    expect(Object.keys(openapi.paths["/announcements/daily-limit"].get.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "404"]));
+  });
+
+  it("a lista traz pinnedUntil (nulo) e estimatedRecipients só no agendado", async () => {
+    await login("ana@exemplo.com");
+    const items = (await get("/announcements")).items as { status: string; pinnedUntil: string | null; estimatedRecipients: number | null }[];
+    expect(items.filter((i) => i.status === "SENT").every((i) => i.estimatedRecipients === null && i.pinnedUntil === null)).toBe(true);
+    expect(items.filter((i) => i.status === "SCHEDULED").every((i) => Number.isInteger(i.estimatedRecipients))).toBe(true);
+  });
+
+  it("a prévia separa adultos e responsáveis (somam recipients)", async () => {
+    await login("ana@exemplo.com");
+    const res = await fetch("/api/v1/announcements/preview", { method: "POST", headers: json, body: JSON.stringify({ targetKind: "UNIT", unitId: UNIT, channels: [] }) });
+    const p = await res.json();
+    expect(p.adults + p.guardians).toBe(p.recipients);
+    expect(p.guardians).toBeGreaterThan(0);
+  });
+
+  it("daily-limit: Coordenador traz unit e organization; Administrador só unit; 401, 404 e 403", async () => {
+    expect((await send("GET", `/announcements/daily-limit?unitId=${UNIT}`)).status).toBe(401);
+    await login("ana@exemplo.com");
+    const body = await get(`/announcements/daily-limit?unitId=${UNIT}`);
+    expect(body.unit).toMatchObject({ id: UNIT, used: 0, limit: 20 });
+    expect(body.organization).toEqual({ used: 0, limit: 20 });
+    expect((await send("GET", `/announcements/daily-limit?unitId=${MISSING}`)).status).toBe(404);
+    await login("varios@exemplo.com", ADMIN_LINK);
+    expect((await get(`/announcements/daily-limit?unitId=${UNIT}`)).organization).toBeNull();
+    await login("varios@exemplo.com", STUDENT_LINK);
+    expect((await send("GET", "/announcements/daily-limit")).status).toBe(403);
+  });
+});

@@ -45,6 +45,8 @@ class AnnouncementRecipientsIT extends AnnouncementBase {
 
         JsonNode p = preview(coordinator, toClass(klass, "EMAIL"));
         assertThat(p.get("recipients").asInt()).isEqualTo(4);
+        assertThat(p.get("adults").asInt()).isEqualTo(2);
+        assertThat(p.get("guardians").asInt()).isEqualTo(2);
         assertThat(p.get("portal").asInt()).isEqualTo(4);
         assertThat(p.get("email").asInt()).isEqualTo(3);
         assertThat(p.get("channels")).extracting(JsonNode::asText).containsExactly("PORTAL", "EMAIL");

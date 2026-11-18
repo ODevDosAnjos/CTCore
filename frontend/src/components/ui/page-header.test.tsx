@@ -9,3 +9,10 @@ it("CA20: h1 em caixa alta por CSS, subtítulo e ações", () => {
   expect(screen.getByText("Todos")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Novo" })).toBeInTheDocument();
 });
+
+it("compact: título pequeno, sem caixa alta (barra de tela cheia do celular)", () => {
+  render(<PageHeader compact title="Novo comunicado" subtitle="Tijuca" />);
+  const h = screen.getByRole("heading", { level: 1, name: "Novo comunicado" });
+  expect(h).not.toHaveClass("uppercase");
+  expect(h).toHaveClass("text-base");
+});

@@ -936,7 +936,7 @@ paths:
         Recebe o destino e os canais (os mesmos campos de `POST /announcements`; título, texto e tipo não são lidos) e devolve para quantas pessoas o aviso vai:
         `recipients` (pessoas distintas; do aluno menor de 18 anos, os responsáveis), `portal` (igual a `recipients`), `email` (quem tem endereço, não desligou os
         avisos da academia e não está "Com problema"), `whatsapp` (`GROUP` com o `groupLink` da turma, `CONVERSATION`, ou nulo sem o canal) e `channels`. Mesmas
-        regras de destino e permissão do `POST`; `PUSH` e canal desconhecido: 400.
+        regras de destino e permissão do `POST`; `PUSH` e canal desconhecido: 400. `adults` e `guardians` separam `recipients` entre alunos adultos e responsáveis de menores.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       requestBody:
         required: true
@@ -945,6 +945,24 @@ paths:
         '200':
           description: Prévia.
           content: { application/json: { schema: { $ref: '#/components/schemas/AnnouncementPreview' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /announcements/daily-limit:
+    get:
+      summary: Uso do limite diário de comunicados (RF-COM-01, RN-COM-07).
+      description: |
+        Quantos comunicados a unidade pedida já usou hoje (dia local da unidade; conta enviados e agendados para o dia, não conta os cancelados) e o limite. `organization`
+        traz o mesmo para "todas as unidades" e só vem para o Coordenador (nulo para os demais). Sem `unitId`, vale a única unidade do alcance; sem unidade possível: 400.
+        `unitId` de outra organização ou inexistente: 404; Administrador fora do alcance: 403; sem a permissão de comunicados: 403. Só lê; não audita.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: unitId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Uso do limite.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AnnouncementDailyLimit' } } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -5706,6 +5724,28 @@ components:
         status: { $ref: '#/components/schemas/AnnouncementStatus' }
         recipients: { type: integer, minimum: 0, nullable: true, description: Só depois do envio. }
         reads: { type: integer, format: int64, minimum: 0 }
+        pinnedUntil: { type: string, format: date, nullable: true, description: 'Data até a qual o comunicado fica fixado no portal; nulo sem fixação.' }
+        estimatedRecipients: { type: integer, minimum: 0, nullable: true, description: 'Só no agendado: pessoas que receberiam se fosse enviado agora; nulo no enviado.' }
+    AnnouncementDailyLimit:
+      type: object
+      required: [unit, organization]
+      properties:
+        unit:
+          type: object
+          required: [id, name, used, limit]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            used: { type: integer, minimum: 0, description: Enviados e agendados para o dia local da unidade. }
+            limit: { type: integer, description: 20 (RN-COM-07). }
+        organization:
+          type: object
+          nullable: true
+          required: [used, limit]
+          description: Limite próprio de "todas as unidades"; só para o Coordenador, nulo para os demais.
+          properties:
+            used: { type: integer, minimum: 0 }
+            limit: { type: integer }
     AnnouncementDraft:
       type: object
       required: [targetKind]
@@ -5732,9 +5772,11 @@ components:
         recipients: { type: integer, minimum: 0, nullable: true, description: Nulo no agendado. }
     AnnouncementPreview:
       type: object
-      required: [recipients, portal, email, whatsapp, channels]
+      required: [recipients, adults, guardians, portal, email, whatsapp, channels]
       properties:
         recipients: { type: integer, minimum: 0 }
+        adults: { type: integer, minimum: 0, description: Alunos de 18 anos ou mais que recebem. }
+        guardians: { type: integer, minimum: 0, description: 'Responsáveis de alunos menores que recebem; `adults + guardians = recipients`.' }
         portal: { type: integer, minimum: 0 }
         email: { type: integer, minimum: 0 }
         whatsapp:
