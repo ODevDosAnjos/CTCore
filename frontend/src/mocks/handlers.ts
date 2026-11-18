@@ -1858,7 +1858,11 @@ export type MockAnnouncement = {
   scheduled: boolean;
   recipients: number;
   reads: number;
+  pinnedUntil?: string | null;
 };
+// Pessoas que um agendado receberia hoje (o simulado não tem alunos por turma): o mesmo número fixo da prévia de cada tipo de destino.
+const ANNOUNCEMENT_ESTIMATE = { CLASS: 8, MODALITY: 15, UNIT: 25, ORGANIZATION: 40 } as const;
+const ANNOUNCEMENT_LIMIT = 20;
 const ANNOUNCEMENT_TYPES = ["CANCELED_CLASS", "TEACHER_CHANGE", "SCHEDULE_CHANGE", "NO_CLASS_DAY", "GENERAL"];
 const initialAnnouncements = (): MockAnnouncement[] => [
   { id: "00000000-0000-0000-0000-000000000a01", date: "2026-10-20T13:00:00Z", kind: "CLASS", classId: "00000000-0000-0000-0000-000000000601", unitId: ADMIN_UNIT, type: "CANCELED_CLASS", title: "Aula de sexta cancelada", author: "Ana", authorId: session.account.id, scheduled: false, recipients: 12, reads: 5 },
@@ -5452,9 +5456,27 @@ export const routes: Route[] = [
         });
       const items = found.slice((page - 1) * size, page * size).map((a) => ({
         id: a.id, date: a.date, target: targetOf(a), title: a.title, type: a.type, author: a.author, status: a.scheduled ? "SCHEDULED" : "SENT",
-        recipients: a.scheduled ? null : a.recipients, reads: a.scheduled ? 0 : a.reads,
+        recipients: a.scheduled ? null : a.recipients, reads: a.scheduled ? 0 : a.reads, pinnedUntil: a.pinnedUntil ?? null, estimatedRecipients: a.scheduled ? ANNOUNCEMENT_ESTIMATE[a.kind] : null,
       }));
       return HttpResponse.json({ items, page, size, total: found.length });
+    },
+  },
+  {
+    // RF-COM-01 (#491): uso do limite do dia (enviados e agendados de hoje na unidade); a organização só para o Coordenador. Sem unitId, a única unidade do alcance.
+    method: "get",
+    path: "/announcements/daily-limit",
+    resolver: ({ request }) => {
+      const denied = announcementAccess();
+      if (denied) return denied;
+      const role = activeRole();
+      const unitId = new URL(request.url).searchParams.get("unitId") ?? (role === "COORDINATOR" ? (units.length === 1 ? units[0].id : null) : ADMIN_UNIT);
+      if (!unitId) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "unitId", message: "obrigatório" }]);
+      const unit = units.find((u) => u.id === unitId);
+      if (!unit) return error(404, "NOT_FOUND", "Não encontrado.");
+      if (role !== "COORDINATOR" && unitId !== ADMIN_UNIT) return error(403, "FORBIDDEN", "Sem permissão.");
+      const today = announcementDay({ date: new Date().toISOString() } as MockAnnouncement);
+      const used = (u: string | null) => mockAnnouncements.filter((a) => a.unitId === u && announcementDay(a) === today).length;
+      return HttpResponse.json({ unit: { id: unit.id, name: unit.name, used: used(unit.id), limit: ANNOUNCEMENT_LIMIT }, organization: role === "COORDINATOR" ? { used: used(null), limit: ANNOUNCEMENT_LIMIT } : null });
     },
   },
   {
@@ -5524,7 +5546,8 @@ export const routes: Route[] = [
       if (target instanceof Response) return target;
       const channels = announcementChannels(body);
       const whatsapp = !channels.includes("WHATSAPP") ? null : target.kind === "CLASS" && target.groupLink ? { mode: "GROUP", groupLink: target.groupLink } : { mode: "CONVERSATION", groupLink: null };
-      return HttpResponse.json({ recipients: target.recipients, portal: target.recipients, email: Math.max(target.recipients - 2, 0), whatsapp, channels });
+      const guardians = Math.floor(target.recipients / 4);
+      return HttpResponse.json({ recipients: target.recipients, adults: target.recipients - guardians, guardians, portal: target.recipients, email: Math.max(target.recipients - 2, 0), whatsapp, channels });
     },
   },
   {
@@ -5561,7 +5584,7 @@ export const routes: Route[] = [
       const scheduled = !!body.sendAt;
       const created: MockAnnouncement = {
         id: crypto.randomUUID(), date: iso, kind: target.kind, classId: target.classId, modalityId: target.modalityId, unitId: target.unitId, type: body.type, title,
-        author: current.account.name, authorId: current.account.id, scheduled, recipients: target.recipients, reads: 0,
+        author: current.account.name, authorId: current.account.id, scheduled, recipients: target.recipients, reads: 0, pinnedUntil: body.pinnedUntil || null,
       };
       mockAnnouncements = [...mockAnnouncements, created];
       return HttpResponse.json({ id: created.id, status: scheduled ? "SCHEDULED" : "SENT", recipients: scheduled ? null : target.recipients }, { status: 201 });

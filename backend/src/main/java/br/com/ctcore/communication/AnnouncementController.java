@@ -43,6 +43,11 @@ class AnnouncementController {
         return announcements.list(who, new Announcements.Filter(from, to, classId, type, unitId), PageRequest.of(page, size, sort, Announcements.SORT_FIELDS));
     }
 
+    @GetMapping("/api/v1/announcements/daily-limit")
+    Announcements.DailyLimit dailyLimit(@AuthenticationPrincipal AccountPrincipal who, @RequestParam(required = false) UUID unitId) {
+        return announcements.dailyLimit(who, unitId);
+    }
+
     @GetMapping("/api/v1/announcements/targets")
     AnnouncementTargets.Targets targets(@AuthenticationPrincipal AccountPrincipal who) {
         return targets.targets(who);

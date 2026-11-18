@@ -7,7 +7,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { AnnouncementDraft, AnnouncementTargets } from "./types";
 
@@ -27,7 +27,7 @@ const full: AnnouncementTargets = {
   ],
 };
 const teacher: AnnouncementTargets = { organization: false, units: [], modalities: [], classes: [full.classes[0]] };
-const preview = (recipients: number, whatsapp: unknown = null) => HttpResponse.json({ recipients, portal: recipients, email: recipients - 1, whatsapp, channels: ["PORTAL"] });
+const preview = (recipients: number, whatsapp: unknown = null) => HttpResponse.json({ recipients, adults: recipients - 2, guardians: 2, portal: recipients, email: recipients - 1, whatsapp, channels: ["PORTAL"] });
 const failure = (status: number, code: string, fields: { field: string; message: string }[] = []) => HttpResponse.json({ code, message: "m", fields, traceId: "t" }, { status });
 
 const platform = {
@@ -75,26 +75,46 @@ function setup({ role = "COORDINATOR", templates = platform, targets = full, tar
 }
 
 const ready = () => screen.findByRole("heading", { name: "Novo comunicado", level: 1 });
-const optionNames = () => within(screen.getByLabelText("Destino")).getAllByRole("option").map((o) => o.textContent);
+const targetSelect = () => screen.getByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+const optionNames = () => within(targetSelect()).getAllByRole("option").map((o) => o.textContent);
+const radios = () => within(screen.getByRole("group", { name: "Destino" })).getAllByRole("radio").map((r) => r.closest("label")?.textContent);
 
 describe("NewAnnouncementPage (RF-COM-02)", () => {
-  it("CA22: o Coordenador vê todas as unidades, unidade, modalidade e turma; o Professor, só as turmas dele", async () => {
+  it("CA9: o Coordenador vê quatro cartões de destino; o Professor, só o de turma, com as turmas dele", async () => {
+    const user = userEvent.setup();
     const { unmount } = setup();
     await ready();
-    await screen.findByLabelText("Destino");
-    expect(optionNames()).toEqual(["Escolha o destino", "Todas as unidades", "Unidade Centro", "Jiu-Jitsu · Unidade Centro", "Jiu-Jitsu Adulto", "Judô Infantil"]);
+    await screen.findByRole("combobox", { name: "Turma" });
+    expect(radios()).toEqual(["Turma", "Modalidade", "Unidade", "Todas as unidadesSó o Coordenador"]);
+    expect(optionNames()).toEqual(["Escolha o destino", "Jiu-Jitsu Adulto", "Judô Infantil"]);
+    await user.click(screen.getByRole("radio", { name: "Modalidade" }));
+    expect(optionNames()).toEqual(["Escolha o destino", "Jiu-Jitsu · Unidade Centro"]);
+    await user.click(screen.getByRole("radio", { name: "Unidade" }));
+    expect(optionNames()).toEqual(["Escolha o destino", "Unidade Centro"]);
     unmount();
     setup({ role: "TEACHER", targets: teacher });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: "Turma" });
+    expect(radios()).toEqual(["Turma"]);
     expect(optionNames()).toEqual(["Escolha o destino", "Jiu-Jitsu Adulto"]);
+  });
+
+  it("CA9: escolher Todas as unidades abre a janela da organização sobre a lista", async () => {
+    const user = userEvent.setup();
+    setup({ templates: platform });
+    await ready();
+    await screen.findByRole("combobox", { name: "Turma" });
+    await user.click(screen.getByRole("radio", { name: /Todas as unidades/ }));
+    expect(await screen.findByRole("radio", { name: /Organização inteira/ })).toBeChecked();
+    expect(screen.getByRole("dialog", { name: "Novo comunicado" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Comunicados", level: 1, hidden: true })).toBeInTheDocument();
   });
 
   it("CA7 (#450): Push e Salvar rascunho aparecem desabilitados com Em breve e o envio não leva PUSH", async () => {
     const user = userEvent.setup();
     setup();
     await ready();
-    await user.selectOptions(await screen.findByLabelText("Destino"), "Jiu-Jitsu Adulto");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "Turma" }), "Jiu-Jitsu Adulto");
     const push = screen.getByRole("switch", { name: "Push" });
     const draft = screen.getByRole("button", { name: "Salvar rascunho" });
     for (const el of [push, draft]) {
@@ -102,7 +122,7 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
       await user.click(el);
     }
     expect(push).toHaveAttribute("aria-checked", "false");
-    expect(screen.getAllByText("Em breve")).toHaveLength(2);
+    expect(screen.getAllByText("Em breve")).toHaveLength(3);
     await user.type(screen.getByLabelText("Título"), "Aviso");
     await user.type(screen.getByLabelText("Texto"), "Corpo");
     await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
@@ -114,36 +134,38 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const user = userEvent.setup();
     setup();
     await ready();
-    await screen.findByLabelText("Destino");
-    expect(screen.queryByRole("status", { name: "Prévia do envio" })).toBeNull();
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+    expect(screen.getByRole("status", { name: "Para quem vai" })).toHaveTextContent("Escolha o destino para ver quem recebe.");
     expect(screen.getByRole("button", { name: "Enviar comunicado" })).toBeDisabled();
-    await user.selectOptions(screen.getByLabelText("Destino"), "Jiu-Jitsu Adulto");
-    expect(await screen.findByText("Este aviso vai para 8 pessoas")).toBeInTheDocument();
-    expect(screen.getByText("Por portal (8), e-mail (7)")).toBeInTheDocument();
+    await user.selectOptions(targetSelect(), "Jiu-Jitsu Adulto");
+    expect(await screen.findByText("8 alunos")).toBeInTheDocument();
+    expect(screen.getByText("recebem: 6 adultos e 2 responsáveis de menores")).toBeInTheDocument();
+    expect(screen.getByText("Portal: 8 · E-mail: 7 (1 desligou os avisos da academia)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enviar comunicado" })).toBeEnabled();
-    await user.click(screen.getByRole("checkbox", { name: "WhatsApp" }));
-    expect(await screen.findByText(/e WhatsApp \(grupo da turma\)/)).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /^WhatsApp/ }));
+    expect(await screen.findByText("WhatsApp: grupo da turma")).toBeInTheDocument();
     expect(previews.at(-1)).toMatchObject({ targetKind: "CLASS", classId: "k1", channels: ["PORTAL", "WHATSAPP"] });
-    await user.selectOptions(screen.getByLabelText("Destino"), "Unidade Centro");
-    expect(await screen.findByText("Este aviso vai para 25 pessoas")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Unidade" }));
+    await user.selectOptions(targetSelect(), "Unidade Centro");
+    expect(await screen.findByText("25 alunos")).toBeInTheDocument();
   });
 
   it("CA23: escolher o tipo preenche título e texto; mudar depois de editar pergunta antes de trocar", async () => {
     const user = userEvent.setup();
     setup({ path: "/comunicados/novo?classId=k1" });
     await ready();
-    await screen.findByLabelText("Destino");
-    await user.selectOptions(screen.getByLabelText("Tipo"), "Mudança de horário");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+    await user.click(screen.getByRole("radio", { name: "Alteração de horário" }));
     expect(screen.getByLabelText("Título")).toHaveValue("Mudança de horário");
     expect(screen.getByLabelText("Texto")).toHaveValue("A aula de Jiu-Jitsu Adulto muda de horário a partir de [data]. O novo horário é [horário].");
-    await user.selectOptions(screen.getByLabelText("Tipo"), "Troca de professor");
+    await user.click(screen.getByRole("radio", { name: "Troca de professor" }));
     expect(screen.getByLabelText("Título")).toHaveValue("Troca de professor");
     await user.type(screen.getByLabelText("Título"), " nova");
-    await user.selectOptions(screen.getByLabelText("Tipo"), "Aviso geral");
+    await user.click(screen.getByRole("radio", { name: "Aviso geral" }));
     expect(screen.getByRole("alert")).toHaveTextContent("substitui o título e o texto");
     await user.click(screen.getByRole("button", { name: "Manter meu texto" }));
     expect(screen.getByLabelText("Título")).toHaveValue("Troca de professor nova");
-    await user.selectOptions(screen.getByLabelText("Tipo"), "Aviso geral");
+    await user.click(screen.getByRole("radio", { name: "Aviso geral" }));
     await user.click(screen.getByRole("button", { name: "Trocar o texto" }));
     expect(screen.getByLabelText("Título")).toHaveValue("Aviso geral");
     expect(screen.getByLabelText("Texto")).toHaveValue("");
@@ -152,19 +174,19 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
   it("CA26: a URL preenche turma, tipo, data e horário no texto pronto", async () => {
     setup({ path: "/comunicados/novo?classId=k1&type=CANCELED_CLASS&date=2026-11-03&time=19:00" });
     await ready();
-    await screen.findByLabelText("Destino");
-    expect(screen.getByLabelText("Destino")).toHaveValue("CLASS:k1");
-    expect(screen.getByLabelText("Tipo")).toHaveValue("CANCELED_CLASS");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+    expect(targetSelect()).toHaveValue("CLASS:k1");
+    expect(screen.getByRole("radio", { name: "Aula cancelada" })).toBeChecked();
     expect(screen.getByLabelText("Texto")).toHaveValue("A aula de Jiu-Jitsu Adulto do dia 03/11/2026, às 19:00, foi cancelada. Avisaremos quando houver reposição.");
-    expect(await screen.findByText("Este aviso vai para 8 pessoas")).toBeInTheDocument();
+    expect(await screen.findByText("8 alunos")).toBeInTheDocument();
   });
 
   it("CA26: type=GENERAL com a turma abre Aviso geral com a turma escolhida", async () => {
     setup({ path: "/comunicados/novo?classId=k1&type=GENERAL&date=2026-11-03&time=19:00" });
     await ready();
-    await screen.findByLabelText("Destino");
-    expect(screen.getByLabelText("Destino")).toHaveValue("CLASS:k1");
-    expect(screen.getByLabelText("Tipo")).toHaveValue("GENERAL");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+    expect(targetSelect()).toHaveValue("CLASS:k1");
+    expect(screen.getByRole("radio", { name: "Aviso geral" })).toBeChecked();
     expect(screen.getByLabelText("Título")).toHaveValue("Aviso geral");
     expect(screen.getByLabelText("Texto")).toHaveValue("");
   });
@@ -172,8 +194,8 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
   it("CA26: type desconhecido cai em Aviso geral com texto vazio", async () => {
     setup({ path: "/comunicados/novo?classId=k1&type=INVENTADO" });
     await ready();
-    await screen.findByLabelText("Destino");
-    expect(screen.getByLabelText("Tipo")).toHaveValue("GENERAL");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+    expect(screen.getByRole("radio", { name: "Aviso geral" })).toBeChecked();
     expect(screen.getByLabelText("Título")).toHaveValue("");
     expect(screen.getByLabelText("Texto")).toHaveValue("");
   });
@@ -182,7 +204,7 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const own = { ...platform, CANCELED_CLASS: { title: "Hoje não tem {turma}", body: "Sem {turma} em {data} às {horario} ({unidade}). {inventado}" } };
     setup({ templates: own, path: "/comunicados/novo?classId=k1&type=CANCELED_CLASS&date=2026-11-03" });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
     expect(screen.getByLabelText("Título")).toHaveValue("Hoje não tem Jiu-Jitsu Adulto");
     expect(screen.getByLabelText("Texto")).toHaveValue("Sem Jiu-Jitsu Adulto em 03/11/2026 às [horário] ([unidade]). {inventado}");
   });
@@ -191,10 +213,10 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const user = userEvent.setup();
     setup({ path: "/comunicados/novo?type=NO_CLASS_DAY&unitId=u1&startsOn=2026-12-24&endsOn=2026-12-26&reason=Recesso&noClassDayId=d1" });
     await ready();
-    await screen.findByLabelText("Destino");
-    expect(screen.getByLabelText("Destino")).toHaveValue("UNIT:u1");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
+    expect(targetSelect()).toHaveValue("UNIT:u1");
     expect(screen.getByLabelText("Texto")).toHaveValue("Não haverá aula em 24/12/2026 a 26/12/2026: Recesso.");
-    await screen.findByText("Este aviso vai para 25 pessoas");
+    await screen.findByText("25 alunos");
     await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
     await waitFor(() => expect(creates).toHaveLength(1));
     expect(creates[0]).toMatchObject({ targetKind: "UNIT", unitId: "u1", type: "NO_CLASS_DAY", noClassDayId: "d1" });
@@ -204,12 +226,12 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const user = userEvent.setup();
     setup({ path: "/comunicados/novo?classId=k1" });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
     expect(screen.queryByLabelText("Data e hora do envio")).toBeNull();
     await user.type(screen.getByLabelText("Título"), "Recesso");
     await user.type(screen.getByLabelText("Texto"), "Sem aula na sexta.");
     await user.click(screen.getByRole("checkbox", { name: "E-mail" }));
-    await user.click(screen.getByRole("radio", { name: "Agendar" }));
+    await user.click(screen.getByRole("radio", { name: /^Agendar/ }));
     expect(screen.getByRole("button", { name: "Agendar comunicado" })).toBeDisabled();
     await user.type(screen.getByLabelText("Data e hora do envio"), "2099-01-01T10:00");
     await user.click(screen.getByRole("radio", { name: "Enviar agora" }));
@@ -224,12 +246,12 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const user = userEvent.setup();
     setup({ path: "/comunicados/novo?classId=k1", create: () => HttpResponse.json({ id: "n1", status: "SCHEDULED", recipients: null }, { status: 201 }) });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
     await user.type(screen.getByLabelText("Título"), "Aviso");
     await user.type(screen.getByLabelText("Texto"), "Texto");
-    await user.click(screen.getByRole("radio", { name: "Agendar" }));
+    await user.click(screen.getByRole("radio", { name: /^Agendar/ }));
     await user.type(screen.getByLabelText("Data e hora do envio"), "2099-01-01T10:00");
-    await user.type(screen.getByLabelText("Fixar até"), "2099-01-05");
+    await user.type(screen.getByLabelText("Fixar no topo do portal até (opcional)"), "2099-01-05");
     await user.click(screen.getByRole("button", { name: "Agendar comunicado" }));
     expect(await screen.findByText("Comunicado agendado.")).toBeInTheDocument();
     expect(creates[0].sendAt).toBe(new Date("2099-01-01T10:00").toISOString());
@@ -240,11 +262,11 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const user = userEvent.setup();
     setup({ path: "/comunicados/novo?classId=k1" });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
     await user.type(screen.getByLabelText("Título"), "Aviso");
     await user.type(screen.getByLabelText("Texto"), "Texto");
-    await user.click(screen.getByRole("checkbox", { name: "WhatsApp" }));
-    await screen.findByText(/grupo da turma/);
+    await user.click(screen.getByRole("checkbox", { name: /^WhatsApp/ }));
+    await screen.findByText("WhatsApp: grupo da turma");
     await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
     expect(await screen.findByRole("link", { name: "Abrir o grupo da turma" })).toHaveAttribute("href", "https://chat.example.com/jj");
   });
@@ -253,7 +275,7 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const user = userEvent.setup();
     setup({ path: "/comunicados/novo?classId=k1", create: () => failure(400, "VALIDATION_ERROR", [{ field: "body", message: "x" }, { field: "title", message: "y" }]) });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
     await user.type(screen.getByLabelText("Texto"), "Meu texto");
     await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
     const title = screen.getByLabelText("Título");
@@ -268,7 +290,7 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     let status = 409;
     setup({ path: "/comunicados/novo?classId=k1", create: () => (status === 409 ? failure(409, "ANNOUNCEMENT_DAILY_LIMIT") : failure(403, "FORBIDDEN")) });
     await ready();
-    await screen.findByLabelText("Destino");
+    await screen.findByRole("combobox", { name: /^(Turma|Modalidade|Unidade)$/ });
     await user.type(screen.getByLabelText("Título"), "Aviso");
     await user.type(screen.getByLabelText("Texto"), "Texto");
     await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
@@ -289,7 +311,7 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
     mode = "ok";
     await user.click(retry);
-    expect(await screen.findByLabelText("Destino")).toBeInTheDocument();
+    expect(await screen.findByRole("combobox", { name: "Turma" })).toBeInTheDocument();
     first.unmount();
     const second = setup({ targetsResponse: () => failure(403, "FORBIDDEN") });
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
@@ -304,9 +326,102 @@ describe("NewAnnouncementPage (RF-COM-02)", () => {
       window.innerWidth = 360;
       const { container, unmount } = setup({ path: "/comunicados/novo?classId=k1&type=CANCELED_CLASS&date=2026-11-03&time=19:00" });
       await ready();
-      await screen.findByText("Este aviso vai para 8 pessoas");
+      await screen.findByText("8 alunos");
       expect(await axeViolations(container)).toEqual([]);
       unmount();
     }
+  });
+
+  it("R14/R15: a coluna Prévia mostra como aparece no portal; Portal é travado; imagem acima de 5 MB dá erro e não envia", async () => {
+    const user = userEvent.setup();
+    let uploads = 0;
+    server.use(http.post("/api/v1/announcements/image", () => (uploads++, HttpResponse.json({ name: "a.png", url: "/a.png" }))));
+    setup({ path: "/comunicados/novo?classId=k1" });
+    await ready();
+    await screen.findByRole("combobox", { name: "Turma" });
+    await user.type(screen.getByLabelText("Título"), "Seminário");
+    await user.type(screen.getByLabelText("Texto"), "Sábado tem seminário de raspagens com o professor Rafael, aberto a todas as faixas.");
+    const preview = screen.getByRole("complementary", { name: "Prévia" });
+    expect(within(preview).getByText("Seminário")).toBeInTheDocument();
+    expect(within(preview).getByText(/^Sábado tem seminário de raspagens.*…$/)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /^Portal/ })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: /^Portal/ })).toBeChecked();
+    const big = new File(["x"], "grande.png", { type: "image/png" });
+    Object.defineProperty(big, "size", { value: 5 * 1024 * 1024 + 1 });
+    await user.upload(screen.getByLabelText("Imagem (opcional)"), big);
+    expect(await screen.findByText("Use uma imagem válida, de até 5 MB.")).toBeInTheDocument();
+    expect(uploads).toBe(0);
+  });
+
+  it("R14: data de fixação passada mostra o erro no campo", async () => {
+    const user = userEvent.setup();
+    setup({ path: "/comunicados/novo?classId=k1", create: () => failure(400, "VALIDATION_ERROR", [{ field: "pinnedUntil", message: "x" }]) });
+    await ready();
+    await screen.findByRole("combobox", { name: "Turma" });
+    await user.type(screen.getByLabelText("Título"), "Aviso");
+    await user.type(screen.getByLabelText("Texto"), "Texto");
+    await user.click(screen.getByRole("button", { name: "Enviar comunicado" }));
+    expect(await screen.findByText("Use hoje ou uma data futura.")).toBeInTheDocument();
+  });
+
+  describe("no celular (R16, CA14)", () => {
+    afterEach(() => setDeviceNarrow(false));
+    const mobile = async (create?: () => Response) => {
+      setDeviceNarrow(true);
+      setup({ path: "/comunicados/novo?classId=k1", create });
+      await screen.findByRole("combobox", { name: "Destino" });
+    };
+
+    it("é tela cheia: voltar, título, ordem dos campos, Resumo e a barra com Agendar e Enviar", async () => {
+      const user = userEvent.setup();
+      await mobile();
+      expect(screen.getByRole("heading", { name: "Novo comunicado", level: 1 })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Voltar aos comunicados" })).toHaveAttribute("href", "/comunicados");
+      expect(screen.getByRole("combobox", { name: "Destino" })).toHaveValue("CLASS:k1");
+      expect(screen.getByRole("combobox", { name: "Tipo" })).toHaveValue("GENERAL");
+      const order = ["Destino", "Tipo", "Título", "Texto", "Canais"].map((n) => screen.getByText(n, { selector: "legend, label" }));
+      order.forEach((el, i) => i > 0 && expect(order[i - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
+      expect(screen.getByRole("checkbox", { name: "Abrir o grupo no WhatsApp" })).toBeInTheDocument();
+      expect(screen.queryByRole("switch", { name: "Push" })).toBeNull();
+      expect(await screen.findByText("Vai para 8 pessoas, 7 por e-mail.")).toBeInTheDocument();
+      await user.type(screen.getByLabelText("Título"), "Aviso");
+      await user.type(screen.getByLabelText("Texto"), "Texto");
+      expect(screen.getByText("5 / 2.000")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Enviar" }));
+      expect(await screen.findByText("Comunicado enviado.")).toBeInTheDocument();
+      expect(creates).toEqual([{ targetKind: "CLASS", classId: "k1", type: "GENERAL", title: "Aviso", body: "Texto", channels: ["PORTAL"] }]);
+    });
+
+    it("Agendar abre a janela de data e hora: sem data ou no passado dá erro; com data futura cria o agendado", async () => {
+      const user = userEvent.setup();
+      await mobile(() => HttpResponse.json({ id: "n1", status: "SCHEDULED", recipients: null }, { status: 201 }));
+      await user.type(screen.getByLabelText("Título"), "Aviso");
+      await user.type(screen.getByLabelText("Texto"), "Texto");
+      await user.click(screen.getByRole("button", { name: "Agendar" }));
+      const dialog = await screen.findByRole("dialog", { name: "Agendar comunicado" });
+      const confirm = within(dialog).getByRole("button", { name: "Agendar" });
+      await user.click(confirm);
+      expect(await within(dialog).findByText("Escolha uma data e hora futuras.")).toBeInTheDocument();
+      await user.type(within(dialog).getByLabelText("Data e hora do envio"), "2001-01-01T10:00");
+      await user.click(confirm);
+      expect(within(dialog).getByText("Escolha uma data e hora futuras.")).toBeInTheDocument();
+      expect(creates).toHaveLength(0);
+      await user.clear(within(dialog).getByLabelText("Data e hora do envio"));
+      await user.type(within(dialog).getByLabelText("Data e hora do envio"), "2099-01-01T10:00");
+      await user.click(confirm);
+      expect(await screen.findByText("Comunicado agendado.")).toBeInTheDocument();
+      expect(creates[0].sendAt).toBe(new Date("2099-01-01T10:00").toISOString());
+    });
+
+    it("axe a 360 px nos dois temas", async () => {
+      for (const dark of [false, true]) {
+        setDeviceNarrow(true, dark);
+        window.innerWidth = 360;
+        const { unmount } = setup({ path: "/comunicados/novo?classId=k1&type=CANCELED_CLASS&date=2026-11-03&time=19:00" });
+        await screen.findByText("Vai para 8 pessoas, 7 por e-mail.");
+        expect(await axeViolations(document.body)).toEqual([]);
+        unmount();
+      }
+    });
   });
 });

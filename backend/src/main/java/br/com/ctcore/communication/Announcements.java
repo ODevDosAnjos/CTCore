@@ -13,9 +13,13 @@ import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
+import java.time.Clock;
 import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +39,18 @@ import org.springframework.stereotype.Service;
 public class Announcements {
     public record Target(String kind, UUID id, String name) {}
 
-    public record Item(UUID id, OffsetDateTime date, Target target, String title, String type, String author, String status, Integer recipients, long reads) {}
+    public record Item(UUID id, OffsetDateTime date, Target target, String title, String type, String author, String status, Integer recipients, long reads,
+            LocalDate pinnedUntil, Integer estimatedRecipients) {
+        Item withEstimate(int n) {
+            return new Item(id, date, target, title, type, author, status, recipients, reads, pinnedUntil, n);
+        }
+    }
+
+    public record DailyLimit(Unit unit, Org organization) {}
+
+    public record Unit(UUID id, String name, long used, int limit) {}
+
+    public record Org(long used, int limit) {}
 
     public record AnnouncementList(List<Item> items, int page, int size, long total) {}
 
@@ -57,8 +72,15 @@ public class Announcements {
     private final OrganizationTransactions transactions;
     private final Permissions permissions;
     private final AuditService audit;
+    private final AnnouncementWrite write;
+    private final AnnouncementRecipients recipients;
+    private final Clock clock;
 
-    public Announcements(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Permissions permissions, AuditService audit) {
+    public Announcements(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Permissions permissions, AuditService audit, AnnouncementWrite write,
+            AnnouncementRecipients recipients, Clock clock) {
+        this.write = write;
+        this.recipients = recipients;
+        this.clock = clock;
         this.jdbc = jdbc;
         this.transactions = transactions;
         this.permissions = permissions;
@@ -136,12 +158,46 @@ public class Announcements {
             // reads em subconsulta: um join duplicaria linhas na paginação.
             List<Item> items = jdbc.sql("select a.id, coalesce(a.sent_at, a.scheduled_for), a.target_kind, case when a.target_kind = 'CLASSES' then null else coalesce(c.id, m.id, u.id) end, " + NAME + ", a.title, a.type, "
                     + "coalesce(nullif(btrim(au.name), ''), au.email), a.sent_at is null, a.recipient_count, "
-                    + "(select count(*) from announcement_read r where r.announcement_id = a.id and r.organization_id = a.organization_id)" + from_
+                    + "(select count(*) from announcement_read r where r.announcement_id = a.id and r.organization_id = a.organization_id), a.pinned_until" + from_
                     + " order by " + order + ", a.id limit :limit offset :offset").params(params)
                     .query((rs, n) -> new Item(rs.getObject(1, UUID.class), rs.getObject(2, OffsetDateTime.class),
                             new Target(rs.getString(3), rs.getObject(4, UUID.class), rs.getString(5)), rs.getString(6), rs.getString(7), rs.getString(8),
-                            rs.getBoolean(9) ? "SCHEDULED" : "SENT", rs.getObject(10) == null ? null : rs.getInt(10), rs.getLong(11))).list();
+                            rs.getBoolean(9) ? "SCHEDULED" : "SENT", rs.getObject(10) == null ? null : rs.getInt(10), rs.getLong(11), rs.getObject(12, LocalDate.class), null)).list();
+            // Estimativa só das linhas agendadas da página (no máximo size consultas).
+            items = items.stream().map(i -> "SCHEDULED".equals(i.status()) ? i.withEstimate(estimate(org, i.id())) : i).toList();
             return new AnnouncementList(items, page.page(), page.size(), total);
+        });
+    }
+
+    private int estimate(UUID org, UUID id) {
+        var d = jdbc.sql("select a.target_kind, a.class_id, a.modality_id, a.unit_id, array(select ac.class_id from announcement_class ac where ac.organization_id = a.organization_id "
+                + "and ac.announcement_id = a.id) from announcement a where a.organization_id = :org and a.id = :id").param("org", org).param("id", id)
+                .query((rs, n) -> new AnnouncementTargets.Destination(rs.getString(1), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getObject(4, UUID.class),
+                        "CLASSES".equals(rs.getString(1)) ? List.of((UUID[]) rs.getArray(5).getArray()) : null)).single();
+        return recipients.find(org, d, OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)).recipients();
+    }
+
+    /** RN-COM-07: uso do limite do dia da unidade e, só para o Coordenador, o da organização inteira. Mesmo alcance de {@code list}; só lê. */
+    public DailyLimit dailyLimit(AccountPrincipal who, UUID unitId) {
+        requireAnnouncements(who);
+        return transactions.execute(() -> {
+            UUID org = who.organizationId();
+            UUID id = unitId;
+            if (id == null) {
+                List<UUID> own = who.role() == Role.COORDINATOR ? jdbc.sql("select id from unit where organization_id = :org and active").param("org", org).query(UUID.class).list()
+                        : List.copyOf(who.units() == null ? Set.<UUID>of() : who.units());
+                if (own.size() != 1) throw new ApiValidationException("unitId", "obrigatório");
+                id = own.get(0);
+            }
+            String name = jdbc.sql("select name from unit where organization_id = :org and id = :id").param("org", org).param("id", id).query(String.class).optional()
+                    .orElseThrow(() -> new ApiStatusException(ErrorCode.NOT_FOUND));
+            if (permissions.grant(who, Permission.ANNOUNCEMENTS, id) == Access.NONE) throw new AccessDeniedException("Permission denied");
+            Instant now = clock.instant();
+            String zone = write.zoneOf(org, id);
+            Unit unit = new Unit(id, name, write.usedOn(org, id, zone, now.atZone(ZoneId.of(zone)).toLocalDate()), AnnouncementWrite.DAILY_LIMIT);
+            // "Todas as unidades" não tem unidade: vale o fuso padrão, como no insert.
+            Org all = who.role() != Role.COORDINATOR ? null : new Org(write.usedOn(org, null, write.zoneOf(org, null), now.atZone(ZoneId.of(write.zoneOf(org, null))).toLocalDate()), AnnouncementWrite.DAILY_LIMIT);
+            return new DailyLimit(unit, all);
         });
     }
 

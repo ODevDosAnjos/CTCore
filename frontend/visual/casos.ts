@@ -28,6 +28,7 @@ export type Caso = {
   usuariosCanvas?: boolean; // #487: antes de abrir a tela, as unidades Tijuca e Barra e a equipe do canvas que a regra permite à Coordenação (Carla Mendes e Diego Alves, Administradores, e o convite pendente de Paula Ribeiro)
   termosCanvas?: boolean; // #488: antes de abrir a tela, o termo de matrícula na versão 3 e as versões 3, 2 e 1 do canvas com 187, 142 e 96 aceites
   textosCanvas?: boolean; // #488: antes de abrir a tela, os nove modelos do canvas (Boas-vindas, Lembrete antes e depois com texto próprio), como o Administrador os vê
+  comunicadosCanvas?: "lista" | "curta" | "limite" | "organizacao" | "novo" | "novo-celular"; // #491: antes de abrir a tela, a unidade "Tijuca" e os comunicados do canvas (lista: cinco, 0 hoje; curta: agendado e enviado, 3 de 20; limite: 20 de 20; organizacao: janela com 286 pessoas; novo e novo-celular: a turma e a prévia do canvas)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -95,8 +96,14 @@ export const casos: Caso[] = [
   { nome: "pedidos", rota: "/pedidos", perfil: ana, canvas: "PedidosPortal" },
   { nome: "pedido-recusar", rota: "/pedidos", perfil: ana, canvas: "PedidoRecusar", passos: [{ clicar: "Recusar" }], limiteCanvas: { valor: 0.65, motivo: "medido a 59,1%: dados do mock (2 pedidos abertos, não 4) e a lista atrás diferem do canvas; contador N/500 do componente base (o canvas escreve N de 500); sem contagem na aba Aguardando aprovação (D3 e D5 da #471; removido pela #556)" } }, // #471: primeira linha (troca de turma); PedidoEncerramentoRecusar fica em semCaso (o encerramento não é a primeira linha)
   { nome: "pedido-trocar-turma", rota: "/alunos/00000000-0000-0000-0000-000000000701?pedido=00000000-0000-0000-0000-00000000f0c1", perfil: ana, canvas: "PedidoAprovadoFluxo", aguardar: '[role="dialog"]', limiteCanvas: { valor: 0.70, motivo: "medido a 60,6%: o canvas mostra a janela sobre a lista de Alunos e o sistema a abre sobre a ficha do aluno (gaveta); \"Pedido aprovado.\" em negrito no canvas; Outros horários e a nota do rodapé diferem (D8 da #471; removido pela #556)" } },
-  { nome: "comunicados", rota: "/comunicados", perfil: ana, canvas: "Comunicados" },
-  { nome: "comunicados-novo", rota: "/comunicados/novo", perfil: ana, canvas: "ComunicadoNovo" },
+  // Comunicados (#491): lista, formulário, janelas de cancelar e da organização inteira, faixa do limite e os dois de celular (390 px)
+  { nome: "comunicados", rota: "/comunicados", perfil: ana, canvas: "Comunicados", comunicadosCanvas: "lista" },
+  { nome: "comunicados-novo", rota: "/comunicados/novo?classId=00000000-0000-0000-0000-000000000c91&type=CANCELED_CLASS&date=2026-10-15&time=19:00", perfil: ana, canvas: "ComunicadoNovo", comunicadosCanvas: "novo" },
+  { nome: "comunicados-cancelar", rota: "/comunicados", perfil: ana, canvas: "ComunicadoCancelar", comunicadosCanvas: "curta", passos: [{ clicar: "Cancelar" }], aguardar: "[role=dialog]" },
+  { nome: "comunicados-limite", rota: "/comunicados", perfil: ana, canvas: "ComunicadoLimite", comunicadosCanvas: "limite" },
+  { nome: "comunicados-organizacao", rota: "/comunicados?novo=organizacao", perfil: ana, canvas: "ComunicadoOrganizacao", comunicadosCanvas: "organizacao", aguardar: "form#org-announcement" },
+  { nome: "comunicados-celular", rota: "/comunicados", perfil: ana, comunicadosCanvas: "curta" },
+  { nome: "comunicados-novo-celular", rota: "/comunicados/novo?classId=00000000-0000-0000-0000-000000000c93&type=GENERAL", perfil: ana, comunicadosCanvas: "novo-celular" },
   { nome: "configuracoes-organizacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigAcademia", organizacaoCanvas: true },
   { nome: "configuracoes-unidades", rota: "/configuracoes/unidades", perfil: ana, canvas: "ConfigUnidades", unidadesCanvas: "lista" },
   { nome: "configuracoes", rota: "/configuracoes", perfil: admin }, // GMConfig e GMConfigUnidade são de 360 px: a comparação é feita à mão (D5 da #435)
@@ -236,7 +243,7 @@ export const temas = [
 export const semCaso: Record<string, string[]> = {
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
-    "InicioCoordenador", "AguardandoAprovacao", "ComunicadoOrganizacao", "SuporteAcesso",
+    "InicioCoordenador", "AguardandoAprovacao", "SuporteAcesso",
     "PortalEmDia", "PortalMConfirmarModalidade", "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
   ],
   // tela de funcionalidade ainda sem rota em App.tsx (sprint futura)
@@ -256,7 +263,7 @@ export const semCaso: Record<string, string[]> = {
     "EstadoVazio", "ExperimentalAgendar", "ExperimentalPainel",
     "GraduacaoRegistrar", "ExportarGraduacoes", "SomenteLeitura",
     "Estornar", "ExportarMensalidades",
-    "ComunicadoCancelar", "ComunicadoLimite", "ExportarRelatorios",
+    "ExportarRelatorios",
     "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
@@ -271,7 +278,8 @@ export const semCaso: Record<string, string[]> = {
     "GMMatricula1", "GMMatricula2", "GMMatricula4", "GMProfessores", "GMProfessorPainel", "GMPedidos",
     "GMPedidoRecusar", "GMTurmas", "GMTurmaPainel", "GMExperimentais", "GMExperimental", "GMGraduacoes",
     "GMGraduar", "GMFinanceiro", "GMCobrancaPainel", "GMRenegociar", "GMConferencia", "GMPlanos",
-    "GMComunicados", "GMNovoComunicado", "GMRelatorios", "GMConfig", "GMConfigUnidade", "GMUsuarios",
+    "GMComunicados", "GMNovoComunicado",
+    "GMRelatorios", "GMConfig", "GMConfigUnidade", "GMUsuarios",
     "GMAuditoria", "GMAssinatura", "GMSomenteLeitura", "GMSemAcesso", "GMErro",
   ],
   // pagamento do portal: depende de cobrança em aberto e do pagamento simulado, que o MSW não deixa em estado fixo

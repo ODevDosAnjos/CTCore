@@ -38,14 +38,14 @@ public class AnnouncementWrite {
 
     public record Whatsapp(String mode, String groupLink) {}
 
-    public record Preview(int recipients, int portal, int email, Whatsapp whatsapp, List<String> channels) {}
+    public record Preview(int recipients, int adults, int guardians, int portal, int email, Whatsapp whatsapp, List<String> channels) {}
 
     public record Created(UUID id, String status, Integer recipients) {}
 
     public record Image(String name, String url) {}
 
     /** RN-COM-07 (D5). */
-    static final int DAILY_LIMIT = 20;
+    public static final int DAILY_LIMIT = 20;
     private static final java.util.Locale PT_BR = java.util.Locale.forLanguageTag("pt-BR");
     private static final String DEFAULT_ZONE = "America/Sao_Paulo";
     private static final String IMAGE_PREFIX = "announcement-";
@@ -89,9 +89,16 @@ public class AnnouncementWrite {
         return result;
     }
 
-    private String zoneOf(UUID org, UUID unit) {
+    String zoneOf(UUID org, UUID unit) {
         if (unit == null) return DEFAULT_ZONE;
         return jdbc.sql("select timezone from unit where organization_id = :org and id = :id").param("org", org).param("id", unit).query(String.class).optional().orElse(DEFAULT_ZONE);
+    }
+
+    /** RN-COM-07: enviados e agendados do dia local ({@code unit} nulo: o limite próprio de "todas as unidades"); a mesma conta do limite do {@code insert}. */
+    long usedOn(UUID org, UUID unit, String zone, LocalDate day) {
+        return jdbc.sql("select count(*) from announcement a where a.organization_id = :org and a.unit_id is not distinct from cast(:unit as uuid) "
+                + "and (coalesce(a.sent_at, a.scheduled_for) at time zone :zone)::date = :day")
+                .param("org", org).param("unit", unit, Types.OTHER).param("zone", zone).param("day", day).query(Long.class).single();
     }
 
     /** R2: nada é gravado. */
@@ -107,7 +114,7 @@ public class AnnouncementWrite {
                         .param("org", who.organizationId()).param("id", dest.classId()).query(String.class).optional().orElse(null);
                 whatsapp = link == null || link.isBlank() ? new Whatsapp("CONVERSATION", null) : new Whatsapp("GROUP", link);
             }
-            return new Preview(found.recipients(), found.recipients(), found.emails(), whatsapp, channels);
+            return new Preview(found.recipients(), found.adults(), found.guardians(), found.recipients(), found.emails(), whatsapp, channels);
         });
     }
 
@@ -239,10 +246,7 @@ public class AnnouncementWrite {
         OffsetDateTime when = sendAt != null ? sendAt : now;
         String zone = zoneOf(org, dest.unitId());
         jdbc.sql("select pg_advisory_xact_lock(hashtextextended(:key, 0))").param("key", org + ":" + (dest.unitId() == null ? "ORGANIZATION" : dest.unitId())).query().singleRow();
-        long used = jdbc.sql("select count(*) from announcement a where a.organization_id = :org and a.unit_id is not distinct from cast(:unit as uuid) "
-                + "and (coalesce(a.sent_at, a.scheduled_for) at time zone :zone)::date = :day")
-                .param("org", org).param("unit", dest.unitId(), Types.OTHER).param("zone", zone).param("day", when.atZoneSameInstant(ZoneId.of(zone)).toLocalDate())
-                .query(Long.class).single();
+        long used = usedOn(org, dest.unitId(), zone, when.atZoneSameInstant(ZoneId.of(zone)).toLocalDate());
         if (used >= DAILY_LIMIT) throw new ApiStatusException(ErrorCode.ANNOUNCEMENT_DAILY_LIMIT);
         UUID id = UUID.randomUUID();
         jdbc.sql("insert into announcement (id, organization_id, unit_id, target_kind, class_id, modality_id, type, title, body, channels, scheduled_for, author_account_id, "

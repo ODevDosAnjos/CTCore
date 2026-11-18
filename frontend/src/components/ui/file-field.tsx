@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 /** Arquivo: botão e texto do pt-BR.json; o `<input type="file">` real fica no DOM (rótulo, `accept`, erro). */
-export function FileField({ className, onChange, ...rest }: Omit<React.ComponentProps<"input">, "type" | "value">) {
+export function FileField({ className, onChange, label, ...rest }: Omit<React.ComponentProps<"input">, "type" | "value"> & { /** Texto do botão no lugar de "Escolher arquivo". */ label?: string }) {
   const { t } = useTranslation();
   const ref = React.useRef<HTMLInputElement>(null);
   const [name, setName] = React.useState<string>();
@@ -21,7 +21,7 @@ export function FileField({ className, onChange, ...rest }: Omit<React.Component
         }}
       />
       <Button type="button" variant="outline" className="min-h-11" disabled={rest.disabled} onClick={() => ref.current?.click()}>
-        {t("fields.file.choose")}
+        {label ?? t("fields.file.choose")}
       </Button>
       <span className="text-sm text-muted-foreground">{name ?? t("fields.file.none")}</span>
     </div>

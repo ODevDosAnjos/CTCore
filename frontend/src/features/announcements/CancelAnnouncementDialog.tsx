@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
+import { SummaryBox } from "@/components/ui/summary-box";
 import { ApiError } from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/format";
 import type { AnnouncementItem } from "./types";
 import { cancelAnnouncement } from "./useAnnouncements";
 
@@ -35,21 +37,35 @@ export function CancelAnnouncementDialog({ announcement, onClose, onDone }: { an
     }
   }
 
+  const target = t(`announcements.target.${announcement.target.kind}`, { name: announcement.target.name });
+  const count = announcement.estimatedRecipients;
+  const summary = [
+    t("announcements.cancel.summaryWhen", { title: announcement.title, date: formatDate(announcement.date).slice(0, 5), time: formatTime(announcement.date) }),
+    count === null ? t("announcements.cancel.summaryTargetNone", { target }) : t("announcements.cancel.summaryTarget", { target, count }),
+  ];
+
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("announcements.cancel.title")}>
-      <div className="flex flex-col gap-3">
-        <p>{t("announcements.cancel.summary", { title: announcement.title })}</p>
-        {error && (
-          <Banner tone="danger">{error}</Banner>
-        )}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
+    <Modal
+      open
+      size="sm"
+      scrim="canvas"
+      onOpenChange={(o) => !o && !busy && onClose()}
+      title={t("announcements.cancel.title")}
+      footer={
+        <>
+          <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
             {t("announcements.cancel.keep")}
           </Button>
-          <Button type="button" className="min-h-11" disabled={busy} onClick={confirm}>
+          <Button type="button" variant="danger" className="min-h-11" disabled={busy} onClick={confirm}>
             {t("announcements.cancel.submit")}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <p>{t("announcements.cancel.intro")}</p>
+        <SummaryBox label={t("announcements.cancel.summaryLabel")} items={summary} />
+        {error && <Banner tone="danger">{error}</Banner>}
       </div>
     </Modal>
   );

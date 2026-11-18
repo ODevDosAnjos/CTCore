@@ -23,7 +23,7 @@ public class AnnouncementRecipients {
     record Person(String key, String email, boolean eligible) {}
 
     /** Pessoas distintas e endereços (todos os que existem, para o {@code EmailService} registrar também os pulados). */
-    record Result(int recipients, int emails, List<String> addresses) {}
+    record Result(int recipients, int emails, List<String> addresses, int adults, int guardians) {}
 
     /** S1: hoje só ACTIVE; "Encerramento solicitado" e as bloqueadas entram aqui quando existirem (Sprint 12). */
     private static final String RECEIVING = "('ACTIVE')";
@@ -80,6 +80,7 @@ public class AnnouncementRecipients {
         }
         List<String> addresses = people.values().stream().map(Person::email).filter(e -> e != null).distinct().toList();
         int emails = (int) people.values().stream().filter(Person::eligible).map(Person::email).distinct().count();
-        return new Result(people.size(), emails, new ArrayList<>(addresses));
+        int adults = (int) people.keySet().stream().filter(k -> k.startsWith("S:")).count();
+        return new Result(people.size(), emails, new ArrayList<>(addresses), adults, people.size() - adults);
     }
 }

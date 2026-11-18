@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 
-const NARROW = "(max-width: 639px)";
-
 // Mesmo padrão do `useWide` do portal; sem matchMedia (jsdom) vale "largo".
-export function useBelowSm() {
-  const [narrow, setNarrow] = useState(() => window.matchMedia?.(NARROW).matches ?? false);
+function useMedia(query: string) {
+  const [narrow, setNarrow] = useState(() => window.matchMedia?.(query).matches ?? false);
   useEffect(() => {
-    const m = window.matchMedia?.(NARROW);
+    const m = window.matchMedia?.(query);
     if (!m) return;
     const on = () => setNarrow(m.matches);
     on();
     m.addEventListener("change", on);
     return () => m.removeEventListener("change", on);
-  }, []);
+  }, [query]);
   return narrow;
 }
+
+export const useBelowSm = () => useMedia("(max-width: 639px)");
+/** Moldura da gestão: abaixo de 768 px a tela é a do celular. */
+export const useBelowMd = () => useMedia("(max-width: 767px)");

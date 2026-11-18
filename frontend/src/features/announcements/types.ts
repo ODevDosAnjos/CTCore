@@ -12,6 +12,16 @@ export interface AnnouncementItem {
   status: "SCHEDULED" | "SENT";
   recipients: number | null;
   reads: number;
+  /** Data (AAAA-MM-DD) até a qual fica fixado no portal; nulo sem fixação. */
+  pinnedUntil: string | null;
+  /** Só no agendado: pessoas que receberiam hoje; nulo no enviado. */
+  estimatedRecipients: number | null;
+}
+
+// Espelha AnnouncementDailyLimit do OpenAPI (RN-COM-07): `organization` só vem para o Coordenador.
+export interface AnnouncementDailyLimit {
+  unit: { id: string; name: string; used: number; limit: number };
+  organization: { used: number; limit: number } | null;
 }
 
 export interface AnnouncementList {
@@ -48,6 +58,8 @@ export interface AnnouncementDraft {
 
 export interface AnnouncementPreview {
   recipients: number;
+  adults: number;
+  guardians: number;
   portal: number;
   email: number;
   whatsapp: { mode: "GROUP" | "CONVERSATION"; groupLink: string | null } | null;
