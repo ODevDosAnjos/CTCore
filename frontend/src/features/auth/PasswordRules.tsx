@@ -19,7 +19,7 @@ const TONE = { met: "text-ok-foreground", pending: "text-muted-foreground", fail
 export function PasswordRules({ password, id, leaked = false, classic = false }: { password: string; id?: string; leaked?: boolean; classic?: boolean }) {
   const { t } = useTranslation();
   const result = checkPassword(password);
-  // Minha conta (#490) ainda usa a lista simples, sem ícones nem a regra do vazamento.
+  // Minha conta (issue 490) ainda usa a lista simples, sem ícones nem a regra do vazamento.
   if (classic)
     return (
       <div id={id} className="text-sm">

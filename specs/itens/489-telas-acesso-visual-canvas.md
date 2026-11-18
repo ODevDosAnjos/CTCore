@@ -172,7 +172,7 @@ Achados: o achado 1 (ordem) está corrigido; o achado 2 (divergências) foi igua
 
 O que muda: as telas de acesso (login, trava, duas etapas, código de reserva, recuperar senha, nova senha, convite, convite vencido, link vencido, escolha de organização e sem acesso) ficam no visual do canvas, nos dois temas, a 1440 e 390 px. Back-end: migração `V55` (coluna `account_link.last_access_at` e duas políticas só de leitura, para o convite e a escolha de vínculo lerem organização, unidades e quem convidou).
 
-Verificação: rodada 3, OK (estado `67106bad05adf740c7fb6d8ae70e5b2d87b913de`), que cobre a correção da falha do CI de `/conta` (abaixo). Rodada 2 (estado `e72f7e2e04ec2030807a57c7dc9ad262c0c7adf1`): `visual:canvas -- --exige`: 147 comparadas, 0 reprovadas. `test:visual:docker` nas 13 telas de acesso: 56 passaram sem `--update-snapshots`. Backend `verify`: BUILD SUCCESS. `npm run e2e` (`@critical`): 4 falhas corrigidas e rodadas de novo, passaram. Lint e typecheck limpos.
+Verificação: rodada 4, OK (estado `1f3d1985a7a794bb132db9c8c7343546eb48623a`), que cobre a correção da falha do CI de `/conta` e do seletor de `unidades.spec.ts` (abaixo). Regressão local da rodada 4 como o CI: `test:cov` 264 arquivos, 2552 testes, 0 falhas (linhas 97,03%); `lint` e `typecheck` limpos; `e2e` 97 passaram e 1 falha por tempo (`portal-pedidos` dark, sem relação), que passou na rodada seguinte. Rodada 2 (estado `e72f7e2e04ec2030807a57c7dc9ad262c0c7adf1`): `visual:canvas -- --exige`: 147 comparadas, 0 reprovadas. `test:visual:docker` nas 13 telas de acesso: 56 passaram sem `--update-snapshots`. Backend `verify`: BUILD SUCCESS. `npm run e2e` (`@critical`): 4 falhas corrigidas e rodadas de novo, passaram. Lint e typecheck limpos.
 
 Decisões: D4 (link vencido aparece depois da recusa da API, sem rota nova de checagem). Divergências com o canvas achadas na comparação e como foram resolvidas: ordem do convite com conta existente, marca e slogan do painel, notas da trava e do convite (rodada 1, "Correção da rodada 1"); desvios 1 a 13 em "Construção". Nenhuma exceção de `limiteCanvas` nas telas de acesso.
 
@@ -206,4 +206,21 @@ Não é do item: nenhum.
 
 Comandos: `npm run lint` e `typecheck` limpos; vitest acima; visual docker acima. `visual:canvas` não repetido: nenhuma tela de acesso mudou nesta correção.
 Achados: a falha do CI (12 casos de `/conta`) está corrigida no código, sem regerar referências. Nenhum obrigatório.
+- sugestão, código, `SupportContact.tsx` e `ChooseLinkPage.tsx` — as mesmas das rodadas anteriores.
+
+### Correção da entrega (4ª rodada)
+- `telasCanvas419.test.ts` reprovava `auth/PasswordFields.tsx` e `auth/PasswordRules.tsx`: o "#490" dos comentários casava com a regex de cor hexadecimal. Comentários reescritos ("issue 490") — arquivos: `frontend/src/features/auth/PasswordFields.tsx`, `PasswordRules.tsx` — prova: `vitest run src/features/telasCanvas419.test.ts` → 63 passaram.
+- `e2e/unidades.spec.ts` (strict mode, 3 elementos em `getByLabel("Nome curto")`): o 489 não mexe em Unidades (`git diff` de `src/features/units` entre a base e o commit 7558364 é vazio). A causa é do teste: `getByLabel` casa por trecho sem diferenciar maiúscula, então "Novo nome curto" (campo da janela) e o título "Ajustar nome curto…" da janela, ainda fechando, casavam junto com o campo "Nome curto" (corrida com a animação; localmente passa). Os rótulos já são distintos; o seletor passou a `{ exact: true }` e o teste espera a janela fechar — arquivo: `frontend/e2e/unidades.spec.ts`; sem `.first()`.
+- Regressão local como o CI: `npm run test:cov` → 264 arquivos, 2552 testes, 0 falhas (linhas 97,03%); `npm run lint` e `typecheck` limpos; `npm run e2e` → 97 passaram, 1 falhou por tempo (`portal-pedidos` dark, não relacionado), que passou ao rodar de novo junto com `unidades.spec.ts` (4 de 4).
+Referências visuais: nenhuma regerada. Não é do item: nenhum.
+
+### Rodada 4 — OK — 2026-11-18, estado 1f3d1985a7a794bb132db9c8c7343546eb48623a
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA13, CA15, CA16 | mantido da rodada 3 | diff desde a rodada 3: só dois comentários (`PasswordFields.tsx`, `PasswordRules.tsx`, "#490" para "issue 490") e `e2e/unidades.spec.ts` (`exact: true` e espera da janela fechar); nenhum código de tela mudou, então as referências visuais seguem válidas |
+| CA14 | PASSOU (parcial, como antes) | `vitest run telasCanvas419 auth account`: 16 arquivos, 222 testes, 0 falhas; `playwright e2e/unidades.spec.ts`: 2 passaram; e2e e test:cov inteiros ficam para o CI |
+
+Comandos: `npm run lint` e `typecheck` limpos; vitest e playwright acima.
+Achados: nenhum obrigatório. A correção do `unidades.spec.ts` é só de seletor do teste, sem `.first()`, e não afeta critério do item.
 - sugestão, código, `SupportContact.tsx` e `ChooseLinkPage.tsx` — as mesmas das rodadas anteriores.

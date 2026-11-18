@@ -16,7 +16,7 @@ interface Props {
   idPrefix?: string;
   /** Rótulos dos dois campos (nova senha, convite). */
   labels?: { password: string; confirm: string };
-  /** Visual anterior (botão ao lado e lista simples), mantido para Minha conta até a #490. */
+  /** Visual anterior (botão ao lado e lista simples), mantido para Minha conta até a issue 490. */
   classic?: boolean;
 }
 
