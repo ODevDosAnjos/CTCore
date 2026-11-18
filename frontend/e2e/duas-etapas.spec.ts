@@ -7,12 +7,10 @@ test("@critical login com duas etapas: senha, segundo passo, código e área", a
   await page.getByLabel("Senha").fill("segredo123");
   await page.getByRole("button", { name: "Entrar" }).click();
 
-  await expect(page.getByRole("heading", { name: "Verificação em duas etapas" })).toBeVisible();
-  await page.getByLabel("Código do app").fill("000000");
-  await page.getByRole("button", { name: "Confirmar" }).click();
+  await expect(page.getByRole("heading", { name: "Duas etapas" })).toBeVisible();
+  await page.getByLabel("Código").fill("000000");
   await expect(page.getByRole("alert")).toContainText("Código incorreto");
 
-  await page.getByLabel("Código do app").fill("123456");
-  await page.getByRole("button", { name: "Confirmar" }).click();
+  await page.getByLabel("Código").fill("123456");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
 });

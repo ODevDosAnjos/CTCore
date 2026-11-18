@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { PasswordFields } from "./PasswordFields";
-import { checkPassword, isStrongPassword } from "./PasswordRules";
+import { checkPassword, isStrongPassword, PasswordRules } from "./PasswordRules";
 
 function Harness() {
   const [p, setP] = useState("");
@@ -31,14 +31,22 @@ describe("PasswordFields (CA3, CA4)", () => {
   it("marca cada exigência a cada tecla, com texto", async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    const rule = (name: string) => screen.getByText(new RegExp(name));
+    const rule = (name: string) => screen.getByText(new RegExp(name)).closest("li")!;
     expect(rule("8 ou mais")).toHaveTextContent("pendente");
+    expect(rule("vazamentos")).toHaveTextContent("pendente");
     await user.type(screen.getByLabelText("Senha"), "Abc");
     expect(rule("1 letra maiúscula")).toHaveTextContent("atendida");
     expect(rule("1 número")).toHaveTextContent("pendente");
     await user.type(screen.getByLabelText("Senha"), "12345");
     expect(rule("8 ou mais")).toHaveTextContent("atendida");
     expect(rule("1 número")).toHaveTextContent("atendida");
+    expect(rule("vazamentos")).toHaveTextContent("pendente");
+  });
+
+  it("a regra do vazamento só vira não atendida com a recusa do servidor (D5)", () => {
+    render(<PasswordRules password="Senha123" leaked />);
+    expect(screen.getByText(/vazamentos/).closest("li")).toHaveTextContent("não atendida");
+    expect(screen.getByText(/8 ou mais/).closest("li")).toHaveTextContent("atendida");
   });
 
   it("confirmação diferente mostra o aviso; igual some", async () => {

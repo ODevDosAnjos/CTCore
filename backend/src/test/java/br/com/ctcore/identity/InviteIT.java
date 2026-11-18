@@ -181,6 +181,22 @@ class InviteIT extends PostgresIT {
     }
 
     @Test
+    @DisplayName("CA16: convite pendente mostra organização, quem convidou e unidades; vencido ou inexistente não mostra nada")
+    void describeShowsNamesOnlyWhenPending() {
+        admin.update("update account set name = 'Carla Coord' where id = ?", coordinatorAccount);
+        var issued = invites.invite(coordinator, org, "d@x.com", "D", Role.ADMINISTRATOR, Set.of(unit, unit2), null);
+        var info = invites.describe(issued.code());
+        assertThat(info.organizationName()).isEqualTo("Org");
+        assertThat(info.invitedByName()).isEqualTo("Carla Coord");
+        assertThat(info.unitNames()).containsExactly("U", "U2");
+        clock.now = clock.now.plus(Duration.ofDays(7)).plusSeconds(1);
+        assertThatThrownBy(() -> invites.describe(issued.code()))
+                .isInstanceOfSatisfying(IdentityException.class, e -> assertThat(e.code()).isEqualTo(Code.INVITE_INVALID));
+        assertThatThrownBy(() -> invites.describe("nope"))
+                .isInstanceOfSatisfying(IdentityException.class, e -> assertThat(e.code()).isEqualTo(Code.INVITE_INVALID));
+    }
+
+    @Test
     @DisplayName("CA17: cancelar convite, encerrar vínculo e desativar conta auditam; desativar grava uma linha por organização")
     void cancelEndDeactivateAudit() {
         var staff = new AuditActor(AuditActor.Type.ACCOUNT, coordinatorAccount, "COORDINATOR");

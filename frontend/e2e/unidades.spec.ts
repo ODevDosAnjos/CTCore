@@ -34,7 +34,7 @@ test("@critical configurações das unidades: Coordenador lista e ajusta, Admini
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");
   await loginAs(page, "varios@exemplo.com");
-  await page.getByRole("dialog").getByRole("button", { name: /Academia Alfa Gestão \(Administrador\)/ }).click();
+  await page.getByRole("button", { name: /Academia Alfa Gestão · Administrador/ }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Menu principal" }).getByRole("link", { name: "Unidades" })).toHaveCount(0);
   await open(page, "/configuracoes/unidades");

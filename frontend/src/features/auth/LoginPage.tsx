@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate, useSearchParams } from "react-router";
 import { ErrorState } from "@/components/states";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { Lock } from "lucide-react";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -11,6 +12,7 @@ import { formatTime } from "@/lib/format";
 import { safeNext } from "./safeNext";
 import { useSession, type SessionView } from "./SessionProvider";
 import { Turnstile } from "./Turnstile";
+import { PasswordInput } from "./PasswordFields";
 import { TwoFactorStep } from "./TwoFactorStep";
 
 export function LoginPage() {
@@ -19,14 +21,14 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [show, setShow] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
-  const [ticket, setTicket] = useState<string | null>(null);
+  const [show, setShow] = useState(false);
+  const [ticket, setTicket] = useState<{ value: string; backupCodes?: number } | null>(null);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -54,9 +56,9 @@ export function LoginPage() {
     setSending(true);
     try {
       const body = { email: email.trim(), password, ...(token ? { challengeToken: token } : {}) };
-      const res = await api<SessionView | { twoFactorRequired: true; ticket: string }>("/auth/login", { method: "POST", body });
+      const res = await api<SessionView | { twoFactorRequired: true; ticket: string; backupCodesRemaining?: number }>("/auth/login", { method: "POST", body });
       if ("twoFactorRequired" in res) {
-        setTicket(res.ticket);
+        setTicket({ value: res.ticket, backupCodes: res.backupCodesRemaining });
         setPassword("");
       } else setSession(res);
     } catch (err) {
@@ -81,30 +83,29 @@ export function LoginPage() {
     }
   }
 
+  if (ticket) {
+    return (
+      <TwoFactorStep
+        ticket={ticket.value}
+        backupCodesRemaining={ticket.backupCodes}
+        onDone={setSession}
+        onExpired={() => {
+          setTicket(null);
+          setNotice(t("twoFactor.login.expired"));
+        }}
+      />
+    );
+  }
+
   return (
-    <AuthShell title={t(ticket ? "twoFactor.login.title" : "auth.title")}>
-      {ticket ? (
-        <TwoFactorStep
-          ticket={ticket}
-          onDone={setSession}
-          onBack={() => setTicket(null)}
-          onExpired={() => {
-            setTicket(null);
-            setNotice(t("twoFactor.login.expired"));
-          }}
-        />
-      ) : failed ? (
+    <AuthShell title={t("auth.title")} subtitle={t("auth.subtitle")}>
+      {failed ? (
         <ErrorState onRetry={() => void submit()} />
       ) : (
         <form noValidate onSubmit={submit} className="space-y-4" aria-busy={sending}>
           {lockedUntil !== null && (
-            <Banner tone="warn">
-              <div className="space-y-2">
-                <p>{t("auth.errors.locked", { time: formatTime(lockedUntil) })}</p>
-                <Button asChild variant="secondary" size="sm">
-                  <Link to="/esqueci-senha">{t("auth.createPassword")}</Link>
-                </Button>
-              </div>
+            <Banner tone="warn" icon={Lock}>
+              {t("auth.errors.locked", { time: formatTime(lockedUntil) })}
             </Banner>
           )}
           {notice && <Banner tone="danger">{notice}</Banner>}
@@ -113,30 +114,33 @@ export function LoginPage() {
           </Field>
           <Field label={t("auth.password")} error={errors.password}>
             {(c) => (
-              <div className="flex gap-2">
-                <Input
-                  {...c}
-                  ref={passwordRef}
-                  type={show ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <Button type="button" variant="secondary" onClick={() => setShow((s) => !s)}>
-                  {show ? t("auth.hide") : t("auth.show")}
-                </Button>
-              </div>
+              <PasswordInput
+                {...c}
+                show={show}
+                onToggle={() => setShow((s) => !s)}
+                labels={{ show: t("auth.show"), hide: t("auth.hide") }}
+                ref={passwordRef}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             )}
           </Field>
-          <Turnstile onToken={setToken} resetKey={resetKey} />
-          <Button type="submit" size="lg" className="w-full" disabled={sending || lockedUntil !== null}>
-            {sending ? t("auth.sending") : t("auth.submit")}
-          </Button>
-          <p className="text-sm">
+          <p className="text-right text-sm font-medium">
             <Link className="underline" to="/esqueci-senha">
               {t("auth.forgot")}
             </Link>
           </p>
+          <Turnstile onToken={setToken} resetKey={resetKey} />
+          <Button type="submit" size="lg" className="w-full" disabled={sending || lockedUntil !== null}>
+            {sending ? t("auth.sending") : t("auth.submit")}
+          </Button>
+          {lockedUntil !== null && (
+            <Button asChild variant="secondary" size="lg" className="w-full">
+              <Link to="/esqueci-senha">{t("auth.createPassword")}</Link>
+            </Button>
+          )}
+          {lockedUntil !== null && <p className="text-sm text-muted-foreground">{t("auth.lockedNote")}</p>}
         </form>
       )}
     </AuthShell>

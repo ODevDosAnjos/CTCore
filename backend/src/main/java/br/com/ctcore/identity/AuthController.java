@@ -77,7 +77,7 @@ class AuthController {
     ResponseEntity<?> login(@Valid @RequestBody LoginRequest r, HttpServletRequest request) {
         var outcome = auth.login(r.email(), r.password(), r.challengeToken(), request.getRemoteAddr(), device(request));
         if (outcome.ticket() != null) {
-            return ResponseEntity.ok(Map.of("twoFactorRequired", true, "ticket", outcome.ticket()));
+            return ResponseEntity.ok(Map.of("twoFactorRequired", true, "ticket", outcome.ticket(), "backupCodesRemaining", outcome.backupCodesRemaining()));
         }
         return started(outcome.session());
     }

@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -33,7 +34,7 @@ public class InviteService {
     private record Target(UUID accountId, String email, Role role, Set<UUID> units) {}
     private record Found(UUID inviteId, UUID accountId, UUID linkId, UUID organizationId, String email, String name, String status,
             String passwordHash, OffsetDateTime expiresAt, OffsetDateTime usedAt, OffsetDateTime canceledAt,
-            String role) {}
+            String role, String organizationName, String invitedByName, List<String> unitNames) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions orgTx;
@@ -272,24 +273,29 @@ public class InviteService {
     }
 
     /** What the invite screen needs, and nothing about other accounts. */
-    public record Info(String role, boolean existingAccount, UUID organizationId, String email, String name, OffsetDateTime expiresAt) {}
+    public record Info(String role, boolean existingAccount, UUID organizationId, String email, String name, OffsetDateTime expiresAt,
+            String organizationName, String invitedByName, List<String> unitNames) {}
 
     /** State of a usable invite for the screen; any problem is INVITE_INVALID with the reason. */
     public Info describe(String code) {
         Found f = usable(code);
-        return new Info(f.role(), f.passwordHash() != null, f.organizationId(), f.email(), f.name(), f.expiresAt());
+        return new Info(f.role(), f.passwordHash() != null, f.organizationId(), f.email(), f.name(), f.expiresAt(),
+                f.organizationName(), f.invitedByName(), f.unitNames());
     }
 
     private Found usable(String code) {
         Found f = accountTx.forInvite(Codes.hash(code), () -> jdbc.sql("select i.id, i.account_id, i.link_id, i.organization_id, "
-                + "a.email, a.name, a.status, a.password_hash, i.expires_at, i.used_at, i.canceled_at, l.role "
+                + "a.email, a.name, a.status, a.password_hash, i.expires_at, i.used_at, i.canceled_at, l.role, "
+                + "o.name, s.name, array(select u.name from account_link_unit lu join unit u on u.id = lu.unit_id "
+                + "where lu.link_id = l.id order by u.name) "
                 + "from account_invite i join account a on a.id = i.account_id join account_link l on l.id = i.link_id "
+                + "left join organization o on o.id = i.organization_id left join account s on s.id = i.sent_by "
                 + "where i.code_hash = :h")
                 .param("h", Codes.hash(code))
                 .query((rs, n) -> new Found(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class),
                         rs.getObject(4, UUID.class), rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8),
                         rs.getObject(9, OffsetDateTime.class), rs.getObject(10, OffsetDateTime.class), rs.getObject(11, OffsetDateTime.class),
-                        rs.getString(12)))
+                        rs.getString(12), rs.getString(13), rs.getString(14), List.of((String[]) rs.getArray(15).getArray())))
                 .optional().orElse(null));
         if (f == null) {
             throw new IdentityException(Code.INVITE_INVALID, "UNKNOWN");

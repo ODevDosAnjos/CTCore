@@ -24,7 +24,8 @@ public class SessionService {
 
     public record Created(UUID accountId, String token, UUID activeLinkId) {}
     public record AccountView(UUID id, String email, String name) {}
-    public record LinkView(UUID id, UUID organizationId, String organizationName, String role, Set<UUID> unitIds) {}
+    public record LinkView(UUID id, UUID organizationId, String organizationName, String role, Set<UUID> unitIds,
+            List<String> unitNames, OffsetDateTime lastAccessAt) {}
     public record TwoFactorView(boolean enabled, boolean required) {}
     public record SessionView(AccountView account, List<LinkView> links, UUID activeLinkId, TwoFactorView twoFactor) {}
 
@@ -120,6 +121,16 @@ public class SessionService {
                 .query(UUID.class).list());
     }
 
+    private List<String> unitNames(UUID linkId) {
+        return jdbc.sql("select u.name from account_link_unit lu join unit u on u.id = lu.unit_id where lu.link_id = :l order by u.name")
+                .param("l", linkId).query(String.class).list();
+    }
+
+    private OffsetDateTime lastAccessAt(UUID linkId) {
+        return jdbc.sql("select last_access_at from account_link where id = :l").param("l", linkId)
+                .query(OffsetDateTime.class).optional().orElse(null);
+    }
+
     private String organizationName(UUID organizationId) {
         return jdbc.sql("select name from organization where id = :o").param("o", organizationId).query(String.class).single();
     }
@@ -130,7 +141,8 @@ public class SessionService {
             AccountView account = jdbc.sql("select id, email, name from account where id = :a").param("a", accountId)
                     .query((rs, n) -> new AccountView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3))).single();
             List<LinkView> links = activeLinks(accountId).stream()
-                    .map(l -> new LinkView(l.id(), l.organizationId(), organizationName(l.organizationId()), l.role().name(), unitsOf(l.id()))).toList();
+                    .map(l -> new LinkView(l.id(), l.organizationId(), organizationName(l.organizationId()), l.role().name(), unitsOf(l.id()),
+                            unitNames(l.id()), lastAccessAt(l.id()))).toList();
             return new SessionView(account, links, activeLinkId,
                     new TwoFactorView(twoFactor.enabled(accountId), twoFactor.requiredFor(accountId)));
         });
@@ -144,6 +156,8 @@ public class SessionService {
             }
             jdbc.sql("update account_session set active_link_id = :l where id = :s and account_id = :a")
                     .param("l", linkId).param("s", sessionId).param("a", accountId).update();
+            jdbc.sql("update account_link set last_access_at = :now where id = :l and account_id = :a")
+                    .param("now", now()).param("l", linkId).param("a", accountId).update();
             return null;
         });
     }

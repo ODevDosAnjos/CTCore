@@ -43,11 +43,11 @@ async function call(page: Page, method: string, path: string, body?: unknown, ex
 }
 
 async function chooseLink(page: Page, name: RegExp) {
-  const modal = page.getByRole("dialog", { name: "Escolher organização e área" });
+  const modal = page.getByRole("heading", { name: "Onde você quer entrar?" });
   const swap = page.getByRole("button", { name: "Trocar organização ou área" });
   await modal.or(swap).first().waitFor(); // o estado que vier primeiro, sem esperar 3 s pelo diálogo que não vem
   if (!(await modal.isVisible())) await swap.click();
-  await modal.getByRole("button", { name }).click();
+  await page.getByRole("button", { name }).click();
   await expect(modal).toBeHidden();
 }
 
@@ -62,7 +62,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
       await page.getByLabel("E-mail").fill("varios@exemplo.com");
       await page.getByLabel("Senha").fill("segredo123");
       await page.getByRole("button", { name: "Entrar" }).click();
-      await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
+      await chooseLink(page, /Academia Alfa Gestão · Administrador/);
       await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
 
       // Cenário: chave Pix na unidade e a mensalidade do aluno adulto.
@@ -72,7 +72,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
       const chargeId = done.charges[0].id;
 
       // Aluno: aceita o termo e envia o comprovante.
-      await chooseLink(page, /Academia Alfa Portal \(Aluno\)/);
+      await chooseLink(page, /Academia Alfa Portal · Aluno/);
       await expect(page).toHaveURL(/\/portal\/termo$/);
       await page.getByLabel("Li e aceito o termo de matrícula").check();
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
@@ -80,7 +80,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
       await call(page, "POST", `/portal/charges/${chargeId}/proof`, undefined, {}, true);
 
       // Gestão: a cobrança está em conferência e o sino avisa.
-      await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
+      await chooseLink(page, /Academia Alfa Gestão · Administrador/);
       await open(page, "/cobrancas/conferencia");
       await expect(page.getByRole("heading", { name: "Em conferência", level: 1 })).toBeVisible();
       await expect(page.getByRole("button", { name: /^Confirmar comprovante de/ })).toBeVisible();
@@ -96,9 +96,9 @@ test.describe("comprovantes em conferência a 360 px", () => {
       await expect(page.getByText("Nenhum comprovante em conferência")).toBeVisible();
 
       // O aluno envia outro; a gestão confirma com o recibo.
-      await chooseLink(page, /Academia Alfa Portal \(Aluno\)/);
+      await chooseLink(page, /Academia Alfa Portal · Aluno/);
       await call(page, "POST", `/portal/charges/${chargeId}/proof`, undefined, {}, true);
-      await chooseLink(page, /Academia Alfa Gestão \(Administrador\)/);
+      await chooseLink(page, /Academia Alfa Gestão · Administrador/);
       await open(page, "/cobrancas/conferencia");
       await page.getByRole("button", { name: /^Confirmar comprovante de/ }).click();
       const confirm = page.getByRole("dialog", { name: "Confirmar comprovante" });

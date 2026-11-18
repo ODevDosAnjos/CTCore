@@ -68,6 +68,7 @@ class TwoFactorLoginIT extends AuthBase {
         assertThat(step2(ticket(), used).getResponse().getStatus()).isEqualTo(200);
         assertThat(shape(step2(ticket(), used))).startsWith("401|INVALID_TWO_FACTOR_CODE");
         assertThat(count("select count(*) from account_backup_code where used_at is null")).isEqualTo(9);
+        assertThat(body(login("a@x.com", PASSWORD)).path("backupCodesRemaining").asInt()).isEqualTo(9);
         assertThat(step2(ticket(), codes.get(1).asText().toLowerCase()).getResponse().getStatus()).isEqualTo(200);
     }
 

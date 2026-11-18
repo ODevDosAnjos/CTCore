@@ -3864,7 +3864,7 @@ components:
         name: { type: string, nullable: true }
     LinkView:
       type: object
-      required: [id, organizationId, organizationName, role, unitIds]
+      required: [id, organizationId, organizationName, role, unitIds, unitNames]
       properties:
         id: { type: string, format: uuid }
         organizationId: { type: string, format: uuid }
@@ -3873,12 +3873,15 @@ components:
         unitIds:
           type: array
           items: { type: string, format: uuid }
+        unitNames: { type: array, items: { type: string }, description: "Nomes das unidades do vínculo, em ordem alfabética." }
+        lastAccessAt: { type: string, format: date-time, nullable: true, description: "Último acesso por este vínculo (grava ao escolher o vínculo em PUT /auth/session/link); vazio se nunca entrou." }
     TwoFactorRequired:
       type: object
-      required: [twoFactorRequired, ticket]
+      required: [twoFactorRequired, ticket, backupCodesRemaining]
       properties:
         twoFactorRequired: { type: boolean, enum: [true] }
         ticket: { type: string, description: "Bilhete de uso único, 5 minutos, para POST /auth/login/two-factor." }
+        backupCodesRemaining: { type: integer, minimum: 0, description: "Códigos de reserva ainda não usados da conta (a senha já foi conferida)." }
     TwoFactorLoginRequest:
       type: object
       required: [ticket, code]
@@ -3968,7 +3971,7 @@ components:
         twoFactor: { $ref: '#/components/schemas/TwoFactorState' }
     InviteInfo:
       type: object
-      required: [role, existingAccount, organizationId, email, expiresAt]
+      required: [role, existingAccount, organizationId, email, expiresAt, organizationName, unitNames]
       properties:
         email: { type: string, description: "E-mail do convite (só para código válido)." }
         name: { type: string, nullable: true, description: "Nome informado no convite." }
@@ -3976,6 +3979,9 @@ components:
         role: { type: string, enum: [COORDINATOR, ADMINISTRATOR, TEACHER, STUDENT, GUARDIAN] }
         existingAccount: { type: boolean, description: Verdadeiro quando a pessoa já tem senha e aceita com ela. }
         organizationId: { type: string, format: uuid }
+        organizationName: { type: string, description: "Nome da organização, só para convite pendente válido (convite vencido, usado ou inexistente não revela nada)." }
+        invitedByName: { type: string, nullable: true, description: "Nome de quem convidou; vazio quando o convite veio do sistema." }
+        unitNames: { type: array, items: { type: string }, description: Nomes das unidades do vínculo. }
     FieldError:
       type: object
       required: [field, message]

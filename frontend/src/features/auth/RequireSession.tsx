@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { ErrorState, LoadingState } from "@/components/states";
-import { ChooseLinkGate } from "./ChooseLinkGate";
+import { ChooseLinkPage } from "./ChooseLinkPage";
 import { useSession } from "./SessionProvider";
 
 export function RequireSession() {
@@ -11,10 +11,7 @@ export function RequireSession() {
   // saiu de propósito (useLogout): /entrar limpo, sem `next` (D2)
   if (state.status === "anon" && state.out) return <Navigate to="/entrar" replace />;
   if (state.status === "anon") return <Navigate to={`/entrar?${new URLSearchParams({ next: pathname + search })}`} replace />;
-  return (
-    <>
-      <Outlet />
-      <ChooseLinkGate />
-    </>
-  );
+  // RN-ACE-03: vários vínculos e nenhum ativo → a página de escolha no lugar do app; só sai com a escolha ou com Sair.
+  if (state.status === "ready" && state.session.links.length > 1 && !state.session.activeLinkId) return <ChooseLinkPage />;
+  return <Outlet />;
 }

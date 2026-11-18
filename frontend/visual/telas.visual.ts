@@ -16,8 +16,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
     await page.getByLabel("Senha").fill("segredo123");
     await page.getByRole("button", { name: "Entrar" }).click();
     if (perfil.startsWith("duas@")) {
-      await page.getByLabel("Código do app").fill("123456"); // conta com as duas etapas ligadas
-      await page.getByRole("button", { name: "Confirmar" }).click();
+      await page.getByLabel("Código").fill("123456"); // envia sozinho; conta com as duas etapas ligadas
     }
     await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
     if (oferta) {

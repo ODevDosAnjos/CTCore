@@ -29,7 +29,7 @@ describe("AuthShell", () => {
     expect(screen.getByRole("region", { name: "Precisa de ajuda?" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /tema/i })).toBeNull();
     expect(screen.getByTestId("auth-brand")).toHaveTextContent("A academia em dia, sem planilha.");
-    expect(screen.getByRole("region", { name: "Ajuda" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Precisa de ajuda para entrar?" })).toBeInTheDocument();
   });
 
   it.each([

@@ -37,22 +37,24 @@ type User = ReturnType<typeof userEvent.setup>;
 const submitBtn = () => screen.getByRole("button", { name: "Criar senha e entrar" });
 async function fillNew(user: User, password = "Senha123", confirm = password) {
   await user.type(await screen.findByLabelText("Senha"), password);
-  await user.type(screen.getByLabelText("Confirmar senha"), confirm);
+  await user.type(screen.getByLabelText("Repita a senha"), confirm);
 }
 
 describe("InvitePage", () => {
-  it("CA1: mostra nome e e-mail somente leitura e a validade", async () => {
+  it("CA1: mostra nome e e-mail somente leitura, a validade e o cartão do vínculo", async () => {
     open("/convite/valido");
     const email = await screen.findByLabelText("E-mail");
     expect(email).toHaveValue("novo@exemplo.com");
     expect(email).toHaveAttribute("readonly");
     expect(email).toHaveAttribute("autocomplete", "username");
     expect(screen.getByLabelText("Nome")).toHaveValue("Nova Pessoa");
-    expect(screen.getByText(/Vale até 31\/12\/2026 12h30/)).toBeInTheDocument();
+    expect(screen.getByText("Convite da Academia Alfa · vale até 31/12/2026")).toBeInTheDocument();
+    expect(screen.getByText("Administrador na Academia Alfa")).toBeInTheDocument();
+    expect(screen.getByText("Unidade Centro · convite de Ana")).toBeInTheDocument();
   });
 
   it("CA1: convite sem nome não mostra o campo Nome", async () => {
-    server.use(http.get(URL_INFO, () => HttpResponse.json({ email: "a@x.com", name: null, expiresAt: "2026-12-31T15:30:00Z", existingAccount: false, role: "TEACHER", organizationId: "o" })));
+    server.use(http.get(URL_INFO, () => HttpResponse.json({ email: "a@x.com", name: null, expiresAt: "2026-12-31T15:30:00Z", existingAccount: false, role: "TEACHER", organizationName: "Academia Alfa", invitedByName: null, unitNames: [] })));
     open("/convite/qualquer");
     await screen.findByLabelText("E-mail");
     expect(screen.queryByLabelText("Nome")).toBeNull();
@@ -64,11 +66,11 @@ describe("InvitePage", () => {
     await fillNew(user, "fraca", "fraca");
     expect(submitBtn()).toBeDisabled();
     await user.clear(screen.getByLabelText("Senha"));
-    await user.clear(screen.getByLabelText("Confirmar senha"));
+    await user.clear(screen.getByLabelText("Repita a senha"));
     await fillNew(user, "Senha123", "Senha124");
     expect(submitBtn()).toBeDisabled();
-    await user.clear(screen.getByLabelText("Confirmar senha"));
-    await user.type(screen.getByLabelText("Confirmar senha"), "Senha123");
+    await user.clear(screen.getByLabelText("Repita a senha"));
+    await user.type(screen.getByLabelText("Repita a senha"), "Senha123");
     expect(submitBtn()).toBeEnabled();
   });
 
@@ -89,7 +91,7 @@ describe("InvitePage", () => {
     expect(await screen.findByText("Essa senha é muito conhecida. Escolha outra.")).toBeInTheDocument();
     expect(screen.getByLabelText("Senha")).toHaveFocus();
     expect(screen.getByLabelText("Senha")).toHaveValue("Password1");
-    expect(screen.getByLabelText("Confirmar senha")).toHaveValue("Password1");
+    expect(screen.getByLabelText("Repita a senha")).toHaveValue("Password1");
   });
 
   it("CA5: senha fraca para o servidor mostra o erro com as exigências", async () => {
@@ -99,36 +101,27 @@ describe("InvitePage", () => {
     await fillNew(user);
     await user.click(submitBtn());
     expect(await screen.findByText("A senha não atende às exigências abaixo.")).toBeInTheDocument();
-    expect(screen.getByText("A senha precisa ter:")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Regras da senha" })).toBeInTheDocument();
   });
 
-  it.each([
-    ["vencido", "Este convite venceu"],
-    ["usado", "Este convite já foi usado"],
-    ["cancelado", "Este convite foi cancelado"],
-    ["desconhecido", "O link não leva a um convite"],
-  ])("CA6: código %s explica e orienta, sem formulário", async (code, text) => {
+  it.each(["vencido", "usado", "cancelado", "desconhecido"])("CA11: código %s mostra a mesma tela, sem formulário nem organização", async (code) => {
     open(`/convite/${code}`);
-    expect(await screen.findByRole("heading", { name: "Este convite não é válido" })).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(text);
-    expect(screen.getByText("Peça um novo convite a quem convidou você.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Este convite venceu" })).toBeInTheDocument();
+    expect(screen.getByText("Convites valem 7 dias e só podem ser usados uma vez.")).toBeInTheDocument();
+    expect(screen.getByText(/Se você já criou a sua senha, é só entrar/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir para o login" })).toHaveAttribute("href", "/entrar");
+    expect(screen.queryByText(/Academia Alfa/)).toBeNull();
     expect(screen.queryByLabelText("Senha")).toBeNull();
-    expect(screen.queryByRole("button", { name: /senha e entrar/ })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("CA6: motivo DEACTIVATED cai na explicação genérica", async () => {
-    server.use(http.get(URL_INFO, () => err(410, "INVITE_INVALID", [{ field: "reason", message: "DEACTIVATED" }])));
-    open("/convite/x");
-    expect(await screen.findByRole("alert")).toHaveTextContent("O link não leva a um convite");
-  });
-
-  it("CA7: 410 no aceite troca para a explicação do motivo", async () => {
+  it("CA11: 410 no aceite troca para a tela de convite vencido", async () => {
     const user = userEvent.setup();
     server.use(http.post(URL_ACCEPT, () => err(410, "INVITE_INVALID", [{ field: "reason", message: "USED" }])));
     open("/convite/valido");
     await fillNew(user);
     await user.click(submitBtn());
-    expect(await screen.findByRole("alert")).toHaveTextContent("Este convite já foi usado");
+    expect(await screen.findByRole("heading", { name: "Este convite venceu" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Senha")).toBeNull();
   });
 
@@ -137,10 +130,16 @@ describe("InvitePage", () => {
     open("/convite/existente");
     const campo = await screen.findByLabelText("Sua senha atual");
     expect(campo).toHaveAttribute("autocomplete", "current-password");
-    expect(screen.queryByLabelText("Confirmar senha")).toBeNull();
-    expect(screen.queryByText("A senha precisa ter:")).toBeNull();
-    expect(screen.getByText(/entra na conta que você já tem/)).toBeInTheDocument();
-    const botao = screen.getByRole("button", { name: "Aceitar convite e entrar" });
+    expect(screen.queryByLabelText("Repita a senha")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Regras da senha" })).toBeNull();
+    expect(screen.getByText("Você já tem conta no ctcore com este e-mail.")).toBeInTheDocument();
+    expect(screen.getByText(/^Unidades Centro e Norte · convite de Ana · vale até \d{2}\/\d{2}\/\d{4}$/)).toBeInTheDocument();
+    expect(screen.getByText("O novo vínculo aparece na escolha de organização, ao lado dos que você já tem.")).toBeInTheDocument();
+    expect(screen.getByLabelText("E-mail")).toHaveAttribute("readonly");
+    expect(screen.getByRole("link", { name: "Esqueci minha senha" })).toHaveAttribute("href", "/esqueci-senha");
+    await user.click(screen.getByRole("button", { name: "Mostrar" }));
+    expect(campo).toHaveAttribute("type", "text");
+    const botao = screen.getByRole("button", { name: "Aceitar e entrar" });
     expect(botao).toBeDisabled();
     await user.type(campo, "errada");
     expect(botao).toBeEnabled();

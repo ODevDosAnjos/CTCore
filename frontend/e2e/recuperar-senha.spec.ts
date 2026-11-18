@@ -6,23 +6,23 @@ test("@critical Recuperação de senha", async ({ page }) => {
   await page.getByRole("link", { name: "Esqueci minha senha" }).click();
   await page.getByLabel("E-mail").fill("ana@exemplo.com");
   await page.getByRole("button", { name: "Enviar link" }).click();
-  await expect(page.getByText("Se esse e-mail tiver uma conta, você vai receber um link em instantes.")).toBeVisible();
+  await expect(page.getByText("Confira também a caixa de spam.", { exact: false })).toBeVisible();
 
   await page.goto("/redefinir-senha/valido");
   const botao = page.getByRole("button", { name: "Criar senha e entrar" });
-  await page.getByLabel("Senha", { exact: true }).fill("fraca");
-  await page.getByLabel("Confirmar senha").fill("fraca");
+  await page.getByLabel("Nova senha", { exact: true }).fill("fraca");
+  await page.getByLabel("Repita a nova senha").fill("fraca");
   await expect(botao).toBeDisabled();
-  await page.getByLabel("Senha", { exact: true }).fill("Senha123");
-  await page.getByLabel("Confirmar senha").fill("Senha123");
+  await page.getByLabel("Nova senha", { exact: true }).fill("Senha123");
+  await page.getByLabel("Repita a nova senha").fill("Senha123");
   await expect(botao).toBeEnabled();
   await botao.click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
 
   await page.goto("/redefinir-senha/vencido");
-  await page.getByLabel("Senha", { exact: true }).fill("Senha123");
-  await page.getByLabel("Confirmar senha").fill("Senha123");
+  await page.getByLabel("Nova senha", { exact: true }).fill("Senha123");
+  await page.getByLabel("Repita a nova senha").fill("Senha123");
   await page.getByRole("button", { name: "Criar senha e entrar" }).click();
-  await expect(page.getByRole("heading", { name: "Este link não é válido ou já foi usado" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Este link venceu" })).toBeVisible();
 });

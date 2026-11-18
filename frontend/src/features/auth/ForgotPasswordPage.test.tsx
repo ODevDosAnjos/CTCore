@@ -11,7 +11,7 @@ import { ThemeProvider } from "@/theme/ThemeProvider";
 import { SessionProvider } from "./SessionProvider";
 
 const URL_RESET = "/api/v1/auth/password-reset";
-const MSG = "Se esse e-mail tiver uma conta, você vai receber um link em instantes.";
+const MSG = "Se este e-mail tiver conta, você vai receber o link em alguns minutos. Confira também a caixa de spam.";
 
 function Where() {
   const l = useLocation();
@@ -34,14 +34,14 @@ function open(path = "/esqueci-senha") {
 const send = () => screen.getByRole("button", { name: "Enviar link" });
 
 describe("ForgotPasswordPage", () => {
-  it("CA1: mostra E-mail, Enviar link e o link Entrar; o login leva até aqui", async () => {
+  it("CA1: mostra E-mail, Enviar link e o link Voltar para o login; o login leva até aqui", async () => {
     const user = userEvent.setup();
     open("/entrar");
     await user.click(await screen.findByRole("link", { name: "Esqueci minha senha" }));
-    expect(await screen.findByRole("heading", { name: "Recuperar senha" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Esqueci minha senha" })).toBeInTheDocument();
     expect(screen.getByLabelText("E-mail")).toHaveAttribute("autocomplete", "username");
     expect(send()).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/entrar");
+    expect(screen.getByRole("link", { name: "Voltar para o login" })).toHaveAttribute("href", "/entrar");
   });
 
   it("CA2: e-mail vazio avisa junto ao campo, devolve o foco e não chama a API", async () => {
@@ -55,14 +55,14 @@ describe("ForgotPasswordPage", () => {
     expect(calls).not.toHaveBeenCalled();
   });
 
-  it.each(["com@exemplo.com", "sem@exemplo.com", "desativada@exemplo.com"])("CA3: %s recebe a mesma mensagem, sem formulário", async (email) => {
+  it.each(["com@exemplo.com", "sem@exemplo.com", "desativada@exemplo.com"])("CA3: %s recebe a mesma mensagem e o formulário continua", async (email) => {
     const user = userEvent.setup();
     open();
     await user.type(await screen.findByLabelText("E-mail"), email);
     await user.click(send());
     expect(await screen.findByRole("status")).toHaveTextContent(MSG);
-    expect(screen.queryByLabelText("E-mail")).toBeNull();
-    expect(screen.getByRole("link", { name: "Entrar" })).toBeInTheDocument();
+    expect(screen.getByLabelText("E-mail")).toHaveValue(email);
+    expect(screen.getByRole("link", { name: "Voltar para o login" })).toBeInTheDocument();
   });
 
   it("CA16: 429 avisa a espera e mantém o formulário", async () => {
