@@ -68,7 +68,7 @@ Como o UC-03, com o responsável (nome, CPF, e-mail, telefone) obrigatório e fi
 
 1. A mensalidade vence sem pagamento. Saem os lembretes configurados (RN-COB-17).
 2. 5 dias antes do bloqueio, sai o aviso fixo (e SMS, se os e-mails não foram abertos).
-3. No fim do prazo, a modalidade é bloqueada: o aluno sai da turma e, sem outra modalidade ativa, fica Inativo e para de contar na assinatura (RN-INA-01, RN-INA-04).
+3. No fim do prazo, a modalidade é bloqueada: o aluno sai da turma e, sem outra modalidade ativa, fica Inativo (RN-INA-01, RN-INA-04).
 4. O aluno paga pelo portal. Sem outra cobrança vencida, a modalidade volta a Ativa sozinha e o Administrador é avisado (RN-INA-05).
 
 ## UC-09 · Encerramento pedido pelo aluno

@@ -23,7 +23,7 @@ Cada perfil começa o dia vendo o que pede ação, e chega a qualquer coisa digi
 
 ## Requisitos
 
-- **RF-INI-01.** **Início do Coordenador**: resumo curto, sem poluição visual: alunos ativos e pico do ciclo, dinheiro do mês (recebido, a receber, em atraso), pendências por unidade (número com atalho), situação da assinatura. Checklist "Primeiros passos" até tudo feito.
+- **RF-INI-01.** **Início do Coordenador**: resumo curto, sem poluição visual: alunos ativos, dinheiro do mês (recebido, a receber, em atraso), pendências por unidade (número com atalho), situação da assinatura. Checklist "Primeiros passos" até tudo feito.
 - **RF-INI-02.** **Início do Administrador**: "Precisa de atenção" no topo, cada item com ação direta; 4 números (alunos ativos, recebido no mês, em atraso, experimentais da semana); aulas de hoje com "Avisar turma"; aniversariantes com mensagem de WhatsApp pronta. Checklist "Primeiros passos" da unidade, se houver.
 - **RF-INI-03.** **Início do Professor**: aulas de hoje e amanhã com a lista simples de alunos de cada turma (nome, foto, faixa, aviso se bloqueado; abrir a ficha depende de "ver ficha do aluno"), selo quando ele é substituto, experimentais do dia (com a permissão), aniversariantes e os itens do "Precisa de atenção" que são dele.
 - **RF-BUS-01.** Busca global no topo da gestão (Ctrl+K ou toque no ícone): acha aluno, responsável, professor, turma e cobrança por nome, CPF, e-mail ou telefone, ignorando acento e maiúscula; e também telas e ações por nome e palavras relacionadas ("faixa" acha Graduações). Respeita unidade e perfil. Escolher uma pessoa abre a ficha dela.

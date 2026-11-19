@@ -39,7 +39,7 @@ Pessoa (nome, telefone/WhatsApp), para quem (para mim, para filho ou filha com n
 - **RN-AEX-02.** Limite por pessoa e por unidade: padrão 2, ajustável de 1 a 3, contado pelo telefone e somando as modalidades. O pedido acima do limite entra com o selo "Limite atingido" e só é agendado se a gestão usar "Liberar mais uma".
 - **RN-AEX-03.** O pedido não marca a aula. A unidade confirma com a pessoa pelo WhatsApp (mensagem pronta) e agenda na gestão. O sistema não envia mensagem automática ao visitante.
 - **RN-AEX-04.** Obrigatórios: nome e telefone; para criança, nome e idade dela. Não pede e-mail, documento nem endereço. Pedido de criança é feito por um adulto.
-- **RN-AEX-05.** Quem faz aula experimental não é aluno: não tem cobrança, plano nem portal, e não conta na assinatura.
+- **RN-AEX-05.** Quem faz aula experimental não é aluno: não tem cobrança, plano nem portal.
 - **RN-AEX-06.** "Registrar como aluno" abre a nova matrícula preenchida e guarda a origem. Matrícula com o mesmo telefone até 60 dias depois é ligada automaticamente.
 - **RN-AEX-07.** Aula cancelada com experimental marcada exige reagendar ou cancelar a experimental (RN-AGE-06).
 - **RN-AEX-08.** O Professor vê as experimentais das suas aulas com a permissão "ver aulas experimentais" e pode marcar "Não compareceu".
