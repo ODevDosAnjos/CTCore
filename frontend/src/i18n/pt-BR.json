@@ -4210,32 +4210,44 @@
     "mainPill": "Turma principal"
   },
   "portalAnnouncements": {
+    "label": "Da academia",
     "title": "Avisos",
     "student": "Aluno",
     "you": "Você",
     "filterLabel": "Avisos mostrados",
     "filter": {
       "ALL": "Todos",
-      "UNREAD": "Não lidos",
-      "MODALITY": "Por modalidade"
+      "UNREAD": "Não lidos"
     },
-    "modality": "Modalidade",
     "markAll": "Marcar todos como lidos",
+    "markAllShort": "Marcar lidos",
+    "hint": "Abrir um aviso marca como lido. \"Marcar todos como lidos\" limpa a lista.",
+    "pinnedUntil": "Fixado até {{date}}",
+    "unreadDot": "Não lido",
+    "allClasses": "Todas as turmas",
     "cleared_one": "{{count}} aviso marcado como lido.",
     "cleared_other": "{{count}} avisos marcados como lidos.",
     "clearFailed": "Não foi possível marcar os avisos como lidos. Tente de novo.",
     "listLabel": "Lista de avisos",
     "pinned": "Fixado",
-    "unread": "Não lido",
-    "sentAt": "Enviado em {{date}}",
-    "author": "Por {{name}}",
-    "destination": {
-      "ORGANIZATION": "Para: toda a academia",
-      "UNIT": "Para: {{names}}",
-      "MODALITY": "Para: {{names}}",
-      "CLASS": "Para: turma {{names}}",
-      "CLASSES": "Para: turmas {{names}}"
+    "back": "Voltar aos avisos",
+    "backShort": "Avisos",
+    "type": {
+      "CANCELED_CLASS": "Aula cancelada",
+      "TEACHER_CHANGE": "Troca de professor",
+      "SCHEDULE_CHANGE": "Mudança de horário",
+      "NO_CLASS_DAY": "Dia sem aula",
+      "GENERAL": "Aviso"
     },
+    "role": {
+      "COORDINATOR": "Coordenador",
+      "ADMINISTRATOR": "Administrador",
+      "TEACHER": "Professor"
+    },
+    "at": "{{date}} às {{time}}",
+    "viewAgenda": "Ver na agenda",
+    "openGroup": "Abrir o grupo da turma",
+    "readNote": "Ao abrir, o aviso conta como lido para a academia.",
     "pageNav": "Páginas de avisos",
     "prev": "Página anterior",
     "next": "Próxima página",
@@ -4244,7 +4256,6 @@
     "emptyText": "Quando a academia enviar um aviso para você, ele aparece aqui.",
     "emptyUnreadTitle": "Nenhum aviso não lido",
     "emptyUnreadText": "Você está em dia com os avisos.",
-    "dialogTitle": "Aviso",
     "imageAlt": "Imagem do aviso",
     "notFoundTitle": "Aviso indisponível",
     "notFoundText": "Este aviso não está mais disponível para você."

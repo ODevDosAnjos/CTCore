@@ -1,17 +1,18 @@
-import { PageHeader } from "@/components/ui/page-header";
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
-import { PortalAnnouncementDialog } from "./PortalAnnouncementDialog";
 import { PortalAnnouncementItem } from "./PortalAnnouncementItem";
+import { PortalAnnouncementView } from "./PortalAnnouncementView";
+import { PortalHeading } from "./PortalHeading";
 import { PortalLayout } from "./PortalLayout";
 import { markAllPortalAnnouncementsRead, usePortalAnnouncements, type AnnouncementFilter, type PortalAnnouncementsData } from "./usePortalAnnouncements";
 
 const SLUG = { ALL: "todos", UNREAD: "nao-lidos", MODALITY: "modalidade" } as const;
 const FILTERS: AnnouncementFilter[] = ["ALL", "UNREAD", "MODALITY"];
-const button = (on: boolean) => `min-h-11 rounded-md border px-3 ${on ? "bg-primary text-primary-foreground" : "bg-card"}`;
 
 // RF-POR-06: avisos do aluno em `?aluno=`, `?filtro=`, `?modalidade=`, `?pagina=` e `?aviso=` (aberto). Abrir grava a leitura; "Marcar todos" só limpa a lista e o sino.
 export function PortalAnnouncementsPage() {
@@ -56,14 +57,43 @@ export function PortalAnnouncementsPage() {
   }
 
   const pages = shown ? Math.max(Math.ceil(shown.total / shown.size), 1) : 1;
+  const showControls = shown && !shown.reduced;
+  const pills: { key: string; label: string; count: number; on: boolean; patch: Record<string, string | null> }[] = shown
+    ? [
+        { key: "ALL", label: t("portalAnnouncements.filter.ALL"), count: shown.allCount, on: filter === "ALL", patch: { filtro: null, modalidade: null } },
+        { key: "UNREAD", label: t("portalAnnouncements.filter.UNREAD"), count: shown.unreadCount, on: filter === "UNREAD", patch: { filtro: SLUG.UNREAD, modalidade: null } },
+        ...shown.modalities.map((m) => ({ key: m.id, label: m.name, count: m.count, on: filter === "MODALITY" && modality === m.id, patch: { filtro: SLUG.MODALITY, modalidade: m.id } })),
+      ]
+    : [];
+  if (opened) {
+    return (
+      <PortalLayout>
+        <PortalAnnouncementView id={opened} studentId={student} onBack={() => change({ aviso: null })} onRead={reload} />
+      </PortalLayout>
+    );
+  }
   return (
     <PortalLayout>
-      <PageHeader title={t("portalAnnouncements.title")} className="mb-4" />
-      {shown && !shown.reduced && (
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <PortalHeading label={t("portalAnnouncements.label")} title={t("portalAnnouncements.title")} />
+        {showControls && (
+          <Button variant="secondary" disabled={busy || shown.unreadCount === 0} onClick={() => void markAll()}>
+            <Check aria-hidden="true" />
+            <span className="max-sm:hidden">{t("portalAnnouncements.markAll")}</span>
+            <span className="sm:hidden">{t("portalAnnouncements.markAllShort")}</span>
+          </Button>
+        )}
+      </div>
+      {message && (
+        <p role={message.ok ? "status" : "alert"} className={`mb-3 text-sm ${message.ok ? "" : "text-danger-foreground"}`}>
+          {message.text}
+        </p>
+      )}
+      {showControls && (
         <div className="mb-4 flex flex-col gap-3">
           {shown.students.length > 1 && (
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{t("portalAnnouncements.student")}</span>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              {t("portalAnnouncements.student")}
               <Select
                 value={student ?? shown.studentId}
                 onChange={(e) => change({ aluno: e.target.value, pagina: null, modalidade: null, filtro: filter === "MODALITY" ? null : slug })}
@@ -76,40 +106,19 @@ export function PortalAnnouncementsPage() {
               </Select>
             </label>
           )}
-          <div role="group" aria-label={t("portalAnnouncements.filterLabel")} className="flex flex-wrap gap-2">
-            {FILTERS.map((f) => (
+          <div role="group" aria-label={t("portalAnnouncements.filterLabel")} className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+            {pills.map((p) => (
               <button
-                key={f}
+                key={p.key}
                 type="button"
-                aria-pressed={filter === f}
-                className={button(filter === f)}
-                onClick={() => change({ filtro: f === "ALL" ? null : SLUG[f], modalidade: f === "MODALITY" ? (modality ?? shown.modalities[0]?.id ?? null) : null, pagina: null })}
+                aria-pressed={p.on}
+                className={`relative inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm after:absolute after:left-0 after:top-1/2 after:h-11 after:w-full after:-translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${p.on ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-surface-soft"}`}
+                onClick={() => change({ ...p.patch, pagina: null })}
               >
-                {t(`portalAnnouncements.filter.${f}`)}
+                {p.label}{" "}
+                <span className={p.on ? "" : "text-muted-foreground"}>{p.count}</span>
               </button>
             ))}
-          </div>
-          {filter === "MODALITY" && (
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{t("portalAnnouncements.modality")}</span>
-              <Select value={modality ?? shown.modalities[0]?.id ?? ""} onChange={(e) => change({ modalidade: e.target.value, pagina: null })}>
-                {shown.modalities.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          )}
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" className="min-h-11 rounded-md border px-3 disabled:opacity-50" disabled={busy || shown.unreadCount === 0} onClick={() => void markAll()}>
-              {t("portalAnnouncements.markAll")}
-            </button>
-            {message && (
-              <p role={message.ok ? "status" : "alert"} className={`text-sm ${message.ok ? "" : "text-danger-foreground"}`}>
-                {message.text}
-              </p>
-            )}
           </div>
         </div>
       )}
@@ -126,11 +135,12 @@ export function PortalAnnouncementsPage() {
           )
         ) : (
           <>
-            <ul aria-label={t("portalAnnouncements.listLabel")} className="flex flex-col gap-2">
+            <ul aria-label={t("portalAnnouncements.listLabel")} className="divide-y overflow-hidden rounded-lg border bg-card">
               {data.items.map((n) => (
                 <PortalAnnouncementItem key={n.id} item={n} onOpen={(id) => change({ aviso: id })} />
               ))}
             </ul>
+            <p className="mt-3 text-sm text-muted-foreground">{t("portalAnnouncements.hint")}</p>
             {pages > 1 && (
               <nav aria-label={t("portalAnnouncements.pageNav")} className="mt-4 flex flex-wrap items-center gap-2">
                 <button type="button" className="min-h-11 rounded-md border px-3 disabled:opacity-50" disabled={page <= 1} onClick={() => change({ pagina: page - 1 > 1 ? String(page - 1) : null })}>
@@ -147,7 +157,6 @@ export function PortalAnnouncementsPage() {
       ) : (
         <ErrorState onRetry={reload} />
       )}
-      {opened && <PortalAnnouncementDialog id={opened} studentId={student} onClose={() => change({ aviso: null })} onRead={reload} />}
     </PortalLayout>
   );
 }

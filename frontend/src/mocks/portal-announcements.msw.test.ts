@@ -41,7 +41,10 @@ describe("Avisos do portal x OpenAPI (RF-POR-06, #93)", () => {
     const view = await list();
     expect(keys(view)).toEqual(required("PortalAnnouncements"));
     view.items.forEach((i: object) => expect(keys(i)).toEqual(required("PortalAnnouncementItem")));
-    expect(view).toMatchObject({ reduced: false, filter: "ALL", unreadCount: 3, total: 3, page: 1, size: 20 });
+    expect(view).toMatchObject({ reduced: false, filter: "ALL", unreadCount: 3, allCount: 3, total: 3, page: 1, size: 20 });
+    expect(view.modalities.map((m: { name: string; count: number }) => [m.name, m.count])).toEqual([["Jiu-Jitsu", 3], ["Judô", 2]]);
+    expect(view.items[0]).toMatchObject({ pinnedUntil: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), summary: expect.stringContaining("sábado"), modality: null, unit: "Unidade Centro" });
+    expect(JSON.stringify(view)).not.toContain("groupLink");
     expect(view.items[0]).toMatchObject({ pinned: true, unread: true, destination: { kind: "UNIT", names: ["Unidade Centro"] } });
     expect((await list("?filter=UNREAD")).items).toHaveLength(3);
 
@@ -61,8 +64,8 @@ describe("Avisos do portal x OpenAPI (RF-POR-06, #93)", () => {
     const view = await list();
     const id = view.items[0].id;
     const opened = await (await send("POST", `/portal/announcements/${id}/open`)).json();
-    expect(keys(opened)).toEqual(required("PortalAnnouncementItem").concat(["body", "imageUrl"]).sort());
-    expect(opened).toMatchObject({ unread: false, body: expect.stringContaining("sábado") });
+    expect(keys(opened)).toEqual(required("PortalAnnouncementItem").concat(["body", "imageUrl", "authorRole", "groupLink"]).sort());
+    expect(opened).toMatchObject({ unread: false, body: expect.stringContaining("sábado"), authorRole: "COORDINATOR", groupLink: null });
     expect((await list()).unreadCount).toBe(2);
     expect((await list(`?studentId=${CHILD_TWO}`)).unreadCount).toBe(3);
     expect((await (await send("GET", "/portal/shell")).json()).unreadAnnouncements).toBe(4);

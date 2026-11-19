@@ -234,6 +234,69 @@ class PortalAnnouncementsIT extends PortalTermBase {
     }
 
     @Test
+    @DisplayName("CA8, CA6 (servidor): lista traz fixado até, resumo, modalidade, unidade e contagens sem groupLink; abrir traz authorRole (o mais alto) e groupLink só de uma turma http(s)")
+    void canvasFields() throws Exception {
+        Tenant t = tenant();
+        UUID acc = account("aluno@portal.example");
+        UUID s = student(t, "Aluno Um", "1990-01-01", acc);
+        var jiu = enroll(t, s, "ACTIVE", 0);
+        UUID jm = modalityOf(jiu.row());
+        UUID dm = EnrollmentFixtures.modality(adminJdbc(), t.orgId(), 1);
+        var other = EnrollmentFixtures.enroll(adminJdbc(), t.orgId(), s, t.unitId(), "ACTIVE", 1, null);
+        UUID judoModality = modalityOf(other.row());
+        assertThat(judoModality).isNotEqualTo(jm);
+        assertThat(dm).isNotNull();
+        for (Role role : new Role[] {Role.TEACHER, Role.COORDINATOR}) {
+            adminJdbc().update("insert into account_link (account_id, organization_id, role, status) values (?, ?, ?, 'ACTIVE')", author(), t.orgId(), role.name());
+        }
+        adminJdbc().update("update training_class set group_link = 'https://chat.example/grupo' where id = ?", jiu.klass());
+        LocalDate until = LocalDate.of(2099, 10, 17);
+
+        UUID klass = notice(t, "CLASS", t.unitId(), jiu.klass(), null, "2026-01-03T12:00:00Z", until, null);
+        UUID mod = notice(t, "MODALITY", null, null, jm, "2026-01-02T12:00:00Z");
+        UUID org = notice(t, "ORGANIZATION", null, null, null, "2026-01-01T12:00:00Z");
+        adminJdbc().update("update announcement set body = ? where id = ?", "  Linha um\n\n   linha dois " + "x".repeat(200), klass);
+
+        JsonNode view = list(t, acc, Role.STUDENT, "");
+        assertThat(view.get("allCount").asInt()).isEqualTo(3);
+        assertThat(view.get("unreadCount").asInt()).isEqualTo(3);
+        JsonNode first = view.get("items").get(0);
+        assertThat(first.get("pinnedUntil").asText()).isEqualTo("2099-10-17");
+        assertThat(first.get("summary").asText()).hasSize(100).startsWith("Linha um linha dois x");
+        assertThat(first.get("modality").asText()).isNotBlank();
+        assertThat(first.get("unit").asText()).isEqualTo("Unit");
+        JsonNode orgItem = view.get("items").get(2);
+        assertThat(orgItem.get("pinnedUntil").isNull()).isTrue();
+        assertThat(orgItem.get("modality").isNull()).isTrue();
+        assertThat(orgItem.get("unit").isNull()).isTrue();
+        assertThat(view.get("modalities")).hasSize(2);
+        for (JsonNode m : view.get("modalities")) {
+            // Aviso da organização alcança as duas; o de modalidade e o de turma, só a do Jiu-Jitsu.
+            assertThat(m.get("count").asInt()).isEqualTo(m.get("id").asText().equals(jm.toString()) ? 3 : 1);
+        }
+        // Contagens e total não dependem do filtro.
+        JsonNode filtered = list(t, acc, Role.STUDENT, "?filter=MODALITY&modalityId=" + judoModality);
+        assertThat(filtered.get("allCount").asInt()).isEqualTo(3);
+        assertThat(filtered.get("total").asInt()).isEqualTo(1);
+        assertThat(view.toString()).doesNotContain("groupLink", "chat.example");
+
+        JsonNode detail = open(t, acc, Role.STUDENT, klass, null);
+        assertThat(detail.get("authorRole").asText()).isEqualTo("COORDINATOR");
+        assertThat(detail.get("groupLink").asText()).isEqualTo("https://chat.example/grupo");
+        assertThat(open(t, acc, Role.STUDENT, mod, null).get("groupLink").isNull()).isTrue();
+        assertThat(open(t, acc, Role.STUDENT, org, null).get("groupLink").isNull()).isTrue();
+
+        adminJdbc().update("update training_class set group_link = 'ftp://chat.example/grupo' where id = ?", jiu.klass());
+        assertThat(open(t, acc, Role.STUDENT, klass, null).get("groupLink").isNull()).isTrue();
+        adminJdbc().update("delete from account_link where account_id = ?", author());
+        assertThat(open(t, acc, Role.STUDENT, klass, null).get("authorRole").isNull()).isTrue();
+        adminJdbc().update("update training_class set group_link = 'https://chat.example/grupo' where id = ?", jiu.klass());
+        UUID many = notice(t, "CLASSES", t.unitId(), null, null, "2026-01-04T12:00:00Z");
+        adminJdbc().update("insert into announcement_class (organization_id, announcement_id, class_id) values (?, ?, ?)", t.orgId(), many, jiu.klass());
+        assertThat(open(t, acc, Role.STUDENT, many, null).get("groupLink").isNull()).isTrue();
+    }
+
+    @Test
     @DisplayName("CA6: agendado, de outra organização, que não alcança o aluno e aluno de outra conta dão o mesmo 404 e nada é gravado")
     void notFound() throws Exception {
         Tenant a = tenant(), b = tenant();

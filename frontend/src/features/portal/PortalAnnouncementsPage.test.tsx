@@ -25,6 +25,10 @@ const item = (over: Partial<AnnouncementItem>): AnnouncementItem => ({
   unread: false,
   destination: { kind: "ORGANIZATION", names: [] },
   author: "Coordenação",
+  pinnedUntil: null,
+  summary: "",
+  modality: null,
+  unit: null,
   ...over,
 });
 const data = (over: Partial<PortalAnnouncementsData> = {}): PortalAnnouncementsData => ({
@@ -33,8 +37,9 @@ const data = (over: Partial<PortalAnnouncementsData> = {}): PortalAnnouncementsD
   studentId: "s1",
   filter: "ALL",
   modalityId: null,
-  modalities: [{ id: "m1", name: "Jiu-Jitsu" }],
+  modalities: [{ id: "m1", name: "Jiu-Jitsu", count: 2 }],
   unreadCount: 2,
+  allCount: 3,
   items: [
     item({ id: "n1", title: "Mudança de <b>horário</b>", pinned: true, unread: true, destination: { kind: "UNIT", names: ["Unidade Centro"] } }),
     item({ id: "n2", title: "Exame de faixa", unread: true, destination: { kind: "CLASSES", names: ["Turma A", "Turma B"] }, author: "Prof. Beto" }),
@@ -45,7 +50,7 @@ const data = (over: Partial<PortalAnnouncementsData> = {}): PortalAnnouncementsD
   total: 3,
   ...over,
 });
-const detail = (over: Partial<AnnouncementDetail> = {}): AnnouncementDetail => ({ ...item({ id: "n1", title: "Mudança de <b>horário</b>" }), body: "Linha um\nLinha <i>dois</i>", imageUrl: null, ...over });
+const detail = (over: Partial<AnnouncementDetail> = {}): AnnouncementDetail => ({ ...item({ id: "n1", title: "Mudança de <b>horário</b>" }), body: "Linha um\nLinha <i>dois</i>", imageUrl: null, authorRole: null, groupLink: null, ...over });
 const serve = (view: PortalAnnouncementsData | ((info: { request: Request }) => Response | Promise<Response>)) =>
   server.use(http.get("/api/v1/portal/announcements", typeof view === "function" ? view : () => HttpResponse.json(view)));
 
@@ -75,25 +80,38 @@ function setup(path = "/portal/avisos") {
 }
 
 describe("PortalAnnouncementsPage (RF-POR-06)", () => {
-  it("CA12: lista com Fixado, Não lido, título como texto, data, destino e autor; lido sem etiqueta", async () => {
-    serve(data());
+  it("CA3: lista em cartão único, com ponto Não lido, Fixado até, linha de apoio e data curta; lido sem ponto", async () => {
+    serve(
+      data({
+        items: [
+          item({ id: "n1", title: "Aula de quinta cancelada", pinned: true, unread: true, pinnedUntil: "2026-10-17", sentAt: "2026-10-06T12:00:00Z", modality: "Muay Thai", destination: { kind: "CLASS", names: ["Muay Thai Adulto"] }, author: "Bianca Torres", summary: "Sem treino" }),
+          item({ id: "n2", title: "Recesso", sentAt: "2026-10-20T12:00:00Z", unit: "Tijuca", destination: { kind: "UNIT", names: ["Tijuca"] } }),
+        ],
+      }),
+    );
     setup();
     const list = await screen.findByRole("list", { name: "Lista de avisos" });
-    const first = within(list).getAllByRole("listitem")[0];
-    expect(within(first).getByText("Fixado")).toBeInTheDocument();
+    const [first, last] = within(list).getAllByRole("listitem");
     expect(within(first).getByText("Não lido")).toBeInTheDocument();
-    expect(within(first).getByText("Mudança de <b>horário</b>")).toBeInTheDocument();
-    expect(within(first).getByText("Enviado em 25/10/2026")).toBeInTheDocument();
-    expect(within(first).getByText("Para: Unidade Centro")).toBeInTheDocument();
-    expect(within(first).getByText("Por Coordenação")).toBeInTheDocument();
-    expect(within(list).getByText("Para: turmas Turma A, Turma B")).toBeInTheDocument();
-    const last = within(list).getAllByRole("listitem")[2];
+    expect(within(first).getByText("Fixado até 17/10")).toBeInTheDocument();
+    expect(within(first).getByText("Muay Thai · Muay Thai Adulto · Bianca Torres · Sem treino")).toBeInTheDocument();
+    expect(within(first).getByText("06/10", { selector: "span.shrink-0" })).toBeInTheDocument();
     expect(within(last).queryByText("Não lido")).not.toBeInTheDocument();
-    expect(within(last).getByText("Para: toda a academia")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/presen|frequ|progress|R\$/i);
+    expect(within(last).getByText("Coordenação · Tijuca".replace("Coordenação · Tijuca", "Tijuca · Coordenação"))).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Enviado em|Para:|Por Coord|presen|frequ|progress|R$/i);
   });
 
-  it("CA12: clicar abre o diálogo com o texto completo, grava a leitura e relê a lista e o sino; fechar tira ?aviso=", async () => {
+  it("CA1 e CA4: cabeçalho Da academia, dica abaixo da lista e Marcar lidos no celular", async () => {
+    serve(data());
+    setup();
+    await screen.findByRole("list", { name: "Lista de avisos" });
+    expect(screen.getByText("Da academia")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Avisos" })).toBeInTheDocument();
+    expect(screen.getByText("Marcar lidos")).toBeInTheDocument();
+    expect(screen.getByText('Abrir um aviso marca como lido. "Marcar todos como lidos" limpa a lista.')).toBeInTheDocument();
+  });
+
+  it("aviso aberto (CA5, CA8): clicar abre a página própria com tipo, apoio, data e hora, autor, texto puro e nota; grava a leitura; Voltar mantém o filtro", async () => {
     let opens = 0;
     let reads = 0;
     let shells = 0;
@@ -104,11 +122,13 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     server.use(
       http.post("/api/v1/portal/announcements/n1/open", () => {
         opens += 1;
-        return HttpResponse.json(detail({ imageUrl: "https://files.example/aviso.png" }));
+        return HttpResponse.json(
+          detail({ type: "CANCELED_CLASS", modality: "Muay Thai", unit: "Tijuca", destination: { kind: "CLASS", names: ["Muay Thai Adulto"] }, author: "Bianca Torres", authorRole: "TEACHER", sentAt: "2026-10-08T13:02:00Z", imageUrl: "https://files.example/aviso.png" }),
+        );
       }),
     );
     const user = userEvent.setup();
-    setup();
+    setup("/portal/avisos?filtro=nao-lidos");
     server.use(
       http.get("/api/v1/portal/shell", () => {
         shells += 1;
@@ -116,21 +136,45 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
       }),
     );
     await user.click(await screen.findByRole("button", { name: /Mudança de <b>horário<\/b>/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Mudança de <b>horário</b>" });
-    expect(where()).toBe("/portal/avisos?aviso=n1");
-    expect(await within(dialog).findByText(/Linha um/)).toHaveTextContent("Linha <i>dois</i>");
-    expect(within(dialog).getByRole("img", { name: "Imagem do aviso" })).toHaveAttribute("src", "https://files.example/aviso.png");
+    expect(await screen.findByRole("heading", { name: "Mudança de <b>horário</b>" })).toBeInTheDocument();
+    expect(where()).toBe("/portal/avisos?filtro=nao-lidos&aviso=n1");
+    expect(screen.queryByRole("list", { name: "Lista de avisos" })).not.toBeInTheDocument();
+    expect(screen.getByText("Aula cancelada")).toBeInTheDocument();
+    expect(screen.getByText("Muay Thai · Muay Thai Adulto · Tijuca")).toBeInTheDocument();
+    expect(screen.getByText("08/10/2026 às 10h02")).toBeInTheDocument();
+    expect(screen.getByText("Bianca Torres, Professor")).toBeInTheDocument();
+    expect(screen.getByText("BT")).toBeInTheDocument();
+    expect(screen.getByText(/Linha um/)).toHaveTextContent("Linha <i>dois</i>");
+    expect(screen.getByRole("img", { name: "Imagem do aviso" })).toHaveAttribute("src", "https://files.example/aviso.png");
+    expect(screen.getByText("Ao abrir, o aviso conta como lido para a academia.")).toBeInTheDocument();
     await waitFor(() => expect(reads).toBe(2));
     await waitFor(() => expect(shells).toBeGreaterThan(0));
     expect(opens).toBe(1);
-    await waitFor(() => expect(within(screen.getAllByRole("listitem", { hidden: true })[0]).queryByText("Não lido")).not.toBeInTheDocument());
 
-    await user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(where()).toBe("/portal/avisos");
+    await user.click(screen.getByRole("button", { name: /Voltar aos avisos/ }));
+    expect(await screen.findByRole("list", { name: "Lista de avisos" })).toBeInTheDocument();
+    expect(where()).toBe("/portal/avisos?filtro=nao-lidos");
   });
 
-  it("CA12: ?aviso= abre o diálogo direto, com o aluno da URL", async () => {
+  it("CA6: Ver na agenda mantém o aluno; o grupo da turma abre em nova aba só com link; sem link o botão não existe", async () => {
+    serve(data());
+    server.use(
+      http.post("/api/v1/portal/announcements/n1/open", () => HttpResponse.json(detail({ groupLink: "https://chat.example/grupo" }))),
+      http.post("/api/v1/portal/announcements/n2/open", () => HttpResponse.json(detail({ id: "n2", title: "Exame de faixa" }))),
+    );
+    const first = setup("/portal/avisos?aluno=s1&aviso=n1");
+    expect(await screen.findByRole("link", { name: "Ver na agenda" })).toHaveAttribute("href", "/portal/agenda?aluno=s1");
+    const group = screen.getByRole("link", { name: "Abrir o grupo da turma" });
+    expect(group).toHaveAttribute("href", "https://chat.example/grupo");
+    expect(group).toHaveAttribute("target", "_blank");
+    expect(group).toHaveAttribute("rel", "noopener noreferrer");
+    first.unmount();
+    setup("/portal/avisos?aluno=s1&aviso=n2");
+    await screen.findByRole("link", { name: "Ver na agenda" });
+    expect(screen.queryByRole("link", { name: "Abrir o grupo da turma" })).not.toBeInTheDocument();
+  });
+
+  it("CA12: ?aviso= abre direto, com o aluno da URL", async () => {
     const asked: string[] = [];
     serve(data());
     server.use(
@@ -140,18 +184,33 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
       }),
     );
     setup("/portal/avisos?aluno=s1&aviso=n2");
-    expect(await screen.findByRole("dialog", { name: "Exame de faixa" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Exame de faixa" })).toBeInTheDocument();
     expect(asked).toEqual(["?studentId=s1"]);
   });
 
-  it("aviso que deixou de existir mostra o estado indisponível na janela", async () => {
+  it("aviso que deixou de existir mostra o estado indisponível com o botão de voltar", async () => {
     serve(data());
     server.use(http.post("/api/v1/portal/announcements/n9/open", () => new HttpResponse(null, { status: 404 })));
     setup("/portal/avisos?aviso=n9");
     expect(await screen.findByText("Aviso indisponível")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Voltar aos avisos/ })).toBeInTheDocument();
   });
 
-  it("CA13: Não lidos, Por modalidade (escolhendo a modalidade) e Todos refazem a leitura e mudam ?filtro=; trocar de aluno volta à página 1", async () => {
+  it("aviso aberto: erro com Tentar de novo e sem permissão", async () => {
+    serve(data());
+    let calls = 0;
+    server.use(http.post("/api/v1/portal/announcements/n1/open", () => (++calls === 1 ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(detail()))));
+    const user = userEvent.setup();
+    const failed = setup("/portal/avisos?aviso=n1");
+    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    expect(await screen.findByRole("heading", { name: "Mudança de <b>horário</b>" })).toBeInTheDocument();
+    failed.unmount();
+    server.use(http.post("/api/v1/portal/announcements/n1/open", () => new HttpResponse(null, { status: 403 })));
+    setup("/portal/avisos?aviso=n1");
+    expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
+  });
+
+  it("CA2: pílulas com contagem refazem a leitura e mudam ?filtro=; trocar de aluno zera a modalidade", async () => {
     const asked: string[] = [];
     serve(({ request }) => {
       asked.push(new URL(request.url).search);
@@ -162,8 +221,8 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
             { id: "s2", name: "Beto Souza", self: false },
           ],
           modalities: [
-            { id: "m1", name: "Jiu-Jitsu" },
-            { id: "m2", name: "Judô" },
+            { id: "m1", name: "Jiu-Jitsu", count: 2 },
+            { id: "m2", name: "Judô", count: 1 },
           ],
         }),
       );
@@ -172,14 +231,14 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     setup("/portal/avisos?pagina=2");
     await screen.findByRole("list", { name: "Lista de avisos" });
     expect(asked.at(-1)).toBe("?page=2");
-    await user.click(screen.getByRole("button", { name: "Não lidos" }));
+    for (const n of ["Todos 3", "Não lidos 2", "Jiu-Jitsu 2", "Judô 1"]) expect(screen.getByRole("button", { name: n })).toBeInTheDocument();
+    expect(screen.queryByText("Por modalidade")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Não lidos 2" }));
     await waitFor(() => expect(asked.at(-1)).toBe("?filter=UNREAD"));
     expect(where()).toBe("/portal/avisos?filtro=nao-lidos");
-    expect(screen.getByRole("button", { name: "Não lidos" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Não lidos 2" })).toHaveAttribute("aria-pressed", "true");
 
-    await user.click(screen.getByRole("button", { name: "Por modalidade" }));
-    await waitFor(() => expect(asked.at(-1)).toBe("?filter=MODALITY&modalityId=m1"));
-    await user.selectOptions(screen.getByLabelText("Modalidade"), "m2");
+    await user.click(screen.getByRole("button", { name: "Judô 1" }));
     await waitFor(() => expect(asked.at(-1)).toBe("?filter=MODALITY&modalityId=m2"));
     expect(where()).toBe("/portal/avisos?filtro=modalidade&modalidade=m2");
 
@@ -187,13 +246,13 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     await waitFor(() => expect(asked.at(-1)).toBe("?studentId=s2"));
     expect(where()).toBe("/portal/avisos?aluno=s2");
 
-    await user.click(screen.getByRole("button", { name: "Não lidos" }));
-    await user.click(screen.getByRole("button", { name: "Todos" }));
+    await user.click(screen.getByRole("button", { name: "Não lidos 2" }));
+    await user.click(screen.getByRole("button", { name: "Todos 3" }));
     await waitFor(() => expect(asked.at(-1)).toBe("?studentId=s2"));
-    expect(screen.getByRole("button", { name: "Todos" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Todos 3" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("CA13: Marcar todos como lidos limpa, relê e fica desligado sem não lidos", async () => {
+  it("CA1: lista, Marcar todos como lidos limpa, relê e fica desligado sem não lidos", async () => {
     let cleared = 0;
     serve(() => HttpResponse.json(cleared ? data({ unreadCount: 0, items: data().items.map((i) => ({ ...i, unread: false })) }) : data()));
     server.use(
@@ -204,9 +263,9 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     );
     const user = userEvent.setup();
     setup();
-    await user.click(await screen.findByRole("button", { name: "Marcar todos como lidos" }));
+    await user.click(await screen.findByRole("button", { name: /Marcar todos como lidos/ }));
     expect(await screen.findByText("2 avisos marcados como lidos.")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Marcar todos como lidos" })).toBeDisabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Marcar todos como lidos/ })).toBeDisabled());
     expect(screen.queryByText("Não lido")).not.toBeInTheDocument();
     expect(cleared).toBe(1);
   });
@@ -216,11 +275,11 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     server.use(http.post("/api/v1/portal/announcements/read-all", () => new HttpResponse(null, { status: 500 })));
     const user = userEvent.setup();
     setup();
-    await user.click(await screen.findByRole("button", { name: "Marcar todos como lidos" }));
+    await user.click(await screen.findByRole("button", { name: /Marcar todos como lidos/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível marcar os avisos como lidos");
   });
 
-  it("paginação: Próxima página e Página anterior mudam ?pagina=", async () => {
+  it("CA4: lista, paginação: Próxima página e Página anterior mudam ?pagina=", async () => {
     const asked: string[] = [];
     serve(({ request }) => {
       asked.push(new URL(request.url).search);
@@ -241,7 +300,7 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     serve(data({ items: [], total: 0, unreadCount: 0 }));
     const empty = setup();
     expect(await screen.findByText("Nenhum aviso")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Marcar todos como lidos" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Marcar todos como lidos/ })).toBeDisabled();
     empty.unmount();
 
     serve(data({ items: [], total: 0, unreadCount: 0, filter: "UNREAD" }));
@@ -278,8 +337,7 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
       await waitFor(async () => expect(await axeViolations(container)).toEqual([]));
       const user = userEvent.setup();
       await user.click(screen.getAllByRole("button", { name: /Mudança de/ })[0]);
-      const dialog = await screen.findByRole("dialog");
-      await within(dialog).findByText(/Linha um/);
+      await screen.findByText(/Linha um/);
       await waitFor(async () => expect(await axeViolations(document.body)).toEqual([]));
     });
   }

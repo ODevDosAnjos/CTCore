@@ -13,10 +13,16 @@ export interface AnnouncementItem {
   unread: boolean;
   destination: { kind: "ORGANIZATION" | "UNIT" | "MODALITY" | "CLASS" | "CLASSES"; names: string[] };
   author: string;
+  pinnedUntil: string | null;
+  summary: string;
+  modality: string | null;
+  unit: string | null;
 }
 export interface AnnouncementDetail extends AnnouncementItem {
   body: string;
   imageUrl: string | null;
+  authorRole: "COORDINATOR" | "ADMINISTRATOR" | "TEACHER" | null;
+  groupLink: string | null;
 }
 export interface PortalAnnouncementsData {
   reduced: boolean;
@@ -24,8 +30,9 @@ export interface PortalAnnouncementsData {
   studentId: string;
   filter: AnnouncementFilter;
   modalityId: string | null;
-  modalities: { id: string; name: string }[];
+  modalities: { id: string; name: string; count: number }[];
   unreadCount: number;
+  allCount: number;
   items: AnnouncementItem[];
   page: number;
   size: number;

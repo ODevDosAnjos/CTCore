@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -400,6 +400,48 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/portal/schedule", status: 200, body });
       });
     }
+    if (avisosCanvas) {
+      // #496: os 6 avisos do canvas (2 não lidos, 1 fixado até 17/10; Jiu-Jitsu 4 e Muay Thai 2) e o aviso aberto "Aula de quinta cancelada" com o grupo da turma
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(() => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const jiu = { id: "00000000-0000-0000-0000-000000000103", name: "Jiu-Jitsu" };
+        const muay = { id: "00000000-0000-0000-0000-00000000010b", name: "Muay Thai" };
+        const aviso = (id: string, title: string, type: string, sentAt: string, unread: boolean, modality: string | null, kind: string, names: string[], author: string, summary: string, pinnedUntil: string | null = null) => ({
+          id: "00000000-0000-0000-0000-0000000007d" + id, title, type, sentAt, pinned: pinnedUntil !== null, unread, destination: { kind, names }, author, pinnedUntil, summary, modality, unit: "Tijuca",
+        });
+        const items = [
+          aviso("1", "Seminário de raspagens no sábado", "GENERAL", "2026-10-06T15:00:00Z", true, "Jiu-Jitsu", "MODALITY", ["Jiu-Jitsu"], "Rafael Duarte", "aula avulsa às 12h, para todas as faixas", "2026-10-17"),
+          aviso("2", "Aula de quinta, 15/10, cancelada", "CANCELED_CLASS", "2026-10-08T13:02:00Z", true, "Muay Thai", "CLASS", ["Muay Thai Adulto · Noite"], "Carla Mendes", "a professora estará em um evento"),
+          aviso("3", "Troca de professor na sexta", "TEACHER_CHANGE", "2026-10-07T15:00:00Z", false, "Jiu-Jitsu", "CLASS", ["Jiu-Jitsu Adulto · Manhã"], "Rafael Duarte", "Rafael substitui Thiago em 16/10"),
+          aviso("4", "Feriado de 12/10: sem aula", "NO_CLASS_DAY", "2026-10-01T15:00:00Z", false, null, "UNIT", ["Tijuca"], "Carla Mendes", ""),
+          aviso("5", "Novo horário a partir de outubro", "SCHEDULE_CHANGE", "2026-09-20T15:00:00Z", false, "Jiu-Jitsu", "CLASS", ["Jiu-Jitsu Adulto · Noite"], "Rafael Duarte", ""),
+          aviso("6", "Graduação de Muay Thai", "GENERAL", "2026-08-20T15:00:00Z", false, "Muay Thai", "MODALITY", ["Muay Thai"], "Carla Mendes", "parabéns a todos!"),
+        ];
+        const students = [{ id: "00000000-0000-0000-0000-000000000701", name: "Bruno Carvalho", self: true }];
+        override({
+          method: "get",
+          path: "/portal/announcements",
+          status: 200,
+          body: { reduced: false, students, studentId: students[0].id, filter: "ALL", modalityId: null, modalities: [{ ...jiu, count: 4 }, { ...muay, count: 2 }], unreadCount: 2, allCount: 6, items, page: 1, size: 20, total: 6 },
+        });
+        override({
+          method: "post",
+          path: `/portal/announcements/${items[1].id}/open`,
+          status: 200,
+          body: {
+            ...items[1],
+            unread: false,
+            title: "Aula de quinta cancelada",
+            author: "Bianca Torres",
+            authorRole: "TEACHER",
+            body: "Oi, pessoal! A aula de quinta, 15/10, às 19h está cancelada porque estarei em um evento. Voltamos na terça, 20/10, no horário de sempre.\n\nBons treinos!",
+            imageUrl: null,
+            groupLink: "https://chat.example/muay-thai-adulto",
+          },
+        });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -475,7 +517,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

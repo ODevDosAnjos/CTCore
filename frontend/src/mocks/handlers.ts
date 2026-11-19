@@ -1576,10 +1576,10 @@ const portalHome = (studentId: string | null) => {
 // Sem `modality`, o aviso alcança o aluno por qualquer modalidade dele. O sino (`/portal/shell`), o Início e a lista saem do mesmo estado.
 const NOTICE_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='120'><rect width='320' height='120' fill='%23dbeafe'/></svg>";
 const portalNotices = [
-  { id: "00000000-0000-0000-0000-0000000007e1", title: "Mudança de horário no sábado", body: "A aula de sábado será às 10h.\nTexto fictício <b>sem HTML</b>.", type: "SCHEDULE_CHANGE", daysAgo: 1, pinned: true, kind: "UNIT", names: ["Unidade Centro"], modality: null as string | null, reach: [STUDENT_ADULT, STUDENT_MINOR, CHILD_TWO], image: NOTICE_IMAGE as string | null },
-  { id: "00000000-0000-0000-0000-0000000007e2", title: "Exame de faixa em dezembro", body: "O exame de faixa de Jiu-Jitsu será em dezembro (texto fictício).", type: "GENERAL", daysAgo: 2, pinned: false, kind: "MODALITY", names: ["Jiu-Jitsu"], modality: "Jiu-Jitsu", reach: [STUDENT_ADULT, STUDENT_MINOR], image: null },
-  { id: "00000000-0000-0000-0000-0000000007e3", title: "Recesso de fim de ano", body: "A academia fecha de 24 a 31 de dezembro (texto fictício).", type: "GENERAL", daysAgo: 3, pinned: false, kind: "ORGANIZATION", names: [] as string[], modality: null, reach: [STUDENT_ADULT, STUDENT_MINOR, CHILD_TWO], image: null },
-  { id: "00000000-0000-0000-0000-0000000007e4", title: "Judô Infantil sem aula na quarta", body: "Sem aula na quarta (texto fictício).", type: "CANCELED_CLASS", daysAgo: 4, pinned: false, kind: "CLASS", names: ["Judô Infantil"], modality: "Judô", reach: [CHILD_TWO], image: null },
+  { id: "00000000-0000-0000-0000-0000000007e1", title: "Mudança de horário no sábado", body: "A aula de sábado será às 10h.\nTexto fictício <b>sem HTML</b>.", type: "SCHEDULE_CHANGE", daysAgo: 1, pinned: true, kind: "UNIT", names: ["Unidade Centro"], modality: null as string | null, reach: [STUDENT_ADULT, STUDENT_MINOR, CHILD_TWO], image: NOTICE_IMAGE as string | null, unit: "Unidade Centro" as string | null, groupLink: null as string | null },
+  { id: "00000000-0000-0000-0000-0000000007e2", title: "Exame de faixa em dezembro", body: "O exame de faixa de Jiu-Jitsu será em dezembro (texto fictício).", type: "GENERAL", daysAgo: 2, pinned: false, kind: "MODALITY", names: ["Jiu-Jitsu"], modality: "Jiu-Jitsu", reach: [STUDENT_ADULT, STUDENT_MINOR], image: null, unit: null, groupLink: null },
+  { id: "00000000-0000-0000-0000-0000000007e3", title: "Recesso de fim de ano", body: "A academia fecha de 24 a 31 de dezembro (texto fictício).", type: "GENERAL", daysAgo: 3, pinned: false, kind: "ORGANIZATION", names: [] as string[], modality: null, reach: [STUDENT_ADULT, STUDENT_MINOR, CHILD_TWO], image: null, unit: null, groupLink: null },
+  { id: "00000000-0000-0000-0000-0000000007e4", title: "Judô Infantil sem aula na quarta", body: "Sem aula na quarta (texto fictício).", type: "CANCELED_CLASS", daysAgo: 4, pinned: false, kind: "CLASS", names: ["Judô Infantil"], modality: "Judô", reach: [CHILD_TWO], image: null, unit: "Unidade Centro", groupLink: "https://chat.example/judo-infantil" },
 ];
 const noticeRead = new Set<string>();
 const noticeDismissed = new Set<string>();
@@ -1593,6 +1593,7 @@ const noticesFor = (studentId: string, modality: string | null = null) =>
 const noticeItem = (n: (typeof portalNotices)[number], studentId: string) => ({
   id: n.id, title: n.title, type: n.type, sentAt: `${dayShift(-n.daysAgo)}T12:00:00Z`, pinned: n.pinned, unread: noticeUnread(studentId, n.id),
   destination: { kind: n.kind, names: n.names }, author: NOTICE_AUTHOR,
+  pinnedUntil: n.pinned ? dayShift(10) : null, summary: n.body.replace(/\s+/g, " ").trim().slice(0, 100), modality: n.modality, unit: n.unit,
 });
 const unreadIds = (studentId: string) => noticesFor(studentId).filter((n) => noticeUnread(studentId, n.id)).map((n) => n.id);
 const bellCount = () => new Set(homeCards().flatMap((c) => unreadIds(c.id))).size;
@@ -1621,10 +1622,10 @@ const portalAnnouncements = (url: URL) => {
   const size = Math.min(Math.max(Number(q.get("size") ?? 20) || 20, 1), 50);
   const page = Math.max(Number(q.get("page") ?? 1) || 1, 1);
   const head = { students: cards.map((c) => ({ id: c.id, name: c.name, self: c.self })), studentId: selected, filter };
-  if (current.account.email === REDUCED_ACCOUNT) return HttpResponse.json({ ...head, reduced: true, modalityId: null, modalities: [], unreadCount: 0, items: [], page, size, total: 0 });
+  if (current.account.email === REDUCED_ACCOUNT) return HttpResponse.json({ ...head, reduced: true, modalityId: null, modalities: [], unreadCount: 0, allCount: 0, items: [], page, size, total: 0 });
   const all = noticesFor(selected, mine.find((m) => m.id === modalityId)?.name ?? null).filter((n) => filter !== "UNREAD" || noticeUnread(selected, n.id));
   return HttpResponse.json({
-    ...head, reduced: false, modalityId, modalities: mine, unreadCount: unreadIds(selected).length, items: all.slice((page - 1) * size, page * size).map((n) => noticeItem(n, selected)), page, size, total: all.length,
+    ...head, reduced: false, modalityId, modalities: mine.map((m) => ({ ...m, count: noticesFor(selected, m.name).length })), unreadCount: unreadIds(selected).length, allCount: noticesFor(selected).length, items: all.slice((page - 1) * size, page * size).map((n) => noticeItem(n, selected)), page, size, total: all.length,
   });
 };
 const portalOpenNotice = (id: string, studentId: string | null) => {
@@ -1633,7 +1634,7 @@ const portalOpenNotice = (id: string, studentId: string | null) => {
   const found = noticesFor(selected).find((n) => n.id === id);
   if (!cards.some((c) => c.id === selected) || !found || current.account.email === REDUCED_ACCOUNT) return error(404, "NOT_FOUND", "Não encontrado.");
   noticeRead.add(`${selected}:${id}`);
-  return HttpResponse.json({ ...noticeItem(found, selected), body: found.body, imageUrl: found.image });
+  return HttpResponse.json({ ...noticeItem(found, selected), body: found.body, imageUrl: found.image, authorRole: "COORDINATOR", groupLink: found.groupLink });
 };
 const portalReadAll = () => {
   if (current.account.email === REDUCED_ACCOUNT) return HttpResponse.json({ dismissed: 0 });

@@ -1,33 +1,49 @@
 import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
-import { PortalTag } from "./PortalTag";
 import type { AnnouncementItem } from "./usePortalAnnouncements";
 
-/** Texto do destino ("Para: ..."), compartilhado com a janela do aviso. */
-export function destinationText(t: (key: string, o?: Record<string, unknown>) => string, d: AnnouncementItem["destination"]) {
-  return t(`portalAnnouncements.destination.${d.kind}`, { names: d.names.join(", ") });
-}
+const short = (date: string) => formatDate(date).slice(0, 5);
 
-// RF-POR-06: um aviso da lista. Fixado e Não lido levam etiqueta com texto (não só cor); o botão abre o aviso e grava a leitura.
+// RF-POR-06: uma linha da lista única (canvas PortalAvisos / PortalMAvisos). O não lido tem ponto com texto acessível, não só cor; clicar abre o aviso e grava a leitura.
 export function PortalAnnouncementItem({ item, onOpen }: { item: AnnouncementItem; onOpen: (id: string) => void }) {
   const { t } = useTranslation();
+  const date = short(item.sentAt);
+  const where = item.destination.kind === "CLASS" || item.destination.kind === "CLASSES" ? item.destination.names.join(", ") : item.unit;
+  const support = [item.modality, where, item.author, item.summary].filter(Boolean).join(" · ");
+  const mobile = `${item.modality ?? t("portalAnnouncements.allClasses")} · ${date}`;
   return (
     <li>
       <button
         type="button"
         onClick={() => onOpen(item.id)}
-        className={`flex min-h-11 w-full flex-col gap-1 rounded-md border p-3 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${item.unread ? "border-l-4 border-l-primary bg-accent/50" : ""}`}
+        className={`flex min-h-11 w-full items-start gap-3 px-4 py-3 text-left hover:bg-surface-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${item.unread ? "bg-danger/30" : ""}`}
       >
-        {(item.pinned || item.unread) && (
+        <span className="mt-1.5 flex size-2 shrink-0 items-center justify-center">
+          {item.unread && (
+            <span className="size-2 rounded-full bg-danger-foreground">
+              <span className="sr-only">{t("portalAnnouncements.unreadDot")}</span>
+            </span>
+          )}
+        </span>
+        <span className="flex min-w-0 grow flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2">
-            {item.pinned && <PortalTag tone="strong">{t("portalAnnouncements.pinned")}</PortalTag>}
-            {item.unread && <PortalTag>{t("portalAnnouncements.unread")}</PortalTag>}
+            <span className={`break-words ${item.unread ? "font-semibold" : "font-medium"}`}>{item.title}</span>
+            {item.pinned && (
+              <>
+                <Badge tone="neutral" className="max-sm:hidden">
+                  {item.pinnedUntil ? t("portalAnnouncements.pinnedUntil", { date: short(item.pinnedUntil) }) : t("portalAnnouncements.pinned")}
+                </Badge>
+                <Badge tone="neutral" className="sm:hidden">
+                  {t("portalAnnouncements.pinned")}
+                </Badge>
+              </>
+            )}
           </span>
-        )}
-        <span className={`break-words ${item.unread ? "font-semibold" : "font-medium"}`}>{item.title}</span>
-        <span className="text-sm text-muted-foreground">{t("portalAnnouncements.sentAt", { date: formatDate(item.sentAt) })}</span>
-        <span className="break-words text-sm">{destinationText(t, item.destination)}</span>
-        <span className="break-words text-sm text-muted-foreground">{t("portalAnnouncements.author", { name: item.author })}</span>
+          <span className="break-words text-sm text-muted-foreground max-sm:hidden">{support}</span>
+          <span className="break-words text-sm text-muted-foreground sm:hidden">{mobile}</span>
+        </span>
+        <span className="shrink-0 text-sm text-muted-foreground max-sm:hidden">{date}</span>
       </button>
     </li>
   );

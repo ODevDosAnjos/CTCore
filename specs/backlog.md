@@ -202,7 +202,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 494 | Termo de matrícula no visual do canvas | issue #494 | Sprint 10.5 | #455, #453, #450, #449 | agente | feito |
 | 495 | Agenda do portal no visual do canvas | issue #495 | Sprint 10.5 | #455, #456, #457, #458, #459 | agente | feito |
 | 519 | Testes instáveis sob carga na regressão completa (e2e e test:cov) | issue #519 | Sprint 10.5 | — | agente | feito |
-| 496 | Avisos e aviso aberto no visual do canvas | issue #496 | Sprint 10.5 | #456, #457, #460, #461, #450 | agente | a fazer |
+| 496 | Avisos e aviso aberto no visual do canvas | issue #496 | Sprint 10.5 | #456, #457, #460, #461, #450 | agente | feito |
 | 497 | Financeiro do portal e Pix na chave no visual do canvas | issue #497 | Sprint 10.5 | #458, #459, #460, #461, #450, #449 | agente | a fazer |
 | 498 | Minhas informações, editar contato e Minha conta do portal no visual do canvas | issue #498 | Sprint 10.5 | #455, #453, #460, #461, #450, #449 | agente | a fazer |
 | 499 | Carteirinha no visual do canvas | issue #499 | Sprint 10.5 | #455, #452, #450 | agente | a fazer |
