@@ -1,21 +1,23 @@
 # 16 · Assinatura da plataforma
 
-Entrega 1 · Fase 16 · Depende de: 01, 12 · Código: ASS
+Entrega 1 · Fase 16 · Depende de: 01, 02, 12 · Código: ASS
 
 ## Objetivo
 
-Cobrar a organização todo mês pelo maior número de alunos ativos do ciclo, somando todas as unidades. É a única receita da plataforma.
+Cobrar a organização todo mês por uma assinatura base, que inclui o Coordenador, mais as vagas de Administrador que ela usa. Alunos, responsáveis e professores não pagam e não têm limite. É a única receita da plataforma.
+
+Modelo decidido pelo dono em 19/11/2026, no lugar da cobrança por número de alunos ativos.
 
 ## Preço
 
-| Maior número de alunos ativos no ciclo | Assinatura mensal |
+| Item | Assinatura mensal |
 | --- | --- |
-| Até 50 | R$ 120 |
-| De 51 a 100 | R$ 160 |
-| De 101 a 150 | R$ 200 |
-| Acima de 150 | Mais R$ 40 a cada 50 alunos (151–200: R$ 240; 201–250: R$ 280…) |
+| Base: a organização, todas as suas unidades e o login do Coordenador | R$ 150 |
+| Cada vaga de Administrador (RN-ASS-21) | Mais R$ 50 |
 
-Unidades e usuários não mudam o preço. Não existem plano escolhido, upgrade, downgrade, cupons nem plano anual.
+Exemplos: só o Coordenador, R$ 150; uma unidade com um Administrador, R$ 200; um Administrador que gere duas unidades, R$ 250.
+
+Alunos, responsáveis, professores e unidades não mudam o preço; os limites da RN-ORG-05 continuam valendo. Não existem plano escolhido, upgrade, downgrade nem plano anual. Descontos seguem a RN-ASS-24.
 
 ## Situações
 
@@ -35,11 +37,11 @@ O Coordenador é avisado antes de cada mudança de situação.
 
 ## Regras
 
-- **RN-ASS-01.** Aluno ativo é o aluno com situação Ativo (`12`). Cada aluno conta uma vez na organização, mesmo com várias modalidades ou unidades. Bolsista conta; inativo, ex-aluno e aula experimental não.
-- **RN-ASS-02.** Vale o pico do ciclo: o maior número de alunos ativos registrado em qualquer dia do ciclo mensal. O número é gravado todo dia.
-- **RN-ASS-03.** Nada trava por passar de faixa. Se o pico do ciclo passou da faixa paga, a fatura seguinte vem pela nova faixa mais a diferença do ciclo que passou. O Coordenador vê o aviso na tela Assinatura assim que o pico passa da faixa.
-- **RN-ASS-04.** Se o pico do ciclo coube numa faixa menor, a fatura seguinte baixa sozinha.
-- **RN-ASS-05.** Primeira fatura: R$ 120 por padrão; se no cadastro a organização informar mais alunos, o sistema sugere a faixa que os cobre.
+- **RN-ASS-01.** **Retirado** (19/11/2026): a assinatura não conta alunos. Substituído pela RN-ASS-20.
+- **RN-ASS-02.** **Retirado** (19/11/2026): o pico do ciclo passou a ser de vagas de Administrador. Substituído pela RN-ASS-22.
+- **RN-ASS-03.** **Retirado** (19/11/2026): não existem faixas. Substituído pela RN-ASS-22.
+- **RN-ASS-04.** **Retirado** (19/11/2026): não existem faixas. Substituído pela RN-ASS-23.
+- **RN-ASS-05.** **Retirado** (19/11/2026): substituído pela RN-ASS-25.
 - **RN-ASS-06.** Pagamento pela conta da plataforma no Mercado Pago: cartão com renovação automática, ou Pix e boleto avulsos a cada ciclo.
 - **RN-ASS-07.** Avisos 7 dias e 1 dia antes do vencimento, na gestão e por e-mail, com valor, data e caminho para pagar. Não são enviados se a fatura já está paga.
 - **RN-ASS-08.** Pagar a fatura devolve o acesso completo na hora, sem ação da equipe.
@@ -49,15 +51,21 @@ O Coordenador é avisado antes de cada mudança de situação.
 - **RN-ASS-12.** Conta nova nasce vazia. Nenhum dado é transferido de uma organização anterior.
 - **RN-ASS-13.** Cortesia adia a próxima fatura pelo número de dias concedido, com aviso 7 e 1 dia antes do fim.
 - **RN-ASS-14.** Reajuste de preço com aviso de 30 dias. Mudança dos Termos pede novo aceite do Coordenador no próximo login.
-- **RN-ASS-15.** Proteção contra burla: vale o pico do ciclo; aluno inativo fica fora da operação; carência de 2 dias na reativação manual; o painel alerta padrões estranhos (muitas inativações e reativações em sequência).
+- **RN-ASS-15.** **Retirado** (19/11/2026): a proteção contra burla passou a ser o pico de vagas (RN-ASS-22), a sessão única de gestão (RN-ACE-23) e o alerta do painel (RN-PNL-05).
 - **RN-ASS-16.** Nenhuma situação apaga dados antes do prazo de saída.
 - **RN-ASS-17.** Mudanças de situação vão para a auditoria e aparecem no painel da plataforma.
-- **RN-ASS-18.** A academia piloto recebe cortesia até o lançamento e, depois, desconto fixo registrado no painel (exemplo: 50% por 12 meses).
+- **RN-ASS-18.** A academia piloto recebe cortesia até o lançamento e, depois, um desconto registrado no painel (RN-ASS-24; exemplo: 50% por 12 ciclos).
 - **RN-ASS-19.** A primeira cobrança real só acontece depois de a empresa ter CNPJ.
+- **RN-ASS-20.** A fatura é a base (R$ 150), que inclui a organização, todas as unidades e o Coordenador, mais R$ 50 por vaga de Administrador. Alunos, responsáveis e professores não pagam, em qualquer quantidade. Os valores vêm da tabela de preços do painel (RF-PNL-06).
+- **RN-ASS-21.** Vaga é um Administrador ativo em uma unidade: quem gere duas unidades ocupa duas vagas, com um login só. O Coordenador nunca ocupa vaga, nem quando se nomeia Administrador de uma unidade (RN-ORG-07). Convite enviado e ainda não aceito não ocupa vaga.
+- **RN-ASS-22.** A fatura de cada ciclo cobra as vagas pelo pico do ciclo anterior: o maior número de vagas ativas ao mesmo tempo em qualquer momento daquele ciclo. Toda criação, mudança de unidades e desativação de vínculo de Administrador fica gravada com data e hora, e o pico sai desse registro. Incluir uma vaga não gera cobrança na hora: ela entra na fatura seguinte.
+- **RN-ASS-23.** Desativar um Administrador ou tirar uma unidade dele não gera devolução nem crédito: a vaga já entrou no pico do ciclo. Trocar a pessoa dentro do mesmo ciclo reaproveita a vaga, porque o pico conta vagas simultâneas e não pessoas. A fatura seguinte reflete o número novo, sem ação de ninguém.
+- **RN-ASS-24.** Desconto é percentual ou valor fixo em reais, sobre a fatura inteira (base e vagas), por um número de ciclos ou sem prazo. Ele vem do painel (RF-PNL-04) ou de cupom informado no cadastro da organização (RF-PNL-12, `18`). Descontos não acumulam: com mais de um válido no ciclo, vale o que dá o maior abatimento naquela fatura. A fatura nunca fica negativa. Conceder, trocar e encerrar desconto vai para a auditoria.
+- **RN-ASS-25.** A primeira fatura é a base, com o desconto do cupom do cadastro, se houver. Ela não tem vagas: a organização nasce só com o Coordenador.
 
 ## Requisitos
 
-- **RF-ASS-01.** Configurações › Assinatura (Coordenador): situação, alunos ativos hoje, pico do ciclo, faixa e valor previsto, data da próxima fatura, forma de pagamento (trocar cartão), histórico de faturas com recibo.
+- **RF-ASS-01.** Configurações › Assinatura (Coordenador): situação, vagas de Administrador ativas hoje (por unidade, com o nome de quem ocupa), pico de vagas do ciclo, desconto ativo (tipo, valor e até quando), valor previsto da próxima fatura (base, vagas, desconto e total), data da próxima fatura, forma de pagamento (trocar cartão), histórico de faturas com recibo.
 - **RF-ASS-02.** Pagar fatura em aberto (cartão, Pix, boleto).
 - **RF-ASS-03.** Cancelar assinatura, mostrando até quando funciona e o prazo de exportação.
 - **RF-ASS-04.** Faixa no topo da gestão para Coordenador e Administradores conforme a situação.
@@ -65,6 +73,8 @@ O Coordenador é avisado antes de cada mudança de situação.
 
 ## Pronto quando
 
-- O pico do ciclo bate com a contagem diária gravada.
+- O pico de vagas do ciclo bate com o registro de mudanças de vínculo de Administrador, e o vínculo do Coordenador nunca entra na conta.
+- Trocar o Administrador de uma unidade dentro do ciclo não aumenta o pico.
+- Com cupom e desconto do painel no mesmo ciclo, a fatura usa só o maior abatimento.
 - Em somente leitura, nenhuma escrita passa pela API da gestão, mas o portal e os pagamentos dos alunos funcionam.
 - O pagamento de uma fatura em atraso devolve o acesso sem intervenção.

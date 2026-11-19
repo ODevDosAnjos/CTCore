@@ -28,7 +28,7 @@ Definir quanto cada modalidade custa em cada unidade e os benefícios individuai
 - **RN-BEN-02.** Bolsa em percentual livre de 1 a 100% ou desconto em reais. Não existe desconto por faixa nem por pontualidade.
 - **RN-BEN-03.** Todo benefício guarda motivo, quem decidiu e quem lançou, e validade.
 - **RN-BEN-04.** O benefício vale a partir da próxima cobrança gerada. Cobrança já gerada não muda. Benefício vencido deixa de ser aplicado.
-- **RN-BEN-05.** Com bolsa de 100%, a modalidade não gera mensalidade, mas o aluno segue Ativo e conta na assinatura.
+- **RN-BEN-05.** Com bolsa de 100%, a modalidade não gera mensalidade, mas o aluno segue Ativo.
 - **RN-BEN-06.** Benefício acima de 50% (ou desconto acima de metade do plano) notifica o Coordenador e aparece no filtro "Benefícios altos". Não precisa de aprovação.
 - **RN-BEN-07.** Desconto em reais nunca deixa a mensalidade negativa: o valor mínimo é zero.
 - **RN-BEN-08.** Desconto de professor é um benefício comum. Ao dar um benefício a quem já tem outro na modalidade, a janela pede a confirmação de substituir: confirmar deixa o novo e cancelar mantém o atual.

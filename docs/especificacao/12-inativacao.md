@@ -20,11 +20,11 @@ Tirar da operação quem não paga, sem trabalho manual, e devolver na hora quan
 
 ### Aluno (calculada, nunca digitada)
 
-| Situação | Regra | Conta na assinatura |
-| --- | --- | --- |
-| Ativo | Ao menos uma modalidade Ativa ou com Encerramento solicitado | Sim |
-| Inativo | Nenhuma ativa e ao menos uma bloqueada | Não |
-| Ex-aluno | Todas encerradas | Não |
+| Situação | Regra |
+| --- | --- |
+| Ativo | Ao menos uma modalidade Ativa ou com Encerramento solicitado |
+| Inativo | Nenhuma ativa e ao menos uma bloqueada |
+| Ex-aluno | Todas encerradas |
 
 ## Regras
 
@@ -38,7 +38,7 @@ Tirar da operação quem não paga, sem trabalho manual, e devolver na hora quan
 - **RN-INA-08.** Portal do aluno Inativo: cobranças em aberto com "Pagar", histórico financeiro, recibos, dados da conta e contato da unidade. A carteirinha continua visível, com o selo "Inativo". Agenda, avisos e graduação ficam ocultos. "Inativo" no portal é calculado do que existe: aluno matriculado sem modalidade ativa (RN-POR-08).
 - **RN-INA-09.** Ex-aluno sem débito vê o histórico financeiro e os recibos pelo prazo da organização (padrão 12 meses). Depois o acesso do vínculo é desligado, sem apagar dados. Ex-aluno com débito vê como o Inativo.
 - **RN-INA-10.** Todas as mudanças de situação vão para a auditoria e geram e-mail ao aluno (bloqueio, reativação, encerramento).
-- **RN-INA-11.** A contagem de alunos ativos para a assinatura usa a situação do aluno (ver `16`).
+- **RN-INA-11.** **Retirado** (19/11/2026): a assinatura não conta alunos (ver `16`).
 
 ## Requisitos
 

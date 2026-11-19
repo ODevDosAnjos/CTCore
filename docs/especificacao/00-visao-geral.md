@@ -68,7 +68,7 @@ O domínio é exemplo até a escolha do nome definitivo. `{unidade}` é um nome 
 | Equipe da plataforma · Dono | Todas as organizações. Preços, planos, catálogo, cancelar organização |
 | Equipe da plataforma · Suporte | Consulta organizações e chamados. Altera só com liberação do Coordenador |
 | Coordenador | Organização inteira: assinatura, unidades, configurações da organização, visão consolidada. Para operar uma unidade, entra nela |
-| Administrador | Tudo dentro das unidades a que está ligado |
+| Administrador | Tudo dentro das unidades a que está ligado. Cada unidade é uma vaga paga da assinatura (`16`) |
 | Professor | Suas turmas: alunos, aulas, comunicados. Cinco permissões ligáveis por unidade, a ficha do aluno desligada por padrão |
 | Aluno | Próprios dados no portal |
 | Responsável | Dados dos alunos menores ligados a ele, no portal |
@@ -97,7 +97,7 @@ Frequência e presença, avaliação física, competições, eventos, loja com e
 | **3 · Piloto e lançamento** | A academia piloto opera e cobra de verdade com tudo funcionando; depois, o cadastro abre ao público | — |
 | **Depois** | Sem data | Programa de indicação, domínio próprio, plano anual, nota fiscal, WhatsApp automático |
 
-A academia piloto usa de graça até o lançamento. Depois, assina com desconto fixo (exemplo: 50% por 12 meses), registrado no painel.
+A academia piloto usa de graça até o lançamento. Depois, assina com desconto (exemplo: 50% por 12 ciclos), registrado no painel (RN-ASS-24).
 
 ## 8. Ordem das fases
 
@@ -289,7 +289,7 @@ Campos de texto mostram um contador perto do limite.
 
 **SMS.** Incluído na assinatura, só para o essencial: código de confirmação de telefone (cadastro da organização, autocadastro e troca de telefone pelo portal) e o aviso "faltam 5 dias para o bloqueio" quando o aluno não abriu os e-mails anteriores. O resto vai por e-mail e push.
 
-**Limites do plano no banco.** O banco guarda, por organização, limites de alunos, usuários, unidades e módulos, para planos futuros. Na v1, só o número de alunos ativos define o preço e nada é bloqueado por limite de plano.
+**Limites do plano no banco.** O banco guarda, por organização, limites de alunos, usuários, unidades e módulos, para planos futuros. Na v1, o preço é a base mais as vagas de Administrador (`16`, alteração de 19/11/2026) e nada é bloqueado por limite de plano além da RN-ORG-05.
 
 ## 12. Pendências fora do código
 
