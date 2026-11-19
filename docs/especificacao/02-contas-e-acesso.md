@@ -48,7 +48,8 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 - **RN-ACE-19.** Sessão sem uso expira em 30 dias para contas que só têm vínculos de Aluno ou Responsável e em 12 horas para quem tem algum vínculo de gestão ou do painel da plataforma. O prazo vem dos vínculos da conta, não da área aberta. Não existe "Manter conectado".
 - **RN-ACE-20.** Trocar a senha, desativar a conta ou remover o último vínculo de gestão encerra na hora todas as sessões em outros aparelhos. A pessoa recebe e-mail avisando da troca de senha.
 - **RN-ACE-21.** Ações críticas pedem a senha de novo (e o código de duas etapas, se ligado), o que gera um token de uso único, válido por 5 minutos e preso à sessão e à ação: transferir coordenação, cancelar assinatura, exportação completa, desconectar o Mercado Pago, anonimizar aluno, desativar unidade. Gerar códigos de reserva novos (RN-ACE-18) não é ação crítica: pede só a sessão.
-- **RN-ACE-22.** Login em aparelho novo gera e-mail "Novo acesso à sua conta", com aparelho, cidade aproximada e hora. O primeiro acesso da conta não gera o e-mail; enquanto não houver localizador por IP, a cidade sai como "local não identificado".
+- **RN-ACE-22.** Login em aparelho novo gera e-mail "Novo acesso à sua conta", com aparelho, cidade aproximada e hora. O primeiro acesso da conta não gera o e-mail; enquanto não houver localizador por IP, a cidade sai como "local não identificado". Cada aparelho gera o e-mail uma vez só: ele fica guardado na conta e os acessos seguintes dele não geram novo aviso, mesmo quando a sessão foi encerrada por outro aparelho (RN-ACE-23).
+- **RN-ACE-23.** Uma sessão de gestão ativa por conta, Coordenador incluído. O login na gestão em outro aparelho ou navegador encerra na hora a sessão de gestão anterior da mesma conta; quem estava nela vê "Sua sessão foi encerrada porque esta conta entrou em outro aparelho." e volta ao login. Sessões só do portal (Aluno, Responsável) não entram nessa regra e não são encerradas por ela. O encerramento vai para a auditoria. Regra decidida pelo dono em 19/11/2026, junto com a cobrança por vaga (`16`).
 
 ## Requisitos
 
@@ -57,7 +58,7 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 - **RF-ACE-03.** Recuperação de senha (RN-ACE-11, RN-ACE-14) e tela de nova senha com as mesmas exigências. A resposta ao pedido é a mesma para qualquer e-mail. A validade do link só aparece ao enviar a nova senha. Depois de criar, a pessoa entra direto.
 - **RF-ACE-04.** Minha conta (gestão e portal): trocar senha estando logado, trocar e-mail, ligar e desligar duas etapas, ver códigos de reserva novos (gerados ao abrir, só com a sessão: sem senha nem código), lista de sessões ativas com "Encerrar" e "Encerrar todas as outras" (a sessão atual não se encerra pela lista). A troca de e-mail exige senha e código; senha atual errada conta na trava da RN-ACE-10.
 - **RF-ACE-05.** Modal de escolha de organização e área (RN-ACE-03). A área vem do papel do vínculo: gestão para Coordenador, Administrador e Professor; portal para Aluno e Responsável. Depois do login com mais de um vínculo o modal é obrigatório; reaberto pelo menu, pode ser fechado.
-- **RF-ACE-06.** Configurações › Usuários: lista da equipe com perfil, unidades, último acesso e situação; convidar, reenviar convite, alterar unidades, desativar. O Coordenador gere Administradores; o Administrador gere Professores das suas unidades. O Coordenador vê só Administradores; o Administrador, só Professores das suas unidades. "Desativar" encerra o vínculo, não a conta.
+- **RF-ACE-06.** Pessoas › Administradores (só o Coordenador): lista dos Administradores com nome, unidades, último acesso, situação e o custo de cada um (R$ 50 por unidade, RN-ASS-21); convidar, reenviar convite, alterar unidades e desativar. Convidar, ou incluir uma unidade, mostra antes de confirmar quanto a próxima fatura sobe ("+R$ 50/mês por unidade"); tirar uma unidade ou desativar mostra que não há devolução no ciclo (RN-ASS-23). "Desativar" encerra o vínculo, não a conta. Substitui a antiga tela Configurações › Usuários (alteração de 19/11/2026): o acesso dos Professores passa a ser gerido só em Pessoas › Professores (RF-PRO-02), e o atalho para a tabela de permissões fica em Configurações › Unidade.
 - **RF-ACE-07.** Atualizar o último acesso a cada login.
 - **RF-ACE-08.** Tela "Esta área não está disponível para o seu perfil", com atalhos para o Início, quando alguém abre um endereço fora do seu alcance. A tela aparece no mesmo endereço, sem redirecionar, e não diz qual área ou recurso foi negado.
 
@@ -85,7 +86,7 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 | Comunicados | ● (todas as unidades) | U | T* |
 | Aulas experimentais | ● | U | T* (ver) |
 | Professores | ● | U | — |
-| Usuários da gestão | ● (Administradores) | U (Professores) | — |
+| Administradores (Pessoas › Administradores) | ● | — | — |
 | Configurações da unidade | ● | U | — |
 | Configurações da organização | ● | ○ | — |
 | Unidades | ● | — | — |
@@ -108,4 +109,5 @@ O Professor nunca vê valores em reais, plano, benefício, CPF, endereço nem si
 - Tentar abrir uma rota fora do perfil pelo endereço ou pela API é recusado no servidor.
 - Coordenador sem duas etapas não passa do primeiro acesso sem configurar.
 - Trocar a senha derruba as outras sessões no mesmo minuto (teste ponta a ponta).
+- Entrar na gestão num segundo aparelho encerra a sessão de gestão do primeiro, e uma sessão do portal da mesma conta continua aberta.
 - A mensagem de erro do login é idêntica para e-mail inexistente e senha errada.
