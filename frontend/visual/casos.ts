@@ -32,6 +32,7 @@ export type Caso = {
   termoCanvas?: "um" | "filhos"; // #494: antes de abrir a tela, o termo de matrícula na versão 3 do canvas pendente para o Theo (um) ou para Davi e Lia Nogueira (filhos)
   inicioCanvas?: "em-dia" | "confirmar"; // #493: antes de abrir a tela, o Início sem cobrança e com o próximo vencimento (em-dia) ou com uma modalidade nova pendente (confirmar)
   agendaCanvas?: boolean; // #495: antes de abrir a tela, a semana de 12 a 18 de outubro do canvas (hoje, sexta 16)
+  avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -75,7 +76,8 @@ export const casos: Caso[] = [
   { nome: "portal-termo", rota: "/portal/termo", perfil: familia, canvas: "PortalTermo", canvasCelular: "PortalMTermo", termoCanvas: "um" },
   { nome: "portal-termo-filhos", rota: "/portal/termo", perfil: familia, canvas: "PortalTermoFilhos", termoCanvas: "filhos", passos: [{ clicar: "Li e aceito", papel: "checkbox" }, { clicar: "Aceitar e continuar" }] },
   { nome: "portal-agenda", rota: "/portal/agenda", perfil: aluno, canvas: "PortalAgenda", canvasCelular: "PortalMAgenda", agendaCanvas: true },
-  { nome: "portal-avisos", rota: "/portal/avisos", perfil: aluno, canvas: "PortalAvisos", canvasCelular: "PortalMAvisos" },
+  { nome: "portal-avisos", rota: "/portal/avisos", perfil: aluno, canvas: "PortalAvisos", canvasCelular: "PortalMAvisos", avisosCanvas: true },
+  { nome: "portal-aviso-aberto", rota: "/portal/avisos?aviso=00000000-0000-0000-0000-0000000007d2", perfil: aluno, canvas: "PortalAvisoAberto", canvasCelular: "PortalMAvisoAberto", avisosCanvas: true },
   { nome: "portal-financeiro", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalFinanceiro", canvasCelular: "PortalMFinanceiro" },
   { nome: "portal-informacoes", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalInfo", canvasCelular: "PortalMInfo" },
   { nome: "portal-carteirinha", rota: "/portal/carteirinha", perfil: aluno, canvas: "PortalCarteirinha", canvasCelular: "PortalMCarteirinhaOk", limiteCanvas: { valor: 0.5, motivo: "celular: sistema e canvas diferem na carteirinha a 390 px (medido na #435; a #499 trata a tela e remove esta exceção)" } },
@@ -270,9 +272,9 @@ export const semCaso: Record<string, string[]> = {
     "Estornar", "ExportarMensalidades",
     "ExportarRelatorios",
     "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
-    "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir", "PortalAvisoAberto",
+    "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
-    "PortalEstados", "PortalMAvisoAberto", "PortalMCarteirinha", "PortalMEditar", "PortalMEstados",
+    "PortalEstados", "PortalMCarteirinha", "PortalMEditar", "PortalMEstados",
   ],
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
   "celular a 360 px: o teste visual captura 390 (D5 da #435)": [

@@ -41,28 +41,28 @@ for (const viewport of [{ width: 360, height: 740 }, { width: 1024, height: 768 
 
         const list = page.getByRole("list", { name: "Lista de avisos" });
         await expect(list.getByRole("listitem")).toHaveCount(3);
-        await expect(list.getByRole("listitem").first().getByText("Fixado")).toBeVisible();
+        await expect(list.getByRole("listitem").first()).toContainText("Fixado");
         await expect(list.getByRole("listitem").first().getByText("Não lido")).toBeVisible();
-        await expect(list.getByRole("listitem").first()).toContainText("Para: Unidade Centro");
-        await expect(list.getByRole("listitem").first()).toContainText("Por Coordenação Fictícia");
+        await expect(list.getByRole("listitem").first()).toContainText("Unidade Centro");
+        await expect(list.getByRole("listitem").first()).toContainText("Coordenação Fictícia");
         expect(await noOverflow(page)).toBe(true);
         expect(await violations(page)).toEqual([]);
 
         await list.getByRole("button", { name: /Mudança de horário no sábado/ }).click();
-        const dialog = page.getByRole("dialog", { name: "Mudança de horário no sábado" });
-        await expect(dialog.getByText(/A aula de sábado será às 10h/)).toBeVisible();
-        await expect(dialog.getByText("sem HTML", { exact: false })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Mudança de horário no sábado", level: 1 })).toBeVisible();
+        await expect(page.getByRole("list", { name: "Lista de avisos" })).toHaveCount(0);
+        await expect(page.getByText(/A aula de sábado será às 10h/)).toBeVisible();
+        await expect(page.getByText("sem HTML", { exact: false })).toBeVisible();
         await expect(page).toHaveURL(/aviso=/);
         expect(await noOverflow(page)).toBe(true);
         expect(await violations(page)).toEqual([]);
-        await page.keyboard.press("Escape");
-        await expect(dialog).toHaveCount(0);
+        await page.getByRole("button", { name: /^(Voltar aos avisos|Avisos)$/ }).click();
+        await expect(page.getByRole("list", { name: "Lista de avisos" })).toBeVisible();
         await expect(page).not.toHaveURL(/aviso=/);
         await expect(page.getByRole("link", { name: "Avisos, 2 não lidos" })).toBeVisible();
 
         await goTo(page, `/portal/avisos?aviso=${EXAM}`);
-        await expect(page.getByRole("dialog", { name: "Exame de faixa em dezembro" })).toBeVisible();
-        await page.keyboard.press("Escape");
+        await expect(page.getByRole("heading", { name: "Exame de faixa em dezembro", level: 1 })).toBeVisible();
         await expect(page.getByRole("link", { name: "Avisos, 1 não lido" })).toBeVisible();
       });
 
@@ -73,14 +73,13 @@ for (const viewport of [{ width: 360, height: 740 }, { width: 1024, height: 768 
         const list = page.getByRole("list", { name: "Lista de avisos" });
         await expect(list.getByRole("listitem")).toHaveCount(3);
 
-        await page.getByRole("button", { name: "Não lidos" }).click();
+        await page.getByRole("button", { name: /^Não lidos \d+$/ }).click();
         await expect(page).toHaveURL(/filtro=nao-lidos/);
-        await expect(page.getByRole("button", { name: "Não lidos" })).toHaveAttribute("aria-pressed", "true");
-        await page.getByRole("button", { name: "Por modalidade" }).click();
+        await expect(page.getByRole("button", { name: /^Não lidos \d+$/ })).toHaveAttribute("aria-pressed", "true");
+        await page.getByRole("button", { name: /^Judô \d+$/ }).click();
         await expect(page).toHaveURL(/filtro=modalidade/);
-        await page.getByLabel("Modalidade").selectOption({ label: "Judô" });
         await expect(list.getByRole("listitem")).toHaveCount(2);
-        await page.getByRole("button", { name: "Todos", exact: true }).click();
+        await page.getByRole("button", { name: /^Todos \d+$/ }).click();
         await expect(page).not.toHaveURL(/filtro=/);
 
         await page.getByRole("combobox", { name: "Aluno" }).selectOption(CHILD_TWO);
@@ -89,9 +88,9 @@ for (const viewport of [{ width: 360, height: 740 }, { width: 1024, height: 768 
         expect(await noOverflow(page)).toBe(true);
         expect(await violations(page)).toEqual([]);
 
-        await page.getByRole("button", { name: "Marcar todos como lidos" }).click();
+        await page.getByRole("button", { name: /^Marcar (todos como )?lidos$/ }).click();
         await expect(page.getByText("4 avisos marcados como lidos.")).toBeVisible();
-        await expect(page.getByRole("button", { name: "Marcar todos como lidos" })).toBeDisabled();
+        await expect(page.getByRole("button", { name: /^Marcar (todos como )?lidos$/ })).toBeDisabled();
         await expect(list.getByText("Não lido")).toHaveCount(0);
         await expect(page.getByRole("link", { name: /não lidos?$/ })).toHaveCount(0);
         expect(await violations(page)).toEqual([]);
