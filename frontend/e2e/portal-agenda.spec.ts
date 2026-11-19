@@ -18,7 +18,14 @@ async function login(page: Page, email: string) {
   await page.getByRole("button", { name: "Entrar" }).click();
 }
 
-// RF-POR-04 (#91): agenda do portal em lista do dia a 360 px e em grade a 1024 px, nos dois temas.
+// Vai à segunda-feira da semana aberta e avança `n` dias com a seta (sem cruzar a semana).
+async function day(page: Page, n: number) {
+  const heading = page.getByRole("heading", { level: 2 }).filter({ hasText: /\d\d\/\d\d$/ });
+  for (let i = 0; i < 7 && !/^segunda/i.test((await heading.textContent()) ?? ""); i++) await page.getByRole("button", { name: "Dia anterior" }).click();
+  for (let i = 0; i < n; i++) await page.getByRole("button", { name: "Próximo dia" }).click();
+}
+
+// RF-POR-04 (#91, #495): agenda do portal em lista do dia a 360 px e em grade a 1024 px, nos dois temas.
 test.describe("agenda do portal a 360 px", () => {
   test.use({ viewport: { width: 360, height: 740 } });
 
@@ -29,34 +36,31 @@ test.describe("agenda do portal a 360 px", () => {
       await page.getByRole("link", { name: "Agenda", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Agenda", level: 1 })).toBeVisible();
 
-      await page.getByRole("tab", { name: /^Ter/ }).click();
-      const panel = page.getByRole("tabpanel");
+      await day(page, 1);
+      const panel = page.locator("main");
       await expect(panel.getByText("Alterada")).toBeVisible();
       await expect(panel.getByText(/^Era em /)).toBeVisible();
       await expect(panel.getByRole("link", { name: /Ver aviso/ })).toHaveAttribute("href", /\/portal\/avisos\?aviso=/);
-      await page.getByRole("tab", { name: /^Qua/ }).click();
+      await day(page, 2);
       await expect(panel.getByText("Sem aula")).toBeVisible();
       await expect(panel.getByText("Reforma do tatame")).toBeVisible();
-      await page.getByRole("tab", { name: /^Qui/ }).click();
+      await day(page, 3);
       await expect(panel.getByText("Cancelada")).toBeVisible();
       await expect(panel.getByText("Motivo: Feriado")).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
-      await page.getByRole("button", { name: "Próxima semana" }).click();
+      await day(page, 6);
+      await page.getByRole("button", { name: "Próximo dia" }).click();
       await expect(page).toHaveURL(/semana=\d{4}-\d{2}-\d{2}/);
-      await page.getByRole("button", { name: "Só minha turma" }).click();
+      await page.getByText("Só minha turma").click();
       await expect(page).toHaveURL(/escopo=MAIN/);
       await expect(page).toHaveURL(/semana=/);
-      await page.getByRole("tab", { name: /^Qui/ }).click();
-      await expect(page.getByRole("tabpanel").getByText("Cancelada")).toHaveCount(0);
-      await page.getByRole("button", { name: "Hoje" }).click();
-      await expect(page).not.toHaveURL(/semana=/);
 
       await page.getByRole("combobox", { name: "Aluno" }).selectOption(CHILD_TWO);
       await expect(page).toHaveURL(/aluno=/);
-      await page.getByRole("tab", { name: /^Seg/ }).click();
-      await expect(page.getByRole("tabpanel").getByText("Judô Infantil")).toBeVisible();
+      await day(page, 0);
+      await expect(page.getByText("Judô Infantil")).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
     });
@@ -78,12 +82,10 @@ test.describe("agenda do portal a 1024 px", () => {
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       await page.getByRole("link", { name: "Agenda", exact: true }).click();
-      const grid = page.getByRole("table", { name: "Aulas da semana" });
-      await expect(grid).toBeVisible();
-      await expect(grid.getByRole("columnheader")).toHaveCount(8);
-      await expect(grid.getByText("Sem aula")).toBeVisible();
-      await expect(grid.getByText("Jiu-Jitsu Adulto")).toBeVisible();
-      await expect(page.getByRole("tablist")).toHaveCount(0);
+      await expect(page.getByRole("region")).toHaveCount(7);
+      await expect(page.getByText("Sem aula")).toBeVisible();
+      await expect(page.getByText("Jiu-Jitsu Adulto")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Hoje" })).toHaveCount(0);
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
     });
