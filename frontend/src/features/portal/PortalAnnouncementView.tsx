@@ -77,8 +77,8 @@ export function PortalAnnouncementView({ id, studentId, onBack, onRead }: { id: 
               {where && <span className="break-words text-sm text-muted-foreground">{where}</span>}
             </div>
             <p className="text-sm text-muted-foreground">
-              <span className="max-sm:hidden">{t("portalAnnouncements.at", { date: formatDate(detail.sentAt), time: formatTime(detail.sentAt) })}</span>
-              <span className="sm:hidden">{`${formatDate(detail.sentAt).slice(0, 5)} · ${formatTime(detail.sentAt)}`}</span>
+              <span className="max-sm:hidden">{t("portalAnnouncements.at", { date: formatDate(detail.sentAt, detail.timeZone), time: formatTime(detail.sentAt, detail.timeZone) })}</span>
+              <span className="sm:hidden">{`${formatDate(detail.sentAt, detail.timeZone).slice(0, 5)} · ${formatTime(detail.sentAt, detail.timeZone)}`}</span>
             </p>
           </div>
           <h1 ref={heading} tabIndex={-1} className="break-words text-2xl font-semibold uppercase leading-tight focus-visible:outline-none sm:text-4xl">

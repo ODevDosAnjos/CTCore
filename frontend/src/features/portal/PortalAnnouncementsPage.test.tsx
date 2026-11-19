@@ -50,7 +50,7 @@ const data = (over: Partial<PortalAnnouncementsData> = {}): PortalAnnouncementsD
   total: 3,
   ...over,
 });
-const detail = (over: Partial<AnnouncementDetail> = {}): AnnouncementDetail => ({ ...item({ id: "n1", title: "Mudança de <b>horário</b>" }), body: "Linha um\nLinha <i>dois</i>", imageUrl: null, authorRole: null, groupLink: null, ...over });
+const detail = (over: Partial<AnnouncementDetail> = {}): AnnouncementDetail => ({ ...item({ id: "n1", title: "Mudança de <b>horário</b>" }), body: "Linha um\nLinha <i>dois</i>", imageUrl: null, authorRole: null, groupLink: null, timeZone: "America/Sao_Paulo", ...over });
 const serve = (view: PortalAnnouncementsData | ((info: { request: Request }) => Response | Promise<Response>)) =>
   server.use(http.get("/api/v1/portal/announcements", typeof view === "function" ? view : () => HttpResponse.json(view)));
 
@@ -154,6 +154,13 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     await user.click(screen.getByRole("button", { name: /Voltar aos avisos/ }));
     expect(await screen.findByRole("list", { name: "Lista de avisos" })).toBeInTheDocument();
     expect(where()).toBe("/portal/avisos?filtro=nao-lidos");
+  });
+
+  it("R5: data e hora do aviso aberto usam o fuso da unidade do aviso, não o do navegador", async () => {
+    serve(data());
+    server.use(http.post("/api/v1/portal/announcements/n1/open", () => HttpResponse.json(detail({ sentAt: "2026-10-08T13:02:00Z", timeZone: "Asia/Tokyo" }))));
+    setup("/portal/avisos?aviso=n1");
+    expect(await screen.findByText("08/10/2026 às 22h02")).toBeInTheDocument();
   });
 
   it("CA6: Ver na agenda mantém o aluno; o grupo da turma abre em nova aba só com link; sem link o botão não existe", async () => {

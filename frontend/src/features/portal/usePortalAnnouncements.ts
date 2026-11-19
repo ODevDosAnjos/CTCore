@@ -23,6 +23,7 @@ export interface AnnouncementDetail extends AnnouncementItem {
   imageUrl: string | null;
   authorRole: "COORDINATOR" | "ADMINISTRATOR" | "TEACHER" | null;
   groupLink: string | null;
+  timeZone: string;
 }
 export interface PortalAnnouncementsData {
   reduced: boolean;

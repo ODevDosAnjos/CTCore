@@ -6728,12 +6728,13 @@ components:
       allOf:
         - $ref: '#/components/schemas/PortalAnnouncementItem'
         - type: object
-          required: [body, imageUrl, authorRole, groupLink]
+          required: [body, imageUrl, authorRole, groupLink, timeZone]
           properties:
             body: { type: string, description: Texto puro com quebras de linha; nunca HTML. }
             imageUrl: { type: string, nullable: true, description: URL assinada e temporária da imagem. }
             authorRole: { type: string, enum: [COORDINATOR, ADMINISTRATOR, TEACHER], nullable: true, description: 'Papel de gestão mais alto do autor na organização (Coordenador, Administrador, Professor); nulo se não houver.' }
             groupLink: { type: string, nullable: true, description: 'Link http ou https do grupo da turma, só quando o aviso é de uma turma e ela tem link (RN-COM-03); nulo nos demais. Nunca vem na lista.' }
+            timeZone: { type: string, description: 'Fuso IANA da unidade do aviso (sem unidade, o da unidade de matrícula do aluno); data e hora do aviso aberto são mostradas nele (America/Sao_Paulo, por exemplo).' }
     PortalAnnouncements:
       type: object
       required: [reduced, students, studentId, filter, modalityId, modalities, unreadCount, allCount, items, page, size, total]

@@ -212,6 +212,12 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | a fazer |
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | a fazer |
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | a fazer |
+| 613 | Aviso aberto do portal: autor em duas linhas, como o canvas | issue #613 | Sprint 10.5 | #496 | agente | a fazer |
+| 614 | Aviso aberto do portal: avatar do autor com o tom do canvas | issue #614 | Sprint 10.5 | #496 | agente | a fazer |
+| 615 | Avisos do portal: pílulas de filtro e Fixado com o tom do canvas | issue #615 | Sprint 10.5 | #496 | agente | a fazer |
+| 616 | Aviso aberto do portal no celular: página sem cartão, como o canvas | issue #616 | Sprint 10.5 | #496 | agente | a fazer |
+| 617 | Aviso aberto do portal: ícone do botão do grupo da turma como o canvas | issue #617 | Sprint 10.5 | #496 | agente | a fazer |
+| 618 | Avisos do portal: linha de apoio do aviso de unidade como o canvas | issue #618 | Sprint 10.5 | #496 | agente | a fazer |
 | 96 | Porta de pagamento com o simulador: baixa, webhook e conciliação | issue #96 | Sprint 11 | — | agente | a fazer |
 | 97 | RF-PAG-01 · Configurações › Unidade › Pagamentos | issue #97 | Sprint 11 | — | agente | a fazer |
 | 98 | RF-PAG-02 · Janela de pagamento no portal | issue #98 | Sprint 11 | — | agente | a fazer |

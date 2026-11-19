@@ -1634,7 +1634,7 @@ const portalOpenNotice = (id: string, studentId: string | null) => {
   const found = noticesFor(selected).find((n) => n.id === id);
   if (!cards.some((c) => c.id === selected) || !found || current.account.email === REDUCED_ACCOUNT) return error(404, "NOT_FOUND", "Não encontrado.");
   noticeRead.add(`${selected}:${id}`);
-  return HttpResponse.json({ ...noticeItem(found, selected), body: found.body, imageUrl: found.image, authorRole: "COORDINATOR", groupLink: found.groupLink });
+  return HttpResponse.json({ ...noticeItem(found, selected), body: found.body, imageUrl: found.image, authorRole: "COORDINATOR", groupLink: found.groupLink, timeZone: "America/Sao_Paulo" });
 };
 const portalReadAll = () => {
   if (current.account.email === REDUCED_ACCOUNT) return HttpResponse.json({ dismissed: 0 });

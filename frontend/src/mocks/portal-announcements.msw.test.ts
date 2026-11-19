@@ -64,8 +64,8 @@ describe("Avisos do portal x OpenAPI (RF-POR-06, #93)", () => {
     const view = await list();
     const id = view.items[0].id;
     const opened = await (await send("POST", `/portal/announcements/${id}/open`)).json();
-    expect(keys(opened)).toEqual(required("PortalAnnouncementItem").concat(["body", "imageUrl", "authorRole", "groupLink"]).sort());
-    expect(opened).toMatchObject({ unread: false, body: expect.stringContaining("sábado"), authorRole: "COORDINATOR", groupLink: null });
+    expect(keys(opened)).toEqual(required("PortalAnnouncementItem").concat(["body", "imageUrl", "authorRole", "groupLink", "timeZone"]).sort());
+    expect(opened).toMatchObject({ unread: false, body: expect.stringContaining("sábado"), authorRole: "COORDINATOR", groupLink: null, timeZone: "America/Sao_Paulo" });
     expect((await list()).unreadCount).toBe(2);
     expect((await list(`?studentId=${CHILD_TWO}`)).unreadCount).toBe(3);
     expect((await (await send("GET", "/portal/shell")).json()).unreadAnnouncements).toBe(4);

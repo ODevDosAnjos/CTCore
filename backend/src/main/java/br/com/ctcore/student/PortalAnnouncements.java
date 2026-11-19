@@ -38,9 +38,9 @@ public class PortalAnnouncements {
     public record Item(UUID id, String title, String type, OffsetDateTime sentAt, boolean pinned, boolean unread, Destination destination, String author,
             LocalDate pinnedUntil, String summary, String modality, String unit) {}
 
-    /** {@code authorRole}: papel de gestão mais alto do autor na organização (nulo se não houver); {@code groupLink}: só de aviso de uma turma, http ou https. */
+    /** {@code authorRole}: papel de gestão mais alto do autor na organização (nulo se não houver); {@code groupLink}: só de aviso de uma turma, http ou https; {@code timeZone}: fuso da unidade do aviso (sem unidade, a da matrícula do aluno). */
     public record Detail(UUID id, String title, String type, OffsetDateTime sentAt, boolean pinned, boolean unread, Destination destination, String author,
-            LocalDate pinnedUntil, String summary, String modality, String unit, String body, String imageUrl, Role authorRole, String groupLink) {}
+            LocalDate pinnedUntil, String summary, String modality, String unit, String body, String imageUrl, Role authorRole, String groupLink, String timeZone) {}
 
     public record ModalityCount(UUID id, String name, int count) {}
 
@@ -143,12 +143,12 @@ public class PortalAnnouncements {
             UUID org = who.organizationId();
             if (shell.reduced(who)) throw new ApiStatusException(ErrorCode.NOT_FOUND);
             Detail found = jdbc.sql("select a.id, a.title, a.type, a.sent_at, " + PINNED + ", false, a.target_kind, " + DESTINATION + ", au.name, " + EXTRA + ", a.body, a.image_name, "
-                    + AUTHOR_ROLE + ", case when a.target_kind = 'CLASS' then tc.group_link end" + FROM
+                    + AUTHOR_ROLE + ", case when a.target_kind = 'CLASS' then tc.group_link end, coalesce(ua.timezone, su.timezone)" + FROM
                     + " where a.organization_id = :org and a.id = :id and a.sent_at is not null and exists (select 1 from enrollment_modality em where " + PortalHome.ACTIVE_ROW
                     + " and " + PortalShell.REACH + ")").param("org", org).param("sid", selected).param("id", id).param("now", now)
                     .query((rs, n) -> new Detail(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getObject(4, OffsetDateTime.class), rs.getBoolean(5),
                             rs.getBoolean(6), destination(rs.getString(7), rs.getArray(8)), rs.getString(9), rs.getObject(10, LocalDate.class), rs.getString(11), rs.getString(12),
-                            rs.getString(13), rs.getString(14), rs.getString(15), rs.getString(16) == null ? null : Role.valueOf(rs.getString(16)), webLink(rs.getString(17)))).optional()
+                            rs.getString(13), rs.getString(14), rs.getString(15), rs.getString(16) == null ? null : Role.valueOf(rs.getString(16)), webLink(rs.getString(17)), rs.getString(18))).optional()
                     .orElseThrow(() -> new ApiStatusException(ErrorCode.NOT_FOUND));
             int inserted = jdbc.sql("insert into announcement_read (organization_id, announcement_id, student_id, account_id) values (:org, :id, :sid, :acc) on conflict do nothing")
                     .param("org", org).param("id", id).param("sid", selected).param("acc", who.accountId()).update();
@@ -158,7 +158,7 @@ public class PortalAnnouncements {
             return found;
         });
         return new Detail(detail.id(), detail.title(), detail.type(), detail.sentAt(), detail.pinned(), false, detail.destination(), detail.author(), detail.pinnedUntil(),
-                detail.summary(), detail.modality(), detail.unit(), detail.body(), imageUrl(detail.imageUrl()), detail.authorRole(), detail.groupLink());
+                detail.summary(), detail.modality(), detail.unit(), detail.body(), imageUrl(detail.imageUrl()), detail.authorRole(), detail.groupLink(), detail.timeZone());
     }
 
     /** D3: limpa, para a conta, os avisos não lidos de qualquer aluno ligado a ela; não grava leitura. Devolve quantos foram limpos. */

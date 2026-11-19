@@ -283,6 +283,10 @@ class PortalAnnouncementsIT extends PortalTermBase {
         JsonNode detail = open(t, acc, Role.STUDENT, klass, null);
         assertThat(detail.get("authorRole").asText()).isEqualTo("COORDINATOR");
         assertThat(detail.get("groupLink").asText()).isEqualTo("https://chat.example/grupo");
+        assertThat(detail.get("timeZone").asText()).isNotBlank();
+        // R5: fuso da matrícula do aluno quando o aviso não tem unidade.
+        adminJdbc().update("update unit set timezone = 'Pacific/Kiritimati' where id = ?", t.unitId());
+        assertThat(open(t, acc, Role.STUDENT, org, null).get("timeZone").asText()).isEqualTo("Pacific/Kiritimati");
         assertThat(open(t, acc, Role.STUDENT, mod, null).get("groupLink").isNull()).isTrue();
         assertThat(open(t, acc, Role.STUDENT, org, null).get("groupLink").isNull()).isTrue();
 
