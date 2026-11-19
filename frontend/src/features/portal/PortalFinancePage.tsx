@@ -2,8 +2,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/field";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { PortalAutoDebitCard } from "./PortalAutoDebitCard";
 import { PortalChargeHistory } from "./PortalChargeHistory";
@@ -56,9 +57,9 @@ export function PortalFinancePage() {
         </div>
       )}
       {status === "loading" || status === "idle" ? (
-        <LoadingState />
+        <LoadingState variant="card" text={t("portalFinance.states.loading")} />
       ) : status === "forbidden" ? (
-        <ForbiddenState />
+        <ForbiddenState variant="card" title={t("portalFinance.states.forbiddenTitle")} text={t("portalFinance.states.forbiddenText")} action={<Button asChild variant="outline"><Link to="/">{t("portalFinance.states.backHome")}</Link></Button>} />
       ) : status === "ready" && data ? (
         <div className="flex flex-col gap-4">
           <PortalOpenCharges items={data.open} showStudent={family} onChanged={reload} />
@@ -66,7 +67,7 @@ export function PortalFinancePage() {
           <PortalAutoDebitCard />
         </div>
       ) : (
-        <ErrorState onRetry={reload} />
+        <ErrorState variant="card" title={t("portalFinance.states.errorTitle")} onRetry={reload} />
       )}
     </PortalLayout>
   );

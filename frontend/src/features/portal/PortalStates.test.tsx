@@ -43,6 +43,8 @@ const routes = [
   },
   {
     path: "/portal/financeiro",
+    loading: tr("portalFinance.states.loading"),
+    forbidden: tr("portalFinance.states.forbiddenTitle"),
     url: "/api/v1/portal/finance",
     empty: { reduced: false, students: [{ ...students[0], photoUrl: null, openCents: 0 }], selectedStudentId: "s1", scope: "STUDENT", year: 2026, years: [2026], familyOpenCents: 0, open: [], history: [] },
     emptyText: tr("portalFinance.open.emptyTitle"),
@@ -126,7 +128,7 @@ describe("portal: estados de tela em todas as rotas (RF-POR-08, R6)", () => {
     describe(route.path, () => {
       it("carregando enquanto busca", async () => {
         setup(route.path, route, () => new Promise<Response>(() => {}));
-        expect(await screen.findByRole("status")).toHaveTextContent(tr("states.loading"));
+        await vi.waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(route.loading ?? tr("states.loading")));
       });
 
       it("erro com Tentar de novo, que refaz a busca", async () => {
@@ -142,7 +144,7 @@ describe("portal: estados de tela em todas as rotas (RF-POR-08, R6)", () => {
 
       it("sem permissão no 403, sem dado da resposta", async () => {
         setup(route.path, route, () => HttpResponse.json({ message: "SEGREDO-FICTICIO" }, { status: 403 }));
-        expect(await screen.findByRole("heading", { name: tr("states.forbiddenTitle") })).toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: route.forbidden ?? tr("states.forbiddenTitle") })).toBeInTheDocument();
         expect(screen.queryByText(/SEGREDO-FICTICIO/)).not.toBeInTheDocument();
       });
 

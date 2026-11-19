@@ -4031,7 +4031,6 @@
   "portalOwn": {
     "title": "Meus pedidos",
     "intro": "Peça troca de turma, nova modalidade, troca de plano ou encerramento. O pedido não altera a sua matrícula: a academia responde e conclui com você.",
-    "link": "Meus pedidos",
     "student": "Aluno",
     "noStudentTitle": "Nenhum aluno ligado à conta",
     "noStudentText": "Quando houver um aluno ligado a esta conta, os pedidos aparecem aqui.",
@@ -4085,12 +4084,25 @@
     }
   },
   "portalConfirm": {
-    "title": "Confirme a modalidade nova",
-    "text": "{{student}} começou em {{modality}} ({{unit}}). Plano {{plan}}, {{value}} por mês. A confirmação não altera a matrícula nem a cobrança.",
-    "confirm": "Confirmar {{modality}}",
+    "title": "Nova modalidade",
+    "subtitle": "Não bloqueia o portal e não tem prazo.",
+    "student": "{{student}} começou uma modalidade nova. Confirme o plano e o valor.",
+    "modality": "Modalidade",
+    "plan": "Plano",
+    "value": "Mensalidade",
+    "agree": "Confirmo o plano e o valor",
+    "confirm": "Confirmar",
+    "later": "Depois",
     "error": "Não conseguimos confirmar. Nada foi alterado; tente de novo."
   },
   "portalFinance": {
+    "states": {
+      "loading": "Carregando suas cobranças…",
+      "errorTitle": "Não conseguimos carregar o Financeiro",
+      "forbiddenTitle": "Esta área não está disponível para você",
+      "forbiddenText": "O responsável não financeiro vê as cobranças, mas não paga nem envia comprovante.",
+      "backHome": "Voltar ao Início"
+    },
     "student": "Aluno",
     "you": "Você",
     "family": "Toda a família",
@@ -4239,21 +4251,35 @@
     "cardLabel": "Carteirinha de {{name}}"
   },
   "portalHome": {
+    "greeting": "Olá, {{name}}",
+    "greetingNoName": "Olá",
+    "states": {
+      "loading": "Carregando o seu início…",
+      "errorTitle": "Não conseguimos carregar o Início"
+    },
     "family": {
       "label": "Alunos da família",
       "you": "Você",
-      "open": "Em aberto: {{value}}",
-      "total": "Total da família em aberto: {{value}}"
+      "upToDate": "Em dia",
+      "due": "{{value}} vencendo",
+      "all": "Toda a família",
+      "total": "Em aberto na família {{value}}",
+      "totalText": "Total em aberto de todos os alunos ligados à conta.",
+      "seeFinance": "Ver financeiro da família"
     },
     "filter": {
-      "label": "Filtrar por modalidade e unidade",
+      "label": "Modalidade e unidade",
       "all": "Todas",
       "option": "{{modality}} · {{unit}}"
     },
     "charges": {
-      "title": "Cobrança",
+      "title": "Financeiro",
       "upToDate": "Tudo em dia",
-      "nextDue": "Próximo vencimento em {{date}}.",
+      "nextDue": "Próximo vencimento: {{date}}",
+      "viewFinance": "Ver financeiro",
+      "overdueOn": "Venceu em {{date}}",
+      "alsoOpen": "Também em aberto: {{value}}",
+      "methods": "Pix · Cartão · Boleto",
       "generic": "Cobrança",
       "dueOn": "Vence em {{date}}",
       "pay": "Pagar",
@@ -4269,8 +4295,9 @@
       "title": "Próximas aulas",
       "emptyTitle": "Nenhuma aula por enquanto",
       "emptyText": "Quando houver aulas nos próximos dias, elas aparecem aqui.",
-      "when": "{{date}} · {{start}} às {{end}}",
-      "cancelled": "Cancelada",
+      "today": "Hoje",
+      "noLesson": "Sem aula",
+      "viewAgenda": "Ver agenda",
       "changed": "Alterada",
       "adhoc": "Avulsa",
       "reason": "Motivo: {{reason}}"
@@ -4279,18 +4306,17 @@
       "title": "Avisos",
       "emptyTitle": "Nenhum aviso novo",
       "emptyText": "Avisos não lidos e fixados da academia aparecem aqui.",
-      "unreadCount_one": "{{count}} aviso não lido",
-      "unreadCount_other": "{{count}} avisos não lidos",
       "pinned": "Fixado",
       "unread": "Não lido",
-      "sentAt": "Enviado em {{date}}",
-      "viewAll": "Ver todos os avisos"
+      "viewAll": "Ver todos"
     },
     "belts": {
-      "title": "Faixa",
+      "title": "Graduação",
       "emptyTitle": "Nenhuma faixa registrada",
       "emptyText": "A faixa aparece aqui quando a academia registrar a sua graduação.",
       "line": "{{level}}, grau {{degree}}",
+      "grade_one": "Faixa {{level}} · {{count}} grau",
+      "grade_other": "Faixa {{level}} · {{count}} graus",
       "since": "desde {{date}}",
       "new": "Nova",
       "swatch": "Cor da faixa {{level}}"

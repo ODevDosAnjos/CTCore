@@ -36,7 +36,7 @@ for (const viewport of [{ width: 360, height: 740 }, { width: 1024, height: 768 
         await page.emulateMedia({ colorScheme: scheme });
         await acceptTerm(page);
         await expect(page.getByRole("link", { name: "Avisos, 3 não lidos" })).toBeVisible();
-        await page.getByRole("link", { name: "Ver todos os avisos" }).click();
+        await page.getByRole("link", { name: /Ver todos/ }).click();
         await expect(page.getByRole("heading", { name: "Avisos", level: 1 })).toBeVisible();
 
         const list = page.getByRole("list", { name: "Lista de avisos" });

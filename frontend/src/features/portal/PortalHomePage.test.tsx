@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
+import { SessionProvider } from "@/features/auth/SessionProvider";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
@@ -32,27 +33,62 @@ const home = (over: Partial<PortalHomeData> = {}): PortalHomeData => ({
   ...over,
 });
 const serve = (data: PortalHomeData | (() => Response)) => server.use(http.get("/api/v1/portal/home", typeof data === "function" ? data : () => HttpResponse.json(data)));
-const view = () =>
-  render(
+const session = { account: { id: "a1", email: "bruno@alfa.test", name: "Bruno Lima" }, links: [], activeLinkId: null, twoFactor: { enabled: false, required: false } };
+const view = () => {
+  server.use(http.get("/api/v1/auth/session", () => HttpResponse.json(session)));
+  return render(
     <ThemeProvider>
       <MemoryRouter>
-        <PortalHomePage />
+        <SessionProvider>
+          <PortalHomePage />
+        </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,
   );
+};
 
 describe("PortalHomePage (RF-POR-02)", () => {
   it("CA15: as seções ficam na ordem cobrança, aulas, avisos, faixa", async () => {
     serve(home());
     view();
-    expect(await screen.findByRole("heading", { name: "Bem-vindo ao ctcore", level: 1 })).toBeInTheDocument();
-    await screen.findByText("Kimono");
-    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Cobrança", "Próximas aulas", "Avisos", "Faixa"]);
-    expect(screen.getByText("Vencida")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Olá, Bruno", level: 1 })).toBeInTheDocument();
+    await screen.findByText("Vencida");
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Jiu-Jitsu", "Próximas aulas", "Avisos", "Graduação"]);
     expect(screen.getByText("Nova")).toBeInTheDocument();
     expect(screen.getByText("Fixado")).toBeInTheDocument();
-    expect(screen.getByText("1 aviso não lido")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ver todos os avisos" })).toHaveAttribute("href", "/portal/avisos");
+    expect(screen.getByText("Não lido")).toBeInTheDocument();
+    expect(screen.getByText("25/10")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ver todos/ })).toHaveAttribute("href", "/portal/avisos");
+    expect(screen.getByRole("link", { name: /Ver agenda/ })).toHaveAttribute("href", "/portal/agenda");
+    expect(screen.getByText("Faixa azul · 2 graus")).toBeInTheDocument();
+    expect(screen.queryByText(/Meus pedidos/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Ver carteirinha" })).toHaveLength(1);
+  });
+
+  it("CA5: dia e hora curtos, Sem aula com o motivo e a data a partir de 7 dias", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-28T15:00:00Z"));
+    try {
+      serve(
+        home({
+          lessons: [
+            lesson({ id: "l1", date: "2026-10-28", startsAt: "19:30" }),
+            lesson({ id: "l2", date: "2026-10-30", startsAt: "07:00", title: "Judô" }),
+            lesson({ id: "l3", date: "2026-11-05", startsAt: "07:00", title: "Seminário" }),
+            lesson({ id: "l4", date: "2026-10-29", status: "CANCELLED", cancelReason: "Feriado", title: "Cancelada" }),
+          ],
+        }),
+      );
+      view();
+      expect(await screen.findByText("Hoje 19h30")).toBeInTheDocument();
+      expect(screen.getByText("Sex 7h")).toBeInTheDocument();
+      expect(screen.getByText("Qui 05/11")).toBeInTheDocument();
+      expect(screen.getByText("Sem aula")).toBeInTheDocument();
+      expect(screen.getByText("Motivo: Feriado")).toBeInTheDocument();
+      expect(screen.getAllByText("Centro · Jiu-Jitsu")).toHaveLength(4);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("CA8: o link Ver carteirinha leva ao aluno escolhido", async () => {
@@ -68,7 +104,8 @@ describe("PortalHomePage (RF-POR-02)", () => {
     serve(home({ charges: { items: [], nextDueOn: "2026-11-10" } }));
     const { unmount } = view();
     expect(await screen.findByText("Tudo em dia")).toBeInTheDocument();
-    expect(screen.getByText("Próximo vencimento em 10/11/2026.")).toBeInTheDocument();
+    expect(screen.getByText("Próximo vencimento: 10/11/2026")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver financeiro" })).toHaveAttribute("href", "/portal/financeiro");
     unmount();
     serve(home({ charges: { items: [], nextDueOn: null } }));
     view();
@@ -81,7 +118,9 @@ describe("PortalHomePage (RF-POR-02)", () => {
     server.use(http.get("/api/v1/portal/charges/c1/pix-instructions", () => HttpResponse.json({ chargeId: "c1", pixKey: "pix@alfa.test", amountCents: 15000, dueOn: "2026-10-20", unit: "Centro" })));
     const user = userEvent.setup();
     view();
-    await screen.findByText("Em conferência");
+    expect(await screen.findByText("Também em aberto: R$ 150,00")).toBeInTheDocument();
+    expect(screen.getByText("Venceu em 20/10/2026")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Pix · Cartão · Boleto" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getAllByRole("button", { name: /^Pagar/ })).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "Pagar Kimono" }));
     expect(await screen.findByText("pix@alfa.test")).toBeInTheDocument();
@@ -94,11 +133,10 @@ describe("PortalHomePage (RF-POR-02)", () => {
       }),
     );
     view();
-    expect(await screen.findByText("Cancelada")).toBeInTheDocument();
+    expect(await screen.findByText("Sem aula")).toBeInTheDocument();
     expect(screen.getByText("Motivo: Feriado")).toBeInTheDocument();
     expect(screen.getByText("Alterada")).toBeInTheDocument();
     expect(screen.getByText("Avulsa")).toBeInTheDocument();
-    expect(screen.getAllByText("28/10/2026 · 19:00 às 20:00")).toHaveLength(3);
   });
 
   it("CA8: com duas combinações de modalidade e unidade há etiqueta e filtro; com uma só, nenhum dos dois", async () => {
@@ -111,28 +149,27 @@ describe("PortalHomePage (RF-POR-02)", () => {
     );
     const user = userEvent.setup();
     const { unmount } = view();
-    const filter = await screen.findByLabelText("Filtrar por modalidade e unidade");
-    expect(screen.getAllByText("Judô · Norte")).toHaveLength(3); // a opção do filtro, a cobrança e a aula
-    expect(screen.getByText("Amarela, grau 0")).toBeInTheDocument();
-    await user.selectOptions(filter, "m1|u1");
-    expect(screen.queryByText("Faixa nova")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Modalidade e unidade/ }));
+    expect(screen.getByRole("option", { name: "Judô · Norte" })).toBeInTheDocument();
+    expect(screen.getByText("Faixa amarela · 0 grau")).toBeInTheDocument();
+    expect(screen.getByText("Também em aberto: R$ 150,00")).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Jiu-Jitsu · Centro" }));
+    expect(screen.queryByText(/Também em aberto/)).not.toBeInTheDocument();
     expect(screen.queryByText("Judô Adulto")).not.toBeInTheDocument();
-    expect(screen.queryByText("Amarela, grau 0")).not.toBeInTheDocument();
-    expect(screen.getByText("Kimono")).toBeInTheDocument();
-    expect(screen.getByText("Azul, grau 2")).toBeInTheDocument();
+    expect(screen.queryByText("Faixa amarela · 0 grau")).not.toBeInTheDocument();
+    expect(screen.getByText("Faixa azul · 2 graus")).toBeInTheDocument();
     unmount();
 
     serve(home());
     view();
-    await screen.findByText("Kimono");
-    expect(screen.queryByLabelText("Filtrar por modalidade e unidade")).not.toBeInTheDocument();
-    expect(screen.queryByText("Jiu-Jitsu · Centro")).not.toBeInTheDocument();
+    await screen.findByText("Vencida");
+    expect(screen.queryByRole("button", { name: /Modalidade e unidade/ })).not.toBeInTheDocument();
   });
 
   it("CA9: nada de presença, frequência nem progresso na tela", async () => {
     serve(home());
     const { container } = view();
-    await screen.findByText("Kimono");
+    await screen.findByText("Vencida");
     expect(container.textContent).not.toMatch(/presen|frequ|progress/i);
   });
 
@@ -149,31 +186,38 @@ describe("PortalHomePage (RF-POR-02)", () => {
       http.get("/api/v1/portal/home", ({ request }) => {
         const id = new URL(request.url).searchParams.get("studentId");
         seen.push(id);
-        return HttpResponse.json(id === "s2" ? home({ ...family, selectedStudentId: "s2", charges: { items: [charge({ id: "c9", description: "Mensalidade da Bia", amountCents: 5000 })], nextDueOn: null } }) : home({ ...family }));
+        return HttpResponse.json(id === "s2" ? home({ ...family, selectedStudentId: "s2", charges: { items: [charge({ id: "c9", description: "Mensalidade da Bia", modality: null, amountCents: 5000 })], nextDueOn: null } }) : home({ ...family }));
       }),
     );
     const user = userEvent.setup();
     const { unmount } = view();
     const strip = await screen.findByRole("region", { name: "Alunos da família" });
     expect(within(strip).getByRole("button", { name: /^Você/ })).toHaveAttribute("aria-pressed", "true");
-    expect(within(strip).getByText("Total da família em aberto: R$ 150,00")).toBeInTheDocument();
+    expect(within(strip).getByText("Em aberto na família R$ 150,00")).toBeInTheDocument();
+    expect(within(strip).getByText("R$ 100,00 vencendo")).toBeInTheDocument();
     await user.click(within(strip).getByRole("button", { name: /^Bia Silva/ }));
     expect(await screen.findByText("Mensalidade da Bia")).toBeInTheDocument();
     expect(seen).toEqual([null, "s2"]);
     expect(screen.getByRole("button", { name: /^Bia Silva/ })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: /Toda a família/ }));
+    expect(screen.getByRole("button", { name: /Toda a família/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText("Mensalidade da Bia")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver financeiro da família" })).toHaveAttribute("href", "/portal/financeiro?visao=familia");
+    expect(seen).toEqual([null, "s2"]);
     unmount();
 
     serve(home());
     view();
-    await screen.findByText("Kimono");
+    await screen.findByText("Vencida");
     expect(screen.queryByRole("region", { name: "Alunos da família" })).not.toBeInTheDocument();
   });
 
   it("CA12: portal reduzido mostra só a cobrança", async () => {
     serve(home({ reduced: true, lessons: [], belts: [], announcements: { unreadCount: 0, items: [] } }));
     view();
-    await screen.findByText("Kimono");
-    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Cobrança"]);
+    await screen.findByText("Vencida");
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Jiu-Jitsu"]);
+    expect(screen.getByRole("link", { name: "Ver carteirinha" })).toBeInTheDocument();
   });
 
   it("CA15: carregando, erro com Tentar de novo, sem permissão e seções vazias", async () => {
@@ -199,7 +243,7 @@ describe("PortalHomePage (RF-POR-02)", () => {
       setDevicePrefersDark(dark);
       serve(home({ charges: { items: [charge(), charge({ id: "c2", situation: "IN_REVIEW", canPay: false, modality: judo, unit: norte })], nextDueOn: null }, lessons: [lesson({ status: "CANCELLED", cancelReason: "Feriado" }), lesson({ id: "l2", changed: true, modality: judo, unit: norte })] }));
       const { container } = view();
-      await screen.findByText("Em conferência");
+      await screen.findByText("Vencida");
       await waitFor(async () => expect(await axeViolations(container)).toEqual([]));
     });
   }

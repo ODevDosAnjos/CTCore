@@ -29,14 +29,15 @@ test.describe("início do portal a 360 px", () => {
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
 
       await expect(page.getByText("Tudo em dia")).toBeVisible();
-      await expect(page.getByRole("heading", { level: 2 })).toHaveText(["Cobrança", "Próximas aulas", "Avisos", "Faixa"]);
-      await expect(page.getByText("Cancelada", { exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2 })).toHaveText(["Financeiro", "Próximas aulas", "Avisos", "Graduação"]);
+      await expect(page.getByText("Sem aula", { exact: true })).toBeVisible();
       await expect(page.getByText("Alterada", { exact: true })).toBeVisible();
       await expect(page.getByText("Nova", { exact: true })).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
-      await page.getByLabel("Filtrar por modalidade e unidade").selectOption({ label: "Judô · Unidade Norte" });
+      await page.getByRole("button", { name: /Modalidade e unidade/ }).click();
+      await page.getByRole("option", { name: "Judô · Unidade Norte" }).click();
       await expect(page.getByText("Judô Adulto")).toBeVisible();
       await expect(page.getByText("Jiu-Jitsu Adulto")).toHaveCount(0);
       await expect(page.getByText("Azul, grau 2")).toHaveCount(0);
@@ -47,12 +48,12 @@ test.describe("início do portal a 360 px", () => {
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       const strip = page.getByRole("region", { name: "Alunos da família" });
-      await expect(strip.getByRole("button")).toHaveCount(2);
-      await expect(strip.getByText(/Total da família em aberto: R\$\s50,00/)).toBeVisible();
+      await expect(strip.getByRole("button")).toHaveCount(3);
+      await expect(strip.getByText(/Em aberto na família R\$\s50,00/)).toBeVisible();
       await expect(page.getByText("Tudo em dia")).toBeVisible();
 
       await strip.getByRole("button", { name: /^Filho Fictício Dois/ }).click();
-      await expect(page.getByText("Mensalidade de Judô")).toBeVisible();
+      await expect(page.getByRole("button", { name: /Pagar Mensalidade de Judô/ })).toBeVisible();
       await expect(page.getByText("Vencendo", { exact: true })).toBeVisible();
       await expect(strip.getByRole("button", { name: /^Filho Fictício Dois/ })).toHaveAttribute("aria-pressed", "true");
       expect(await noOverflow(page)).toBe(true);
@@ -62,7 +63,7 @@ test.describe("início do portal a 360 px", () => {
 
   test("@critical portal reduzido mostra só a cobrança vencida e o Pagar abre o Pix", async ({ page }) => {
     await login(page, "reduzido@exemplo.com");
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText(["Cobrança"]);
+    await expect(page.getByRole("heading", { level: 2 })).toHaveText(["Mensalidade em atraso"]);
     await expect(page.getByText("Vencida", { exact: true })).toBeVisible();
     expect(await violations(page)).toEqual([]);
     await page.getByRole("button", { name: "Pagar Mensalidade em atraso" }).click();

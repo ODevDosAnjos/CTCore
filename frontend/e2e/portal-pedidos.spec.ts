@@ -62,7 +62,8 @@ test.describe("pedidos do portal a 360 px", () => {
       await expect(page).toHaveURL(/\/portal\/termo$/);
       await page.getByLabel("Li e aceito o termo de matrícula").check();
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
-      await page.getByRole("link", { name: "Meus pedidos" }).click();
+      await page.getByRole("dialog", { name: "Nova modalidade" }).getByRole("button", { name: "Depois" }).click({ timeout: 3000 }).catch(() => {}); // janela da modalidade nova (#493) cobre a página
+      await open(page, "/portal/pedidos"); // sem link no Início (canvas, #493); a entrada na aba Pedidos é de outra issue
       await expect(page.getByRole("heading", { name: "Meus pedidos", level: 1 })).toBeVisible();
       await expect(page.getByText("Nenhum pedido ainda")).toBeVisible();
       expect(await noOverflow(page)).toBe(true);

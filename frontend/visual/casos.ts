@@ -29,6 +29,7 @@ export type Caso = {
   termosCanvas?: boolean; // #488: antes de abrir a tela, o termo de matrícula na versão 3 e as versões 3, 2 e 1 do canvas com 187, 142 e 96 aceites
   textosCanvas?: boolean; // #488: antes de abrir a tela, os nove modelos do canvas (Boas-vindas, Lembrete antes e depois com texto próprio), como o Administrador os vê
   comunicadosCanvas?: "lista" | "curta" | "limite" | "organizacao" | "novo" | "novo-celular"; // #491: antes de abrir a tela, a unidade "Tijuca" e os comunicados do canvas (lista: cinco, 0 hoje; curta: agendado e enviado, 3 de 20; limite: 20 de 20; organizacao: janela com 286 pessoas; novo e novo-celular: a turma e a prévia do canvas)
+  inicioCanvas?: "em-dia" | "confirmar"; // #493: antes de abrir a tela, o Início sem cobrança e com o próximo vencimento (em-dia) ou com uma modalidade nova pendente (confirmar)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -67,6 +68,8 @@ export const casos: Caso[] = [
   { nome: "portal-celular-reduzido", rota: "/portal/financeiro", perfil: reduzido, canvas: "PortalMReduzido" },
   // Páginas do portal do aluno e do responsável (#423). Janelas e estados que o MSW não alcança (comprovante com envio, pedidos por id gerado) ficam sem caso (D2).
   { nome: "portal-inicio-responsavel", rota: "/", perfil: familia, canvas: "PortalResponsavel", canvasCelular: "PortalMResponsavel" },
+  { nome: "portal-inicio-em-dia", rota: "/", perfil: aluno, canvas: "PortalEmDia", inicioCanvas: "em-dia" },
+  { nome: "portal-confirmar-modalidade", rota: "/", perfil: aluno, canvas: "PortalConfirmarModalidade", canvasCelular: "PortalMConfirmarModalidade", inicioCanvas: "confirmar", limiteCanvas: { valor: 0.5, motivo: "a janela usa o Modal base (no celular, gaveta de baixo sem alça, linhas em tabela e botões lado a lado); o canvas empilha os campos, traz alça e dados que a API não entrega (turma principal, dia de vencimento, nota da primeira mensalidade, D1 do item #493); a #601 trata a tela e remove esta exceção" } },
   { nome: "portal-termo", rota: "/portal/termo", perfil: aluno, canvas: "PortalTermo", canvasCelular: "PortalMTermo" },
   { nome: "portal-termo-filhos", rota: "/portal/termo", perfil: familia, canvas: "PortalTermoFilhos" },
   { nome: "portal-agenda", rota: "/portal/agenda", perfil: aluno, canvas: "PortalAgenda", canvasCelular: "PortalMAgenda" },
@@ -244,7 +247,7 @@ export const semCaso: Record<string, string[]> = {
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
     "InicioCoordenador", "AguardandoAprovacao", "SuporteAcesso",
-    "PortalEmDia", "PortalMConfirmarModalidade", "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
+    "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
   ],
   // tela de funcionalidade ainda sem rota em App.tsx (sprint futura)
   "tela de funcionalidade ainda sem rota em App.tsx (sprint futura)": [
@@ -265,7 +268,7 @@ export const semCaso: Record<string, string[]> = {
     "Estornar", "ExportarMensalidades",
     "ExportarRelatorios",
     "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
-    "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalConfirmarModalidade", "PortalExcluir", "PortalAvisoAberto",
+    "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir", "PortalAvisoAberto",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
     "PortalEstados", "PortalMAvisoAberto", "PortalMCarteirinha", "PortalMEditar", "PortalMEstados",
   ],
