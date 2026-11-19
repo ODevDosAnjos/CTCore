@@ -19,13 +19,16 @@ export const brShort = (iso: string) => br(iso).slice(0, 5);
 
 const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("pt-BR", o).format(at(iso));
 /** "12 a 18 de outubro de 2026"; atravessando meses, "28 de setembro a 4 de outubro de 2026". */
-export function rangeLabel(from: string, to: string) {
+export function rangeLabel(from: string, to: string, withYear = true) {
   const [a, b] = [at(from), at(to)];
   const full = { day: "numeric", month: "long" } as const;
+  const end = withYear ? { ...full, year: "numeric" as const } : full;
   if (a.getFullYear() !== b.getFullYear()) return `${fmt(from, { ...full, year: "numeric" })} a ${fmt(to, { ...full, year: "numeric" })}`;
-  if (a.getMonth() !== b.getMonth()) return `${fmt(from, full)} a ${fmt(to, { ...full, year: "numeric" })}`;
-  return `${a.getDate()} a ${fmt(to, { ...full, year: "numeric" })}`;
+  if (a.getMonth() !== b.getMonth()) return `${fmt(from, full)} a ${fmt(to, end)}`;
+  return `${a.getDate()} a ${fmt(to, end)}`;
 }
+/** "sexta" (de "sexta-feira"), como o canvas do celular. */
+export const weekdayLong = (iso: string) => fmt(iso, { weekday: "long" }).split("-")[0];
 /** "07:00" vira "7h" e "08:30" vira "8h30". */
 export const hourLabel = (hhmm: string) => {
   const [h, m] = hhmm.split(":");

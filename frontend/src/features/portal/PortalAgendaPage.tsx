@@ -1,15 +1,17 @@
-import { PageHeader } from "@/components/ui/page-header";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PillFilter } from "@/components/ui/pill-filter";
+import { SegmentedChoice } from "@/components/ui/segmented-choice";
 import { Select } from "@/components/ui/field";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
-import { addDays, weekDays } from "@/features/agenda/agendaDates";
-import { formatDate } from "@/lib/format";
+import { addDays, rangeLabel, weekDays } from "@/features/agenda/agendaDates";
 import { PortalAgendaDayList } from "./PortalAgendaDayList";
 import { PortalAgendaGrid } from "./PortalAgendaGrid";
 import { PortalLayout } from "./PortalLayout";
-import { PortalTag } from "./PortalTag";
+import { PortalHeading } from "./PortalHeading";
 import { usePortalSchedule, type PortalScheduleData, type ScheduleScope } from "./usePortalSchedule";
 
 const WIDE = "(min-width: 768px)";
@@ -37,6 +39,7 @@ export function PortalAgendaPage() {
   const scope: ScheduleScope = params.get("escopo") === "MAIN" ? "MAIN" : "ALL";
   const wide = useWide();
   const [picked, setPicked] = useState<string>();
+  const [modality, setModality] = useState("");
   const { status, data, reload } = usePortalSchedule(student, week, scope);
   // Os controles ficam na tela enquanto a semana nova carrega.
   const [last, setLast] = useState<PortalScheduleData>();
@@ -44,6 +47,7 @@ export function PortalAgendaPage() {
   const shown = data ?? last;
 
   const change = (patch: Record<string, string | null>) => {
+    if ("aluno" in patch) setModality("");
     const next = new URLSearchParams(params);
     for (const [k, v] of Object.entries(patch)) {
       if (v === null) next.delete(k);
@@ -52,14 +56,50 @@ export function PortalAgendaPage() {
     setParams(next, { replace: true });
   };
 
+  const modalities = [...new Map((shown?.lessons ?? []).map((l) => [l.modality.id, l.modality])).values()];
+  const visible = (d: PortalScheduleData): PortalScheduleData => (modality ? { ...d, lessons: d.lessons.filter((l) => l.modality.id === modality) } : d);
+  const step = (d: PortalScheduleData, day: string, delta: number) => {
+    const next = addDays(day, delta);
+    if (!weekDays(d.weekStart).includes(next)) change({ semana: addDays(d.weekStart, delta * 7) });
+    setPicked(next);
+  };
+
   return (
     <PortalLayout>
-      <PageHeader title={t("portalAgenda.title")} className="mb-4" />
-      {shown && (
-        <div className="mb-4 flex flex-col gap-3">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <PortalHeading label={t("portalAgenda.label")} title={t("portalAgenda.title")} />
+        {shown && (
+          <SegmentedChoice
+            label={t("portalAgenda.scopeLabel")}
+            className="gap-0.5 rounded-lg border-0 bg-surface-soft p-[3px] max-sm:w-full max-sm:[&_label]:flex-1 [&_label]:min-h-8 [&_label]:rounded-md [&_label]:px-3 [&_label]:text-[13px]"
+            options={[
+              { value: "MAIN", label: t("portalAgenda.scopeMain") },
+              { value: "ALL", label: t("portalAgenda.scopeAll") },
+            ]}
+            value={scope}
+            onChange={(v) => change({ escopo: v === "MAIN" ? "MAIN" : null })}
+          />
+        )}
+      </div>
+      {shown && (wide || shown.students.length > 1) && (
+        <nav aria-label={t("portalAgenda.weekNav")} className="mb-4 flex flex-wrap items-center gap-2">
+          {wide && (
+            <>
+              <Button variant="outline" className="size-9 min-h-0 p-0" aria-label={t("portalAgenda.prevWeek")} onClick={() => change({ semana: addDays(shown.weekStart, -7) })}>
+                <ChevronLeft aria-hidden="true" className="size-4" />
+              </Button>
+              <span className="font-semibold" aria-live="polite">
+                {rangeLabel(shown.weekStart, shown.weekEnd, false)}
+              </span>
+              <Button variant="outline" className="size-9 min-h-0 p-0" aria-label={t("portalAgenda.nextWeek")} onClick={() => change({ semana: addDays(shown.weekStart, 7) })}>
+                <ChevronRight aria-hidden="true" className="size-4" />
+              </Button>
+            </>
+          )}
+          <span className="grow" />
           {shown.students.length > 1 && (
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{t("portalAgenda.student")}</span>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              {t("portalAgenda.student")}
               <Select value={student ?? shown.studentId} onChange={(e) => change({ aluno: e.target.value })}>
                 {shown.students.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -69,50 +109,8 @@ export function PortalAgendaPage() {
               </Select>
             </label>
           )}
-          <div role="group" aria-label={t("portalAgenda.scopeLabel")} className="flex flex-wrap gap-2">
-            {(["MAIN", "ALL"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={scope === s}
-                className={`min-h-11 rounded-md border px-3 ${scope === s ? "bg-primary text-primary-foreground" : "bg-card"}`}
-                onClick={() => change({ escopo: s === "MAIN" ? "MAIN" : null })}
-              >
-                {t(s === "MAIN" ? "portalAgenda.scopeMain" : "portalAgenda.scopeAll")}
-              </button>
-            ))}
-          </div>
-          <nav aria-label={t("portalAgenda.weekNav")} className="flex flex-wrap items-center gap-2">
-            <button type="button" className="min-h-11 rounded-md border px-3" onClick={() => change({ semana: addDays(shown.weekStart, -7) })}>
-              {t("portalAgenda.prevWeek")}
-            </button>
-            <button type="button" className="min-h-11 rounded-md border px-3" onClick={() => change({ semana: null })}>
-              {t("portalAgenda.today")}
-            </button>
-            <button type="button" className="min-h-11 rounded-md border px-3" onClick={() => change({ semana: addDays(shown.weekStart, 7) })}>
-              {t("portalAgenda.nextWeek")}
-            </button>
-            <p className="font-medium" aria-live="polite">
-              {t("portalAgenda.weekRange", { start: formatDate(shown.weekStart), end: formatDate(shown.weekEnd) })}
-            </p>
-          </nav>
-          <ul aria-label={t("portalAgenda.legendTitle")} className="flex flex-wrap gap-2">
-            {(["MAIN", "OTHER", "ADHOC"] as const).map((k) => (
-              <li key={k}>
-                <PortalTag>{t(`portalAgenda.kind.${k}`)}</PortalTag>
-              </li>
-            ))}
-            <li>
-              <PortalTag tone="strong">{t("portalAgenda.changed")}</PortalTag>
-            </li>
-            <li>
-              <PortalTag tone="alert">{t("portalAgenda.cancelled")}</PortalTag>
-            </li>
-            <li>
-              <PortalTag>{t("portalAgenda.noClass")}</PortalTag>
-            </li>
-          </ul>
-        </div>
+          {wide && <PillFilter label={t("portalAgenda.modality")} value={modality} onChange={setModality} allLabel={t("portalAgenda.allModalities")} options={modalities} />}
+        </nav>
       )}
       {status === "loading" || status === "idle" ? (
         <LoadingState />
@@ -122,13 +120,14 @@ export function PortalAgendaPage() {
         data.lessons.length === 0 && data.noClassDays.length === 0 ? (
           <EmptyState title={t("portalAgenda.emptyTitle")} text={t("portalAgenda.emptyText")} />
         ) : wide ? (
-          <PortalAgendaGrid data={data} />
+          <PortalAgendaGrid data={visible(data)} />
         ) : (
-          <PortalAgendaDayList data={data} day={dayOf(data, picked)} onDay={setPicked} />
+          <PortalAgendaDayList data={visible(data)} day={dayOf(data, picked)} onStep={(day, delta) => step(data, day, delta)} />
         )
       ) : (
         <ErrorState onRetry={reload} />
       )}
+      <p className="mt-4 text-sm text-muted-foreground">{t("portalAgenda.note")}</p>
     </PortalLayout>
   );
 }

@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"]) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -373,6 +373,33 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
       await expect(page.getByRole("heading", { name: "Avisos", level: 1 })).toBeVisible();
       await ir("/");
     }
+    if (agendaCanvas) {
+      // #495: a semana de 12 a 18 de outubro do canvas (hoje, sexta 16): segunda sem aula, Muay Thai cancelada, aula de outro horário alterada com aviso, avulsa
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(() => {
+        const jiu = { id: "00000000-0000-0000-0000-000000000103", name: "Jiu-Jitsu" };
+        const muay = { id: "00000000-0000-0000-0000-00000000010b", name: "Muay Thai" };
+        const tijuca = { id: "00000000-0000-0000-0000-000000000021", name: "Tijuca" };
+        const aula = (id: string, date: string, startsAt: string, endsAt: string, title: string, kind: string, modality: object, teacherName: string, over: object = {}) => ({
+          id: "00000000-0000-0000-0000-0000000007c" + id, date, startsAt, endsAt, title, kind, status: "SCHEDULED", cancelReasonCode: null, cancelReason: null, changed: false, originalDate: null, originalStartsAt: null, substitute: false,
+          past: date < "2026-10-16", noticeId: null, modality, unit: tijuca, teacherName, ...over,
+        });
+        const body = {
+          reduced: false, students: [{ id: "00000000-0000-0000-0000-000000000701", name: "Bruno Carvalho", self: true }], studentId: "00000000-0000-0000-0000-000000000701", scope: "ALL", weekStart: "2026-10-12", weekEnd: "2026-10-18", today: "2026-10-16", timezone: "America/Sao_Paulo",
+          lessons: [
+            aula("1", "2026-10-13", "19:00", "20:30", "Muay Thai Adulto · Noite", "OTHER", muay, "Bianca Torres"),
+            aula("2", "2026-10-14", "19:30", "21:00", "Jiu-Jitsu Adulto · Noite", "MAIN", jiu, "Rafael Duarte"),
+            aula("3", "2026-10-15", "19:00", "20:30", "Muay Thai Adulto · Noite", "OTHER", muay, "Bianca Torres", { status: "CANCELLED", cancelReasonCode: "OTHER", cancelReason: "professora em evento" }),
+            aula("4", "2026-10-16", "07:00", "08:30", "Jiu-Jitsu Adulto · Manhã", "OTHER", jiu, "Rafael Duarte", { changed: true, substitute: true, noticeId: "00000000-0000-0000-0000-0000000007d1" }),
+            aula("5", "2026-10-16", "19:30", "21:00", "Jiu-Jitsu Adulto · Noite", "MAIN", jiu, "Rafael Duarte"),
+            aula("6", "2026-10-17", "10:00", "11:00", "No-Gi Adulto", "OTHER", jiu, "Rafael"),
+            aula("7", "2026-10-17", "12:00", "13:00", "Seminário de raspagens", "ADHOC", jiu, "Rafael"),
+          ],
+          noClassDays: [{ date: "2026-10-12", reason: "Nossa Senhora Aparecida", unit: tijuca }],
+        };
+        (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/portal/schedule", status: 200, body });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -448,7 +475,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

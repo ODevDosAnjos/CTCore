@@ -1,56 +1,36 @@
 import { useTranslation } from "react-i18next";
 import { brShort, weekDays, weekday } from "@/features/agenda/agendaDates";
 import { PortalLessonItem } from "./PortalLessonItem";
-import { PortalTag } from "./PortalTag";
 import type { PortalScheduleData } from "./usePortalSchedule";
 
-// RF-POR-04: grade de 7 colunas (segunda a domingo) por horário de início; o dia sem aula fica sombreado e com texto.
+// RF-POR-04: 7 colunas iguais (segunda a domingo), as aulas do dia por horário de início; o dia sem aula é uma faixa listrada com o motivo.
 export function PortalAgendaGrid({ data }: { data: PortalScheduleData }) {
   const { t } = useTranslation();
-  const days = weekDays(data.weekStart);
-  const starts = [...new Set(data.lessons.map((l) => l.startsAt))].sort();
-  const off = (d: string) => data.noClassDays.filter((n) => n.date === d);
   return (
-    <table aria-label={t("portalAgenda.gridLabel")} className="w-full table-fixed border-separate border-spacing-1">
-      <thead>
-        <tr>
-          <th scope="col" className="w-14 text-left text-sm font-medium">
-            {t("portalAgenda.timeColumn")}
-          </th>
-          {days.map((d) => (
-            <th key={d} scope="col" className={`rounded-md p-1 text-sm font-medium ${off(d).length ? "bg-muted" : ""}`}>
-              <span className={d === data.today ? "underline" : ""}>
-                {t(`agenda.weekdays.${weekday(d)}`)} {brShort(d)}
-              </span>
-              {off(d).map((n) => (
-                <span key={n.unit.id + n.reason} className="mt-1 block break-words font-normal">
-                  <PortalTag>{t("portalAgenda.noClass")}</PortalTag> {n.reason}
-                </span>
-              ))}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {starts.map((s) => (
-          <tr key={s} className="align-top">
-            <th scope="row" className="text-left text-sm font-medium">
-              {s}
-            </th>
-            {days.map((d) => (
-              <td key={d} className={`rounded-md p-0.5 ${off(d).length ? "bg-muted" : ""}`}>
-                <div className="flex flex-col gap-1">
-                  {data.lessons
-                    .filter((l) => l.date === d && l.startsAt === s)
-                    .map((l) => (
-                      <PortalLessonItem key={l.id} lesson={l} />
-                    ))}
-                </div>
-              </td>
+    <div className="grid grid-cols-7 gap-3 rounded-xl border bg-card p-4">
+      {weekDays(data.weekStart).map((d) => {
+        const lessons = data.lessons.filter((l) => l.date === d).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+        const off = data.noClassDays.filter((n) => n.date === d);
+        const name = `${t(`agenda.weekdays.${weekday(d)}`)} ${brShort(d)}`;
+        return (
+          <section key={d} aria-label={name} className="flex min-w-0 flex-col gap-2">
+            <h2 className={`border-b pb-2 font-sans text-sm font-semibold ${d === data.today ? "underline" : ""}`}>{t(`agenda.weekdays.${weekday(d)}`)} {Number(d.slice(8))}</h2>
+            {off.map((n) => (
+              <div
+                key={n.unit.id + n.reason}
+                className="flex min-h-72 flex-col items-center justify-center gap-1 break-words rounded-lg bg-[repeating-linear-gradient(135deg,var(--muted),var(--muted)_8px,var(--card)_8px,var(--card)_16px)] p-2 text-center"
+              >
+                <strong>{t("portalAgenda.noClass")}</strong>
+                <span className="text-xs text-muted-foreground">{n.reason}</span>
+              </div>
             ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            {lessons.map((l) => (
+              <PortalLessonItem key={l.id} lesson={l} variant="grid" />
+            ))}
+            {lessons.length === 0 && off.length === 0 && <span className="text-muted-foreground">—</span>}
+          </section>
+        );
+      })}
+    </div>
   );
 }

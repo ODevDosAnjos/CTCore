@@ -17,6 +17,7 @@ const session: SessionView = {
   twoFactor: { enabled: false, required: false },
 };
 const jiu = { id: "m1", name: "Jiu-Jitsu" };
+const judo = { id: "m2", name: "Judô" };
 const centro = { id: "u1", name: "Centro" };
 const lesson = (over: Partial<ScheduleLesson>): ScheduleLesson => ({
   id: "l0",
@@ -51,8 +52,8 @@ const schedule = (over: Partial<PortalScheduleData> = {}): PortalScheduleData =>
   lessons: [
     lesson({ id: "a", date: "2026-10-26", startsAt: "18:00", endsAt: "19:00", title: "Jiu-Jitsu Manhã", past: true, kind: "OTHER" }),
     lesson({ id: "b", changed: true, originalDate: "2026-10-26", originalStartsAt: "18:00", noticeId: "n1" }),
-    lesson({ id: "c", date: "2026-10-29", status: "CANCELLED", cancelReasonCode: "HOLIDAY", title: "Judô Adulto" }),
-    lesson({ id: "d", date: "2026-10-30", status: "CANCELLED", cancelReasonCode: "OTHER", cancelReason: "Reforma <b>do</b> tatame", title: "Judô Noite" }),
+    lesson({ id: "c", date: "2026-10-29", status: "CANCELLED", cancelReasonCode: "HOLIDAY", title: "Judô Adulto", modality: judo }),
+    lesson({ id: "d", date: "2026-10-30", status: "CANCELLED", cancelReasonCode: "OTHER", cancelReason: "Reforma <b>do</b> tatame", title: "Judô Noite", modality: judo }),
     lesson({ id: "e", date: "2026-10-31", kind: "ADHOC", title: "Seminário", substitute: true, changed: true, teacherName: "Prof. Marta Teste" }),
   ],
   noClassDays: [{ date: "2026-10-28", reason: "Feriado municipal", unit: centro }],
@@ -95,53 +96,56 @@ function setup(path = "/portal/agenda") {
 describe("PortalAgendaPage (RF-POR-04)", () => {
   beforeEach(() => viewport(false));
 
-  it("CA3 a CA7, CA13: no celular, lista do dia começando em hoje, com Alterada, resumo, Ver aviso, Já aconteceu, Sem aula e Cancelada com o motivo", async () => {
-    serve(schedule());
+  it("lista do dia (CA7): começa em hoje, com Alterada, resumo, Ver aviso, Sem aula, Cancelada com o motivo, Avulsa; setas passam o dia e a semana", async () => {
+    const asked: string[] = [];
+    serve(({ request }) => {
+      asked.push(new URL(request.url).search);
+      return HttpResponse.json(schedule());
+    });
     const user = userEvent.setup();
     setup();
-    const panel = await screen.findByRole("tabpanel");
-    expect(screen.getByRole("tab", { name: /Ter/, selected: true })).toBeInTheDocument();
-    expect(within(panel).getByText("Alterada")).toBeInTheDocument();
-    expect(within(panel).getByText("Professor: Prof. Carlos Teste")).toBeInTheDocument();
-    expect(within(panel).getByText("Era em 26/10/2026 às 18:00")).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: "Ver aviso sobre Jiu-Jitsu Adulto" })).toHaveAttribute("href", "/portal/avisos?aviso=n1");
-    expect(within(panel).queryByText("Já aconteceu")).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /terça, 27\/10/ })).toBeInTheDocument();
+    expect(screen.getByText("19h–20h")).toBeInTheDocument();
+    expect(screen.getByText("Alterada")).toBeInTheDocument();
+    expect(screen.getByText("Era em 26/10/2026 às 18:00")).toBeInTheDocument();
+    expect(screen.getByText("Prof. Carlos Teste · turma principal · Centro")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver aviso sobre Jiu-Jitsu Adulto" })).toHaveAttribute("href", "/portal/avisos?aviso=n1");
+    expect(screen.queryByText("Já aconteceu")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Modalidade/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Seg/ }));
-    expect(within(screen.getByRole("tabpanel")).getByText("Já aconteceu")).toBeInTheDocument();
-    expect(within(screen.getByRole("tabpanel")).getByText("Outro horário")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Dia anterior" }));
+    expect(screen.getByText("Já aconteceu")).toBeInTheDocument();
+    expect(screen.getByText("Outro horário · Prof. Carlos Teste · Centro")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Qua/ }));
-    expect(within(screen.getByRole("tabpanel")).getByText("Sem aula")).toBeInTheDocument();
-    expect(within(screen.getByRole("tabpanel")).getByText("Feriado municipal")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    expect(screen.getByText("Sem aula")).toBeInTheDocument();
+    expect(screen.getByText(/Feriado municipal/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Qui/ }));
-    expect(within(screen.getByRole("tabpanel")).getByText("Cancelada")).toBeInTheDocument();
-    expect(within(screen.getByRole("tabpanel")).getByText("Motivo: Feriado")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    expect(screen.getByText("Cancelada")).toBeInTheDocument();
+    expect(screen.getByText("Motivo: Feriado")).toBeInTheDocument();
+    expect(screen.getByText("Judô Adulto")).toHaveClass("line-through");
     expect(screen.queryByRole("link", { name: /Ver aviso/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Sex/ }));
-    expect(within(screen.getByRole("tabpanel")).getByText("Motivo: Reforma <b>do</b> tatame")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    expect(screen.getByText("Motivo: Reforma <b>do</b> tatame")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Sáb/ }));
-    expect(within(screen.getByRole("tabpanel")).getByText("Avulsa")).toBeInTheDocument();
-    expect(within(screen.getByRole("tabpanel")).getByText("Professor substituto: Prof. Marta Teste")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/presen|frequ|progress|espera|R\$/i);
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    expect(screen.getByText("Aula avulsa · Centro")).toBeInTheDocument();
+    expect(screen.getByText("Professor substituto: Prof. Marta Teste")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/presen[^ç]|frequ[^ê]|progress|espera|R\$/i);
+
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    expect(screen.getByText("Nenhuma aula neste dia.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    await waitFor(() => expect(asked.at(-1)).toBe("?week=2026-11-02"));
   });
 
-  it("CA13: a partir de 768 px, grade de 7 colunas com as aulas por horário e o dia sem aula sombreado com texto; sem a lista do dia", async () => {
+  it("controles (CA1, CA2, CA9): escopo, semana e aluno refazem a leitura e mantêm os outros parâmetros", async () => {
     viewport(true);
-    serve(schedule());
-    setup();
-    const grid = await screen.findByRole("table", { name: "Aulas da semana" });
-    expect(within(grid).getAllByRole("columnheader")).toHaveLength(8);
-    expect(within(grid).getByRole("columnheader", { name: /Qua 28\/10/ })).toHaveTextContent("Sem aula");
-    expect(within(grid).getByRole("columnheader", { name: /Qua 28\/10/ })).toHaveTextContent("Feriado municipal");
-    expect(within(grid).getAllByRole("rowheader").map((r) => r.textContent)).toEqual(["18:00", "19:00"]);
-    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
-  });
-
-  it("CA14: semana anterior, próxima e Hoje refazem a leitura; o escopo e o aluno mantêm a semana", async () => {
     const asked: string[] = [];
     serve(({ request }) => {
       asked.push(new URL(request.url).search);
@@ -156,46 +160,93 @@ describe("PortalAgendaPage (RF-POR-04)", () => {
     });
     const user = userEvent.setup();
     setup();
-    await screen.findByRole("tabpanel");
-    expect(screen.getByText("Semana de 26/10/2026 a 01/11/2026")).toBeInTheDocument();
+    expect(await screen.findByText("26 de outubro a 1 de novembro")).toBeInTheDocument();
+    expect(screen.getByText("Só consulta")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Todos os meus horários" })).toBeChecked();
+    expect(screen.queryByRole("button", { name: "Hoje" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Semana de/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Próxima semana" }));
     await waitFor(() => expect(asked.at(-1)).toBe("?week=2026-11-02"));
-    await user.click(screen.getByRole("button", { name: "Só minha turma" }));
+    await user.click(screen.getByRole("radio", { name: "Só minha turma" }));
     await waitFor(() => expect(asked.at(-1)).toBe("?week=2026-11-02&scope=MAIN"));
-    expect(screen.getByRole("button", { name: "Só minha turma" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("radio", { name: "Só minha turma" })).toBeChecked();
     await user.selectOptions(screen.getByLabelText("Aluno"), "s2");
     await waitFor(() => expect(asked.at(-1)).toBe("?studentId=s2&week=2026-11-02&scope=MAIN"));
     await user.click(screen.getByRole("button", { name: "Semana anterior" }));
     await waitFor(() => expect(asked.at(-1)).toBe("?studentId=s2&week=2026-10-19&scope=MAIN"));
-    await user.click(screen.getByRole("button", { name: "Hoje" }));
-    await waitFor(() => expect(asked.at(-1)).toBe("?studentId=s2&scope=MAIN"));
+    await user.click(screen.getByRole("radio", { name: "Todos os meus horários" }));
+    await waitFor(() => expect(asked.at(-1)).toBe("?studentId=s2&week=2026-10-19"));
   });
 
-  it("CA14: ?aluno=, ?semana= e ?escopo= na URL chegam à leitura", async () => {
+  it("controles (CA3): o filtro de modalidade é do cliente e mostra só as aulas da escolhida", async () => {
+    viewport(true);
+    const asked: string[] = [];
+    serve(({ request }) => {
+      asked.push(new URL(request.url).search);
+      return HttpResponse.json(schedule());
+    });
+    const user = userEvent.setup();
+    setup();
+    await screen.findByRole("region", { name: "Qua 28/10" });
+    await user.click(screen.getByRole("button", { name: /Modalidade/ }));
+    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Todas", "Jiu-Jitsu", "Judô"]);
+    await user.click(screen.getByRole("option", { name: "Judô" }));
+    expect(screen.queryByText("Jiu-Jitsu Adulto")).not.toBeInTheDocument();
+    expect(screen.getByText("Judô Adulto")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Modalidade/ }));
+    await user.click(screen.getByRole("option", { name: "Todas" }));
+    expect(screen.getByText("Jiu-Jitsu Adulto")).toBeInTheDocument();
+    expect(asked).toHaveLength(1);
+  });
+
+  it("grade (CA4 a CA6): 7 colunas com as aulas de cada dia, a faixa de dia sem aula com o motivo e traço nos dias vazios; sem a legenda", async () => {
+    viewport(true);
+    serve(schedule());
+    setup();
+    const wed = await screen.findByRole("region", { name: "Qua 28/10" });
+    expect(screen.getAllByRole("region")).toHaveLength(7);
+    expect(within(wed).getByText("Sem aula")).toBeInTheDocument();
+    expect(within(wed).getByText("Feriado municipal")).toBeInTheDocument();
+    const tue = screen.getByRole("region", { name: "Ter 27/10" });
+    expect(within(tue).getByText("19h")).toBeInTheDocument();
+    expect(within(tue).getByText("Alterada")).toBeInTheDocument();
+    expect(within(tue).getByText("Era em 26/10/2026 às 18:00")).toBeInTheDocument();
+    expect(within(tue).getByRole("link", { name: "Ver aviso sobre Jiu-Jitsu Adulto" })).toHaveAttribute("href", "/portal/avisos?aviso=n1");
+    const mon = screen.getByRole("region", { name: "Seg 26/10" });
+    expect(within(mon).getByText("Já aconteceu")).toBeInTheDocument();
+    expect(within(mon).getByText("Outro horário · Prof. Carlos Teste")).toBeInTheDocument();
+    const thu = screen.getByRole("region", { name: "Qui 29/10" });
+    expect(within(thu).getByText("Judô Adulto")).toHaveClass("line-through");
+    expect(within(thu).getByText("Cancelada")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Sáb 31/10" })).getByText("Aula avulsa")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Dom 01/11" })).getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("Legenda")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.")).toBeInTheDocument();
+  });
+
+  it("?aluno=, ?semana= e ?escopo= na URL chegam à leitura", async () => {
     const asked: string[] = [];
     serve(({ request }) => {
       asked.push(new URL(request.url).search);
       return HttpResponse.json(schedule());
     });
     setup("/portal/agenda?aluno=s2&semana=2026-11-02&escopo=MAIN");
-    await screen.findByRole("tabpanel");
+    await screen.findByRole("heading", { name: /terça, 27\/10/ });
     expect(asked).toEqual(["?studentId=s2&week=2026-11-02&scope=MAIN"]);
   });
 
-  it("CA15: semana sem aulas mostra o estado vazio; a semana sem hoje começa na segunda", async () => {
+  it("estados: semana sem aulas mostra o vazio; a semana sem hoje abre na segunda", async () => {
     serve(schedule({ lessons: [], noClassDays: [] }));
-    setup();
+    const empty = setup();
     expect(await screen.findByText("Nenhuma aula nesta semana")).toBeInTheDocument();
-  });
-
-  it("CA13: semana que não tem hoje abre na segunda-feira", async () => {
+    empty.unmount();
     serve(schedule({ today: "2026-10-20" }));
     setup();
-    await screen.findByRole("tabpanel");
-    expect(screen.getByRole("tab", { name: /Seg/, selected: true })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /segunda, 26\/10/ })).toBeInTheDocument();
   });
 
-  it("CA15: carregando, erro com Tentar de novo e sem permissão", async () => {
+  it("estados: carregando, erro com Tentar de novo e sem permissão", async () => {
     serve(() => new Promise<Response>(() => {}));
     const loading = setup();
     expect((await screen.findAllByRole("status")).length).toBeGreaterThan(0);
@@ -206,7 +257,7 @@ describe("PortalAgendaPage (RF-POR-04)", () => {
     const user = userEvent.setup();
     const failed = setup();
     await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
-    expect(await screen.findByRole("tabpanel")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /terça, 27\/10/ })).toBeInTheDocument();
     expect(calls).toBe(2);
     failed.unmount();
 
@@ -217,12 +268,12 @@ describe("PortalAgendaPage (RF-POR-04)", () => {
 
   for (const dark of [false, true]) {
     for (const wide of [false, true]) {
-      it(`CA15: sem violações de acessibilidade no tema ${dark ? "escuro" : "claro"}, ${wide ? "grade" : "lista"}`, async () => {
+      it(`sem violações de acessibilidade no tema ${dark ? "escuro" : "claro"}, ${wide ? "grade" : "lista"}`, async () => {
         setDevicePrefersDark(dark);
         viewport(wide);
         serve(schedule());
         const { container } = setup();
-        await screen.findByText("Semana de 26/10/2026 a 01/11/2026");
+        await screen.findByRole(wide ? "region" : "heading", wide ? { name: "Sáb 31/10" } : { name: /terça, 27\/10/ });
         await waitFor(async () => expect(await axeViolations(container)).toEqual([]));
       });
     }
