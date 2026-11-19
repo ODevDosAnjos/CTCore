@@ -3826,18 +3826,21 @@
       "label": "Notificações",
       "withCount": "Notificações, {{count}} não lidas"
     },
-    "unreadMark": "Não lida:",
+    "unreadDot": "Não lida",
+    "back": "Voltar",
     "retention": "As notificações somem depois de 30 dias",
     "filters": {
       "label": "Filtrar notificações",
-      "all": "Todas ({{count}})",
-      "unread": "Não lidas ({{count}})"
+      "all": "Todas",
+      "unread": "Não lidas"
     },
     "groups": {
       "TODAY": "Hoje",
       "WEEK": "Esta semana"
     },
     "markAll": "Marcar todas como lidas",
+    "markAllShort": "Marcar lidas",
+    "markAllShort": "Marcar lidas",
     "allRead": {
       "title": "Tudo lido",
       "text": "Você não tem notificações não lidas."
@@ -3854,16 +3857,16 @@
       "days": "há {{count}} dias"
     },
     "types": {
-      "PAYMENT_RECEIVED": { "text": "{{studentName}} pagou {{amount}}.", "action": "Ver cobranças" },
-      "HIGH_BENEFIT": { "text": "Benefício acima de 50% concedido a {{studentName}}.", "action": "Ver benefícios" },
-      "STUDENT_MAJORITY": { "text": "{{studentName}} completou 18 anos.", "action": "Ver aluno" },
-      "EMAIL_PROBLEM": { "text": "Um e-mail de aluno ou responsável está com problema.", "action": "Ver aluno" },
-      "INVITE_PENDING": { "text": "O convite de {{personName}} segue sem aceite há 7 dias.", "action": "Ver usuários" },
-      "CLOSURE_REQUEST": { "text": "Há um pedido de encerramento aguardando decisão.", "action": "Ver pedidos" },
-      "PORTAL_REQUEST": { "text": "Há um pedido novo do portal aguardando resposta.", "action": "Ver pedidos" },
-      "PAYMENT_PROOF": { "text": "{{studentName}} enviou um comprovante de {{amount}} para conferir.", "action": "Conferir comprovantes" },
-      "MP_DISCONNECTED": { "text": "A conexão de pagamentos da academia caiu.", "action": "Abrir configurações" },
-      "SUBSCRIPTION_OVERDUE": { "text": "A assinatura do CTCore está em atraso.", "action": "Abrir configurações" }
+      "PAYMENT_RECEIVED": { "title": "Pagamento recebido", "text": "{{studentName}} pagou {{amount}}." },
+      "HIGH_BENEFIT": { "title": "Benefício acima de 50%", "text": "Benefício acima de 50% concedido a {{studentName}}." },
+      "STUDENT_MAJORITY": { "title": "Aluno fez 18 anos", "text": "{{studentName}} completou 18 anos." },
+      "EMAIL_PROBLEM": { "title": "E-mail com problema", "text": "Um e-mail de aluno ou responsável está com problema." },
+      "INVITE_PENDING": { "title": "Convite sem aceite", "text": "O convite de {{personName}} segue sem aceite há 7 dias." },
+      "CLOSURE_REQUEST": { "title": "Pedido de encerramento", "text": "Há um pedido de encerramento aguardando decisão." },
+      "PORTAL_REQUEST": { "title": "Pedido do portal", "text": "Há um pedido novo do portal aguardando resposta." },
+      "PAYMENT_PROOF": { "title": "Comprovante para conferir", "text": "{{studentName}} enviou um comprovante de {{amount}} para conferir." },
+      "MP_DISCONNECTED": { "title": "Pagamentos desconectados", "text": "A conexão de pagamentos da academia caiu." },
+      "SUBSCRIPTION_OVERDUE": { "title": "Assinatura em atraso", "text": "A assinatura do CTCore está em atraso." }
     }
   },
   "format": {

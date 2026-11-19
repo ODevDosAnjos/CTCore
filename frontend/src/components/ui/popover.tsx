@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { cn } from "@/lib/utils";
 import { usePopover } from "@/components/layout/usePopover";
 
 type TriggerProps = {
@@ -17,12 +18,16 @@ export function Popover({
   label,
   children,
   onOpenChange,
+  sheet,
 }: {
   trigger: (props: TriggerProps) => ReactNode;
   /** Nome acessível do bloco. */
   label: string;
-  children: (close: () => void) => ReactNode;
+  /** `close` só fecha (ao navegar); `dismiss` fecha e devolve o foco ao botão (Voltar). */
+  children: (close: () => void, dismiss: () => void) => ReactNode;
   onOpenChange?: (open: boolean) => void;
+  /** Sem margem interna (o conteúdo traz a sua) e, abaixo de 640 px, em tela cheia. */
+  sheet?: boolean;
 }) {
   const { open, setOpen, root, button } = usePopover();
   const panel = useRef<HTMLDivElement>(null);
@@ -44,9 +49,20 @@ export function Popover({
           role="dialog"
           aria-label={label}
           tabIndex={-1}
-          className="fixed inset-x-4 top-16 z-50 max-h-[calc(100vh-5rem)] overflow-y-auto rounded-[14px] border bg-popover p-4 text-popover-foreground shadow-menu sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(440px,calc(100vw-2rem))]"
+          className={cn(
+            "z-50 overflow-y-auto border bg-popover text-popover-foreground shadow-menu sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(440px,calc(100vw-2rem))] sm:rounded-[14px]",
+            sheet
+              ? "fixed inset-0 sm:bottom-auto sm:max-h-[calc(100vh-5rem)]"
+              : "fixed inset-x-4 top-16 max-h-[calc(100vh-5rem)] rounded-[14px] p-4",
+          )}
         >
-          {children(() => setOpen(false))}
+          {children(
+            () => setOpen(false),
+            () => {
+              setOpen(false);
+              button.current?.focus();
+            },
+          )}
         </div>
       )}
     </div>
