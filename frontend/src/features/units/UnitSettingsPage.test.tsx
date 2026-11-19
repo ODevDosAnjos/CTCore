@@ -302,7 +302,8 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
   it("CA18: carregando, erro com Tentar de novo, sem permissão e Professor veem os estados certos", async () => {
     const user = userEvent.setup();
     const first = setup("COORDINATOR", { read: () => new Promise<Response>(() => {}) });
-    expect(await screen.findByText("Carregando...")).toBeInTheDocument();
+    // #519: o aviso de carregando da sessão e o da tela têm o mesmo texto; findBy sozinho devolvia um nó que já tinha sido trocado.
+    await waitFor(() => expect(screen.getByText("Carregando...")).toBeInTheDocument());
     first.unmount();
 
     let fail = true;
@@ -353,23 +354,21 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveValue("Unidade B"));
   });
 
-  it.each([
-    ["claro", false],
-    ["escuro", true],
-  ])("CA18: a 360 px nenhuma aba tem violações no axe no tema %s, com erros visíveis", async (_n, dark) => {
+  // #519: um `it` por aba e tema (antes era um só com 6 rodadas do axe e estourava os 20 s com a máquina carregada).
+  const axeCases = ([["claro", false], ["escuro", true]] as const).flatMap(([n, dark]) =>
+    ["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor", "Dados com erros"].map((tab) => [n, dark, tab] as const),
+  );
+  it.each(axeCases)("CA18: a 360 px não tem violações no axe no tema %s, na aba %s", async (_n, dark, tab) => {
     const user = userEvent.setup();
     setDevicePrefersDark(dark);
     window.innerWidth = 360;
     const { container } = setup("COORDINATOR");
     await ready();
     await screen.findByRole("checkbox", { name: "Judô" });
-    for (const tab of ["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]) {
-      await openTab(user, tab);
-      expect(await axeViolations(container)).toEqual([]);
-    }
-    await openTab(user, "Dados");
-    await user.clear(screen.getByLabelText("Nome"));
-    await user.type(screen.getByLabelText("E-mail"), "ruim");
+    if (tab === "Dados com erros") {
+      await user.clear(screen.getByLabelText("Nome"));
+      await user.type(screen.getByLabelText("E-mail"), "ruim");
+    } else if (tab !== "Dados") await openTab(user, tab);
     expect(await axeViolations(container)).toEqual([]);
   });
 });

@@ -212,7 +212,8 @@ describe("OrganizationSettingsPage", () => {
   it("CA18: carregando, erro com Tentar de novo e Professor veem os estados certos", async () => {
     const user = userEvent.setup();
     const first = setup("COORDINATOR", empty, () => new Promise<Response>(() => {}));
-    expect(await screen.findByText("Carregando...")).toBeInTheDocument();
+    // #519: o aviso de carregando da sessão e o da tela têm o mesmo texto; findBy sozinho devolvia um nó que já tinha sido trocado.
+    await waitFor(() => expect(screen.getByText("Carregando...")).toBeInTheDocument());
     first.unmount();
 
     let fail = true;

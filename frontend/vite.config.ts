@@ -12,6 +12,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    maxWorkers: 6, // #519: com o padrao (11 de 12 nucleos) a suite levava 683-734 s e 2 a 4 testes estouravam; com 6, 730-766 s e 0 a 1 falha
     testTimeout: 20000, // jsdom com userEvent fica lento com a máquina carregada
     css: true,
     exclude: ["e2e/**", "node_modules/**"], // e2e é do Playwright (visual/*.visual.ts não casa com *.test.*)
