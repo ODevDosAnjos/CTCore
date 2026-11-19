@@ -182,7 +182,7 @@ describe("Coordenador sem duas etapas (CA24)", () => {
       ),
     );
     open("/configurar-duas-etapas");
-    expect(await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /^Olá/, level: 1 })).toBeInTheDocument();
   });
 
   it("axe a 360 px nos dois temas", async () => {

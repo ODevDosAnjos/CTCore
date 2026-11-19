@@ -1,8 +1,11 @@
-import { Select } from "@/components/ui/field";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
+import { Card } from "@/components/Card";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
+import { PillFilter } from "@/components/ui/pill-filter";
+import { useSession } from "@/features/auth/SessionProvider";
+import { DEFAULT_TZ, formatCurrency } from "@/lib/format";
 import { PortalHeading } from "./PortalHeading";
 import { PortalBelts } from "./PortalBelts";
 import { PortalChargeCard } from "./PortalChargeCard";
@@ -12,12 +15,14 @@ import { PortalNoticesCard } from "./PortalNoticesCard";
 import { usePortalHome, type PortalHomeData } from "./usePortalHome";
 
 const ALL = "all";
-const today = () => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+const today = () => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: DEFAULT_TZ });
 const key = (modality: string, unit: string) => `${modality}|${unit}`;
 
 // RF-POR-02: Início do portal. Cobrança, próximas aulas, avisos e faixa, nesta ordem; o portal reduzido só tem a cobrança (RN-INA-08).
 export function PortalHomePage() {
   const { t } = useTranslation();
+  const { state } = useSession();
+  const firstName = (state.status === "ready" ? state.session.account.name : null)?.trim().split(" ")[0];
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState(ALL);
   const { status, data, reload } = usePortalHome(selected);
@@ -26,39 +31,43 @@ export function PortalHomePage() {
   if (data && data !== last) setLast(data);
   const strip = data ?? last;
 
+  const [familyView, setFamilyView] = useState(false);
   const choose = (id: string) => {
     setSelected(id);
     setFilter(ALL);
+    setFamilyView(false);
   };
 
   return (
     <>
-      <PortalHeading label={today()} title={t("app.welcomeTitle")} />
-      <Link
-        to={`/portal/carteirinha${(selected ?? strip?.selectedStudentId) ? `?aluno=${selected ?? strip?.selectedStudentId}` : ""}`}
-        className="mt-2 inline-flex min-h-11 items-center underline"
-      >
-        {t("portalCard.link")}
-      </Link>
+      <PortalHeading label={today()} title={firstName ? t("portalHome.greeting", { name: firstName }) : t("portalHome.greetingNoName")} />
       <div className="mt-4">
         {strip && strip.students.length > 1 && (
-          <PortalFamilyStrip students={strip.students} selected={selected ?? strip.selectedStudentId} familyOpenCents={strip.familyOpenCents} onSelect={choose} />
+          <PortalFamilyStrip students={strip.students} selected={selected ?? strip.selectedStudentId} familyOpenCents={strip.familyOpenCents} familyView={familyView} onSelect={choose} onFamily={() => setFamilyView(true)} />
         )}
-        {status === "loading" || status === "idle" ? (
-          <LoadingState />
+        {familyView && strip ? (
+          <Card heading="h2" title={t("portalHome.family.all")}>
+            <p className="text-sm text-muted-foreground">{t("portalHome.family.totalText")}</p>
+            <p className="mt-2 font-heading text-3xl font-semibold">{formatCurrency(strip.familyOpenCents)}</p>
+            <Link to="/portal/financeiro?visao=familia" className="mt-3 inline-flex min-h-11 items-center underline">
+              {t("portalHome.family.seeFinance")}
+            </Link>
+          </Card>
+        ) : status === "loading" || status === "idle" ? (
+          <LoadingState variant="card" text={t("portalHome.states.loading")} />
         ) : status === "forbidden" ? (
-          <ForbiddenState />
+          <ForbiddenState variant="card" />
         ) : status === "ready" && data ? (
-          <Sections data={data} filter={filter} onFilter={setFilter} reload={reload} />
+          <Sections data={data} studentId={selected ?? data.selectedStudentId} filter={filter} onFilter={setFilter} reload={reload} />
         ) : (
-          <ErrorState onRetry={reload} />
+          <ErrorState variant="card" title={t("portalHome.states.errorTitle")} onRetry={reload} />
         )}
       </div>
     </>
   );
 }
 
-function Sections({ data, filter, onFilter, reload }: { data: PortalHomeData; filter: string; onFilter: (v: string) => void; reload: () => void }) {
+function Sections({ data, studentId, filter, onFilter, reload }: { data: PortalHomeData; studentId: string | null; filter: string; onFilter: (v: string) => void; reload: () => void }) {
   const { t } = useTranslation();
   // RN-POR-04: etiqueta e filtro só com mais de uma combinação de modalidade e unidade (a faixa filtra pela modalidade).
   const option = (modality: string, unit: string) => t("portalHome.filter.option", { modality, unit });
@@ -70,31 +79,28 @@ function Sections({ data, filter, onFilter, reload }: { data: PortalHomeData; fi
   const fits = (modality: string | undefined, unit: string) => active === ALL || modality === undefined || key(modality, unit) === active;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
       {many && (
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">{t("portalHome.filter.label")}</span>
-          <Select value={active} onChange={(e) => onFilter(e.target.value)}>
-            <option value={ALL}>{t("portalHome.filter.all")}</option>
-            {[...combos].map(([k, text]) => (
-              <option key={k} value={k}>
-                {text}
-              </option>
-            ))}
-          </Select>
-        </label>
+        <div className="md:col-span-2">
+          <PillFilter
+            label={t("portalHome.filter.label")}
+            allLabel={t("portalHome.filter.all")}
+            value={active === ALL ? "" : active}
+            onChange={(id) => onFilter(id || ALL)}
+            options={[...combos].map(([id, name]) => ({ id, name }))}
+          />
+        </div>
       )}
-      <PortalChargeCard
-        items={data.charges.items.filter((c) => fits(c.modality?.id, c.unit.id))}
-        nextDueOn={data.charges.nextDueOn}
-        label={(c) => (many ? (c.modality ? option(c.modality.name, c.unit.name) : c.unit.name) : null)}
-        onChanged={reload}
-      />
-      {!data.reduced && (
+      <PortalChargeCard items={data.charges.items.filter((c) => fits(c.modality?.id, c.unit.id))} nextDueOn={data.charges.nextDueOn} onChanged={reload} />
+      {data.reduced ? (
+        <Link to={`/portal/carteirinha${studentId ? `?aluno=${studentId}` : ""}`} className="inline-flex min-h-11 items-center underline">
+          {t("portalCard.link")}
+        </Link>
+      ) : (
         <>
-          <PortalNextLessons items={data.lessons.filter((l) => fits(l.modality.id, l.unit.id))} label={(l) => (many ? option(l.modality.name, l.unit.name) : null)} />
+          <PortalNextLessons items={data.lessons.filter((l) => fits(l.modality.id, l.unit.id))} />
           <PortalNoticesCard data={data.announcements} />
-          <PortalBelts items={data.belts.filter((b) => active === ALL || b.modality.id === active.split("|")[0])} showLabel={many} />
+          <PortalBelts items={data.belts.filter((b) => active === ALL || b.modality.id === active.split("|")[0])} studentId={studentId} />
         </>
       )}
     </div>

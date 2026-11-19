@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage";
 import { AreaUnavailablePage } from "@/features/auth/AreaUnavailablePage";
@@ -74,7 +74,6 @@ function Welcome() {
 
 // Gestão (Coordenador, Administrador, Professor) ganha o menu pelas permissões do servidor; portal segue sem menu.
 function Home() {
-  const { t } = useTranslation();
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role;
@@ -91,9 +90,6 @@ function Home() {
     <PortalLayout>
       <PortalHomePage />
       <ModalityConfirmations />
-      <Link to="/portal/pedidos" className="mt-6 inline-flex min-h-11 items-center underline">
-        {t("portalOwn.link")}
-      </Link>
     </PortalLayout>
   );
 }

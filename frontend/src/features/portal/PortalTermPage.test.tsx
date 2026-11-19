@@ -72,7 +72,7 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
     await userEvent.click(read);
     await userEvent.click(image);
     await userEvent.click(submit);
-    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
     expect(posts).toEqual([{ id: "s1", body: { version: 1, imageUse: true } }]);
   });
 
@@ -81,7 +81,7 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
     await heading();
     await userEvent.click(await screen.findByLabelText("Li e aceito o termo de matrícula"));
     await userEvent.click(screen.getByRole("button", { name: "Aceitar e continuar" }));
-    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
     expect(posts[0].body.imageUse).toBe(false);
   });
 
@@ -92,7 +92,7 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
 
   it("sem pendência a tela inicial abre; a tela de aceite mostra o vazio", async () => {
     setup({ initial: [], path: "/" });
-    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
   });
 
   it("vazio, erro com nova tentativa e sem permissão", async () => {

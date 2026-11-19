@@ -245,7 +245,8 @@ describe("PortalFinancePage (RF-POR-05)", () => {
 
     serve(() => HttpResponse.json({ code: "FORBIDDEN", message: "m", fields: [], traceId: "t" }, { status: 403 }));
     setup();
-    expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
+    expect(await screen.findByText("Esta área não está disponível para você")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar ao Início" })).toHaveAttribute("href", "/");
   });
 
   it("CA7: portal reduzido mostra o Financeiro", async () => {

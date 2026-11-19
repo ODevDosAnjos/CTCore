@@ -77,6 +77,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
       await page.getByLabel("Li e aceito o termo de matrícula").check();
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
       await expect(page).not.toHaveURL(/\/portal\/termo$/);
+      await page.getByRole("dialog", { name: "Nova modalidade" }).getByRole("button", { name: "Depois" }).click({ timeout: 3000 }).catch(() => {}); // janela da modalidade nova (#493) cobre a página
       await call(page, "POST", `/portal/charges/${chargeId}/proof`, undefined, {}, true);
 
       // Gestão: a cobrança está em conferência e o sino avisa.

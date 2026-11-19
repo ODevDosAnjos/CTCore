@@ -134,7 +134,7 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
 
   it("CA7, CA9: portal reduzido esconde Agenda, Avisos e o sino, mostra o aviso e leva /portal/agenda ao Início", async () => {
     setup("/portal/agenda", { data: shell({ reduced: true, unreadAnnouncements: 0 }) });
-    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
     expect(tabs().map(label)).toEqual(["Início", "Financeiro", "Minhas informações"]);
     expect(bell()).toBeUndefined();
     expect(screen.getByText(/Seu acesso está reduzido/)).toBeInTheDocument();
@@ -142,7 +142,7 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
 
   it("CA9: no reduzido /portal/avisos também volta ao Início", async () => {
     setup("/portal/avisos", { data: shell({ reduced: true, unreadAnnouncements: 0 }) });
-    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
   });
 
   it("CA8: portal completo abre Agenda e Avisos", async () => {
@@ -161,7 +161,7 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(tabs()).toHaveLength(5);
     await userEvent.setup().click(screen.getByRole("button", { name: "Tentar de novo" }));
-    await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
     expect(calls).toBe(2);
   });
 

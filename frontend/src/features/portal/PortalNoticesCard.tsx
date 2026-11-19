@@ -1,3 +1,4 @@
+import { ChevronRight, Pin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Card } from "@/components/Card";
@@ -11,29 +12,41 @@ export function PortalNoticesCard({ data }: { data: PortalHomeData["announcement
   const { t } = useTranslation();
   return (
     <Card
-      heading="h2"
+      heading="h2" titleClassName="text-2xl uppercase"
       title={t("portalHome.notices.title")}
-      actions={data.unreadCount > 0 ? <span className="text-sm">{t("portalHome.notices.unreadCount", { count: data.unreadCount })}</span> : undefined}
+      actions={
+        <Link to="/portal/avisos" className="inline-flex min-h-11 items-center text-sm underline">
+          {t("portalHome.notices.viewAll")}
+          <ChevronRight aria-hidden="true" className="size-4" />
+        </Link>
+      }
     >
       {data.items.length === 0 ? (
         <EmptyState title={t("portalHome.notices.emptyTitle")} text={t("portalHome.notices.emptyText")} />
       ) : (
         <ul className="flex flex-col divide-y">
           {data.items.map((n) => (
-            <li key={n.id} className="flex flex-col gap-1 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {n.pinned && <PortalTag tone="strong">{t("portalHome.notices.pinned")}</PortalTag>}
-                {n.unread && <PortalTag>{t("portalHome.notices.unread")}</PortalTag>}
-              </div>
-              <p className="break-words font-medium">{n.title}</p>
-              <p className="text-muted-foreground">{t("portalHome.notices.sentAt", { date: formatDate(n.sentAt) })}</p>
+            <li key={n.id} className="flex items-center gap-3 py-3">
+              <span className="flex size-2 shrink-0">
+                {n.unread && (
+                  <>
+                    <span aria-hidden="true" className="size-2 rounded-full bg-danger-foreground" />
+                    <span className="sr-only">{t("portalHome.notices.unread")}</span>
+                  </>
+                )}
+              </span>
+              <p className="min-w-0 flex-1 break-words font-medium">{n.title}</p>
+              {n.pinned && (
+                <PortalTag tone="strong">
+                  <Pin aria-hidden="true" className="mr-1 size-3.5 self-center" />
+                  {t("portalHome.notices.pinned")}
+                </PortalTag>
+              )}
+              <span className="shrink-0 text-sm text-muted-foreground">{formatDate(n.sentAt).slice(0, 5)}</span>
             </li>
           ))}
         </ul>
       )}
-      <Link to="/portal/avisos" className="mt-2 inline-flex min-h-11 items-center underline">
-        {t("portalHome.notices.viewAll")}
-      </Link>
     </Card>
   );
 }

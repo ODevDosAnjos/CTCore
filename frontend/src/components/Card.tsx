@@ -12,6 +12,7 @@ export function Section({
   children,
   className,
   heading: H = "h3",
+  titleClassName,
 }: {
   title: string;
   action?: ReactNode;
@@ -19,12 +20,14 @@ export function Section({
   className?: string;
   /** Nível do título; h3 por padrão, h2 quando o título da tela é um h1. */
   heading?: Heading;
+  /** Troca o tamanho do título (o canvas usa título grande nos cartões do Início do portal). */
+  titleClassName?: string;
 }) {
   const id = useId();
   return (
     <section aria-labelledby={id} className={cn(BOX, "p-4", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <H id={id} className="text-base font-semibold">
+        <H id={id} className={cn("text-base font-semibold", titleClassName)}>
           {title}
         </H>
         {action && <div className="flex flex-wrap gap-2">{action}</div>}
@@ -41,16 +44,18 @@ export function Card({
   children,
   className,
   heading,
+  titleClassName,
 }: {
   title?: string;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
   heading?: Heading;
+  titleClassName?: string;
 }) {
   if (title === undefined) return <div className={cn(BOX, "p-4", className)}>{children}</div>;
   return (
-    <Section title={title} action={actions} className={className} heading={heading}>
+    <Section title={title} action={actions} className={className} heading={heading} titleClassName={titleClassName}>
       {children}
     </Section>
   );

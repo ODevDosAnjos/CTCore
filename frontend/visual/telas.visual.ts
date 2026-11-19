@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"]) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"]) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -18,7 +18,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
     if (perfil.startsWith("duas@")) {
       await page.getByLabel("Código").fill("123456"); // envia sozinho; conta com as duas etapas ligadas
     }
-    await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Bem-vindo ao ctcore|^Olá/ })).toBeVisible(); // portal: "Olá, <nome>" (#493)
     if (oferta) {
       // a Coordenação liga Jiu-Jitsu na unidade Centro para o assistente oferecer a modalidade
       await page.evaluate(async () => {
@@ -346,6 +346,24 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         override({ method: "post", path: "/announcements/preview", status: 200, body: { recipients: preview[0], adults: preview[1], guardians: preview[2], portal: preview[0], email: preview[3], whatsapp: null, channels: ["PORTAL", "EMAIL"] } });
       }, comunicadosCanvas);
     }
+    if (inicioCanvas) {
+      // #493: em-dia: sem cobrança e com o próximo vencimento do canvas (PortalEmDia); confirmar: uma modalidade nova pendente (PortalConfirmarModalidade)
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async (cenario) => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        if (cenario === "em-dia") {
+          const home = (await (await fetch("/api/v1/portal/home")).json()) as { charges: object; [k: string]: unknown };
+          override({ method: "get", path: "/portal/home", status: 200, body: { ...home, charges: { items: [], nextDueOn: "2026-11-10" } } });
+        } else {
+          override({ method: "get", path: "/portal/modality-confirmations", status: 200, body: [{ modalityRowId: "00000000-0000-0000-0000-0000000007f1", studentId: "00000000-0000-0000-0000-000000000722", studentName: "Bruno Lima", modality: "Muay Thai", unit: "Tijuca", planId: "00000000-0000-0000-0000-0000000007f2", plan: "Muay Thai Mensal", planValueCents: 18000 }] });
+        }
+      }, inicioCanvas);
+      // o Início já carregou antes do override: sai e volta pelo histórico (recarregar perderia a sessão simulada)
+      const ir = (r: string) => page.evaluate(`history.pushState({}, "", ${JSON.stringify(r)}); dispatchEvent(new PopStateEvent("popstate"))`);
+      await ir("/portal/avisos");
+      await expect(page.getByRole("heading", { name: "Avisos", level: 1 })).toBeVisible();
+      await ir("/");
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -421,7 +439,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

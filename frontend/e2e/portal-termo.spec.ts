@@ -33,7 +33,7 @@ test.describe("aceite do termo no portal a 360 px", () => {
       await page.getByLabel("Li e aceito o termo de matrícula").check();
       await submit.click();
 
-      await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^Olá/, level: 1 })).toBeVisible();
       await expect(page).toHaveURL(/\/$/);
     });
   }
