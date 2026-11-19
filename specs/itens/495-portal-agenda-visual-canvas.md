@@ -105,8 +105,27 @@ Achados:
 ## Entrega
 
 - O que muda: agenda do portal (`PortalAgendaPage`, `PortalAgendaGrid`, `PortalAgendaDayList`, `PortalLessonItem`) no visual do canvas `PortalAgenda` (1440) e `PortalMAgenda` (390): cabeçalho com `PortalHeading`, alternador Semana/Dia, navegação com setas, seletor de aluno, filtro por modalidade, grade e lista do dia, estados carregando/vazio/erro/sem permissão e nota final. Textos novos em `pt-BR.json`. API, contrato e MSW não mudam.
-- Verificação: rodada 1 `OK` (estado `513cea2c0ad4db29e6666572185b705af923e7dd`); CA1 a CA11 passaram. Comparação com o canvas: `npm run visual:canvas` → 154 comparadas, 0 reprovadas; capturas em `.capturas/495/` comparadas.
+- Verificação: rodada 2 `OK` (estado `e8b0c47168f76db3ae05962a1ef95ebe2d433f85`); CA1 a CA11 passaram (a rodada 2 só trocou as referências `portal-celular-abas`, achado do CI do PR #605). Comparação com o canvas: `npm run visual:canvas` → 154 comparadas, 0 reprovadas; capturas em `.capturas/495/` comparadas.
 - Visual do CI (referências commitadas): portal-agenda 1440 claro, 1440 escuro, 390 claro, 390 escuro → passou.
 - Regressão local (construção): `test:cov` e `e2e` tiveram falhas de timeout por carga da máquina em testes sem relação com o item (LoginPage, EnrollmentWizardPage, TeacherFormDialog, UnitSettingsPage; agenda, comprovantes, configuracao-unidade, portal-pedidos); todas passaram ao rodar de novo isoladas. Base não avançou desde a verificação, então a regressão não foi refeita.
 - Divergências com o canvas aceitas (passam no limite padrão, sem `limiteCanvas`): alternador com seleção na cor da marca (canvas usa cartão branco no trilho cinza); "Já aconteceu" nos cartões de dias passados; cartão de cancelada com o motivo por extenso; no celular o alternador fica acima da navegação do dia (canvas: abaixo); cor de cartão por tipo (canvas também usa cor da modalidade).
 - Limitação conhecida (sugestão da verificação, não bloqueia): o filtro de modalidade não zera ao trocar de semana; se a modalidade escolhida não existir na semana nova, a grade fica vazia sem aviso.
+
+### Correção da entrega
+- CI do PR #605: job `visual` reprovou os 4 casos `portal-celular-abas` (rota `/portal/agenda`, tela afetada pelo item, referência antiga) — arquivos: `frontend/visual/referencias/portal-celular-abas-{1440,390}-{claro,escuro}.png` regerados — prova: `npm run test:visual:docker -- --update-snapshots -g "portal-celular-abas"` e depois sem `--update-snapshots` → 4 passaram; `npm run visual:canvas -- --exige` → 154 comparadas, 0 reprovadas
+Visual do CI: portal-celular-abas 1440 claro/escuro e 390 claro/escuro → passou
+Referências visuais: `frontend/visual/referencias/portal-celular-abas-{1440,390}-{claro,escuro}.png`
+
+### Rodada 2 — OK — 2026-11-19, estado e8b0c47168f76db3ae05962a1ef95ebe2d433f85
+
+Mudança desde a rodada 1 (`git diff 513cea2… e8b0c47…`): só as 4 referências `portal-celular-abas-{1440,390}-{claro,escuro}.png` e o registro da "Correção da entrega". Código do item inalterado.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA10 | PASSOU (mantido da rodada 1) | código não mudou; `PortalAgendaPage.test.tsx` e `a11y.test.tsx` reexecutados → 23 verdes |
+| CA11 | PASSOU | `npm run test:visual:docker -- -g "portal-celular-abas\|portal-agenda"` sem `--update-snapshots` → 8 passaram |
+| Achado da entrega (CI #605, `portal-celular-abas` com referência antiga) | PASSOU | referências regeradas abertas (390 e 1440 claro): mostram a agenda nova (Só consulta, Agenda, alternador, setas, filtro, nota); mudança visual pedida pelo item, só de tela afetada |
+
+Comandos: vitest dos dois arquivos → 23 verdes; visual docker dos 2 casos → 8 verdes.
+Achados:
+- sugestão, código — a da rodada 1 (filtro de modalidade não zera ao trocar de semana) continua aberta, não bloqueia.
