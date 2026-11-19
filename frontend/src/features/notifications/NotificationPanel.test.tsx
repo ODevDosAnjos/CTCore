@@ -7,7 +7,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { AppNotification, NotificationList } from "./useNotifications";
 import { notificationTarget, relativeTime } from "./notificationActions";
@@ -106,12 +106,18 @@ describe("NotificationPanel (RF-NOT-01)", () => {
     expect(await within(panel).findByRole("heading", { name: "Hoje" })).toBeInTheDocument();
     expect(within(panel).getByRole("heading", { name: "Esta semana" })).toBeInTheDocument();
     expect(within(panel).getByText(/Maria Souza pagou R\$.*150,00/)).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: "Ver cobranças" })).toHaveAttribute("href", "/cobrancas");
-    expect(within(panel).getByRole("link", { name: "Ver usuários" })).toHaveAttribute("href", "/configuracoes/usuarios");
+    // CA3/CA4: a linha inteira é o link; título, detalhe e "Não lida" só no item não lido; sem botão de ação
+    const paid = within(panel).getByRole("link", { name: /Pagamento recebido.*Maria Souza pagou.*Não lida/ });
+    expect(paid).toHaveAttribute("href", "/cobrancas");
+    const invite = within(panel).getByRole("link", { name: /Convite sem aceite/ });
+    expect(invite).toHaveAttribute("href", "/configuracoes/usuarios");
+    expect(invite).not.toHaveTextContent("Não lida");
+    expect(within(panel).queryByRole("link", { name: "Ver cobranças" })).not.toBeInTheDocument();
     expect(within(panel).queryByRole("switch")).not.toBeInTheDocument();
     expect(within(panel).getByText("As notificações somem depois de 30 dias")).toBeInTheDocument();
 
-    await user.click(within(panel).getByRole("button", { name: "Não lidas (2)" }));
+    await user.click(within(panel).getByRole("button", { name: /^Não lidas/ }));
+    expect(within(panel).getByRole("button", { name: /^Não lidas/ })).toHaveTextContent("2");
     expect(within(panel).getAllByRole("listitem")).toHaveLength(2);
     expect(within(panel).queryByText(/João Lima/)).not.toBeInTheDocument();
 
@@ -120,6 +126,28 @@ describe("NotificationPanel (RF-NOT-01)", () => {
     expect(within(panel).getByText("As notificações somem depois de 30 dias")).toBeInTheDocument();
     expect(readAlls).toBe(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Notificações", hidden: true })).toBeInTheDocument());
+  });
+
+  it("CA4: clicar no item navega e fecha o painel", async () => {
+    const user = userEvent.setup();
+    setup("ADMINISTRATOR");
+    const panel = await openPanel(user);
+    await user.click(await within(panel).findByRole("link", { name: /Pagamento recebido/ }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notificações" })).not.toBeInTheDocument());
+  });
+
+  it("CA6: no celular o painel é tela cheia, o botão é Marcar lidas e Voltar fecha devolvendo o foco ao sino", async () => {
+    const user = userEvent.setup();
+    setDeviceNarrow(true);
+    setup("ADMINISTRATOR");
+    const button = await bell();
+    const panel = await openPanel(user);
+    expect(panel).toHaveClass("fixed", "inset-0");
+    expect(await within(panel).findByRole("button", { name: "Marcar lidas" })).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Voltar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+    setDevicePrefersDark(false);
   });
 
   it("CA15: contador acima de 99 mostra 99+ e em zero o sino fica sem número", async () => {

@@ -14,6 +14,7 @@ export function BellButton() {
   return (
     <Popover
       label={t("notifications.title")}
+      sheet
       onOpenChange={(v) => !v && refresh()}
       trigger={(p) => (
         <Button
@@ -32,7 +33,7 @@ export function BellButton() {
         </Button>
       )}
     >
-      {(close) => <NotificationPanel onClose={close} onUnread={setCount} />}
+      {(close, dismiss) => <NotificationPanel onClose={close} onBack={dismiss} onUnread={setCount} />}
     </Popover>
   );
 }
