@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, useLocation } from "react-router";
@@ -256,7 +256,9 @@ describe("LoginPage", () => {
 
     it("CA4 e CA5: mostra o aviso com o horário e Criar nova senha; Entrar desabilitado até o horário, depois volta", async () => {
       const user = userEvent.setup();
-      locked(new Date(Date.now() + 1500).toISOString());
+      // #519: a trava vale 60 s e o fim dela é disparado pelo teste (o setTimeout do aviso), sem depender de quanto tempo a máquina levou.
+      const timers = vi.spyOn(globalThis, "setTimeout");
+      locked(new Date(Date.now() + 60_000).toISOString());
       open("/entrar");
       await fill(user);
       await submit(user);
@@ -265,7 +267,10 @@ describe("LoginPage", () => {
       expect(screen.getByText("A trava vale só para este e-mail. Quem já está dentro continua normalmente.")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Criar nova senha" })).toHaveAttribute("href", "/esqueci-senha");
       expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
-      await waitFor(() => expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled(), { timeout: 3000 });
+      const release = timers.mock.calls.find(([, delay]) => typeof delay === "number" && delay > 30_000 && delay <= 60_000)![0] as () => void;
+      act(() => release());
+      expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
+      timers.mockRestore();
       expect(screen.queryByRole("link", { name: "Criar nova senha" })).not.toBeInTheDocument();
     });
 

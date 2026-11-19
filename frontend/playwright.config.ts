@@ -4,6 +4,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   forbidOnly: !!process.env.CI,
+  // #519: os fluxos @critical longos (login, troca de vínculo, vários passos) levam 15 a 25 s com o servidor de desenvolvimento frio e a máquina carregada; 30 s estourava.
+  timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: { baseURL: "http://localhost:5173", trace: "retain-on-failure", locale: "pt-BR" },

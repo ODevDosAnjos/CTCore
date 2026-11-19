@@ -55,7 +55,7 @@ test.describe("barra do portal a 360 px", () => {
 
     await page.evaluate(`history.pushState({}, "", "/portal/avisos"); dispatchEvent(new PopStateEvent("popstate"))`);
     await expect(page.getByRole("heading", { name: /^Olá/, level: 1 })).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe("/");
+    await expect(page).toHaveURL(/\/$/);
     expect(await violations(page)).toEqual([]);
   });
 });
