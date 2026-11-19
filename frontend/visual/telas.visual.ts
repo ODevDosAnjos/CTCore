@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"]) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"]) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -346,6 +346,15 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         override({ method: "post", path: "/announcements/preview", status: 200, body: { recipients: preview[0], adults: preview[1], guardians: preview[2], portal: preview[0], email: preview[3], whatsapp: null, channels: ["PORTAL", "EMAIL"] } });
       }, comunicadosCanvas);
     }
+    if (termoCanvas) {
+      // #494: o termo do canvas (versão 3); filhos: o passo aceita o primeiro (Davi), para a tela mostrar "1 de 2"
+      await page.waitForFunction("window.__mswTermo");
+      await page.evaluate((cenario) => {
+        const corpo = ["1. A mensalidade vence no dia escolhido na matrícula e é cobrada por modalidade.", "2. Não há juros, multa ou pagamento parcial. A taxa do meio de pagamento online é somada ao valor e aparece antes de você escolher.", "3. Com 30 dias de atraso, a modalidade é bloqueada até o pagamento.", "4. O encerramento pode ser pedido aqui pelo portal, a qualquer momento.", "5. A academia não guarda dados de saúde, só o que o aluno informa na matrícula."].join(String.fromCharCode(10));
+        const alunos = cenario === "um" ? [{ id: "00000000-0000-0000-0000-000000000731", name: "Theo" }] : [{ id: "00000000-0000-0000-0000-000000000732", name: "Davi Nogueira" }, { id: "00000000-0000-0000-0000-000000000733", name: "Lia Nogueira" }];
+        (globalThis as unknown as { __mswTermo?: (...args: unknown[]) => void }).__mswTermo?.(alunos, { version: 3, body: corpo }, { version: 1, body: "Fotos e vídeos de aulas e eventos nas redes da academia." });
+      }, termoCanvas);
+    }
     if (inicioCanvas) {
       // #493: em-dia: sem cobrança e com o próximo vencimento do canvas (PortalEmDia); confirmar: uma modalidade nova pendente (PortalConfirmarModalidade)
       await page.waitForFunction("window.__mswOverride");
@@ -439,7 +448,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

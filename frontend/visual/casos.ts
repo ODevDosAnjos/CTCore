@@ -29,6 +29,7 @@ export type Caso = {
   termosCanvas?: boolean; // #488: antes de abrir a tela, o termo de matrícula na versão 3 e as versões 3, 2 e 1 do canvas com 187, 142 e 96 aceites
   textosCanvas?: boolean; // #488: antes de abrir a tela, os nove modelos do canvas (Boas-vindas, Lembrete antes e depois com texto próprio), como o Administrador os vê
   comunicadosCanvas?: "lista" | "curta" | "limite" | "organizacao" | "novo" | "novo-celular"; // #491: antes de abrir a tela, a unidade "Tijuca" e os comunicados do canvas (lista: cinco, 0 hoje; curta: agendado e enviado, 3 de 20; limite: 20 de 20; organizacao: janela com 286 pessoas; novo e novo-celular: a turma e a prévia do canvas)
+  termoCanvas?: "um" | "filhos"; // #494: antes de abrir a tela, o termo de matrícula na versão 3 do canvas pendente para o Theo (um) ou para Davi e Lia Nogueira (filhos)
   inicioCanvas?: "em-dia" | "confirmar"; // #493: antes de abrir a tela, o Início sem cobrança e com o próximo vencimento (em-dia) ou com uma modalidade nova pendente (confirmar)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
@@ -70,8 +71,8 @@ export const casos: Caso[] = [
   { nome: "portal-inicio-responsavel", rota: "/", perfil: familia, canvas: "PortalResponsavel", canvasCelular: "PortalMResponsavel" },
   { nome: "portal-inicio-em-dia", rota: "/", perfil: aluno, canvas: "PortalEmDia", inicioCanvas: "em-dia" },
   { nome: "portal-confirmar-modalidade", rota: "/", perfil: aluno, canvas: "PortalConfirmarModalidade", canvasCelular: "PortalMConfirmarModalidade", inicioCanvas: "confirmar", limiteCanvas: { valor: 0.5, motivo: "a janela usa o Modal base (no celular, gaveta de baixo sem alça, linhas em tabela e botões lado a lado); o canvas empilha os campos, traz alça e dados que a API não entrega (turma principal, dia de vencimento, nota da primeira mensalidade, D1 do item #493); a #601 trata a tela e remove esta exceção" } },
-  { nome: "portal-termo", rota: "/portal/termo", perfil: aluno, canvas: "PortalTermo", canvasCelular: "PortalMTermo" },
-  { nome: "portal-termo-filhos", rota: "/portal/termo", perfil: familia, canvas: "PortalTermoFilhos" },
+  { nome: "portal-termo", rota: "/portal/termo", perfil: familia, canvas: "PortalTermo", canvasCelular: "PortalMTermo", termoCanvas: "um" },
+  { nome: "portal-termo-filhos", rota: "/portal/termo", perfil: familia, canvas: "PortalTermoFilhos", termoCanvas: "filhos", passos: [{ clicar: "Li e aceito", papel: "checkbox" }, { clicar: "Aceitar e continuar" }] },
   { nome: "portal-agenda", rota: "/portal/agenda", perfil: aluno, canvas: "PortalAgenda", canvasCelular: "PortalMAgenda" },
   { nome: "portal-avisos", rota: "/portal/avisos", perfil: aluno, canvas: "PortalAvisos", canvasCelular: "PortalMAvisos" },
   { nome: "portal-financeiro", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalFinanceiro", canvasCelular: "PortalMFinanceiro" },
