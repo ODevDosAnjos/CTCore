@@ -5189,8 +5189,8 @@ export const routes: Route[] = [
         modalityRowId: m.id, modalityId: m.modalityId, modality: modalityCatalog.find((c) => c.id === m.modalityId)?.name ?? "", unitId: m.unitId,
         unit: units.find((u) => u.id === m.unitId)?.name ?? "", currentClass: named(m.primaryClassId, mockClasses), currentPlan: named(m.planId, mockPlans),
         closureRequestedAt: closureOpenAt(m.id),
-        classes: mockClasses.filter((c) => c.status === "ACTIVE" && c.unitId === m.unitId && c.modalityId === m.modalityId && c.id !== m.primaryClassId).map((c) => ({ id: c.id, name: c.name })),
-        plans: mockPlans.filter((p) => p.status === "ACTIVE" && p.unitId === m.unitId && modalityCatalog[p.modalityIndex].id === m.modalityId && p.id !== m.planId).map((p) => ({ id: p.id, name: p.name, valueCents: p.valueCents })),
+        classes: mockClasses.filter((c) => c.status === "ACTIVE" && c.unitId === m.unitId && c.modalityId === m.modalityId && c.id !== m.primaryClassId).map((c) => ({ id: c.id, name: c.name, schedule: c.schedule.map(([weekday, startsAt, endsAt]) => ({ weekday, startsAt, endsAt })), teacher: mockTeachers.find((t) => t.id === c.head)?.name ?? "" })),
+        plans: mockPlans.filter((p) => p.status === "ACTIVE" && p.unitId === m.unitId && modalityCatalog[p.modalityIndex].id === m.modalityId && p.id !== m.planId).map((p) => ({ id: p.id, name: p.name, valueCents: p.valueCents, available: true, unavailableReason: null })),
       }));
       const offers = units.flatMap((u) =>
         modalityCatalog.filter((c) => activeModalities.has(c.id) && unitModalities.get(u.id)?.has(c.id) && !rows.some((m) => m.modalityId === c.id)).map((c) => ({ unitId: u.id, unit: u.name, modalityId: c.id, modality: c.name })),

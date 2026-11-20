@@ -3570,7 +3570,7 @@ paths:
       summary: Pede troca de turma, nova modalidade, troca de plano ou encerramento (RF-MAT-04, RN-MAT-16). Aluno adulto e responsável financeiro.
       description: |
         Nunca altera matrícula, turma, plano, vencimento nem cobrança; só o pedido de encerramento deixa a modalidade "Encerramento solicitado" e sem nova cobrança
-        (RN-MAT-18). Dados inválidos (tipo, motivo fora da lista, turma ou plano de outra unidade ou modalidade, igual ao atual, modalidade já ativa, mensagem acima de 500
+        (RN-MAT-18). Dados inválidos (tipo, motivo fora da lista, turma ou plano de outra unidade ou modalidade, plano com `available=false` (campo `targetPlanId`), igual ao atual, modalidade já ativa, mensagem acima de 500
         caracteres): 400 `VALIDATION_ERROR` com o campo, sem gravar. Pedido igual ainda aberto (mesma modalidade e tipo; ou troca de turma e de plano com encerramento aberto):
         409 `REQUEST_ALREADY_OPEN`. Responsável não financeiro do menor: 403; aluno não ligado à conta ou de outra organização: 404; termo pendente: 403 `TERM_PENDING`.
         Grava `portal_request.created` (sem o texto livre) e avisa a gestão (`PORTAL_REQUEST`; no encerramento também `CLOSURE_REQUEST`).
@@ -6982,13 +6982,31 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+    PortalRequestClassChoice:
+      type: object
+      required: [id, name, schedule, teacher]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        schedule:
+          type: array
+          items:
+            type: object
+            required: [weekday, startsAt, endsAt]
+            properties:
+              weekday: { type: integer, minimum: 1, maximum: 7 }
+              startsAt: { type: string, example: "19:00" }
+              endsAt: { type: string, example: "20:00" }
+        teacher: { type: string, description: "Nome do professor titular; nunca traz contato (RN-POR-06)." }
     PortalRequestPlanChoice:
       type: object
-      required: [id, name, valueCents]
+      required: [id, name, valueCents, available]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         valueCents: { type: integer, format: int64, minimum: 0 }
+        available: { type: boolean, description: "Falso quando o plano não cabe no aluno; a troca para ele não é aceita." }
+        unavailableReason: { type: string, nullable: true, enum: [AGE], description: "AGE: fora da faixa etária do plano." }
     PortalRequestModality:
       type: object
       required: [modalityRowId, modalityId, modality, unitId, unit, currentClass, currentPlan, classes, plans]
@@ -7001,7 +7019,7 @@ components:
         currentClass: { $ref: '#/components/schemas/PortalRequestChoice' }
         currentPlan: { $ref: '#/components/schemas/PortalRequestChoice' }
         closureRequestedAt: { type: string, nullable: true, format: date-time, description: 'Preenchido enquanto há pedido de encerramento aberto ("Encerramento solicitado").' }
-        classes: { type: array, items: { $ref: '#/components/schemas/PortalRequestChoice' }, description: "Turmas ativas da mesma unidade e modalidade, menos a atual." }
+        classes: { type: array, items: { $ref: '#/components/schemas/PortalRequestClassChoice' }, description: "Turmas ativas da mesma unidade e modalidade, menos a atual." }
         plans: { type: array, items: { $ref: '#/components/schemas/PortalRequestPlanChoice' }, description: "Planos ativos da mesma unidade e modalidade, menos o atual." }
     PortalRequestOffer:
       type: object

@@ -71,6 +71,12 @@ describe("pedidos do portal x OpenAPI (RF-MAT-04, #86)", () => {
     expect(Object.keys(options).sort()).toEqual(required("PortalRequestOptions"));
     expect(options.modalities[0]).toMatchObject({ modalityRowId: row, classes: [{ id: klass }], plans: [{ id: plan }], closureRequestedAt: null });
     expect(options.offers).toEqual([expect.objectContaining({ unitId: CENTRO, modalityId: BOXE })]);
+    // #500: a turma traz dias, horário e professor; o plano diz se cabe no aluno (contrato)
+    const choice = options.modalities[0].classes[0];
+    expect(Object.keys(choice).sort()).toEqual(required("PortalRequestClassChoice"));
+    expect(choice).toMatchObject({ schedule: [{ weekday: 5, startsAt: "20:00", endsAt: "21:00" }], teacher: expect.any(String) });
+    expect(Object.keys(options.modalities[0].plans[0]).sort()).toEqual([...required("PortalRequestPlanChoice"), "unavailableReason"].sort());
+    expect(options.modalities[0].plans[0]).toMatchObject({ available: true, unavailableReason: null });
 
     for (const body of [
       { kind: "CLASS_CHANGE", modalityRowId: row, targetClassId: klass },

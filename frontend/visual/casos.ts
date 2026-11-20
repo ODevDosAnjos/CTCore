@@ -35,6 +35,7 @@ export type Caso = {
   avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
   financeiroCanvas?: boolean; // #497: antes de abrir a tela, o Financeiro do canvas (Bruno Carvalho: 3 abertas, histórico de 2026 e chave Pix CNPJ da Tijuca)
   informacoesCanvas?: boolean; // #498: antes de abrir a tela, Minhas informações e Minha conta do canvas (Bruno Carvalho: dados, Jiu-Jitsu e Muay Thai com plano, termos e duas sessões)
+  pedidosCanvas?: "lista" | "turma" | "plano" | "modalidade" | "encerrar" | "bloqueado"; // #500: antes de abrir a tela, Bruno Carvalho com Jiu-Jitsu e Muay Thai (Tijuca), os três pedidos do canvas e a unidade Tijuca da Academia Leão; o variante decide o que a janela mostra (bloqueado: encerramento aberto no Muay Thai; modalidade: só o Jiu-Jitsu e a oferta do Muay Thai)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -50,8 +51,8 @@ const reduzido = "reduzido@exemplo.com"; // Aluno sem modalidade ativa, portal r
 // #469: aluno fictício adulto (Carla, só com Judô, do MSW) e os passos que preenchem a etapa 2
 const matriculaRota = "/alunos/nova-matricula?aluno=00000000-0000-0000-0000-000000000722";
 // #481: o aluno do canvas na janela Conceder benefício (o MSW do caso devolve só ele na busca)
-const escolhaDavi: Passo[] = [{ preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Davi"] }, { clicar: "Davi Nogueira" }, { escolher: ["Modalidade", "Jiu-Jitsu"] }];
-const modalidade: Passo[] = [{ escolher: ["Unidade", "Centro"] }, { escolher: ["Modalidade", "Jiu-Jitsu"] }, { escolher: ["Turma principal", "Jiu-Jitsu Adulto"] }, { escolher: ["Plano", "Jiu-Jitsu Livre"] }];
+const escolhaDavi: Passo[] = [{ preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Davi"] }, { clicar: "Davi Nogueira" }, { escolher: ["Modalidade *", "Jiu-Jitsu"] }];
+const modalidade: Passo[] = [{ escolher: ["Unidade *", "Centro"] }, { escolher: ["Modalidade *", "Jiu-Jitsu"] }, { escolher: ["Turma principal", "Jiu-Jitsu Adulto"] }, { escolher: ["Plano", "Jiu-Jitsu Livre"] }];
 
 export const casos: Caso[] = [
   { nome: "vitrine", rota: "/dev/vitrine", fullPage: true },
@@ -85,7 +86,13 @@ export const casos: Caso[] = [
   { nome: "portal-informacoes", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalInfo", canvasCelular: "PortalMInfo", informacoesCanvas: true },
   { nome: "portal-carteirinha", rota: "/portal/carteirinha", perfil: aluno, canvas: "PortalCarteirinha", canvasCelular: "PortalMCarteirinhaOk" },
   { nome: "portal-carteirinha-filhos", rota: "/portal/carteirinha", perfil: familia, canvas: "PortalCarteirinhaFilhos" },
-  { nome: "portal-pedidos", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidos", canvasCelular: "PortalMPedidos" },
+  { nome: "portal-pedidos", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidos", canvasCelular: "PortalMPedidos", pedidosCanvas: "lista" },
+  // #500: janelas dos pedidos
+  { nome: "portal-pedido-turma", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoTurma", canvasCelular: "PortalMPedidoTurma", pedidosCanvas: "turma", passos: [{ clicar: "Pedir: Trocar de turma" }, { escolher: ["Nova turma principal *", "Adulto · Manhã"] }, { preencher: ["Mensagem para a academia (opcional)", "Mudei de horário no trabalho."] }], limiteCanvas: { valor: 0.55, motivo: "medido a 49,8% a 390 px: o canvas mostra a janela como gaveta que sobe da base, com alça e botão largo, e o sistema a mostra ocupando a tela (D8 do item #500); a #674 trata a gaveta e remove este limite" } },
+  { nome: "portal-pedido-plano", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoPlano", pedidosCanvas: "plano", passos: [{ clicar: "Pedir: Trocar de plano" }] },
+  { nome: "portal-pedido-modalidade", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoModalidade", pedidosCanvas: "modalidade", passos: [{ clicar: "Pedir: Nova modalidade" }, { escolher: ["Unidade *", "Tijuca"] }, { escolher: ["Modalidade *", "Muay Thai"] }, { preencher: ["Mensagem para a academia (opcional)", "Queria começar no horário da noite."] }] },
+  { nome: "portal-pedido-encerrar", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalEncerrar", canvasCelular: "PortalMEncerrar", pedidosCanvas: "encerrar", passos: [{ clicar: "Pedir: Solicitar encerramento" }, { escolher: ["Modalidade *", "Muay Thai"] }, { escolher: ["Motivo *", "Horário"] }, { preencher: ["Quer contar mais? (opcional)", "Mudei de emprego e não consigo mais às 19h."] }], limiteCanvas: { valor: 0.5, motivo: "medido a 45,2% a 390 px: o canvas mostra a janela como gaveta que sobe da base, com alça e botão largo, e o sistema a mostra ocupando a tela (D8 do item #500); a #674 trata a gaveta e remove este limite" } },
+  { nome: "portal-pedido-bloqueado", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoBloqueado", pedidosCanvas: "bloqueado", passos: [{ clicar: "Pedir: Trocar de turma" }] },
   { nome: "alunos", rota: "/alunos", perfil: ana, canvas: "Alunos" },
   { nome: "alunos-filtros", rota: "/alunos", perfil: ana, canvas: "GMAlunosFiltros", passos: [{ clicar: "Filtros", seExistir: true }] }, // #457: folha de filtros do celular (no 1440 os filtros ficam na linha)
   { nome: "professores", rota: "/professores", perfil: ana, canvas: "Professores" },
@@ -199,7 +206,7 @@ export const casos: Caso[] = [
   { nome: "plano-desativar", rota: "/planos", perfil: ana, canvas: "PlanoDesativar", passos: [{ clicar: "Editar o plano Adulto livre" }, { clicar: "Desativar plano" }], limiteCanvas: { valor: 0.7, motivo: "medido a 63,2%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
   { nome: "plano-desativado", rota: "/planos", perfil: ana, canvas: "PlanoDesativado", passos: [{ clicar: "Editar o plano Adulto 2x \\(antigo\\)" }], aguardar: "#plan-history-title", limiteCanvas: { valor: 0.5, motivo: "medido a 45,4%: fundo e dados: a lista atrás tem 11 linhas do cenário do MSW (o canvas, 4 ou 5 da unidade) e o fundo do canvas desta tela difere do canvas Planos; a estrutura da janela confere lado a lado (capturas em .capturas/480); removido pela #577" } },
   { nome: "beneficio-conceder", rota: "/beneficios", perfil: ana, canvas: "BeneficioConceder", beneficios: "davi", passos: [{ clicar: "Conceder benefício" }, ...escolhaDavi, { preencher: ["Percentual", "70"] }, { escolher: ["Decidido por *", "Marcos Leão"] }, { preencher: ["Validade", "2026-12-31"] }, { preencher: ["Motivo *", "Atleta da equipe kids · campeão estadual"] }] },
-  { nome: "beneficio-substituir", rota: "/beneficios", perfil: ana, canvas: "BeneficioSubstituir", beneficios: "marina", passos: [{ clicar: "Conceder benefício" }, { preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Marina" ] }, { clicar: "Marina Teixeira" }, { escolher: ["Modalidade", "Jiu-Jitsu"] }, { preencher: ["Percentual", "50"] }, { escolher: ["Decidido por *", "Ana"] }, { preencher: ["Motivo *", "Auxilia na turma Kids"] }, { clicar: "Conceder benefício" }], limiteCanvas: { valor: 0.7, motivo: "medido a 56,4%: fundo: o canvas mostra a tela de Planos atrás da janela de confirmação, e o sistema abre a confirmação sobre a janela Conceder benefício (que continua aberta para o \"Manter o atual\" voltar ao formulário preenchido, D9); a estrutura da janela confere lado a lado (capturas em .capturas/481); removido pela #577" } },
+  { nome: "beneficio-substituir", rota: "/beneficios", perfil: ana, canvas: "BeneficioSubstituir", beneficios: "marina", passos: [{ clicar: "Conceder benefício" }, { preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Marina" ] }, { clicar: "Marina Teixeira" }, { escolher: ["Modalidade *", "Jiu-Jitsu"] }, { preencher: ["Percentual", "50"] }, { escolher: ["Decidido por *", "Ana"] }, { preencher: ["Motivo *", "Auxilia na turma Kids"] }, { clicar: "Conceder benefício" }], limiteCanvas: { valor: 0.7, motivo: "medido a 56,4%: fundo: o canvas mostra a tela de Planos atrás da janela de confirmação, e o sistema abre a confirmação sobre a janela Conceder benefício (que continua aberta para o \"Manter o atual\" voltar ao formulário preenchido, D9); a estrutura da janela confere lado a lado (capturas em .capturas/481); removido pela #577" } },
   { nome: "beneficio-encerrar", rota: "/beneficios", perfil: ana, canvas: "BeneficioEncerrar", beneficios: "lista", passos: [{ clicar: "Encerrar o benefício de Marina Teixeira" }, { preencher: ["Motivo *", "Indicações não se matricularam"] }] },
   // Cobranças, comunicação, notificações e pedidos (#422). Janelas abrem pelos passos.
   // Sem caso: recusar pedido e recusar comprovante (o MSW não tem pedido nem comprovante em aberto), recibo público (o MSW começa sem recibo, o código nasce no pagamento), painel da cobrança, registrar pagamento, cancelar, alterar vencimento e renegociar (id gerado ou fluxo longo), lembrete (seleção em lote) e imagem do comprovante; GM* são as mesmas telas a 390 px (D1).
@@ -255,7 +262,7 @@ export const semCaso: Record<string, string[]> = {
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
     "InicioCoordenador", "AguardandoAprovacao", "SuporteAcesso",
-    "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
+    "PortalMExcluir",
   ],
   // tela de funcionalidade ainda sem rota em App.tsx (sprint futura)
   "tela de funcionalidade ainda sem rota em App.tsx (sprint futura)": [
@@ -277,7 +284,6 @@ export const semCaso: Record<string, string[]> = {
     "ExportarRelatorios",
     "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir",
-    "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
     "PortalEstados", "PortalMCarteirinha", "PortalMEstados",
   ],
   // celular a 360 px: o teste visual captura 390 (D5 da #435)

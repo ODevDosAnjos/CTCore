@@ -21,13 +21,18 @@ export interface Choice {
 export const useClassChoices = (unitId: string | null, modalityId: string) => useResource<{ items: ClassChoice[] }>(unitId ? `/classes?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
 export const usePlanChoices = (unitId: string | null, modalityId: string) => useResource<{ items: PlanChoice[] }>(unitId ? `/plans?unitId=${unitId}&modalityId=${modalityId}&status=ACTIVE&size=100` : null);
 
-export function PickSelect({ label, value, onChange, options, error, blank }: { label: string; value: string; onChange: (v: string) => void; options: Choice[]; error?: string; blank?: string }) {
+export function PickSelect({ label, value, onChange, options, error, blank, required }: { label: string; value: string; onChange: (v: string) => void; options: Choice[]; error?: string; blank?: string; required?: boolean }) {
   const { t } = useTranslation();
   const id = useId();
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium">
         {label}
+        {required && (
+          <span aria-hidden className="text-danger-foreground">
+            {" "}*
+          </span>
+        )}
       </label>
       <Select
         id={id}
@@ -137,6 +142,7 @@ export function ModalityDialog({
   footerNote,
   beforeSubmit,
   scrim,
+  noSubmit,
 }: {
   title: string;
   effect?: string;
@@ -167,6 +173,8 @@ export function ModalityDialog({
   beforeSubmit?: () => boolean;
   /** Fundo mais claro das janelas do canvas. */
   scrim?: "canvas";
+  /** Aviso sem ação: no rodapé fica só o botão de fechar (com `cancelLabel`), em destaque ("Entendi"). */
+  noSubmit?: boolean;
 }) {
   const { t } = useTranslation();
   const formId = useId();
@@ -206,12 +214,14 @@ export function ModalityDialog({
         size && state === "ready" ? (
           <>
             {footerNote && <span className="mr-auto self-center text-xs text-muted-foreground">{footerNote}</span>}
-            <Button type="button" variant="ghost" className="min-h-11" onClick={onClose}>
+            <Button type="button" variant={noSubmit ? "primary" : "ghost"} className="min-h-11" onClick={onClose}>
               {cancelLabel ?? t("common.back")}
             </Button>
-            <Button type="submit" form={formId} variant={submitVariant} className="min-h-11" disabled={busy || !canSubmit}>
-              {submitLabel}
-            </Button>
+            {!noSubmit && (
+              <Button type="submit" form={formId} variant={submitVariant} className="min-h-11" disabled={busy || !canSubmit}>
+                {submitLabel}
+              </Button>
+            )}
           </>
         ) : undefined
       }
