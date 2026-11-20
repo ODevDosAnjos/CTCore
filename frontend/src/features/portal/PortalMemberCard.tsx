@@ -18,7 +18,7 @@ export function PortalMemberCard({ data, compact = false }: { data: PortalCardDa
   return (
     <article aria-label={t("portalCard.cardLabel", { name: student.name })} className="overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground shadow-menu">
       <div className="flex min-h-12 items-center gap-3 bg-brand px-5 py-3 text-brand-foreground">
-        <OrgMark name={org.name} logoUrl={org.logoUrl} className="bg-white/20 text-brand-foreground" />
+        <OrgMark name={org.name} logoUrl={org.logoUrl} className="bg-brand-foreground/20 text-brand-foreground" />
         <p className="min-w-0 flex-1 break-words font-heading text-xl font-semibold uppercase">{org.name}</p>
         <Badge tone={data.status === "ACTIVE" ? "ok" : "neutral"}>{t(`portalCard.status.${data.status}`)}</Badge>
       </div>

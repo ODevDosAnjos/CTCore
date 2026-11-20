@@ -126,9 +126,36 @@ Achados: nenhum obrigatório. Sugestões da rodada 1 mantidas (Baixar imagem no 
 ## Entrega
 
 - O que muda: `/portal/carteirinha` no visual do canvas para Aluno e Responsável (cartão escuro com faixa da marca do ctcore, selo, modalidades com bolinha e faixa, "Válida em", "feito com ctcore"; coluna com recepção, "Baixar imagem" em "Em breve" e "Voltar"; modo responsável com um cartão por filho; faixa de sem conexão). Back-end e contrato ganham `PortalCard.memberSince` (primeira matrícula, no fuso da unidade).
-- Verificado: rodada 2 da verificação, estado `d55e87db143e38f2f3494576bd74fd6f28b6a18e`; o único arquivo alterado depois dele é o do item (rodada 2 e esta seção). Visual do CI: `portal-carteirinha` → passou; `portal-carteirinha-filhos` → passou (sem `--update-snapshots`). `visual:canvas --exige` → 159 comparadas, 0 reprovadas.
+- Verificado: rodada 3 da verificação, estado `c8e1cb543717184de01e9ce89d3b028fd2eb3752`; o único arquivo alterado depois dele é o do item (rodada 3 e esta seção). Visual do CI: `portal-carteirinha` → passou; `portal-carteirinha-filhos` → passou (sem `--update-snapshots`). `visual:canvas --exige` → 159 comparadas, 0 reprovadas.
 - Base: `dev` não avançou desde a verificação (merge-base igual ao `dev`); a regressão local não foi refeita.
 - Regressão não rodada localmente: `verify` completo, `test:cov` e `e2e`; o CI do PR é a prova (autonomia 2).
 - Decisões: D1 a D7 acima; `limiteCanvas` removido de `portal-carteirinha`, sem exceção nova.
 - Limitações: estado sem conexão provado por teste de unidade e leitura do canvas (D7); 360 px sem teste dedicado, coberto pelo visual a 390 px e pelo lint de layout.
 - Sugestões não feitas: tirar "Baixar imagem" no celular; `offline` nos `FamilyCard`.
+- CI do PR #670 (run 44755859442, `f170b0c`), rodada 1 — vermelho, `CORRIGIR_CODIGO`:
+  - `frontend` (`npm run test:cov`), 2 falhas, ambas nos arquivos do item:
+    - `src/test/a11y.test.tsx` › "casca (CA13)" › "sem largura fixa maior que 360 px": `frontend/src/features/portal/PortalCardPage.tsx: w-[420px]: expected 420 to be less than or equal to 360`.
+    - `src/features/telasCanvas423.test.ts` › "telas do portal do aluno e do responsável (#423, CA8)" › "portal/PortalMemberCard.tsx não usa cor fixa nem campo solto": `AssertionError: expected [ Array(6) ] to be null`.
+  - `e2e` (`e2e/portal-carteirinha.spec.ts`), 4 casos a 360 px (aluno com axe e responsável com troca de aluno e sem conexão, em light e dark), com retry: `expect(locator).toBeVisible() failed — element(s) not found` e `locator.selectOption: Test timeout of 60000ms exceeded`. Provável efeito do `w-[420px]` em 360 px; não confirmado localmente.
+  - `backend` (`./mvnw -B verify`), 96 erros em 912 testes, em `identity`, `plan` e outros: `PlanWriteIT.clean:34` e `RepricingIT.clean:29` com `ERROR: update or delete on table "plan" violates foreign key constraint "enrollment_modality_organization_id_plan_id_fkey"`, e `RepricingIT.clean` com `violates foreign key constraint "portal_request_organization_id_enrollment_modality_id_fkey" on table "portal_request"`. Sinal de dado deixado por outro teste na limpeza (`clean`), não confirmado se vem do item; a investigar localmente com `./backend/mvnw -f backend/pom.xml verify`.
+  - `ci-gate`: vermelho pela falha acima.
+  - Verde: `visual` (17m), `security`, `image-backend`, `image-frontend`, `changes`, Vercel.
+
+### Correção da entrega
+- `src/test/a11y.test.tsx` "sem largura fixa maior que 360 px" — arquivos: `PortalCardPage.tsx` (`md:w-[420px]` virou `md:max-w-[420px]`, o teste só aceita `max-w-` acima de 360 px) — prova: `vitest run src/test/a11y.test.tsx` → passou.
+- `telasCanvas423.test.ts` "PortalMemberCard.tsx não usa cor fixa" — arquivos: `PortalMemberCard.tsx` (`bg-white/20` virou `bg-brand-foreground/20`, token do tema) — prova: `vitest run src/features/telasCanvas423.test.ts src/test/a11y.test.tsx src/features/portal/PortalCardPage.test.tsx` → 66 passaram.
+- e2e `e2e/portal-carteirinha.spec.ts` (o seletor "Aluno" saiu na D5; a carteirinha não traz mais "Atualizada em" no cartão) — arquivos: `frontend/e2e/portal-carteirinha.spec.ts` (aluno confere "Válida em"; responsável vê "Carteirinhas", aciona o chip "Filho Fictício Dois" e, sem conexão, aciona outro chip e vê "Sem conexão · Atualizada em") — prova: `npx playwright test e2e/portal-carteirinha.spec.ts` → 5 passaram; `eslint e2e src/features/portal` e `tsc --noEmit` sem erros.
+- Visual do CI: portal-carteirinha → passou; portal-carteirinha-filhos → passou (`test:visual:docker -- -g "portal-carteirinha"`, 8 passaram, sem `--update-snapshots`; sem referência regerada).
+- Backend (96 erros no `verify` do CI): não é do item. O primeiro erro é `SeedLoginIT.coordinatorTwoFactor` com `delete from charge` violando `charge_reminder` (dado deixado por outro IT, mesmo padrão das #621 e #667); o item só leu `enrollment` em `PortalCard` e o `PortalCardIT` só ganhou asserções. #668 e #669 passaram o backend. Pela autonomia 5: rodar o job de novo (até 2 vezes); se falhar de novo, abrir issue `técnica`. Não reproduzido localmente (`verify` completo não rodou).
+
+### Rodada 3 — OK — 2026-11-20, estado c8e1cb543717184de01e9ce89d3b028fd2eb3752
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1-CA8 | PASSOU | mantidos da rodada 2; `PortalCardPage.test.tsx`, `telasCanvas423.test.ts`, `a11y.test.tsx`, `portal-card.msw.test.ts` → 71 passaram |
+| CA9 | PASSOU | `a11y.test.tsx` "sem largura fixa maior que 360 px" passa (`md:max-w-[420px]`); e2e a 360 px com axe e sem overflow, claro e escuro → 5 passaram |
+| CA10 | PASSOU | `test:visual:docker -- -g "portal-carteirinha"` sem `--update-snapshots` → 8 passaram (a troca para `max-w` não alterou as referências) |
+
+Comandos: `npm run lint` e `npm run typecheck` sem erros; `npx playwright test e2e/portal-carteirinha.spec.ts` → 5 passaram. Visual do CI: portal-carteirinha → passou; portal-carteirinha-filhos → passou. Não rodou: `verify` do back-end, `test:cov` completo (CI do PR, autonomia 2).
+Achados: nenhum obrigatório. As 2 falhas do `test:cov` e os 4 casos do e2e do CI estão corrigidos e provados. A falha do back-end do CI (`clean` de ITs, FK `charge_reminder`/`enrollment_modality`) não toca arquivos do item (só `PortalCard` leu `enrollment`); não reproduzida aqui, tratar pela autonomia 5.
+Sugestões mantidas: Baixar imagem no celular; `offline` nos `FamilyCard`.

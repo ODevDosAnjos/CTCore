@@ -9,8 +9,6 @@ const violations = async (page: Page) => {
   return page.evaluate(async () => (await (globalThis as unknown as { axe: { run: () => Promise<{ violations: unknown[] }> } }).axe.run()).violations);
 };
 const noOverflow = (page: Page) => page.evaluate("document.documentElement.scrollWidth <= window.innerWidth");
-const MINOR = "00000000-0000-0000-0000-000000000702";
-const CHILD_TWO = "00000000-0000-0000-0000-000000000703";
 
 async function login(page: Page, email: string) {
   await page.goto("/entrar");
@@ -35,7 +33,7 @@ test.describe("carteirinha do portal a 360 px", () => {
       await expect(card.getByText("Ativo", { exact: true })).toBeVisible();
       await expect(card.getByText("Azul, grau 2")).toBeVisible();
       await expect(card.getByText("Sem faixa registrada")).toBeVisible();
-      await expect(card.getByText(/^Atualizada em /)).toBeVisible();
+      await expect(card.getByText(/^Válida em /)).toBeVisible();
       await expect(page.getByText("Sem conexão")).toHaveCount(0);
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
@@ -45,9 +43,10 @@ test.describe("carteirinha do portal a 360 px", () => {
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       await page.getByRole("link", { name: "Ver carteirinha" }).click();
-      await expect(page.getByRole("article")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Carteirinhas" })).toBeVisible();
 
-      await page.getByRole("combobox", { name: "Aluno" }).selectOption(CHILD_TWO);
+      await page.getByRole("button", { name: "Filho Fictício Dois" }).click();
+      await expect(page.getByRole("article")).toHaveCount(1);
       await expect(page.getByRole("article", { name: "Carteirinha de Filho Fictício Dois" })).toBeVisible();
       await expect(page.getByText("Branca, grau 0")).toBeVisible();
 
@@ -55,10 +54,9 @@ test.describe("carteirinha do portal a 360 px", () => {
       await page.evaluate(
         `(() => { const real = window.fetch; window.fetch = (input, init) => (String(input instanceof Request ? input.url : input).includes("/portal/card") ? Promise.reject(new TypeError("Failed to fetch")) : real(input, init)); })()`,
       );
-      await page.getByRole("combobox", { name: "Aluno" }).selectOption(MINOR);
-      await expect(page.getByText("Sem conexão")).toBeVisible();
+      await page.locator("button[aria-pressed=false]").first().click();
+      await expect(page.getByText(/^Sem conexão · Atualizada em /)).toBeVisible();
       await expect(page.getByRole("article")).toBeVisible();
-      await expect(page.getByText(/^Atualizada em /)).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
     });

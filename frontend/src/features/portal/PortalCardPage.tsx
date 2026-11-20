@@ -19,7 +19,7 @@ import { usePortalCard, type PortalCardData } from "./usePortalCard";
 function FamilyCard({ id }: { id: string }) {
   const { status, data, reload } = usePortalCard(id);
   return (
-    <div className="w-full md:w-[420px]">
+    <div className="w-full md:max-w-[420px]">
       {status === "loading" ? <LoadingState /> : status === "forbidden" ? <ForbiddenState /> : status === "ready" && data ? <PortalMemberCard data={data} compact /> : <ErrorState onRetry={reload} />}
     </div>
   );
