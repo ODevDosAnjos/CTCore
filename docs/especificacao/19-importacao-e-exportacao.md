@@ -45,7 +45,7 @@ Trazer uma academia que já existe em planilha ou outro sistema em uma tarde, e 
 
 ## Requisitos
 
-- **RF-IMP-01.** Configurações › Importar e exportar: um cartão por tipo com "Baixar modelo", "Importar" e a última importação; lista de lotes com "Desfazer" quando possível; "Gerar pacote completo".
+- **RF-IMP-01.** Configurações › Dados e segurança › Importar e exportar: um cartão por tipo com "Baixar modelo", "Importar" e a última importação; lista de lotes com "Desfazer" quando possível; "Gerar pacote completo".
 - **RF-IMP-02.** Assistente de importação em etapas (RN-IMP-02).
 - **RF-IMP-03.** Depois de importar alunos: "Enviar convites do portal" com seleção.
 

@@ -12,8 +12,8 @@ Coordenador (tudo), Administrador (vê as configurações da organização e alt
 
 ## Dados
 
-- **Organização:** nome, logo, cor principal, CNPJ ou CPF do titular, Coordenador, situação da assinatura, data de entrada, configurações da organização.
-- **Unidade:** organização, nome, nome curto para endereços públicos, endereço completo com coordenadas, telefone, e-mail de contato, WhatsApp de contato, CNPJ opcional (sai nos recibos), fuso horário (padrão America/Sao_Paulo), situação (Ativa, Desativada), configurações da unidade.
+- **Organização:** nome, logo, site e redes sociais (Instagram, Facebook, YouTube; opcionais), CNPJ ou CPF do titular e e-mail que recebe as faturas da assinatura, Coordenador, situação da assinatura, data de entrada, configurações da organização.
+- **Unidade:** organização, nome, nome curto para endereços públicos, endereço completo com coordenadas, telefone, e-mail de contato, WhatsApp de contato, CNPJ opcional (sai nos recibos), fuso horário (padrão America/Sao_Paulo), fotos (uma de capa e até 6 da estrutura, JPG, PNG ou WebP, cortadas em 4:3), horário de funcionamento (por dia da semana, com mais de um período por dia), apresentação (até 300 caracteres), Instagram (opcional; vazio, vale o da organização), situação (Ativa, Desativada), configurações da unidade.
 
 ### Configurações da organização (só o Coordenador altera)
 
@@ -25,9 +25,7 @@ Coordenador (tudo), Administrador (vê as configurações da organização e alt
 | Prazo de inativação por atraso | 30 dias (de 15 a 90) |
 | Prazo de acesso do ex-aluno ao histórico | 12 meses |
 | Guarda de aula experimental não convertida | 6 meses |
-| Limite de aulas experimentais por pessoa por unidade | 2 (de 1 a 3) |
 | Treinar em outra unidade | Depende do plano |
-| Exigir comprovante da graduação de origem | Desligado, por modalidade |
 
 ### Configurações da unidade (Administrador da unidade ou Coordenador)
 
@@ -42,6 +40,7 @@ Coordenador (tudo), Administrador (vê as configurações da organização e alt
 | Permissões do Professor | As quatro primeiras ligadas (comunicado, editar e cancelar aulas, ver contatos, aulas experimentais); "ver ficha do aluno" desligada |
 | Aparecer no diretório | Desligado |
 | Link de aula experimental e de autocadastro | Ligados |
+| Limite de aulas experimentais por pessoa (RN-AEX-02) | 2 (de 1 a 3) |
 
 ## Regras
 
@@ -65,14 +64,15 @@ Coordenador (tudo), Administrador (vê as configurações da organização e alt
 
 ## Requisitos
 
-- **RF-ORG-01.** Configurações › Organização: nome, logo (JPG, PNG ou WebP, cortado em quadrado, 512 px), cor principal com prévia de contraste, titular. Cor com contraste menor que 4,5:1 (AA) é recusada. A tela traz também as regras da organização: prazo para bloquear por atraso (15 a 90 dias), acesso de ex-aluno ao histórico (1 a 60 meses, padrão 12), guarda de experimentais sem matrícula (1 a 60 meses, padrão 6), experimentais por telefone por unidade (1 a 3) e "Treinar em outra unidade" (sim, não ou depende do plano, RN-ORG-13), e o cartão do Coordenador atual. Só o Coordenador altera; o Administrador vê em leitura.
-- **RF-ORG-02.** Configurações › Unidades: lista com nome, cidade, alunos ativos, Administradores e situação. O nome curto antigo fica reservado à unidade que o usou.
+- **RF-ORG-01.** Configurações › Organização, em abas: **Geral**, **Modalidades** (RF-MOD-01 e RF-MOD-02, com "Exigir comprovante da graduação de origem" por modalidade), **Faixas etárias** (RF-MOD-04), **Termos** (RF-MAT-05) e **Textos** (RF-COM-03). A aba Geral tem: nome, logo (JPG, PNG ou WebP, cortado em quadrado, 512 px), site e redes sociais; as regras da organização: prazo para bloquear por atraso (15 a 90 dias), acesso de ex-aluno ao histórico (1 a 60 meses, padrão 12), guarda de experimentais sem matrícula (1 a 60 meses, padrão 6) e "Treinar em outra unidade" (sim, não ou depende do plano, RN-ORG-13); e o cartão do Coordenador atual com "Transferir coordenação". Só o Coordenador altera; o Administrador vê em leitura. Não existe cor da organização: a marca da academia é o nome e o logo (RNF-22). O titular é editado em Configurações › Assinatura (RF-ASS-01); até a tela de Assinatura existir, fica na aba Geral. (Alterado em 19/11/2026.)
+- **RF-ORG-02.** Configurações › Unidades: lista com nome, cidade, alunos ativos, Administradores e situação, com "Nova unidade", "Abrir" e "Desativar" (o Coordenador vê todas). O Administrador vê só as suas: com uma unidade, o item abre direto a configuração dela. O nome curto antigo fica reservado à unidade que o usou.
 - **RF-ORG-03.** Nova unidade: assistente curto com nome, endereço, contato, modalidades oferecidas e convite opcional do Administrador, que mostra o custo da vaga ("+R$ 50/mês", RN-ASS-21) antes de enviar. Até a Sprint 04 as modalidades ficam fora do assistente e latitude e longitude ocupam o lugar do mapa. O resto vai para os "Primeiros passos" da unidade.
-- **RF-ORG-04.** Configurações › Unidade: dados, dias de vencimento, taxa de matrícula, taxas por meio de pagamento (por ora só em valor fixo, em centavos, até R$ 1.000,00 por meio; a taxa de matrícula vai até R$ 1.000.000,00; o percentual e a prévia do total serão decididos na #97), chave Pix, conexão do Mercado Pago (ver `11`), lembretes, permissões do Professor (com o atalho para a tabela de permissões dos perfis), diretório e links públicos.
+- **RF-ORG-04.** Configuração de uma unidade, aberta pela lista de Unidades (não há mais item de menu próprio), em abas: **Dados** (nome, CNPJ, endereço, WhatsApp, e-mail, fuso horário, fotos, horário de funcionamento, apresentação, Instagram e modalidades oferecidas, com o link "Gerenciar modalidades da organização"); **Cobrança** (dias de vencimento, taxa de matrícula, conexão do Mercado Pago (ver `11`), taxas por meio de pagamento (por ora só em valor fixo, em centavos, até R$ 1.000,00 por meio; a taxa de matrícula vai até R$ 1.000.000,00; o percentual e a prévia do total serão decididos na #97) e chave Pix); **Lembretes**; **Divulgação** (aparecer no diretório, links de aula experimental e de autocadastro com QR code e PDF, e o limite de aulas experimentais por pessoa); **Permissões do Professor** (com o atalho para a tabela de permissões dos perfis). (Alterado em 19/11/2026.)
 - **RF-ORG-05.** Seletor de unidade no topo da gestão, visível com duas ou mais unidades ao alcance do usuário. O Coordenador vê também "Todas as unidades", que é o seu padrão.
 - **RF-ORG-06.** Transferir coordenação (RN-ORG-06): escolher o novo Coordenador entre os Administradores ativos e, numa lista de unidades sem nenhuma marcada, as unidades em que o antigo continua como Administrador, com o total de "+R$ 50/mês por unidade" atualizado a cada marcação. Sem nenhuma marcada, a confirmação diz que o antigo Coordenador perde o acesso à gestão.
 - **RF-ORG-07.** Desativar unidade (RN-ORG-11), mostrando o que impede.
 - **RF-ORG-08.** Toda alteração de configuração mostra "Última alteração em [data] por [pessoa]" e vai para a auditoria com o valor antes e depois. A edição de organização e de unidade exige `If-Match` (428 sem ele).
+- **RF-ORG-09.** O grupo Configurações do menu tem quatro itens, cada um com abas: **Organização** (RF-ORG-01), **Unidades** (RF-ORG-02 e RF-ORG-04), **Assinatura** (RF-ASS-01, só o Coordenador) e **Dados e segurança** (abas Auditoria, RF-AUD-01; Importar e exportar, RF-IMP-01; Acesso do suporte, RN-PNL-03; e Duas etapas, RN-ACE-24). Uma aba de sprint futura aparece desabilitada com "Em breve"; um item cujas abas são todas futuras também. Administradores ficam em Pessoas › Administradores (RF-ACE-06). (Decisão do dono de 19/11/2026.)
 
 ## Pronto quando
 

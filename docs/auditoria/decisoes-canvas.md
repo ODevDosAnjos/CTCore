@@ -47,3 +47,13 @@ Origem: `auditoria-canvas-sprint-10.5.md` (rodadas 1 e 2). Registradas em 30/10/
 16. **Migração dos componentes.** A issue de componente cria o componente e o aplica em uma ou duas telas como piloto (onde o componente já é compartilhado, a mudança se espalha sozinha); cada issue de tela troca o que a tela usa pelo componente novo e confere com o canvas.
 17. **Issues técnicas** (sem a etiqueta "entrega 1 · produto"): (a) captura do teste visual com o navegador em pt-BR, antes da Fase 2; (b) dados do MSW para as telas que ficaram "sem comparar". A correção do MSW da agenda do Professor (F1-06) também é técnica.
 18. **Prints de referência.** Cada PR de tela regera só os prints de referência da própria tela, depois da comparação com o canvas. A captura para comparar com o canvas usa o navegador em pt-BR.
+
+## Decisões de 19/11/2026: Configurações, marca e menu lateral
+
+Valem sobre o canvas nos pontos que tratam (o resto do layout do canvas continua valendo, R1). Nenhum agente deve "corrigir" de volta para o canvas.
+
+19. **Configurações em quatro itens com abas (#625).** O grupo Configurações do menu passa a ter Organização (abas Geral, Modalidades, Faixas etárias, Termos, Textos), Unidades (lista; cada unidade com Dados, Cobrança, Lembretes, Divulgação, Permissões do Professor), Assinatura e Dados e segurança (Auditoria, Importar e exportar, Acesso do suporte, Duas etapas). Some o item "Unidade" separado do `Sidebar.dc.html` e do `GMConfig.dc.html`. "Usuários" vira Pessoas › Administradores (#611). Regras: RF-ORG-01, RF-ORG-02, RF-ORG-04 e RF-ORG-09.
+20. **Sem cor da organização (#626).** A marca da academia é só nome e logo (RNF-22). Onde o canvas mostra a cor da academia (`ConfigAcademia`, `ConfigOrgContraste`, barra e telas do portal, carteirinha), vale a identidade do ctcore.
+21. **Dados novos (#627).** Organização com site e redes sociais; unidade com fotos, horário de funcionamento, apresentação e Instagram. Entram nas abas Geral e Dados, embora o canvas não os mostre.
+22. **Duas etapas dos Administradores (#628).** Aba Duas etapas em Dados e segurança (RN-ACE-24), sem canvas.
+23. **Menu lateral (#624).** Corrige a divergência com o `Sidebar.dc.html` (subitens sem ícone; recolhido só com os ícones dos grupos) e acrescenta: no recolhido, clicar no ícone do grupo abre um painel flutuante com os subitens; um grupo aberto por vez; barra de rolagem discreta, sem a padrão do sistema.

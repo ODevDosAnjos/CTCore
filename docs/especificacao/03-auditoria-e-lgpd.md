@@ -41,7 +41,7 @@ Os prazos desta seção são decisões de produto e precisam da confirmação de
 
 ## Requisitos
 
-- **RF-AUD-01.** Configurações › Auditoria: lista com quando, quem (nome e perfil), o que aconteceu e onde. Filtros por período, pessoa, unidade e área (Alunos, Financeiro, Agenda, Comunicação, Configurações, Acesso).
+- **RF-AUD-01.** Configurações › Dados e segurança › Auditoria: lista com quando, quem (nome e perfil), o que aconteceu e onde. Filtros por período, pessoa, unidade e área (Alunos, Financeiro, Agenda, Comunicação, Configurações, Acesso).
 - **RF-AUD-02.** O painel do registro mostra o valor antes e depois de cada campo, o motivo e o atalho para o item.
 - **RF-AUD-03.** Exportar a auditoria filtrada em CSV (vai para a própria auditoria).
 - **RF-LGP-01.** Botão "Baixar meus dados" no portal e "Baixar dados do aluno" na ficha (RN-LGP-04).

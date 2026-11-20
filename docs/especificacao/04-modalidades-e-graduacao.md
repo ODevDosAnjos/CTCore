@@ -40,7 +40,7 @@ Modalidades vêm de um catálogo da plataforma. A organização ativa as que ofe
 - **RN-GRA-06.** Pular nível ou grau (ex.: azul 2º grau direto para roxa) mostra "Isso pula etapas. Confirmar?" e exige motivo. Não bloqueia.
 - **RN-GRA-07.** Idade fora da faixa do nível mostra aviso e não bloqueia.
 - **RN-GRA-08.** A graduação não muda o valor da mensalidade.
-- **RN-GRA-09.** Graduação de origem: informada na matrícula, por modalidade, com data quando houver, marcada "de origem", sem aviso ao aluno. Com "Exigir comprovante da graduação de origem" ligado na modalidade, o comprovante é obrigatório. O histórico mostra "com comprovante" ou "sem comprovante".
+- **RN-GRA-09.** Graduação de origem: informada na matrícula, por modalidade, com data quando houver, marcada "de origem", sem aviso ao aluno. Com "Exigir comprovante da graduação de origem" ligado na modalidade (na aba Modalidades, RF-MOD-01), o comprovante é obrigatório. O histórico mostra "com comprovante" ou "sem comprovante".
 - **RN-GRA-10.** Registro avisa o aluno pelo portal (selo "Nova") e por e-mail. A gestão pode desmarcar o aviso ao registrar.
 - **RN-GRA-11.** Modalidade bloqueada ou aluno inativo não recebe graduação.
 - **RN-GRA-12.** Graduação nunca é excluída. Um registro errado é corrigido por um novo registro marcado "Correção", com motivo; o errado fica no histórico como "Corrigido" (riscado) e sai do portal do aluno.
@@ -48,10 +48,10 @@ Modalidades vêm de um catálogo da plataforma. A organização ativa as que ofe
 
 ## Requisitos
 
-- **RF-MOD-01.** Configurações › Modalidades: o Coordenador vê "Suas modalidades" em cartões (nome, "Graduação ligada · N níveis · unidades que oferecem", "Graduação" e "Desativar") e "Disponíveis para ativar" com "+ Ativar", botão "Não achei minha modalidade" e a nota sobre variações no nome da turma; o pedido é enviado e confirmado por aviso, sem lista de pedidos na tela. O Administrador vê só uma tabela de consulta (modalidade, graduação, unidades do alcance dele que oferecem, situação), sem botões.
+- **RF-MOD-01.** Configurações › Organização › Modalidades: o Coordenador vê "Suas modalidades" em cartões (nome, "Graduação ligada · N níveis · unidades que oferecem", "Graduação" e "Desativar") e "Disponíveis para ativar" com "+ Ativar", botão "Não achei minha modalidade" e a nota sobre variações no nome da turma; o pedido é enviado e confirmado por aviso, sem lista de pedidos na tela. O Administrador vê só uma tabela de consulta (modalidade, graduação, unidades do alcance dele que oferecem, situação), sem botões.
 - **RF-MOD-02.** Por modalidade ativa: graduação ligada ou desligada, editor do sistema de graduação (níveis em ordem, cor, grau máximo, idades), exigir comprovante de origem.
-- **RF-MOD-03.** Configurações › Unidade › Modalidades oferecidas é o primeiro bloco da aba Dados, com caixa de marcar por modalidade e o estado da graduação. Desmarcar uma modalidade com turma ativa na unidade é recusado, e a tela mostra cada turma que impede com o número de alunos ativos (RN-MOD-06).
-- **RF-MOD-04.** Configurações › Faixas etárias (ver RN-MOD-07).
+- **RF-MOD-03.** Configurações › Unidades › [unidade] › Modalidades oferecidas é o primeiro bloco da aba Dados, com caixa de marcar por modalidade e o estado da graduação. Desmarcar uma modalidade com turma ativa na unidade é recusado, e a tela mostra cada turma que impede com o número de alunos ativos (RN-MOD-06).
+- **RF-MOD-04.** Configurações › Organização › Faixas etárias (ver RN-MOD-07).
 - **RF-GRA-01.** Operação › Graduações: lista com aluno, modalidade, turma, graduação anterior, nova, data e quem registrou; resumo do período (graduações, novos graus, trocas de faixa); filtros por modalidade, turma, nível e período.
 - **RF-GRA-02.** "Registrar graduação": aluno (ou já preenchido a partir da ficha), modalidade, atual e nova lado a lado, data, decidido por, observação, avisar o aluno.
 - **RF-GRA-03.** "Graduar vários alunos": filtrar por turma, marcar alunos e escolher para cada um "mais um grau" ou "próximo nível", com a mesma data, quem decidiu e escolha de aviso.

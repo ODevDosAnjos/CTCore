@@ -54,7 +54,7 @@ Avisar alunos e equipe do que importa, pelos canais certos, sem o aluno responde
 
 - **RF-COM-01.** Comunicação › Comunicados: lista com data, destino, título, tipo, autor, situação (Agendado, Enviado), destinatários e lidos; filtros por período, turma e tipo. Cada item traz também `pinnedUntil` ("Fixado até dd/mm") e, no agendado, `estimatedRecipients` (pessoas que receberiam hoje). `GET /announcements/daily-limit` devolve quantos comunicados a unidade (e, só para o Coordenador, a organização inteira) já usou hoje do limite de 20 (RN-COM-07), contando enviados e agendados do dia; só lê, não audita.
 - **RF-COM-02.** Novo comunicado: destino, tipo, título, texto, imagem, canais, fixar até, enviar agora ou agendar, prévia de destinatários (total, por canal e, do total, quantos são adultos e quantos são responsáveis de menores). Abre já preenchido a partir de Turmas, Agenda e Dias sem aula.
-- **RF-COM-03.** Configurações › Textos: modelos editáveis com prévia e "Voltar ao texto da plataforma".
+- **RF-COM-03.** Configurações › Organização › Textos: modelos editáveis com prévia e "Voltar ao texto da plataforma".
 - **RF-NOT-01.** Painel do sino: grupos Hoje e Esta semana, filtros Todas e Não lidas, cada notificação com a ação que resolve, "Marcar todas como lidas", estado "Tudo lido", rodapé com o prazo de retenção (RN-NOT-05).
 
 ## Pronto quando

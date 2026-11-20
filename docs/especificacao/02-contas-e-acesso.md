@@ -40,7 +40,8 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 
 ### Duas etapas
 
-- **RN-ACE-17.** Verificação em duas etapas por app autenticador (TOTP). Obrigatória para Coordenador e equipe da plataforma, que configuram no primeiro acesso. Opcional para Administrador, Professor, Aluno e Responsável. O login com duas etapas tem dois passos: a senha gera um bilhete de 5 minutos, que 5 erros de código invalidam; os erros contam na trava da RN-ACE-10. Um código TOTP não vale duas vezes no mesmo passo.
+- **RN-ACE-17.** Verificação em duas etapas por app autenticador (TOTP). Obrigatória para Coordenador e equipe da plataforma, que configuram no primeiro acesso. Opcional para Administrador (salvo a RN-ACE-24), Professor, Aluno e Responsável. O login com duas etapas tem dois passos: a senha gera um bilhete de 5 minutos, que 5 erros de código invalidam; os erros contam na trava da RN-ACE-10. Um código TOTP não vale duas vezes no mesmo passo.
+- **RN-ACE-24.** O Coordenador pode exigir duas etapas de todos os Administradores da organização, em Configurações › Dados e segurança › Duas etapas (desligado por padrão). Ligada, o Administrador sem duas etapas configura no próximo login, antes de entrar, como o Coordenador no primeiro acesso, e não pode desligá-la em Minha conta enquanto a exigência valer. Desligar a exigência não desliga as duas etapas de quem já usa. Ligar e desligar vai para a auditoria. (Decisão do dono de 19/11/2026.)
 - **RN-ACE-18.** Ao ativar, a pessoa recebe 10 códigos de reserva de uso único. Sem o celular e sem códigos, abre chamado; o suporte confirma a identidade (documento e dados da organização) antes de desativar. Não existe código por e-mail.
 
 ### Sessão
@@ -58,7 +59,7 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 - **RF-ACE-03.** Recuperação de senha (RN-ACE-11, RN-ACE-14) e tela de nova senha com as mesmas exigências. A resposta ao pedido é a mesma para qualquer e-mail. A validade do link só aparece ao enviar a nova senha. Depois de criar, a pessoa entra direto.
 - **RF-ACE-04.** Minha conta (gestão e portal): trocar senha estando logado, trocar e-mail, ligar e desligar duas etapas, ver códigos de reserva novos (gerados ao abrir, só com a sessão: sem senha nem código), lista de sessões ativas com "Encerrar" e "Encerrar todas as outras" (a sessão atual não se encerra pela lista). A troca de e-mail exige senha e código; senha atual errada conta na trava da RN-ACE-10.
 - **RF-ACE-05.** Modal de escolha de organização e área (RN-ACE-03). A área vem do papel do vínculo: gestão para Coordenador, Administrador e Professor; portal para Aluno e Responsável. Depois do login com mais de um vínculo o modal é obrigatório; reaberto pelo menu, pode ser fechado.
-- **RF-ACE-06.** Pessoas › Administradores (só o Coordenador): lista dos Administradores com nome, unidades, último acesso, situação e o custo de cada um (R$ 50 por unidade, RN-ASS-21); convidar, reenviar convite, alterar unidades e desativar. Convidar, ou incluir uma unidade, mostra antes de confirmar quanto a próxima fatura sobe ("+R$ 50/mês por unidade"); tirar uma unidade ou desativar mostra que não há devolução no ciclo (RN-ASS-23). "Desativar" encerra o vínculo, não a conta. Substitui a antiga tela Configurações › Usuários (alteração de 19/11/2026): o acesso dos Professores passa a ser gerido só em Pessoas › Professores (RF-PRO-02), e o atalho para a tabela de permissões fica em Configurações › Unidade.
+- **RF-ACE-06.** Pessoas › Administradores (só o Coordenador): lista dos Administradores com nome, unidades, último acesso, situação e o custo de cada um (R$ 50 por unidade, RN-ASS-21); convidar, reenviar convite, alterar unidades e desativar. Convidar, ou incluir uma unidade, mostra antes de confirmar quanto a próxima fatura sobe ("+R$ 50/mês por unidade"); tirar uma unidade ou desativar mostra que não há devolução no ciclo (RN-ASS-23). "Desativar" encerra o vínculo, não a conta. Substitui a antiga tela Configurações › Usuários (alteração de 19/11/2026): o acesso dos Professores passa a ser gerido só em Pessoas › Professores (RF-PRO-02), e o atalho para a tabela de permissões fica na aba Permissões do Professor da unidade (RF-ORG-04).
 - **RF-ACE-07.** Atualizar o último acesso a cada login.
 - **RF-ACE-08.** Tela "Esta área não está disponível para o seu perfil", com atalhos para o Início, quando alguém abre um endereço fora do seu alcance. A tela aparece no mesmo endereço, sem redirecionar, e não diz qual área ou recurso foi negado.
 
@@ -97,6 +98,7 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 | Exportação completa | ● | — | — |
 | Importar | ● | U | — |
 | Liberar acesso de suporte | ● | — | — |
+| Exigir duas etapas dos Administradores | ● | — | — |
 
 Permissões do Professor por unidade, ligadas ou desligadas pelo Administrador da unidade: **enviar comunicado**, **editar e cancelar aulas**, **ver contatos** e **ver aulas experimentais** (as quatro ligadas por padrão) e **ver ficha do aluno** (desligada por padrão). Ligada, o Professor abre a ficha dos alunos das suas turmas; desligada, não abre a ficha, mas continua vendo os alunos da turma ou da aula como lista simples, e isso não depende de chave. Contatos e emergência continuam sendo a chave própria "ver contatos", também na ficha.
 

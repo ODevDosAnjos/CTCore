@@ -51,7 +51,7 @@ Transformar uma pessoa em aluno: modalidades, turma, plano, vencimento, termo e 
 - **RF-MAT-02.** A etapa de modalidades avisa faixa etária fora da turma e turma acima da capacidade, sem impedir.
 - **RF-MAT-03.** Encerrar modalidade (RN-MAT-17), mostrando as cobranças em aberto para decidir.
 - **RF-MAT-04.** Pedidos do portal: lista e ações Aprovar e Recusar (com mensagem ao aluno). A lista abre só nos pedidos abertos e traz o prazo de cada um (30 dias; no encerramento, a modalidade é encerrada sozinha no 8º dia), as contagens por tipo e a turma e o plano atuais. Aprovar não pede confirmação: marca o pedido e leva direto ao fluxo já preenchido, onde desistir não desfaz a aprovação.
-- **RF-MAT-05.** Configurações › Termos: editor do termo de matrícula e do uso de imagem, versões e escolha de reaceite.
+- **RF-MAT-05.** Configurações › Organização › Termos: editor do termo de matrícula e do uso de imagem, versões e escolha de reaceite.
 
 ## Pronto quando
 
