@@ -35,7 +35,7 @@ public class PortalCard {
     public record Belt(String levelName, String color, String secondaryColor, int degree) {}
 
     public record View(OrganizationProfile.Brand organization, Student student, List<Link> students, String status, LocalDate today, OffsetDateTime generatedAt,
-            String timezone, List<Modality> modalities) {}
+            String timezone, List<Modality> modalities, LocalDate memberSince) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
@@ -77,9 +77,13 @@ public class PortalCard {
                         return new Modality(new PortalHome.Ref(modality, rs.getString(2)), new PortalHome.Ref(rs.getObject(3, UUID.class), rs.getString(4)),
                                 b == null ? null : new Belt(b.levelName(), b.color(), b.secondaryColor(), b.degree()));
                     }).list();
+            // Primeira matrícula, na data da unidade de cadastro; nula sem matrícula.
+            OffsetDateTime since = jdbc.sql("select min(e.enrolled_at) from enrollment e where e.organization_id = :org and e.student_id = :sid")
+                    .param("org", org).param("sid", selected).query((rs, n) -> rs.getObject(1, OffsetDateTime.class)).list().get(0);
             List<Link> links = cards.stream().map(c -> new Link(c.id(), c.name(), c.self())).toList();
             return new View(brand, new Student(card.id(), card.name(), card.photoUrl()), links, modalities.isEmpty() ? "INACTIVE" : "ACTIVE",
-                    now.atZoneSameInstant(ZoneId.of(zone)).toLocalDate(), now, zone, modalities);
+                    now.atZoneSameInstant(ZoneId.of(zone)).toLocalDate(), now, zone, modalities,
+                    since == null ? null : since.atZoneSameInstant(ZoneId.of(zone)).toLocalDate());
         });
     }
 }

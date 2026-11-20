@@ -1,99 +1,68 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatDate, formatDateTime } from "@/lib/format";
-import { PortalTag } from "./PortalTag";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { GraduationBelt } from "@/components/ui/graduation-belt";
+import { ModalityDot } from "@/components/ui/modality-dot";
+import { formatDate } from "@/lib/format";
+import { OrgMark } from "./OrgMark";
 import type { PortalCardData } from "./usePortalCard";
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-
-// RF-POR-03, RNF-22: a cor da organização vai na faixa superior e na borda, nunca como fundo do texto. Sem QR code.
-export function PortalMemberCard({ data, offline }: { data: PortalCardData; offline: boolean }) {
+// RF-POR-03, RNF-22: cartão escuro do canvas; a faixa usa a identidade do ctcore, não a cor da organização (decisão 20). Sem QR code.
+export function PortalMemberCard({ data, compact = false }: { data: PortalCardData; compact?: boolean }) {
   const { t } = useTranslation();
-  const [logoBroken, setLogoBroken] = useState(false);
   const [photoBroken, setPhotoBroken] = useState(false);
   const { organization: org, student } = data;
-  const color = org.color ?? undefined;
+  const units = [...new Set(data.modalities.map((m) => m.unit.name))].join(", ");
+  const since = data.memberSince ? t("portalCard.since", { date: `${data.memberSince.slice(5, 7)}/${data.memberSince.slice(0, 4)}` }) : "";
   return (
-    <article
-      aria-label={t("portalCard.cardLabel", { name: student.name })}
-      className="overflow-hidden rounded-lg border-2 bg-card text-card-foreground"
-      style={{ borderColor: color }}
-    >
-      <div className="flex min-h-12 items-center gap-2 px-4 py-2" style={{ backgroundColor: color }}>
-        {org.logoUrl && !logoBroken && <img src={org.logoUrl} alt="" className="h-8 w-8 rounded bg-background object-contain" onError={() => setLogoBroken(true)} />}
-        <p className="break-words rounded bg-background px-2 py-0.5 font-semibold text-foreground">{org.name}</p>
+    <article aria-label={t("portalCard.cardLabel", { name: student.name })} className="overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground shadow-menu">
+      <div className="flex min-h-12 items-center gap-3 bg-brand px-5 py-3 text-brand-foreground">
+        <OrgMark name={org.name} logoUrl={org.logoUrl} className="bg-white/20 text-brand-foreground" />
+        <p className="min-w-0 flex-1 break-words font-heading text-xl font-semibold uppercase">{org.name}</p>
+        <Badge tone={data.status === "ACTIVE" ? "ok" : "neutral"}>{t(`portalCard.status.${data.status}`)}</Badge>
       </div>
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-4 p-5">
         <div className="flex items-center gap-4">
           {student.photoUrl && !photoBroken ? (
-            <img src={student.photoUrl} alt="" className="h-20 w-20 shrink-0 rounded-full border object-cover" onError={() => setPhotoBroken(true)} />
+            <img src={student.photoUrl} alt="" className="size-[72px] shrink-0 rounded-full object-cover" onError={() => setPhotoBroken(true)} />
           ) : (
-            <span
-              aria-hidden="true"
-              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border bg-secondary text-2xl font-semibold text-secondary-foreground"
-            >
-              {initials(student.name)}
-            </span>
+            <Avatar name={student.name} decorative className="size-[72px] text-2xl" />
           )}
-          <div className="flex min-w-0 flex-col gap-2">
-            <h2 className="break-words text-xl font-semibold">{student.name}</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <PortalTag tone={data.status === "ACTIVE" ? "strong" : "neutral"}>{t(`portalCard.status.${data.status}`)}</PortalTag>
-              <span className="text-sm text-muted-foreground">{t("portalCard.statusOn", { date: formatDate(data.today) })}</span>
-            </div>
+          <div className="min-w-0">
+            <h2 className="break-words font-heading text-2xl font-semibold uppercase leading-none text-brand-foreground sm:text-3xl">{student.name}</h2>
+            <p className="mt-1 text-sm text-sidebar-foreground/70">{[since, units].filter(Boolean).join(" · ")}</p>
           </div>
         </div>
         {data.modalities.length === 0 ? (
           <div>
             <p className="font-medium">{t("portalCard.emptyTitle")}</p>
-            <p className="text-muted-foreground">{t("portalCard.emptyText")}</p>
+            <p className="text-sidebar-foreground/70">{t("portalCard.emptyText")}</p>
           </div>
         ) : (
-          <section aria-label={t("portalCard.modalitiesTitle")}>
-            <ul className="flex flex-col divide-y">
-              {data.modalities.map((m) => (
-                <li key={`${m.modality.id}|${m.unit.id}`} className="flex items-center gap-3 py-3">
-                  <span aria-hidden="true" className="flex h-4 w-12 shrink-0 overflow-hidden rounded border">
-                    {m.belt && <span className="flex-1" style={{ backgroundColor: m.belt.color }} />}
-                    {m.belt?.secondaryColor && <span className="flex-1" style={{ backgroundColor: m.belt.secondaryColor }} />}
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="break-words font-medium">{m.modality.name}</p>
-                      <PortalTag>{m.unit.name}</PortalTag>
-                    </div>
-                    <p className="break-words text-muted-foreground">
-                      {m.belt
-                        ? t("portalHome.belts.line", {
-                            level: m.belt.levelName,
-                            degree: m.belt.degree,
-                          })
-                        : t("portalCard.noBelt")}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <ul aria-label={t("portalCard.modalitiesTitle")} className="flex flex-col gap-2 text-sm">
+            {data.modalities.map((m) => (
+              <li key={`${m.modality.id}|${m.unit.id}`} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <ModalityDot name={m.modality.name} />
+                {m.belt ? (
+                  <GraduationBelt
+                    name={m.belt.levelName}
+                    color={m.belt.color}
+                    secondaryColor={m.belt.secondaryColor}
+                    degree={m.belt.degree}
+                    label={t("portalHome.belts.line", { level: m.belt.levelName, degree: m.belt.degree })}
+                  />
+                ) : (
+                  <span className="text-sidebar-foreground/70">{t("portalCard.noBelt")}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
-        <div className="flex flex-wrap items-center gap-2 border-t pt-3 text-sm text-muted-foreground">
-          {offline && (
-            <p role="status">
-              <PortalTag tone="alert">{t("portalCard.offline")}</PortalTag>
-            </p>
-          )}
-          <p>
-            {t("portalCard.updatedAt", {
-              date: formatDateTime(data.generatedAt, data.timezone),
-            })}
-          </p>
-        </div>
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t border-sidebar-foreground/20 px-5 py-3 text-xs text-sidebar-foreground/70">
+        <p>{t("portalCard.validOn", { date: formatDate(data.today) })}</p>
+        {!compact && <p>{t("portalCard.madeWith")}</p>}
       </div>
     </article>
   );

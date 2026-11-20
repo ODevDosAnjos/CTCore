@@ -5031,6 +5031,7 @@ export const routes: Route[] = [
         today: isoDay(new Date()),
         generatedAt: new Date().toISOString(),
         timezone: "America/Sao_Paulo",
+        memberSince: inactive ? null : "2022-03-14",
         modalities,
       });
     },
