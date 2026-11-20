@@ -48,7 +48,7 @@ Origem: `auditoria-canvas-sprint-10.5.md` (rodadas 1 e 2). Registradas em 30/10/
 17. **Issues técnicas** (sem a etiqueta "entrega 1 · produto"): (a) captura do teste visual com o navegador em pt-BR, antes da Fase 2; (b) dados do MSW para as telas que ficaram "sem comparar". A correção do MSW da agenda do Professor (F1-06) também é técnica.
 18. **Prints de referência.** Cada PR de tela regera só os prints de referência da própria tela, depois da comparação com o canvas. A captura para comparar com o canvas usa o navegador em pt-BR.
 
-## Decisões de 19/11/2026: Configurações, marca, menu lateral, rolagem e Minha conta
+## Decisões de 19/11/2026: Configurações, marca, menu lateral, rolagem, Minha conta, modalidades, permissões e termo
 
 Valem sobre o canvas nos pontos que tratam (o resto do layout do canvas continua valendo, R1). Nenhum agente deve "corrigir" de volta para o canvas.
 
@@ -59,3 +59,7 @@ Valem sobre o canvas nos pontos que tratam (o resto do layout do canvas continua
 23. **Menu lateral (#624).** Corrige a divergência com o `Sidebar.dc.html` (subitens sem ícone; recolhido só com os ícones dos grupos) e acrescenta: no recolhido, clicar no ícone do grupo abre um painel flutuante com os subitens; um grupo aberto por vez; barra de rolagem discreta, sem a padrão do sistema.
 24. **Minha conta em abas com conteúdo (#630, #631, #632).** No lugar da página única do `MinhaConta.dc.html` (e das quatro abas de um cartão cada da construção), as abas Perfil (foto, nome, telefone, Meus vínculos), Segurança (acesso, duas etapas, sessões e atividade recente), Notificações e Privacidade, mais Perfil de professor para quem é Professor. Os cartões do canvas continuam valendo dentro das abas. Regras: RF-ACE-04, RN-ACE-25, RF-PRO-05, RF-LGP-01.
 25. **Rolagem em todo o sistema (#624).** A barra de rolagem padrão do sistema operacional não aparece em nenhuma tela: barra fina nos tokens do tema, sem setas, visível ao passar o mouse ou rolar; onde não há o que rolar, não há barra.
+26. **Modalidades e graduação (#633).** Cartões com unidades, turmas e alunos, "Desativar" no menu "⋯" e selo de graduação só quando ligada; janela de graduação sem níveis nem comprovante quando desligada; editor de níveis agrupado por faixa etária, com a sequência de cores e linhas compactas; modalidades da unidade em grade com turmas e planos. Prevalece sobre `ConfigModalidades`, `ConfigUnidade` e as janelas de graduação do canvas nesses pontos. Regras: RF-MOD-01 a RF-MOD-03.
+27. **Tabela de permissões (#634).** Selos com texto no lugar dos símbolos, linhas por área e o estado das chaves da unidade; aberta pela aba Permissões do Professor. Regra: RF-ACE-09.
+28. **"Vale para todas as unidades" (#635).** Cada aba da unidade mostra, só para leitura, as regras da organização que a afetam. Regra: RF-ORG-04.
+29. **Termo com dados da unidade (#636).** Um termo só por organização, com campos automáticos da unidade (nome, razão social, CNPJ e endereço). Regra: RN-MAT-21.
