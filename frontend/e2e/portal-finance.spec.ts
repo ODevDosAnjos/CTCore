@@ -9,7 +9,6 @@ const violations = async (page: Page) => {
   return page.evaluate(async () => (await (globalThis as unknown as { axe: { run: () => Promise<{ violations: unknown[] }> } }).axe.run()).violations);
 };
 const noOverflow = (page: Page) => page.evaluate("document.documentElement.scrollWidth <= window.innerWidth");
-const CHILD_TWO = "00000000-0000-0000-0000-000000000703";
 
 async function login(page: Page, email: string) {
   await page.goto("/entrar");
@@ -23,30 +22,31 @@ test.describe("financeiro do portal a 360 px", () => {
   test.use({ viewport: { width: 360, height: 740 } });
 
   for (const scheme of ["light", "dark"] as const) {
-    test(`@critical responsável paga duas cobranças juntas, vê a família, o histórico por ano, o recibo e o débito inativo, e passa no axe (${scheme})`, async ({ page }) => {
+    test(`@critical responsável envia o comprovante de duas cobranças juntas, vê a família, o histórico por ano e o recibo, e passa no axe (${scheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       await page.getByRole("link", { name: "Financeiro", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Financeiro", level: 1 })).toBeVisible();
       await expect(page.getByText("Nenhuma cobrança em aberto")).toBeVisible();
-      await expect(page.getByRole("region", { name: "Débito automático" }).getByRole("button")).toHaveCount(0);
+      await expect(page.getByRole("region", { name: "Débito automático" }).getByRole("button", { name: /Ativar/ })).toBeDisabled();
+      await expect(page.getByRole("region", { name: "Recibos por e-mail" })).toContainText("familia@exemplo.com");
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
-      await page.getByRole("combobox", { name: "Aluno" }).selectOption(CHILD_TWO);
+      await page.getByRole("group", { name: "Aluno" }).getByRole("button", { name: "Filho Fictício Dois" }).click();
       await expect(page).toHaveURL(/aluno=/);
       const open = page.getByRole("region", { name: "Em aberto" });
       await expect(open.getByText("Kimono", { exact: true })).toBeVisible();
-      await open.getByText("Composição").first().click();
-      await expect(open.getByText("Valor final").first()).toBeVisible();
+      await expect(open.getByText("Composição")).toHaveCount(0);
       await open.getByRole("checkbox", { name: "Selecionar Mensalidade de Judô" }).check();
       await open.getByRole("checkbox", { name: "Selecionar Kimono" }).check();
-      await expect(open.getByRole("status")).toContainText(/2 selecionadas · Total R\$\s80,00/);
+      await expect(open.getByRole("status")).toContainText(/2 selecionadas · R\$\s80,00/);
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
-      await open.getByRole("button", { name: "Pagar selecionadas" }).click();
-      const dialog = page.getByRole("dialog", { name: "Pix na chave com comprovante" });
+      await expect(open.getByRole("button", { name: /^Pagar R\$/ })).toBeDisabled();
+      await open.getByRole("button", { name: "Enviar comprovante de Pix" }).click();
+      const dialog = page.getByRole("dialog", { name: "Pix na chave da unidade" });
       await expect(dialog.getByText("pix@alfa.example")).toBeVisible();
       await expect(dialog.getByText(/R\$\s80,00/).first()).toBeVisible();
       expect(await violations(page)).toEqual([]);
@@ -55,20 +55,20 @@ test.describe("financeiro do portal a 360 px", () => {
       await expect(dialog.getByText("Comprovante enviado. A cobrança ficou em conferência.")).toBeVisible();
       await dialog.getByRole("button", { name: "Fechar", exact: true }).last().click();
       await expect(open.getByText("Em conferência")).toHaveCount(2);
-      await expect(open.getByRole("button", { name: /^Pagar / })).toHaveCount(0);
+      await expect(open.getByRole("button", { name: /^Pagar R\$/ })).toHaveCount(0);
 
       const history = page.getByRole("region", { name: "Histórico" });
       await expect(history.getByRole("link", { name: /^Baixar recibo de/ }).first()).toHaveAttribute("href", /\/portal\/receipts\/RC-MOCK-\d{4}-\d\/pdf$/);
       const year = new Date().getFullYear();
-      await history.getByRole("combobox", { name: "Ano" }).selectOption(String(year - 1));
+      await history.getByRole("tab", { name: String(year - 1) }).click();
       await expect(page).toHaveURL(new RegExp(`ano=${year - 1}`));
       await expect(history.getByText("Cancelada")).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
-      await page.getByRole("combobox", { name: "Aluno" }).selectOption("FAMILY");
+      await page.getByRole("group", { name: "Aluno" }).getByRole("button", { name: "Toda a família" }).click();
       await expect(page).toHaveURL(/visao=familia/);
-      await expect(page.getByText(/Total da família em aberto: R\$\s80,00/)).toBeVisible();
+      await expect(page.getByText(/R\$\s80,00 em aberto/)).toBeVisible();
       await expect(page.getByRole("region", { name: "Histórico" })).toHaveCount(0);
       await expect(open.getByText("Filho Fictício Dois", { exact: true }).first()).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
@@ -80,8 +80,8 @@ test.describe("financeiro do portal a 360 px", () => {
     await login(page, "reduzido@exemplo.com");
     await page.getByRole("link", { name: "Financeiro", exact: true }).click();
     const open = page.getByRole("region", { name: "Em aberto" });
-    await expect(open.getByText("Vencida")).toBeVisible();
-    await expect(open.getByRole("button", { name: /^Pagar / })).toBeVisible();
+    await expect(open.getByText("Vencida", { exact: true })).toBeVisible();
+    await expect(open.getByRole("checkbox", { name: /^Selecionar / })).toBeVisible();
     await expect(page.getByRole("region", { name: "Histórico" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Agenda", exact: true })).toHaveCount(0);
     expect(await noOverflow(page)).toBe(true);
@@ -96,7 +96,7 @@ test.describe("financeiro do portal a 1024 px", () => {
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       await page.getByRole("link", { name: "Financeiro", exact: true }).click();
-      await page.getByRole("combobox", { name: "Aluno" }).selectOption(CHILD_TWO);
+      await page.getByRole("group", { name: "Aluno" }).getByRole("button", { name: "Filho Fictício Dois" }).click();
       await expect(page.getByRole("region", { name: "Em aberto" }).getByText("Kimono", { exact: true })).toBeVisible();
       await expect(page.getByRole("region", { name: "Histórico" })).toBeVisible();
       expect(await noOverflow(page)).toBe(true);

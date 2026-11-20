@@ -67,7 +67,7 @@ test.describe("início do portal a 360 px", () => {
     await expect(page.getByText("Vencida", { exact: true })).toBeVisible();
     expect(await violations(page)).toEqual([]);
     await page.getByRole("button", { name: "Pagar Mensalidade em atraso" }).click();
-    await expect(page.getByRole("dialog", { name: "Pix na chave com comprovante" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Pix na chave da unidade" })).toBeVisible();
     expect(await noOverflow(page)).toBe(true);
   });
 });

@@ -3,10 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { ApiError } from "@/lib/api";
 import { PixProofDialog } from "./PixProofDialog";
+import { pixKeyType } from "./usePixProof";
 
 // FormData e File do jsdom não passam pelo fetch do Node: o envio é trocado por um duplo simples e o resto (instruções, estados) usa o MSW.
 const send = vi.hoisted(() => ({ calls: [] as unknown[][], reply: (): Promise<unknown> => Promise.resolve() }));
@@ -42,9 +43,13 @@ describe("PixProofDialog (RF-COB-05)", () => {
     view(() => {}, onSent);
     const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave com comprovante" }));
     expect(await dialog.findByText("pix@alfa.test")).toBeInTheDocument();
-    expect(dialog.getByText(/120,00/)).toBeInTheDocument();
-    expect(dialog.getByText("Centro")).toBeInTheDocument();
-    await user.click(dialog.getByRole("button", { name: "Copiar" }));
+    expect(dialog.getByText(/120,00 \(sem taxa\)/)).toBeInTheDocument();
+    expect(dialog.getByText("O pagamento online da Centro está fora do ar agora. Pague na chave Pix da unidade e envie o comprovante.")).toBeInTheDocument();
+    expect(dialog.getByText("Chave Pix (e-mail)")).toBeInTheDocument();
+    expect(dialog.getByText("Titular: Centro")).toBeInTheDocument();
+    expect(dialog.getByText("JPG, PNG ou PDF · até 5 MB")).toBeInTheDocument();
+    expect(dialog.getByText(/lembretes e prazo de bloqueio param/)).toBeInTheDocument();
+    await user.click(dialog.getByRole("button", { name: "Copiar chave" }));
     expect(write).toHaveBeenCalledWith("pix@alfa.test");
     expect(await dialog.findByText("Chave copiada.")).toBeInTheDocument();
     const submit = dialog.getByRole("button", { name: "Enviar comprovante" });
@@ -107,6 +112,36 @@ describe("PixProofDialog (RF-COB-05)", () => {
     view();
     expect(await screen.findByRole("status")).toHaveTextContent("Carregando");
     await waitFor(() => expect(screen.getByText("pix@alfa.test")).toBeInTheDocument());
+  });
+
+  it("CA7: no celular é página cheia com valor grande, copiar em ícone, Resumo e botão largo; Voltar fecha", async () => {
+    setDeviceNarrow(true);
+    try {
+      pixGet(() => HttpResponse.json({ ...instructions, pixKey: "12.345.678/0001-09" }));
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <ThemeProvider>
+          <PixProofDialog chargeIds={["c1"]} onClose={onClose} description="Muay Thai · out/2026 e Jiu-Jitsu · out/2026" />
+        </ThemeProvider>,
+      );
+      const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave da unidade" }));
+      expect(await dialog.findByText("Chave Pix (CNPJ)")).toBeInTheDocument();
+      expect(dialog.getByText("Muay Thai · out/2026 e Jiu-Jitsu · out/2026")).toBeInTheDocument();
+      expect(dialog.getByText("Resumo")).toBeInTheDocument();
+      expect(dialog.getByText("Enviar foto ou PDF do comprovante")).toBeInTheDocument();
+      expect(dialog.getByRole("button", { name: "Copiar chave" })).toHaveTextContent("");
+      expect(dialog.queryByText(/fora do ar/)).not.toBeInTheDocument();
+      expect(dialog.getByRole("button", { name: "Enviar comprovante" })).toBeDisabled();
+      await user.click(dialog.getByRole("button", { name: "Voltar" }));
+      expect(onClose).toHaveBeenCalled();
+    } finally {
+      setDevicePrefersDark(false);
+    }
+  });
+
+  it("D5: o tipo da chave sai do formato", () => {
+    expect(["12.345.678/0001-09", "123.456.789-09", "a@b.test", "(21) 97000-1200", "7c9e6679-7425-40de-944b-e07fc1f90ae7"].map(pixKeyType)).toEqual(["CNPJ", "CPF", "EMAIL", "PHONE", "RANDOM"]);
   });
 
   it("CA16: o axe não acusa violação nos dois temas", async () => {

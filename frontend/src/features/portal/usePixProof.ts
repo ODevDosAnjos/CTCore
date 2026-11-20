@@ -64,3 +64,14 @@ export function sendProof(chargeIds: string[], file: File) {
   for (const id of chargeIds) body.append("chargeIds", id);
   return api<Sent[]>("/portal/charges/proof", { method: "POST", body });
 }
+
+export type PixKeyType = "CNPJ" | "CPF" | "EMAIL" | "PHONE" | "RANDOM";
+// D5 da #497: a API não devolve o tipo da chave; ele sai do formato. 11 dígitos ambíguos valem CPF.
+export function pixKeyType(key: string): PixKeyType {
+  const digits = key.replace(/\D/g, "");
+  if (key.includes("@")) return "EMAIL";
+  if (/^[\d.\-/\s]+$/.test(key) && digits.length === 14) return "CNPJ";
+  if (/^[\d.\-\s]+$/.test(key) && digits.length === 11) return "CPF";
+  if (/^\+?[\d()\s-]+$/.test(key) && digits.length >= 10) return "PHONE";
+  return "RANDOM";
+}
