@@ -51,12 +51,15 @@ O seed cria 2 organizações (a principal com 3 unidades), 6 professores, cerca 
 
 **Duas etapas do Coordenador (só local).** `infra/seed/25-duas-etapas-local.sql` ativa as duas etapas de `coordenador@ctcore.test` com o segredo de teste `MN2GG33SMUWXGZLFMQWTEZTBFV2GK43U` (base32; cadastre num app autenticador ou gere o código por TOTP padrão: SHA-1, 6 dígitos, 30 s). O segredo é cifrado com a chave local de desenvolvimento, por isso o arquivo `*-local.sql` nunca vai para a homologação.
 
-**Homologação.** Com o `psql` instalado, a URL de conexão do banco de homologação (da hospedagem; nunca no repositório) e o back-end já implantado uma vez (migrações):
+**Homologação (automática).** Com `CTCORE_SEED=homologacao` no serviço do back-end, a API, ao subir e depois das migrações, calcula o hash dos arquivos `infra/seed/*.sql` (sem `*-local.sql`; na imagem ficam em `/app/seed`, ou onde `CTCORE_SEED_DIR` apontar) e compara com o gravado no banco. Igual: não faz nada. Diferente ou primeira vez: **apaga tudo, recria as tabelas pelas migrações e aplica o seed**. Aviso: tudo o que foi feito à mão na homologação se perde sempre que o seed muda. Sem a variável nada disso acontece. Com `ctcore.env=production` no banco ou `CTCORE_ENV=production`, a API não aplica nada e não sobe. A imagem do back-end é construída com a raiz do repositório como contexto (`docker build -f backend/Dockerfile .`); no Render, o contexto do serviço é a raiz e o Dockerfile é `backend/Dockerfile`.
 
-1. `bash infra/scripts/seed.sh --url "postgres://USUARIO:SENHA@HOST:5432/BANCO"`
+**Homologação (caminho manual).** Alternativa sem a variável: com o `psql` instalado, a URL de conexão do banco de homologação (da hospedagem; nunca no repositório) e o back-end já implantado uma vez (migrações):
+
+1. `bash infra/scripts/seed.sh --url "postgres://USUARIO:SENHA@HOST:5432/BANCO"` (apaga os dados de todas as tabelas e aplica o seed numa transação; o esquema fica).
+
 2. O script recusa URL com `prod` no host ou no nome do banco e banco marcado com `ctcore.env=production`; nesses casos não aplica nada. Os arquivos `*-local.sql` são pulados.
 3. Entre com as contas da tabela. O Coordenador configura as duas etapas no primeiro acesso (RN-ACE-17).
-4. Rodar de novo é seguro (idempotente).
+4. Rodar de novo é seguro: recria sempre do zero.
 
 **Aulas na Agenda (RN-AGE-01).** O seed cria turmas, mas nenhuma aula: as aulas nascem pela tarefa diária do back-end, que roda às 03:00 UTC e mantém 8 semanas à frente, e também na hora quando uma turma é criada ou tem os horários alterados pela tela (só as aulas dessa turma). Para ver a Agenda com aulas logo depois do seed, com o back-end rodando: em Operação › Turmas, crie uma turma (ou edite os horários de uma turma do seed e salve). A Agenda mostra as 8 semanas a partir de hoje. Dia sem aula do seed (daqui a 10 dias) cancela as aulas do dia quando elas são geradas.
 
@@ -103,7 +106,7 @@ Local, o equivalente: `./backend/mvnw -f backend/pom.xml verify` e, em `frontend
 Cada pasta tem o seu `Dockerfile` (multi-stage): `backend/` gera a imagem do back-end (JRE 21, usuário sem privilégio, API em `8080`, gestão e health em `8081`, configuração só por variável de ambiente) e `frontend/` gera a do front-end (nginx em `8080`, só o `dist`; `/` e rotas do app devolvem `index.html`, `/api` não é servido).
 
 ```
-docker build -t ctcore-backend backend
+docker build -f backend/Dockerfile -t ctcore-backend .
 docker build -t ctcore-frontend frontend
 docker compose -f infra/docker-compose.yml up -d --wait postgres
 docker run --rm -e DB_HOST=host.docker.internal -e TWO_FACTOR_ENCRYPTION_KEY="$(openssl rand -base64 32)" -p 8080:8080 -p 8081:8081 ctcore-backend   # curl localhost:8081/actuator/health

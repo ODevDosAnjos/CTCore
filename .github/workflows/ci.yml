@@ -192,7 +192,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
-      - run: docker build -t ctcore-backend backend
+      - run: docker build -f backend/Dockerfile -t ctcore-backend .
 
   image-frontend:
     needs: changes

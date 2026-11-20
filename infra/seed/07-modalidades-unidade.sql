@@ -1,4 +1,4 @@
--- Synthetic modalities offered by the seeded units (RF-MOD-03): Jiu-Jitsu, Judô and Muay Thai in every seeded unit.
+-- Modalidades oferecidas pelas unidades (RF-MOD-03): Jiu-Jitsu, Judô e Muay Thai em todas.
 insert into unit_modality (organization_id, unit_id, modality_id, offered)
 select u.organization_id, u.id, m.id, true
 from unit u

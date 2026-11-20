@@ -1,0 +1,7 @@
+*
+!backend
+!infra/seed
+**/target
+**/logs
+**/.env
+**/.env.*

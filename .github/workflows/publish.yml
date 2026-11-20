@@ -71,7 +71,7 @@ jobs:
       - name: Construir imagem (sem enviar)
         if: env.PUBLISH_ENABLED != 'true'
         run: |
-          docker build -t "ctcore-$AREA" "$AREA"
+          if [ "$AREA" = backend ]; then docker build -f backend/Dockerfile -t "ctcore-$AREA" .; else docker build -t "ctcore-$AREA" "$AREA"; fi
           echo "### $AREA: publicação pulada: faltam chaves" >> "$GITHUB_STEP_SUMMARY"
           echo "Cadastre a variável PUBLISH_REGISTRY e os segredos PUBLISH_REGISTRY_USER e PUBLISH_REGISTRY_TOKEN (README, seção Publicação). A imagem foi construída, não enviada." >> "$GITHUB_STEP_SUMMARY"
       - name: Login, construir e enviar

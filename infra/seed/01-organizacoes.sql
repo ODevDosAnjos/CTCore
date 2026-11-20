@@ -1,4 +1,4 @@
--- Dados fictícios (item #12). Idempotente: nunca altera o que já existe (on conflict do nothing).
+-- Recursos ligados e desligados das organizações de exemplo (item #12). Idempotente: nunca altera o que já existe (on conflict do nothing).
 -- Organização n = md5('ctcore-seed-org-' || n)::uuid; a tabela de organizações vem na #13.
 insert into organization_feature (organization_id, feature_key, enabled)
 select md5('ctcore-seed-org-' || o.n)::uuid, f.key, f.enabled

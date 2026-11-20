@@ -1,4 +1,4 @@
--- Contas fictícias fáceis (item #644), todas em .test. As senhas simples (README, "Dados fictícios") valem só aqui, gravadas em hash Argon2id;
+-- Contas de teste fáceis (item #644), todas em .test. As senhas simples (README, "Dados fictícios") valem só aqui, gravadas em hash Argon2id;
 -- a política de senha (RN-ACE-08) continua valendo para quem cria senha pelo sistema. Preserva o que já existe.
 insert into account (id, email, name, password_hash, status)
 select md5('ctcore-seed-account-' || e.n)::uuid, e.email, e.name, e.hash, e.status
@@ -10,8 +10,8 @@ from (values
     (5, 'aluno@ctcore.test', 'Paulo Henrique Souza', '$argon2id$v=19$m=16384,t=2,p=1$lm87s+r8WMFhC0x0AL2myw$4Q9pM93uM6Cyl06LP5zE2EjdRykwMdHVs6qJTeYQTEQ', 'ACTIVE'),
     (6, 'responsavel@ctcore.test', 'Camila Barbosa', '$argon2id$v=19$m=16384,t=2,p=1$vf5v9g3DEo88dTPYHbcViw$ZCYvl0VXFKnYgnc7QLIlDLXGSnXD3mUBcCYGUdFee0g', 'ACTIVE'),
     (7, 'multiplo@ctcore.test', 'Eduardo Martins', '$argon2id$v=19$m=16384,t=2,p=1$mMqnrGtz1WOXl8FoBR9G9Q$P8V0Evo3oKNKvb2LDnHsnYVmCfxLw4AOPPBUVfcyc8Q', 'ACTIVE'),
-    (10, 'convidado@ficticia-1.example', 'Convidado Fictício', null, 'INVITED'),
-    (11, 'desativado@ficticia-1.example', 'Desativado Fictício', null, 'DEACTIVATED')
+    (10, 'henrique.valadares@ctcore.test', 'Henrique Valadares', null, 'INVITED'),
+    (11, 'claudia.rezende@ctcore.test', 'Cláudia Rezende', null, 'DEACTIVATED')
 ) as e(n, email, name, hash, status)
 on conflict do nothing;
 
@@ -38,7 +38,7 @@ select md5('ctcore-seed-link-' || u.link_n)::uuid, md5('ctcore-seed-org-1')::uui
 from (values (2, 1), (3, 1), (4, 1), (4, 3), (7, 1)) as u(link_n, unit_n)
 on conflict do nothing;
 
--- Convite pendente (#644): o Administrador convidado ainda não aceitou (o código é fictício e não serve para entrar).
+-- Convite pendente (#644): o Administrador convidado ainda não aceitou (o código é de teste e não serve para entrar).
 insert into account_invite (id, account_id, link_id, organization_id, code_hash, expires_at, sent_by)
 select md5('ctcore-seed-invite-1')::uuid, md5('ctcore-seed-account-10')::uuid, md5('ctcore-seed-link-9')::uuid, md5('ctcore-seed-org-1')::uuid,
        md5('ctcore-seed-invite-code-1'), now() + interval '7 days', md5('ctcore-seed-account-1')::uuid

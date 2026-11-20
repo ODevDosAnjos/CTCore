@@ -10,6 +10,7 @@ sha="${GITHUB_SHA:-$(git rev-parse HEAD)}"
 image="${PUBLISH_REGISTRY%/}/ctcore-$area"
 
 printf '%s' "$PUBLISH_REGISTRY_TOKEN" | docker login "${PUBLISH_REGISTRY%%/*}" -u "$PUBLISH_REGISTRY_USER" --password-stdin
-docker build -t "$image:$tag" -t "$image:$sha" "$area"
+# Back-end: contexto na raiz, para a imagem levar infra/seed (#671); front-end: contexto na própria pasta.
+if [ "$area" = backend ]; then docker build -f backend/Dockerfile -t "$image:$tag" -t "$image:$sha" .; else docker build -t "$image:$tag" -t "$image:$sha" "$area"; fi
 docker push "$image:$tag"
 docker push "$image:$sha"

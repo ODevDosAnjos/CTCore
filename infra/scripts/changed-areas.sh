@@ -14,6 +14,6 @@ has() { printf '%s\n' "$files" | grep -Eq "$1"; }
 shared='^(docs/openapi\.yaml|\.github/|infra/ci/|infra/scripts/changed-areas)'
 
 be=false; fe=false
-{ has '^backend/' || has "$shared"; } && be=true
+{ has '^(backend/|infra/seed/)' || has "$shared"; } && be=true
 { has '^frontend/' || has "$shared"; } && fe=true
 echo "backend=$be"; echo "frontend=$fe"

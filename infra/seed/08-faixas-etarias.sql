@@ -1,4 +1,4 @@
--- Synthetic age ranges (RF-MOD-04): the three defaults plus two extras for the seeded organizations.
+-- Faixas etárias (RF-MOD-04): as três padrão mais duas extras.
 insert into age_range (id, organization_id, name, name_key, min_age, max_age)
 select md5('ctcore-seed-age-' || n || '-' || d.name_key)::uuid, md5('ctcore-seed-org-' || n)::uuid, d.name, d.name_key, d.min_age, d.max_age
 from generate_series(1, 2) as n

@@ -6,7 +6,7 @@ tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 cd "$tmp"
 git init -q . && git config user.email t@t && git config user.name t
 mkdir -p backend frontend docs .github docs
-for f in backend/a frontend/a docs/openapi.yaml docs/x.md .github/w; do echo 0 > "$f"; done
+mkdir -p infra/seed; for f in backend/a frontend/a infra/seed/x.sql docs/openapi.yaml docs/x.md .github/w; do echo 0 > "$f"; done
 git add . && git commit -qm base
 
 check() { # nome, arquivo alterado, alvo, esperado
@@ -20,6 +20,7 @@ check() { # nome, arquivo alterado, alvo, esperado
 check "só frontend"       frontend/a        dev  "backend=false frontend=true"
 check "só backend"        backend/a         dev  "backend=true frontend=false"
 check "só docs"           docs/x.md         dev  "backend=false frontend=false"
+check "seed de homologação" infra/seed/x.sql dev "backend=true frontend=false"
 check "openapi"           docs/openapi.yaml dev  "backend=true frontend=true"
 check "workflow"          .github/w         dev  "backend=true frontend=true"
 check "main sem diferença" docs/x.md        main "backend=true frontend=true"

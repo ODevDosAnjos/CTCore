@@ -1,4 +1,4 @@
--- Synthetic graduation levels (RF-MOD-02): copies the default to the seeded organizations with Jiu-Jitsu active; the first one has graduation on.
+-- Níveis de graduação (RF-MOD-02): copia o padrão para as organizações com Jiu-Jitsu ativo; a primeira liga a graduação.
 insert into graduation_level (id, organization_id, modality_id, position, name, color, secondary_color, max_degree, min_age, max_age, kids)
 select md5('ctcore-seed-level-' || o.organization_id || '-' || d.position)::uuid, o.organization_id, d.modality_id, d.position, d.name, d.color,
        d.secondary_color, d.max_degree, d.min_age, d.max_age, d.kids
