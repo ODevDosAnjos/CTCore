@@ -39,7 +39,7 @@ public class SeedDataIT extends PostgresIT {
         jdbc.execute("alter table audit_log disable trigger user");
         jdbc.update("delete from audit_log");
         jdbc.execute("alter table audit_log enable trigger user");
-        for (String table : new String[]{"notification", "notification_preference", "announcement_read", "announcement", "payment_proof", "receipt", "receipt_counter", "payment", "charge", "modality_confirmation", "term_acceptance", "terms_version", "portal_request", "student_graduation", "enrollment_start", "benefit", "enrollment_modality_class", "enrollment_modality", "enrollment", "plan", "student_guardian", "guardian", "student", "lesson", "no_class_day", "training_class_assistant", "training_class_schedule", "training_class", "teacher_modality", "teacher_unit", "teacher", "age_range", "unit_modality", "graduation_level", "modality_request", "organization_modality", "email_message", "account_device", "login_attempt", "account_session", "password_reset", "account_invite",
+        for (String table : new String[]{"notification", "notification_preference", "announcement_read", "announcement", "payment_proof", "receipt", "receipt_counter", "payment", "charge_reminder", "charge", "modality_confirmation", "term_acceptance", "terms_version", "portal_request", "student_graduation", "enrollment_start", "benefit", "enrollment_modality_class", "enrollment_modality", "enrollment", "plan", "student_guardian", "guardian", "student", "lesson", "no_class_day", "training_class_assistant", "training_class_schedule", "training_class", "teacher_modality", "teacher_unit", "teacher", "age_range", "unit_modality", "graduation_level", "modality_request", "organization_modality", "email_message", "account_device", "login_attempt", "account_session", "password_reset", "account_invite",
                 "account_link_unit", "account_link", "account"}) {
             jdbc.update("delete from " + table);
         }
@@ -55,7 +55,7 @@ public class SeedDataIT extends PostgresIT {
     // Os professores do seed referenciam contas: sem apagar, os testes seguintes não conseguem limpar account.
     @org.junit.jupiter.api.AfterEach
     void cleanTeachers() {
-        for (String table : new String[]{"notification", "notification_preference", "announcement_read", "announcement", "payment_proof", "receipt", "receipt_counter", "payment", "charge", "modality_confirmation", "term_acceptance", "terms_version", "portal_request", "student_graduation", "enrollment_start", "benefit", "enrollment_modality_class", "enrollment_modality", "enrollment", "plan", "student_guardian", "guardian", "student", "lesson", "no_class_day", "training_class_assistant", "training_class_schedule", "training_class", "teacher_modality", "teacher_unit", "teacher",
+        for (String table : new String[]{"notification", "notification_preference", "announcement_read", "announcement", "payment_proof", "receipt", "receipt_counter", "payment", "charge_reminder", "charge", "modality_confirmation", "term_acceptance", "terms_version", "portal_request", "student_graduation", "enrollment_start", "benefit", "enrollment_modality_class", "enrollment_modality", "enrollment", "plan", "student_guardian", "guardian", "student", "lesson", "no_class_day", "training_class_assistant", "training_class_schedule", "training_class", "teacher_modality", "teacher_unit", "teacher",
                 "email_message", "account_device", "login_attempt", "account_session", "password_reset", "account_invite", "account_link_unit", "account_link", "account"}) {
             jdbc.update("delete from " + table);
         }
@@ -137,7 +137,7 @@ public class SeedDataIT extends PostgresIT {
             assertThat(jdbc.queryForObject("select count(*) from " + table, Integer.class)).as(table).isEqualTo(expected);
         }
         assertThat(jdbc.queryForObject("select name from organization where id = md5('ctcore-seed-org-1')::uuid", String.class))
-                .isEqualTo("Academia Piloto Fictícia");
+                .isEqualTo("Academia Maré Alta");
         assertThat(jdbc.queryForObject("select count(*) from unit u join unit_settings s on (s.organization_id, s.unit_id) = (u.organization_id, u.id) join organization_settings o on o.organization_id = u.organization_id join organization_limits l on l.organization_id = u.organization_id", Integer.class))
                 .isEqualTo(4);
         jdbc.update("update organization_settings set deactivation_days = 60, trial_limit = 3 where organization_id = md5('ctcore-seed-org-1')::uuid");
@@ -203,7 +203,7 @@ public class SeedDataIT extends PostgresIT {
     }
 
     @Test
-    @DisplayName("R7: todo e-mail termina em .test ou .example, nos arquivos e nas tabelas, e todo CPF tem dígitos verificadores válidos")
+    @DisplayName("R7: todo e-mail termina em .test, nos arquivos e nas tabelas, e todo CPF tem dígitos verificadores válidos")
     void fictitiousData() throws IOException {
         apply(jdbc, SEED_DIR);
         Pattern email = Pattern.compile("[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+)");
@@ -211,13 +211,13 @@ public class SeedDataIT extends PostgresIT {
             for (Path f : files.filter(p -> p.toString().endsWith(".sql")).toList()) {
                 Matcher m = email.matcher(Files.readString(f, StandardCharsets.UTF_8));
                 while (m.find()) {
-                    assertThat(m.group(1)).as(f.getFileName() + ": " + m.group()).matches(".*\\.(test|example)");
+                    assertThat(m.group(1)).as(f.getFileName() + ": " + m.group()).endsWith(".test");
                 }
             }
         }
         for (String sql : new String[]{"select email from account where email is not null", "select email from student where email is not null",
                 "select email from teacher where email is not null"}) {
-            assertThat(jdbc.queryForList(sql, String.class)).as(sql).allMatch(e -> e.matches(".*\\.(test|example)"));
+            assertThat(jdbc.queryForList(sql, String.class)).as(sql).allMatch(e -> e.endsWith(".test"));
         }
         for (String sql : new String[]{"select cpf from student where cpf is not null", "select cpf from guardian"}) {
             assertThat(jdbc.queryForList(sql, String.class)).as(sql).allMatch(SeedDataIT::validCpf);
@@ -406,6 +406,40 @@ public class SeedDataIT extends PostgresIT {
         assertThat(count("select count(*) from charge where status = 'IN_REVIEW'")).isEqualTo(2);
     }
 
+
+    @Test
+    @DisplayName("CA9 / R7: nomes sem repetição, menores com o sobrenome do responsável, nada com \"Fictíci\", Rio de Janeiro e Niterói com DDD 21 e endereços variados")
+    void realisticData() throws IOException {
+        apply(jdbc, SEED_DIR);
+        // Nenhum nome completo repetido entre alunos, responsáveis e professores da mesma organização.
+        assertThat(count("select count(*) from (select organization_id, name from (select organization_id, name from student union all select organization_id, name from guardian "
+                + "union all select organization_id, name from teacher) n group by organization_id, name having count(*) > 1) d")).isZero();
+        // Cada menor com responsável leva o sobrenome (última palavra do nome) de ao menos um deles.
+        String minors = "birth_date > current_date - interval '18 years'";
+        assertThat(count("select count(*) from student where " + minors)).isEqualTo(26);
+        assertThat(count("select count(*) from student s where " + minors + " and not exists (select 1 from student_guardian sg join guardian g on g.id = sg.guardian_id "
+                + "where sg.student_id = s.id and regexp_replace(g.name, '^.* ', '') = regexp_replace(s.name, '^.* ', ''))")).isZero();
+        // Nada que aparece na tela diz "Fictício".
+        assertThat(count("select count(*) from (select name t from organization union all select name from unit union all select name from account union all select name from student "
+                + "union all select name from guardian union all select name from teacher union all select name from plan union all select name from training_class "
+                + "union all select title || body from announcement union all select body from terms_version union all select decided_by from benefit "
+                + "union all select reason from no_class_day union all select params::text from notification union all select coalesce(description, '') from charge "
+                + "union all select coalesce(note, '') || coalesce(response, '') from portal_request) x where t ~* 'fict[ií]ci'")).isZero();
+        // Rio de Janeiro e Niterói, CEP do RJ, DDD 21, endereços variados.
+        assertThat(jdbc.queryForList("select distinct city from unit", String.class)).containsExactlyInAnyOrder("Rio de Janeiro", "Niterói");
+        assertThat(jdbc.queryForList("select name from unit where organization_id = md5('ctcore-seed-org-1')::uuid order by name", String.class))
+                .containsExactly("Maré Alta Barra", "Maré Alta Botafogo", "Maré Alta Tijuca");
+        assertThat(count("select count(*) from unit where postal_code !~ '^2[0-4][0-9]{6}$' or phone !~ '^[+]55 21 '")).isZero();
+        assertThat(count("select count(*) from student where state <> 'RJ' or postal_code !~ '^2[0-4][0-9]{6}$' or city not in ('Rio de Janeiro', 'Niterói') or (phone is not null and phone !~ '^21')")).isZero();
+        assertThat(count("select count(*) from guardian where phone !~ '^21'")).isZero();
+        assertThat(count("select count(*) from teacher where phone !~ '^[+]55 21 '")).isZero();
+        assertThat(count("select count(distinct street) from student")).isGreaterThan(4);
+        assertThat(count("select count(distinct postal_code) from student")).isGreaterThan(4);
+        // E-mail no formato nome.sobrenome@ctcore.test (alunos, responsáveis convidados, professores, convidados).
+        assertThat(jdbc.queryForList("select email from account where email is not null", String.class)).allMatch(e -> e.endsWith("@ctcore.test"));
+        assertThat(jdbc.queryForList("select email from student where email is not null union all select email from teacher where email is not null", String.class))
+                .allMatch(e -> e.matches("[a-z]+([.][a-z]+)+@ctcore[.]test") || e.matches("[a-z0-9]+@ctcore[.]test"));
+    }
     @Test
     @DisplayName("CA8: banco limpo e reaplicado dá o mesmo conteúdo; valor alterado depois do primeiro run é mantido")
     void fullSeedReproducible() throws IOException {

@@ -39,6 +39,10 @@ server:
         same-site: lax
 
 ctcore:
+  seed:
+    # #671: CTCORE_SEED=homologacao recria o banco quando infra/seed muda (nunca em produção). Vazio: não faz nada.
+    mode: ${CTCORE_SEED:}
+    dir: ${CTCORE_SEED_DIR:/app/seed}
   app:
     # Base dos links enviados por e-mail (convite, nova senha).
     base-url: ${APP_BASE_URL:http://localhost:5173}

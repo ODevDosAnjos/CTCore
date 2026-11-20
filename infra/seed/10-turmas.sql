@@ -1,4 +1,4 @@
--- Synthetic classes (RF-TUR-01, #644): nine in the main organization (units 1, 3 and 4; one inactive) and three in the second.
+-- Turmas (RF-TUR-01, #644): nine in the main organization (units 1, 3 and 4; one inactive) and three in the second.
 -- Head and assistant teachers teach the class modality (RN-TUR-05). professor@ctcore.test (teacher 1-1) heads classes 1 and 4.
 insert into training_class (id, organization_id, unit_id, name, name_key, modality_id, age_range_id, capacity, head_teacher_id, status)
 select md5('ctcore-seed-class-' || c.o || '-' || c.k)::uuid, md5('ctcore-seed-org-' || c.o)::uuid, md5('ctcore-seed-unit-' || c.unit)::uuid,
