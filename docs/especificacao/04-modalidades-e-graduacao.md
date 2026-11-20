@@ -41,7 +41,7 @@ Modalidades vêm de um catálogo da plataforma. A organização ativa as que ofe
 - **RN-GRA-07.** Idade fora da faixa do nível mostra aviso e não bloqueia.
 - **RN-GRA-08.** A graduação não muda o valor da mensalidade.
 - **RN-GRA-09.** Graduação de origem: informada na matrícula, por modalidade, com data quando houver, marcada "de origem", sem aviso ao aluno. Com "Exigir comprovante da graduação de origem" ligado na modalidade (na aba Modalidades, RF-MOD-01), o comprovante é obrigatório. O histórico mostra "com comprovante" ou "sem comprovante".
-- **RN-GRA-10.** Registro avisa o aluno pelo portal (selo "Nova") e por e-mail. A gestão pode desmarcar o aviso ao registrar.
+- **RN-GRA-10.** Registro avisa o aluno pelo portal (selo "Nova") e por e-mail. A chave da organização "Avisar o aluno ao registrar graduação" (ligada por padrão, em Organização › Geral) define se o aviso já vem marcado; a gestão pode mudar a marcação em cada registro. (Alterado em 19/11/2026.)
 - **RN-GRA-11.** Modalidade bloqueada ou aluno inativo não recebe graduação.
 - **RN-GRA-12.** Graduação nunca é excluída. Um registro errado é corrigido por um novo registro marcado "Correção", com motivo; o errado fica no histórico como "Corrigido" (riscado) e sai do portal do aluno.
 - **RN-GRA-13.** Registro em lote grava tudo ou nada.
