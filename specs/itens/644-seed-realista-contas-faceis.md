@@ -159,7 +159,7 @@ Achados:
 - Front-end não rodado: o item não toca código de front.
 
 **Verificações do PR (#668, rodada `--ci 1`, run 44695493842, head `6b95624`).** Falharam `security`, `backend` e, por consequência, `ci-gate`. Os demais passaram ou foram pulados por seleção de pasta.
-- `security` (gitleaks, regra `connection-url-password`): `infra/scripts/seed.test.sh:44`, `run "senha com prod" 0 "" --url "postgres://u:produtor@h.example.test/ctcore_hml"`. Falso positivo: a senha `produtor` é texto de teste e o host é `.example.test`. Correção prevista: registrar no `.gitleaksignore` com o motivo.
+- `security` (gitleaks, regra `connection-url-password`): `infra/scripts/seed.test.sh:44`, linha com `--url` de teste e senha fictícia (sem a URL literal aqui). Falso positivo: a senha é texto de teste e o host é `.example.test`. Registrado no `.gitleaksignore`; a versão da linha foi trocada por variável no commit `23f50ff`, que também trouxe esta frase com a URL literal e foi registrado no `.gitleaksignore` como o do `6b95624`.
 - `backend` (`./mvnw verify`, 912 testes, 2 falhas e 7 erros):
   - `NoClassDayReadIT.lists:50`: `Expecting value to be true but was false`. Linha de base, já registrada na #582.
   - `AnnouncementSendJobIT.sendsDueOnce:54`: `expected: 1`. Não estava registrada; não foi repetida isolada.
