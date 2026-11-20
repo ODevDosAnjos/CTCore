@@ -106,6 +106,16 @@ Desvios da parte C: (1) `docker`/`psql` simulados no teste do script em vez de b
 Referências visuais: não se aplica.
 Não é do item: `NoClassDayReadIT.lists` (data), `EmailServiceIT.retries` (instável).
 
+### Correção da entrega
+
+- `security` (gitleaks `connection-url-password`, `seed.test.sh:44`) — arquivos: `infra/scripts/seed.test.sh` (a senha de teste `produtor` passou a vir de `${pw}`, que a regra já aceita), `.gitleaksignore` (entrada do falso positivo no commit antigo `6b95624`, com o motivo) — prova: `bash infra/scripts/seed.test.sh` → todos os casos ok. `gitleaks` não existe nesta máquina: a varredura vale pelo CI do PR.
+- `StudentListIT` (7 erros, `teacher_account_id_fkey`) — causa achada no log do CI: o teste que roda antes dele, `StudentRecordIT`, cria professor e turma ligados a conta `.example` e a limpeza dele não os apagava; o `StudentListIT` então não conseguia apagar as contas `.example`. Não é o seed novo (os professores do seed ligam as contas `.test`). Arquivo: `backend/src/test/java/br/com/ctcore/student/StudentRecordIT.java` (a limpeza chama `EnrollmentFixtures.clean`). Prova: `verify -Dit.test='StudentRecordIT,StudentListIT,AnnouncementSendJobIT,SeedDataIT'` → 41 testes, 0 falhas (nesta máquina a ordem das classes foi outra, então a ordem do CI, Record antes de List, não foi reproduzida; a causa vem do log do CI e da leitura do código).
+- `AnnouncementSendJobIT.sendsDueOnce` (`expected: 1`) — não reproduzida: passou isolada (2 testes, 0 falhas) e junto com as outras acima. Sem mudança de código; tratada como instável (autonomia 5: se voltar no CI depois de nova rodada, abrir issue `técnica`).
+- `NoClassDayReadIT.lists` — linha de base, já registrada na #582; não corrigida.
+Regressão: `SeedDataIT`, `SeedLoginIT` (rodada anterior, 29 passam), `StudentListIT`, `StudentRecordIT`, `AnnouncementSendJobIT` → passam. `verify` completo não repetido nesta correção; vale o CI do PR.
+Referências visuais: não se aplica.
+Não é do item: `NoClassDayReadIT.lists` (data, #582); `StudentRecordIT` era limpeza incompleta anterior ao item, corrigida por ser o que derrubava o CI.
+
 ## Verificação
 
 ### Rodada 1 — OK — 2026-11-20, estado 8093a3db814e34e32d48711e9f1ec2dfcde4b8ad
@@ -148,6 +158,36 @@ Achados:
 - `backend/src/test/java/br/com/ctcore/mail/EmailServiceIT.java`, `EmailServiceIT.retries`: instável. Passou isolado nesta entrega. Issue técnica aberta: #667. A primeira linha do erro da execução completa não ficou anotada na construção.
 - Front-end não rodado: o item não toca código de front.
 
+**Verificações do PR (#668, rodada `--ci 1`, run 44695493842, head `6b95624`).** Falharam `security`, `backend` e, por consequência, `ci-gate`. Os demais passaram ou foram pulados por seleção de pasta.
+- `security` (gitleaks, regra `connection-url-password`): `infra/scripts/seed.test.sh:44`, `run "senha com prod" 0 "" --url "postgres://u:produtor@h.example.test/ctcore_hml"`. Falso positivo: a senha `produtor` é texto de teste e o host é `.example.test`. Correção prevista: registrar no `.gitleaksignore` com o motivo.
+- `backend` (`./mvnw verify`, 912 testes, 2 falhas e 7 erros):
+  - `NoClassDayReadIT.lists:50`: `Expecting value to be true but was false`. Linha de base, já registrada na #582.
+  - `AnnouncementSendJobIT.sendsDueOnce:54`: `expected: 1`. Não estava registrada; não foi repetida isolada.
+  - `StudentListIT` (7 testes, `clean:45`): `DataIntegrityViolation`, `delete from account where email like '%.example'` viola `teacher_account_id_fkey`. Provável ligação com este item: o seed novo cria contas `.example` (`03-accounts.sql`, ids 10 e 11) e professores `.example` (`09-professores.sql`), e a limpeza do teste as apaga com professor ainda apontando para elas. Não confirmado localmente; corrigido no commit seguinte (ver a rodada 2 abaixo): `StudentRecordIT` agora limpa a família de matrícula antes de apagar as contas.
+- Correção depois do PR: `security` virou entrada no `.gitleaksignore` (falso positivo, senha de teste; o script passou a usar variável); `StudentListIT` pela limpeza do `StudentRecordIT`; `AnnouncementSendJobIT.sendsDueOnce` não reproduziu (passou isolado e junto, rodada 2). `NoClassDayReadIT.lists` segue como linha de base (#582). CI do commit seguinte: a conferir.
+
 **Decisões que quem ler precisa saber.** As da seção 6 (D1 a D6). Desvios da construção: o cadastro de aluno não grava "bloqueado" (o seed tem só ativo, ex-aluno e sem matrícula); os pagamentos gerados não têm recibo; o `seed.test.sh` usa `psql` e `docker` simulados.
 
 **Limitações.** Sem tela: a comparação visual não se aplica. `gitleaks` não está instalado localmente: a prova de `gitleaks-rules.test.sh` e a varredura do segredo de teste em `25-duas-etapas-local.sql` ficam para o CI do PR. A prova contra banco real fica para a #662 (homologação, do dono). A #590 relata falha de `SeedDataIT.announcementsSeed` no CI de outro PR; aqui os 26 testes passaram, mas a confirmação fica para o CI.
+
+### Rodada 2 — OK — 2026-11-20, estado 3e95472501e58dcac90caeb7760b77fe6751fb36
+
+Escopo: correção da entrega (falso positivo do gitleaks em `seed.test.sh`, limpeza do `StudentRecordIT`). CA1 a CA11 mantidos da rodada 1 (seed e script não mudaram; só o literal da senha de teste em `seed.test.sh`).
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA8 | PASSOU (mantido da rodada 1, reconfirmado) | `SeedDataIT` 26 e `SeedLoginIT` 3 passam de novo |
+| CA9, CA10 | PASSOU | `bash infra/scripts/seed.test.sh` → 7 casos ok, incluindo "prod na senha não conta" com `${pw}` |
+| CA11 | PASSOU (mantido da rodada 1) | README não mudou |
+
+Comandos:
+- `bash infra/scripts/seed.test.sh` → 7 ok.
+- `./backend/mvnw -f backend/pom.xml verify -Dit.test='StudentRecordIT,StudentListIT,AnnouncementSendJobIT,SeedDataIT,SeedLoginIT' -Dtest=NoSuchTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true` → 44 testes, 0 falhas, BUILD SUCCESS.
+- `gitleaks`: NAO CONFERIDO local (ausente); limitação aceita, vale o CI do PR (autonomia 2).
+- Regressão completa não repetida; vale o CI do PR. `NoClassDayReadIT.lists` segue como linha de base (#582).
+
+Instáveis: `AnnouncementSendJobIT.sendsDueOnce` passou isolada e junto (não reproduziu); `EmailServiceIT.retries` (#667).
+
+Achados:
+- sugestão, código, `.gitleaksignore` — a entrada usa o commit `6b95624` (linha 44); como o PR é squash, o hash que chega ao `dev` é outro, mas a varredura do PR olha o commit antigo da branch, então a entrada é válida. Conferir que o job `security` fica verde.
+- sugestão, código, `StudentRecordIT` — nesta máquina a ordem foi List antes de Record; a ordem do CI não foi reproduzida. A leitura de `EnrollmentFixtures.clean` (apaga `teacher`, `training_class`) confirma a causa, mas a prova final é o CI.

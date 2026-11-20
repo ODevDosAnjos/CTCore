@@ -41,7 +41,8 @@ run "marcador" 1 production --url "postgres://u:p@h.example.test/ctcore"
 [ "$(grep -c -e '-f seed/' "$LOG" || true)" = 0 ] || { echo "FALHOU: aplicou arquivo em banco marcado"; exit 1; }
 echo "ok  marcador ctcore.env=production recusado"
 
-run "senha com prod" 0 "" --url "postgres://u:produtor@h.example.test/ctcore_hml"
+pw=produtor
+run "senha com prod" 0 "" --url "postgres://u:${pw}@h.example.test/ctcore_hml"
 echo "ok  'prod' na senha não conta"
 
 total="$(ls "$(dirname "$script")/../seed"/*.sql | grep -vc -e '-local.sql')"
