@@ -48,7 +48,7 @@ Origem: `auditoria-canvas-sprint-10.5.md` (rodadas 1 e 2). Registradas em 30/10/
 17. **Issues técnicas** (sem a etiqueta "entrega 1 · produto"): (a) captura do teste visual com o navegador em pt-BR, antes da Fase 2; (b) dados do MSW para as telas que ficaram "sem comparar". A correção do MSW da agenda do Professor (F1-06) também é técnica.
 18. **Prints de referência.** Cada PR de tela regera só os prints de referência da própria tela, depois da comparação com o canvas. A captura para comparar com o canvas usa o navegador em pt-BR.
 
-## Decisões de 19/11/2026: Configurações, marca, menu lateral, rolagem, Minha conta, modalidades, permissões e termo
+## Decisões de 19/11/2026: Configurações, marca, menu lateral, rolagem, Minha conta, modalidades, permissões, termo, chaves e Visão geral
 
 Valem sobre o canvas nos pontos que tratam (o resto do layout do canvas continua valendo, R1). Nenhum agente deve "corrigir" de volta para o canvas.
 
@@ -63,6 +63,9 @@ Valem sobre o canvas nos pontos que tratam (o resto do layout do canvas continua
 27. **Tabela de permissões (#634).** Selos com texto no lugar dos símbolos, linhas por área e o estado das chaves da unidade; aberta pela aba Permissões do Professor. Regra: RF-ACE-09.
 28. **"Vale para todas as unidades" (#635).** Cada aba da unidade mostra, só para leitura, as regras da organização que a afetam. Regra: RF-ORG-04.
 29. **Termo com dados da unidade (#636).** Um termo só por organização, com campos automáticos da unidade (nome, razão social, CNPJ e endereço). Regra: RN-MAT-21.
+30. **Chaves nos lembretes (#638).** Cada lembrete da aba Lembretes tem a própria chave e o dia ajustável, no lugar de tirar o dia da lista. Regra: RN-COB-17.
+31. **Chaves dos pedidos pelo portal (#639).** Troca de turma, nova modalidade e troca de plano ligam e desligam por unidade, na aba Divulgação; o encerramento não se desliga. Regra: RN-MAT-16a. Também decididas, para as sprints delas: uma chave por meio de pagamento online e a chave do Pix na chave com o pagamento online fora (RN-PAG-04a e RN-PAG-17a, #97 e #98), e o padrão "Avisar o aluno ao registrar graduação" (RN-GRA-10, #106).
+32. **Configurações › Visão geral (#640).** Primeiro item de Configurações, sem canvas: quadro por unidade e quadro por pessoa, só leitura, com atalho para cada aba. Regra: RF-ORG-10.
 
 ## Decisões de 20/11/2026: padrões gerais de tela e ajustes das anotações de teste do dono
 
