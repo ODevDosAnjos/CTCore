@@ -92,7 +92,7 @@ Como o UC-03, com o responsável (nome, CPF, e-mail, telefone) obrigatório e fi
 **Quem:** Administrador ou Coordenador.
 
 1. "Graduar vários alunos", filtra a turma.
-2. Marca os alunos e escolhe "mais um grau" ou "próximo nível" para cada um; informa data e quem decidiu.
+2. Marca os alunos e escolhe "mais um grau" ou "próximo nível" para cada um; informa a data e o professor que graduou.
 3. Confirma. Tudo é gravado de uma vez (RN-GRA-13), os alunos recebem o aviso com o selo "Nova".
 
 **Variações:** data futura: recusada. Pulo de etapa: pede motivo (RN-GRA-06).
