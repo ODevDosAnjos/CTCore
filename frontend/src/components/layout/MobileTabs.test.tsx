@@ -1,8 +1,11 @@
-import { render, screen, within } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { MobileTabs } from "./MobileTabs";
 import type { NavGroup } from "./AppLayout";
+import { MemoryRouter } from "react-router";
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 const groups: NavGroup[] = [{ id: "home", label: "Início", items: [{ id: "home", label: "Início", href: "/" }] }];
 const tabs = [

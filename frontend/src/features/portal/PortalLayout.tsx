@@ -7,6 +7,7 @@ import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ThemeToggle } from "@/theme/ThemeToggle";
+import { useFocusOnRoute } from "@/components/layout/useFocusOnRoute";
 import { OrgMark, orgStyle } from "./OrgMark";
 import { PortalAccount } from "./PortalAccount";
 import { PortalFooter } from "./PortalFooter";
@@ -21,6 +22,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
   const { state } = useSession();
   const shell = usePortalShell();
   const main = useRef<HTMLElement>(null);
+  useFocusOnRoute(main);
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role;
   const data = shell.data;

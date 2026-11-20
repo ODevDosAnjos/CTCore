@@ -3,12 +3,13 @@ import { useTranslation } from "react-i18next";
 import { MobileTabs, type NavTab } from "./MobileTabs";
 import { Sidebar } from "./Sidebar";
 import { Topbar, type TopbarProps } from "./Topbar";
+import { useFocusOnRoute } from "./useFocusOnRoute";
 import { useSidebarCollapsed } from "./useSidebarCollapsed";
 
 export type NavItem = { id: string; label: string; href: string; icon?: string; disabled?: boolean };
 export type NavGroup = { id: string; label: string; icon?: string; items: NavItem[] };
 
-// D1: sem roteador; a tela passa os grupos e o id ativo, e os itens são links comuns.
+// A tela passa os grupos e o id ativo, e os itens são links do roteador.
 // Moldura da gestão: menu lateral escuro (desktop); no celular, barra de cima, abas embaixo e menu em tela cheia.
 export function AppLayout({
   groups,
@@ -42,6 +43,7 @@ export function AppLayout({
   const { t } = useTranslation();
   const [collapsed, toggle] = useSidebarCollapsed();
   const main = useRef<HTMLElement>(null);
+  useFocusOnRoute(main);
   const side = { groups, activeId, org, roleLabel, badges, onLogout, unitSlot: unit?.("mobile") };
   return (
     <div className="min-h-screen md:flex">

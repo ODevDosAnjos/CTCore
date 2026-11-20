@@ -62,7 +62,9 @@ describe("componentes (CA21, CA22)", () => {
     window.innerWidth = 360;
     const { container } = render(
       <ThemeProvider>
-        <Showcase />
+        <MemoryRouter>
+          <Showcase />
+        </MemoryRouter>
       </ThemeProvider>,
     );
     expect(await axeViolations(container)).toEqual([]);
@@ -72,7 +74,9 @@ describe("componentes (CA21, CA22)", () => {
     setDevicePrefersDark(false);
     render(
       <ThemeProvider>
-        <Showcase modal={which === "modal"} panel={which === "panel"} confirm={which === "confirm"} />
+        <MemoryRouter>
+          <Showcase modal={which === "modal"} panel={which === "panel"} confirm={which === "confirm"} />
+        </MemoryRouter>
       </ThemeProvider>,
     );
     expect(await axeViolations(document.body)).toEqual([]);
