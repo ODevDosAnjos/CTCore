@@ -2,7 +2,7 @@
 
 Origem dos itens: issues do repositório no GitHub (194 issues: 17 fechadas e 177 abertas, nenhuma com responsável; metadados conferidos em 17/10/2026). A ordem das linhas é a ordem de trabalho: marco (sprint) crescente e, dentro dele, número da issue (na Sprint 10.5, as issues #437 a #501 seguem a ordem de execução do plano, ver "Dependências"). As issues prevalecem sobre este arquivo; ele só espelha e aponta, não copia o conteúdo. Regras e fluxo: `AGENTS.md` e `docs/plano-de-sprints.md`.
 
-Sprint liberada: Sprint 10.5 (Identidade visual). O dono confirmou em 29/10/2026 que a Sprint 10 foi revisada e fechada e liberou a Sprint 10.5 (#414 a #423). Em 30/10/2026 o dono aprovou o plano de issues da auditoria do canvas e as #437 a #501 entraram nessa mesma sprint liberada (plano em `docs/auditoria/plano-de-issues.md`). Em 19/11/2026 o dono trocou a cobrança por alunos ativos pela cobrança por vaga de Administrador e mandou os ajustes no que já foi entregue para a 10.5: #608 a #611 (o resto entrou nas issues das Sprints 13 a 16 que ainda não foram feitas). A 10.5 entra antes da Sprint 11. A Sprint 11 fica para depois da 10.5 e começa retomando a #96 do branch `item/96-porta-de-pagamento-simulador` (trabalho em andamento, já enviado, sem PR). Só o dono libera a seguinte.
+Sprint liberada: Sprint 10.5 (Identidade visual). O dono confirmou em 29/10/2026 que a Sprint 10 foi revisada e fechada e liberou a Sprint 10.5 (#414 a #423). Em 30/10/2026 o dono aprovou o plano de issues da auditoria do canvas e as #437 a #501 entraram nessa mesma sprint liberada (plano em `docs/auditoria/plano-de-issues.md`). Em 19/11/2026 o dono trocou a cobrança por alunos ativos pela cobrança por vaga de Administrador e mandou os ajustes no que já foi entregue para a 10.5: #608 a #611 (o resto entrou nas issues das Sprints 13 a 16 que ainda não foram feitas). Na mesma data, o dono reorganizou Configurações, tirou a cor da organização, pediu dados novos da unidade, a exigência de duas etapas para Administradores e o ajuste do menu lateral e da rolagem, e Minha conta em abas com conteúdo: #624 a #628, #630 a #636 e #638 a #640 (decisões 19 a 32 em `docs/auditoria/decisoes-canvas.md`). Em 20/11/2026, a partir das anotações de teste do dono, entraram #643 a #662 (padrões gerais de tela, navegação sem recarregar, movimento, seed e ajustes de Financeiro, Operação, Pessoas e Comunicação; a #643 e a #644 vêm antes da #498) e as #122 a #124 (Início) foram trazidas da Sprint 13, com o que depende de sprint futura em "Em breve" (decisões 33 e 34). Na mesma data entrou a #664, revisão de textos pelo guia `docs/design/textos.md`, por último no lote (decisão 35). A 10.5 entra antes da Sprint 11. A Sprint 11 fica para depois da 10.5 e começa retomando a #96 do branch `item/96-porta-de-pagamento-simulador` (trabalho em andamento, já enviado, sem PR). Só o dono libera a seguinte.
 
 Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sprint anterior"), que a ordem já cobre; por isso a coluna fica "—". Exceção declarada no plano: #5 e #11 ficaram só com a parte que o agente faz sozinho; hospedagem e publicação são #192 e #193. Na Sprint 10.5, as issues #437 a #501 trazem na coluna as dependências entre itens do plano (as mesmas marcadas como "bloqueada por" no GitHub) e as linhas seguem a ordem de execução do plano `docs/auditoria/plano-de-issues.md`: Fase 1 (bugs, regras e itens técnicos, #437 a #449, com a #435 logo depois da #448), Fase 2 (componentes, na sequência #450, #452, #453, #434, #454, #455, #456, #457, #458, #459, #460, #451, #461, #462, #463, #464) e Fase 3 (telas por área, #465 a #501).
 
@@ -204,7 +204,13 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 519 | Testes instáveis sob carga na regressão completa (e2e e test:cov) | issue #519 | Sprint 10.5 | — | agente | feito |
 | 496 | Avisos e aviso aberto no visual do canvas | issue #496 | Sprint 10.5 | #456, #457, #460, #461, #450 | agente | feito |
 | 497 | Financeiro do portal e Pix na chave no visual do canvas | issue #497 | Sprint 10.5 | #458, #459, #460, #461, #450, #449 | agente | feito |
+<<<<<<< HEAD
 | 498 | Minhas informações, editar contato e Minha conta do portal no visual do canvas | issue #498 | Sprint 10.5 | #455, #453, #460, #461, #450, #449 | agente | feito |
+=======
+| 643 | RNF-43 · Navegação sem recarregar a página (links internos pelo roteador) | issue #643 | Sprint 10.5 | — | agente | a fazer |
+| 644 | Seed com dados realistas e contas fáceis e seed para homologação | issue #644 | Sprint 10.5 | — | agente | a fazer |
+| 498 | Minhas informações, editar contato e Minha conta do portal no visual do canvas | issue #498 | Sprint 10.5 | #455, #453, #460, #461, #450, #449 | agente | a fazer |
+>>>>>>> origin/dev
 | 499 | Carteirinha no visual do canvas | issue #499 | Sprint 10.5 | #455, #452, #450 | agente | a fazer |
 | 500 | Pedidos do portal e pedido indisponível no visual do canvas | issue #500 | Sprint 10.5 | #458, #459, #460, #461, #450 | agente | a fazer |
 | 501 | Portal reduzido (aluno sem modalidade ativa) no visual do canvas | issue #501 | Sprint 10.5 | #455, #497, #498, #499 | agente | a fazer |
@@ -212,6 +218,43 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | a fazer |
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | a fazer |
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | a fazer |
+| 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | a fazer |
+| 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
+| 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
+| 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Sprint 10.5 | #625 | agente | a fazer |
+| 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #625 | agente | a fazer |
+| 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade | issue #630 | Sprint 10.5 | #608 | agente | a fazer |
+| 631 | RN-ACE-25 · Atividade recente em Minha conta › Segurança | issue #631 | Sprint 10.5 | #630 | agente | a fazer |
+| 632 | RF-PRO-05 · Minha conta › Perfil de professor com o consentimento do diretório | issue #632 | Sprint 10.5 | #630 | agente | a fazer |
+| 633 | RF-MOD-01 a 03 · Modalidades e graduação mais claras: cartões, janela, editor de níveis e modalidades da unidade | issue #633 | Sprint 10.5 | #625 | agente | a fazer |
+| 634 | RF-ACE-09 · Tabela de permissões com selos em texto, por área e com o estado das chaves da unidade | issue #634 | Sprint 10.5 | #611, #625 | agente | a fazer |
+| 635 | RF-ORG-04 · Bloco "Vale para todas as unidades" nas abas da unidade | issue #635 | Sprint 10.5 | #625 | agente | a fazer |
+| 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) | issue #636 | Sprint 10.5 | — | agente | a fazer |
+| 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |
+| 639 | RN-MAT-16a · Chaves dos pedidos pelo portal por unidade | issue #639 | Sprint 10.5 | #625 | agente | a fazer |
+| 640 | RF-ORG-10 · Configurações › Visão geral: quadros por unidade e por pessoa | issue #640 | Sprint 10.5 | #625, #627, #628, #638, #639 | agente | a fazer |
+| 645 | RNF-44 · Movimento e retorno: avisos no canto, carregamento e transições | issue #645 | Sprint 10.5 | #624, #643 | agente | a fazer |
+| 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna | issue #646 | Sprint 10.5 | — | agente | a fazer |
+| 647 | RNF-48 a 50 · Campos de valor e número, campos dependentes e validação | issue #647 | Sprint 10.5 | — | agente | a fazer |
+| 648 | RNF-47 · Motivos em lista com "Outro" em todo o sistema | issue #648 | Sprint 10.5 | — | agente | a fazer |
+| 649 | RNF-46 · Quem fez: sem "Decidido por", com "Criado por" nas listas e no histórico | issue #649 | Sprint 10.5 | — | agente | a fazer |
+| 650 | RNF-51 e 52 · Listas: filtros múltiplos, período, ordem, ações em "⋯", contraste e ficar na tela | issue #650 | Sprint 10.5 | #645 | agente | a fazer |
+| 651 | RN-COB-01/02 · Vencimento único por unidade e geração mensal no dia 1º | issue #651 | Sprint 10.5 | — | agente | a fazer |
+| 652 | RF-COB-01 a 08 · Cobranças e pagamentos: ordem, criado por, painel, recibo e calendário | issue #652 | Sprint 10.5 | #646 a #650 | agente | a fazer |
+| 653 | RN-PLA-07 · Planos com nome gerado e tela só de planos | issue #653 | Sprint 10.5 | #647 | agente | a fazer |
+| 654 | RN-BEN-01 a 08 · Benefícios: sem benefício alto, editar em vez de substituir, cascata e limites | issue #654 | Sprint 10.5 | #647, #649 | agente | a fazer |
+| 655 | RF-AGE-01/04 · Agenda de domingo a sábado, filtros da unidade e aula avulsa | issue #655 | Sprint 10.5 | #647, #658 | agente | a fazer |
+| 656 | RN-TUR-01/02 · Turmas com nome gerado, variação e capacidade de 1 a 30 | issue #656 | Sprint 10.5 | #647 | agente | a fazer |
+| 657 | RN-AGE-09 · Feriados e recessos: feriados automáticos e aviso com 24 h | issue #657 | Sprint 10.5 | #648 | agente | a fazer |
+| 658 | RF-COM-01/02 · Comunicados: tela única, destino por escopo, tipos novos, agendamento e imagem | issue #658 | Sprint 10.5 | #646, #647, #650 | agente | a fazer |
+| 659 | RF-MAT-01 · Nova matrícula: CPF automático, retomar etapa, faixa etária da turma e sem etapa de vencimento | issue #659 | Sprint 10.5 | #651, #647, #648, #649 | agente | a fazer |
+| 660 | RF-PRO-03 · Professor: graduação obrigatória, CPF e endereço opcionais e edição como a ficha | issue #660 | Sprint 10.5 | #647 | agente | a fazer |
+| 661 | RF-MAT-04 · Pedidos: aprovar sem sair da tela | issue #661 | Sprint 10.5 | #645, #648 | agente | a fazer |
+| 122 | RF-INI-01 · Início do Coordenador | issue #122 | Sprint 10.5 | — | agente | a fazer |
+| 123 | RF-INI-02 · Início do Administrador | issue #123 | Sprint 10.5 | — | agente | a fazer |
+| 124 | RF-INI-03 · Início do Professor | issue #124 | Sprint 10.5 | — | agente | a fazer |
+| 662 | Popular a homologação com o seed novo | issue #662 | Sprint 10.5 | #644 | dono | a fazer |
+| 664 | RNF-55 · Revisão de textos: maiúsculas, botões curtos, frases simples e vocabulário único | issue #664 | Sprint 10.5 | #643 a #661, #122 a #124 | agente | a fazer |
 | 613 | Aviso aberto do portal: autor em duas linhas, como o canvas | issue #613 | Sprint 10.5 | #496 | agente | a fazer |
 | 614 | Aviso aberto do portal: avatar do autor com o tom do canvas | issue #614 | Sprint 10.5 | #496 | agente | a fazer |
 | 615 | Avisos do portal: pílulas de filtro e Fixado com o tom do canvas | issue #615 | Sprint 10.5 | #496 | agente | a fazer |
@@ -244,9 +287,6 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 119 | RF-LGP-03 · Pedidos de exclusão no "Precisa de atenção" | issue #119 | Sprint 13 | — | agente | a fazer |
 | 120 | RF-LGP-04 · Anonimizar aluno | issue #120 | Sprint 13 | — | agente | a fazer |
 | 121 | RF-ALU-05 · Ações de LGPD na ficha do aluno | issue #121 | Sprint 13 | — | agente | a fazer |
-| 122 | RF-INI-01 · Início do Coordenador | issue #122 | Sprint 13 | — | agente | a fazer |
-| 123 | RF-INI-02 · Início do Administrador | issue #123 | Sprint 13 | — | agente | a fazer |
-| 124 | RF-INI-03 · Início do Professor | issue #124 | Sprint 13 | — | agente | a fazer |
 | 125 | RF-BUS-01 · Busca global | issue #125 | Sprint 13 | — | agente | a fazer |
 | 126 | RF-BUS-02 · Busca vazia: telas e ações rápidas | issue #126 | Sprint 13 | — | agente | a fazer |
 | 335 | Limpar comprovantes de graduação de origem enviados e não usados | issue #335 | Sprint 13 | — | agente | a fazer |

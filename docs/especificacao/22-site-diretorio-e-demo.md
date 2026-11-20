@@ -22,7 +22,7 @@ Vender a plataforma, deixar o dono de academia experimentar sem cadastro e ajuda
 - **RN-DIR-01.** "Encontre uma academia parceira perto de você", em `ctcore.com.br/academias`.
 - **RN-DIR-02.** Aparece só a unidade que ligou "Aparecer no diretório" (desligado por padrão) e cuja organização está com assinatura Ativa ou Cortesia, e não foi ocultada pela plataforma.
 - **RN-DIR-03.** Busca por CEP, cidade ou localização do aparelho (com permissão), com filtro de modalidade e faixa etária. Resultado em lista com mapa, ordenado por distância.
-- **RN-DIR-04.** Cada resultado: logo, nome da organização e da unidade, bairro, distância, modalidades, horários das turmas ativas (grade normal da semana) e, com consentimento, professores com foto, faixa e apresentação. Sem preços, sem alunos, sem telefone ou e-mail de professor.
+- **RN-DIR-04.** Cada resultado: foto de capa da unidade (sem foto, o logo), logo, nome da organização e da unidade, bairro, distância, apresentação da unidade, horário de funcionamento, Instagram da unidade (ou o da organização), modalidades, horários das turmas ativas (grade normal da semana) e, com consentimento, professores com foto, faixa e apresentação. Sem preços, sem alunos, sem telefone ou e-mail de professor.
 - **RN-DIR-05.** Botões "Agendar aula experimental" (abre o formulário da unidade) e "Quero me matricular" (abre o autocadastro da unidade), registrando a origem "Diretório".
 - **RN-DIR-06.** Link discreto "Denunciar" em cada resultado (`17`).
 - **RN-DIR-07.** O diretório usa uma consulta pública que devolve só os campos mostrados.

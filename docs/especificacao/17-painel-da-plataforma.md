@@ -19,7 +19,7 @@ Duas etapas obrigatória para os dois.
 
 - **RN-PNL-01.** Listas e indicadores mostram só números e dados da organização. Dados pessoais de alunos aparecem apenas dentro do acesso de suporte.
 - **RN-PNL-02.** Acesso de suporte: consultar uma organização não precisa de liberação; a tela mostra a faixa "Modo suporte" e tudo vai para a auditoria que o Coordenador vê.
-- **RN-PNL-03.** Alterar algo dentro de uma organização exige que o Coordenador libere o acesso de suporte (vale 24 horas) e um motivo por ação. Sem liberação, o suporte só consulta.
+- **RN-PNL-03.** Alterar algo dentro de uma organização exige que o Coordenador libere o acesso de suporte em Configurações › Dados e segurança › Acesso do suporte (vale 24 horas) e um motivo por ação. Sem liberação, o suporte só consulta.
 - **RN-PNL-04.** Selo "Em risco", com o motivo, quando: a gestão está sem acesso há 14 dias, a fatura está em atraso, o Mercado Pago está desconectado há 7 dias, ou os alunos ativos caíram 20% em 2 ciclos.
 - **RN-PNL-05.** Alertas: cadastro novo que repete CNPJ, CPF, telefone ou pagador de quem já teve reembolso; muitas ativações e desativações de Administrador em sequência (troca de vaga para fugir do pico, RN-ASS-22); divergências da conciliação; falhas de webhook.
 - **RN-PNL-06.** Preços mudam com data de início e aviso de 30 dias às organizações.

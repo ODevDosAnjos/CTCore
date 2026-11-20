@@ -65,7 +65,7 @@ O Coordenador é avisado antes de cada mudança de situação.
 
 ## Requisitos
 
-- **RF-ASS-01.** Configurações › Assinatura (Coordenador): situação, vagas de Administrador ativas hoje (por unidade, com o nome de quem ocupa), pico de vagas do ciclo, desconto ativo (tipo, valor e até quando), valor previsto da próxima fatura (base, vagas, desconto e total), data da próxima fatura, forma de pagamento (trocar cartão), histórico de faturas com recibo.
+- **RF-ASS-01.** Configurações › Assinatura (Coordenador), em abas: **Resumo**, **Faturas** e **Pagamento**. Resumo: situação, vagas de Administrador ativas hoje (por unidade, com o nome de quem ocupa), pico de vagas do ciclo, desconto ativo (tipo, valor e até quando), valor previsto da próxima fatura (base, vagas, desconto e total), data da próxima fatura. Faturas: histórico com recibo e "Pagar" na fatura em aberto (RF-ASS-02). Pagamento: forma de pagamento (trocar cartão), dados de cobrança (titular, CNPJ ou CPF e e-mail que recebe as faturas, que saem de Configurações › Organização) e "Cancelar assinatura" (RF-ASS-03).
 - **RF-ASS-02.** Pagar fatura em aberto (cartão, Pix, boleto).
 - **RF-ASS-03.** Cancelar assinatura, mostrando até quando funciona e o prazo de exportação.
 - **RF-ASS-04.** Faixa no topo da gestão para Coordenador e Administradores conforme a situação.
