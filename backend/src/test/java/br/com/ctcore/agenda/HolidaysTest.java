@@ -25,4 +25,12 @@ class HolidaysTest {
                 .doesNotContain(LocalDate.of(2026, 10, 12), LocalDate.of(2027, 10, 19));
         assertThat(next.get(0).date()).isEqualTo(LocalDate.of(2026, 11, 2));
     }
+
+    @Test
+    @DisplayName("CA3 (#582): a janela inclui o feriado de hoje; a partir de amanhã ele sai")
+    void windowIncludesToday() {
+        var today = LocalDate.of(2026, 11, 20);
+        assertThat(Holidays.next12Months(today).get(0)).isEqualTo(new Holidays.Holiday("BLACK_AWARENESS", today));
+        assertThat(Holidays.next12Months(today.plusDays(1)).get(0).date()).isAfter(today);
+    }
 }

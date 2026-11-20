@@ -28,7 +28,8 @@ class NoClassDayReadIT extends NoClassDayBase {
     void lists() throws Exception {
         var t = tenant();
         var coord = who(t, Role.COORDINATOR);
-        LocalDate holiday = Holidays.next12Months(TODAY).get(0).date();
+        // RN-AGE-10: só edita antes do dia; feriado de hoje não serve (canEdit falso)
+        LocalDate holiday = Holidays.next12Months(TODAY.plusDays(1)).get(0).date();
         UUID future = UUID.randomUUID();
         day(t, future, holiday, holiday, "Feriado confirmado");
         day(t, UUID.randomUUID(), TODAY.minusDays(3), TODAY.minusDays(1), "Terminou ontem");
@@ -60,7 +61,7 @@ class NoClassDayReadIT extends NoClassDayBase {
     void suggestionDetails() throws Exception {
         var t = tenant();
         var coord = who(t, Role.COORDINATOR);
-        var hs = Holidays.next12Months(TODAY);
+        var hs = Holidays.next12Months(TODAY.plusDays(1));
         LocalDate confirmed = hs.get(0).date();
         LocalDate open = hs.get(1).date();
         LocalDate hidden = hs.get(2).date();

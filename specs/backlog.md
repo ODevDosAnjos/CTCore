@@ -206,6 +206,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 497 | Financeiro do portal e Pix na chave no visual do canvas | issue #497 | Sprint 10.5 | #458, #459, #460, #461, #450, #449 | agente | feito |
 | 498 | Minhas informações, editar contato e Minha conta do portal no visual do canvas | issue #498 | Sprint 10.5 | #455, #453, #460, #461, #450, #449 | agente | feito |
 | 643 | RNF-43 · Navegação sem recarregar a página (links internos pelo roteador) | issue #643 | Sprint 10.5 | — | agente | feito |
+| 582 | NoClassDayReadIT.lists falha: canEdit falso (agenda) | issue #582 | Sprint 10.5 | — | agente | feito |
 | 644 | Seed com dados realistas e contas fáceis e seed para homologação | issue #644 | Sprint 10.5 | — | agente | feito |
 | 499 | Carteirinha no visual do canvas | issue #499 | Sprint 10.5 | #455, #452, #450 | agente | a fazer |
 | 500 | Pedidos do portal e pedido indisponível no visual do canvas | issue #500 | Sprint 10.5 | #458, #459, #460, #461, #450 | agente | a fazer |
