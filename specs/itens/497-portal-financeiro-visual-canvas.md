@@ -183,3 +183,17 @@ Regressão completa (T7, não reexecutada nesta entrega; a base não avançou):
 - `frontend/src/features/charges/ChargePanel.test.tsx`, CA20: "tempo de 20 s esgotado sob carga". Isolado, 22 de 22 passaram: instável. Registrado em comentário na #594 (testes instáveis no `test:cov` sob carga).
 - `frontend/e2e/portal-inicio.spec.ts`: esperava "Pix na chave com comprovante" a 360 px. Corrigido neste item (o título é "Pix na chave da unidade"); rodado de novo, passou.
 - `./backend/mvnw -f backend/pom.xml verify` passou; `npm run lint`, `typecheck` e `build` passaram.
+
+### Correção da entrega
+- CI do PR #623: job `visual` falhou em `portal-responsavel` e `portal-celular-reduzido` (8 imagens, 1440/390, claro/escuro); os dois casos abrem `/portal/financeiro`, tela alterada pelo item, e as referências não tinham sido regeradas. Demais jobs verdes (e2e, frontend, security, imagens).
+- Referências regeradas — arquivos: `frontend/visual/referencias/portal-responsavel-{1440,390}-{claro,escuro}.png` e `portal-celular-reduzido-{1440,390}-{claro,escuro}.png` — prova: `npm run test:visual:docker -- --workers=2 --update-snapshots -g "portal-responsavel|portal-celular-reduzido"` → 8 passaram; de novo sem `--update-snapshots` → ver abaixo.
+Referências visuais: as 8 imagens acima (revisão do dono no fim da sprint).
+Visual do CI: portal-responsavel → passou; portal-celular-reduzido → passou
+
+### Rodada 4 — OK — 2026-11-19, estado 80f00b9143bd7e74f46d4b93acffab036cb72e16
+
+Desde a rodada 3 (verificação após o PR #623 aberto): só mudaram 8 referências visuais (`portal-responsavel-*` e `portal-celular-reduzido-*`, 1440 e 390, claro e escuro) e este arquivo. Os dois casos abrem `/portal/financeiro`, tela alterada pelo item, então a mudança visual é a esperada. CA1 a CA9 mantidos da rodada 3 (PASSOU); CA9 reconferido.
+
+Comandos: `npm run test:visual:docker -- --workers=2 -g "portal-financeiro|portal-pix-chave|portal-familia|portal-responsavel|portal-celular-reduzido"` sem `--update-snapshots` → 20 passaram (inclui os dois casos que falharam no CI).
+Instáveis: nenhuma nova.
+Achados: nenhum obrigatório. A correção da entrega responde à falha do job `visual` do CI. A regressão completa não foi reexecutada: não há mudança de código desde a T7.
