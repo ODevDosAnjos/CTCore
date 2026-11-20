@@ -51,7 +51,7 @@ Receber online, direto na conta do Mercado Pago de cada unidade, com baixa autom
 
 ## Requisitos
 
-- **RF-PAG-01.** Configurações › Unidade › Pagamentos: conexão, taxas por meio com prévia do total para um valor de exemplo, chave Pix.
+- **RF-PAG-01.** Configurações › Unidades › [unidade] › Cobrança: conexão, taxas por meio com prévia do total para um valor de exemplo, chave Pix.
 - **RF-PAG-02.** Janela de pagamento no portal: cobrança(s) escolhida(s), total por meio, escolha do meio, quem processa ("Pagamento processado pelo Mercado Pago").
 - **RF-PAG-03.** Pix: QR Code, copia e cola, contador de validade, "Gerar novo".
 - **RF-PAG-04.** Cartão: formulário seguro do Mercado Pago, resposta na hora. Recusado: "Nada foi cobrado. A mensalidade continua em aberto." com "Tentar outro cartão", "Pagar com Pix" e "Pagar depois".

@@ -10,8 +10,8 @@ Trazer gente nova para a unidade: pedido de aula experimental e autocadastro por
 
 | Link | Endereço | Liga/desliga |
 | --- | --- | --- |
-| Aula experimental | `ctcore.com.br/aula/{unidade}` | Configurações › Unidade |
-| Autocadastro | `ctcore.com.br/matricula/{unidade}` | Configurações › Unidade |
+| Aula experimental | `ctcore.com.br/aula/{unidade}` | Configurações › Unidades › [unidade] › Divulgação |
+| Autocadastro | `ctcore.com.br/matricula/{unidade}` | Configurações › Unidades › [unidade] › Divulgação |
 
 São páginas simples, com logo, cor e nome da organização e da unidade, endereço e contato. Ao serem compartilhadas, mostram logo e nome (prévia de link). Desligado, o link mostra "Esta unidade não está recebendo pedidos por aqui" com o contato.
 
@@ -36,7 +36,7 @@ Pessoa (nome, telefone/WhatsApp), para quem (para mim, para filho ou filha com n
 ### Regras
 
 - **RN-AEX-01.** Sempre gratuita.
-- **RN-AEX-02.** Limite por pessoa e por unidade: padrão 2, ajustável de 1 a 3, contado pelo telefone e somando as modalidades. O pedido acima do limite entra com o selo "Limite atingido" e só é agendado se a gestão usar "Liberar mais uma".
+- **RN-AEX-02.** Limite por pessoa e por unidade, configurado em cada unidade (aba Divulgação, RF-ORG-04): padrão 2, ajustável de 1 a 3, contado pelo telefone e somando as modalidades. O pedido acima do limite entra com o selo "Limite atingido" e só é agendado se a gestão usar "Liberar mais uma".
 - **RN-AEX-03.** O pedido não marca a aula. A unidade confirma com a pessoa pelo WhatsApp (mensagem pronta) e agenda na gestão. O sistema não envia mensagem automática ao visitante.
 - **RN-AEX-04.** Obrigatórios: nome e telefone; para criança, nome e idade dela. Não pede e-mail, documento nem endereço. Pedido de criança é feito por um adulto.
 - **RN-AEX-05.** Quem faz aula experimental não é aluno: não tem cobrança, plano nem portal.
@@ -70,7 +70,7 @@ Pessoa (nome, telefone/WhatsApp), para quem (para mim, para filho ou filha com n
 
 - **RF-AUT-01.** Página pública de autocadastro em etapas: dados, modalidade e turma de interesse, senha, aceite da política de privacidade, "Pedido enviado".
 - **RF-AUT-02.** Na gestão, lista "Aguardando aprovação" com Aprovar (abre a matrícula preenchida) e Recusar.
-- **RF-AUT-03.** Configurações › Unidade › Links: copiar link, baixar QR code (PNG e PDF para imprimir), ligar e desligar.
+- **RF-AUT-03.** Configurações › Unidades › [unidade] › Divulgação: copiar link, baixar QR code (PNG e PDF para imprimir), ligar e desligar.
 
 ## Pronto quando
 

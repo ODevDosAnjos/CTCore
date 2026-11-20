@@ -76,7 +76,7 @@ Gerar, acompanhar e receber o que os alunos devem à unidade. Os meios online e 
 - **RF-COB-06.** Em atraso: dias de atraso, valor, modalidade, último lembrete (de qualquer resultado, inclusive e-mail com problema), dias até o bloqueio e o total do filtro; seleção múltipla e "Enviar lembrete" (e-mail, e WhatsApp com mensagem pronta por aluno).
 - **RF-COB-07.** Nova cobrança avulsa e "Gerar próximas mensalidades" (adiantado).
 - **RF-COB-08.** Recebimentos do dia: por meio e por pessoa que lançou. Quem tem acesso de consulta a Cobranças e pagamentos vê os recebimentos das suas unidades; pagamento sem lançador (portal, débito automático) aparece como "Portal (aluno pagou)". A tela mostra o total e a taxa repassada por meio (crédito e débito do portal somados em "Cartão pelo portal"), sem a lista de pagamentos.
-- **RF-COB-09.** Configurações › Unidade › Lembretes.
+- **RF-COB-09.** Configurações › Unidades › [unidade] › Lembretes.
 
 ## Pronto quando
 

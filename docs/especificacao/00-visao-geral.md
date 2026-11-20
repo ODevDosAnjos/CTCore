@@ -221,7 +221,7 @@ Monorepo `ODevDosAnjos/ctcore`, com as pastas `backend/`, `frontend/`, `infra/` 
 - **RNF-19.** Gestão, portal e site responsivos, de 360 px a telas grandes. Chrome, Edge, Firefox e Safari nas duas últimas versões; Android 10+ e iOS 15+.
 - **RNF-20.** Acessibilidade AA: uso só com teclado, foco visível, rótulos para leitor de tela, situação nunca só por cor, zoom de 200% sem quebrar, alvos de toque de 44 px.
 - **RNF-21.** Tema claro e escuro, seguindo o aparelho, com botão para trocar. Cada tela é conferida nos dois.
-- **RNF-22.** A marca da organização (logo e cor principal com contraste AA garantido) aparece no portal, na carteirinha, nos recibos e nos e-mails ao aluno, com "feito com ctcore" no rodapé.
+- **RNF-22.** A marca da organização (nome e logo) aparece no portal, na carteirinha, nos recibos e nos e-mails ao aluno, com "feito com ctcore" no rodapé. Cores, ícones e o resto do visual seguem só a identidade do ctcore: não existe cor por organização nem por unidade. (Alterado em 19/11/2026: antes havia cor principal da organização com contraste AA.)
 - **RNF-23.** Formatos brasileiros: 08/10/2026, 19h30, R$ 1.250,00, telefone com DDD, no fuso da unidade. Notificações e histórico usam "hoje", "ontem", "há 3 dias", com a data exata ao passar o mouse ou tocar.
 - **RNF-24.** Textos tratam por "você", com frases curtas e cordiais, sem gíria e sem "prezado". Erros dizem o que aconteceu, o que foi ou não alterado e o que fazer. Cobrança nunca em tom de ameaça. Erro de campo na API é 400 com o código `VALIDATION_ERROR` e o campo.
 - **RNF-25.** Toda tela tem os estados carregando, vazio (com uma frase e a ação principal), erro (com "Tentar de novo") e sem permissão. Nenhuma conta nova vem com dados de exemplo.

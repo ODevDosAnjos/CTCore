@@ -8,7 +8,7 @@ Dar ao aluno e ao responsável, no celular, o que eles precisam: pagar, ver as a
 
 ## Quem usa
 
-Aluno adulto e Responsável. A área abre em `app.ctcore.com.br/portal`, com o logo e a cor da organização.
+Aluno adulto e Responsável. A área abre em `app.ctcore.com.br/portal`, com o nome e o logo da organização (RNF-22).
 
 ## Regras
 
