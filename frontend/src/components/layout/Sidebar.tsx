@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, LogOut, Moon, Sparkles, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { NavGroup } from "./AppLayout";
@@ -59,9 +60,9 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
       );
     }
     return (
-      <a
+      <Link
         key={i.id}
-        href={i.href}
+        to={i.href}
         aria-current={i.id === activeId ? "page" : undefined}
         aria-label={collapsed ? i.label : undefined}
         aria-describedby={n > 0 && !collapsed ? badgeId : undefined}
@@ -73,7 +74,7 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
         {n > 0 && !collapsed && (
           <span id={badgeId} hidden={false} aria-hidden="true" className="rounded-full bg-primary px-1.5 text-center text-xs font-semibold text-primary-foreground">{badgeText(n)}</span>
         )}
-      </a>
+      </Link>
     );
   };
 
@@ -123,10 +124,10 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
         {footer(t("layout.news"), Sparkles)}
         {menu && <ThemeRow className={row} />}
         {menu && (
-          <a href="/conta" className={cn(row, live)}>
+          <Link to="/conta" className={cn(row, live)}>
             <UserRound aria-hidden="true" className="size-5 shrink-0" />
             <span className="min-w-0 flex-1 truncate">{t("layout.myAccount")}</span>
-          </a>
+          </Link>
         )}
         {menu && onLogout && (
           <button type="button" onClick={onLogout} className={cn(row, live)}>

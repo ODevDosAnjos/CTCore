@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { iconFor } from "./icons";
@@ -25,9 +26,9 @@ export function MobileTabs({ tabs, ...side }: { tabs: NavTab[] } & SidebarProps)
             {body}
           </button>
         ) : (
-          <a key={tab.id} href={tab.href} aria-current={tab.id === side.activeId ? "page" : undefined} className={cn(cell, "aria-[current=page]:font-semibold aria-[current=page]:text-primary")}>
+          <Link key={tab.id} to={tab.href} aria-current={tab.id === side.activeId ? "page" : undefined} className={cn(cell, "aria-[current=page]:font-semibold aria-[current=page]:text-primary")}>
             {body}
-          </a>
+          </Link>
         );
       })}
       <MobileMenu {...side} />

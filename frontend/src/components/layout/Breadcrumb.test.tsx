@@ -1,5 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import { Breadcrumb } from "./Breadcrumb";
+import { MemoryRouter } from "react-router";
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 const groups = [
   { id: "home", label: "Início", items: [{ id: "home", label: "Início", href: "/" }] },

@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { NavGroup } from "./AppLayout";
@@ -23,9 +24,9 @@ export function Breadcrumb({ groups, activeId, trail }: { groups: NavGroup[]; ac
         {trail ? (
           <>
             <li className="truncate">
-              <a href={item.href} className="hover:underline">
+              <Link to={item.href} className="hover:underline">
                 {item.label}
-              </a>
+              </Link>
             </li>
             <li aria-hidden="true">
               <ChevronRight className="size-4" />

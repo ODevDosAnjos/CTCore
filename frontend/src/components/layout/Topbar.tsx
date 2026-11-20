@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import type { ReactNode } from "react";
 import { ArrowLeft, CircleHelp, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -38,9 +39,9 @@ export function Topbar({ groups, activeId, org, unit, bell, userMenu, trail, chi
       <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
         {activeId !== "home" && (
           <Button asChild variant="ghost" size="icon" className="shrink-0">
-            <a href="/" aria-label={t("layout.back")}>
+            <Link to="/" aria-label={t("layout.back")}>
               <ArrowLeft aria-hidden="true" />
-            </a>
+            </Link>
           </Button>
         )}
         <BrandMark org={org} compact className="shrink-0" />
