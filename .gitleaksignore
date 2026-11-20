@@ -9,3 +9,7 @@ ce5617d0d9f9e0e2537c86dc06eecc229f0e8ad5:backend/src/test/resources/config/appli
 cfd54bf8e3088431f050535a12dc325fd902f03b:segredo-falso.txt:github-pat:1
 # Mesmo falso positivo do LogOutputTest (valores ficticios que o teste exige que NAO aparecam no log), no commit da cabeca do PR #198 antes do squash (7be7dd1 acima).
 6d5758a6e5bfe8d17aef8de259b7772484294642:backend/src/test/java/br/com/ctcore/logging/LogOutputTest.java:generic-api-key:87
+# Falso positivo: senha de teste "produtor" (prova de que "prod" na senha nao conta) em seed.test.sh, host .example.test. Linha trocada por variavel na correcao; o commit antigo continua na historia do PR #668.
+6b956242d7c24dee771d5cca2c6deb8429a2ce83:infra/scripts/seed.test.sh:connection-url-password:44
+# Falso positivo: a Entrega do item 644 citava a linha de teste com a senha fictícia (host .example.test) no commit 23f50ff, antes de a frase ser trocada sem a URL literal.
+23f50ff1ff177d79adcb461a4d3ed160536894c1:specs/itens/644-seed-realista-contas-faceis.md:connection-url-password:162

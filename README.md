@@ -33,7 +33,30 @@ Antes de iniciar o back-end, execute `bash infra/scripts/prepare-runtime-db.sh` 
 
 ### Dados fictícios
 
-Com o ambiente de pé e o back-end rodado ao menos uma vez (ele aplica as migrações): `bash infra/scripts/seed.sh`. Aplica `infra/seed/*.sql` em ordem do nome, só no PostgreSQL local, sem duplicar nem sobrescrever (pode rodar de novo). Item que cria tabela acrescenta `infra/seed/NN-nome.sql` com `on conflict do nothing`. Para zerar tudo: `docker compose down -v`.
+Com o ambiente de pé e o back-end rodado ao menos uma vez (ele aplica as migrações): `bash infra/scripts/seed.sh`. Aplica `infra/seed/*.sql` em ordem do nome no PostgreSQL local, sem duplicar nem sobrescrever (pode rodar de novo). Item que cria tabela acrescenta `infra/seed/NN-nome.sql` com `on conflict do nothing`. Para zerar tudo: `docker compose down -v`.
+
+O seed cria 2 organizações (a principal com 3 unidades), 6 professores, cerca de 60 alunos com responsáveis e irmãos, planos, cobranças em todas as situações, pedidos do portal, comunicados e notificações. Tudo é fictício (e-mails só em `.test`/`.example`, CPFs de teste).
+
+**Contas de teste.** As senhas simples valem só no seed e só em banco local ou de homologação, gravadas em hash; a política de senha da RN-ACE-08 continua valendo para quem cria senha pelo sistema.
+
+| E-mail | Senha | Perfil |
+| --- | --- | --- |
+| `coordenador@ctcore.test` | `coordenador123` | Coordenador da academia principal (duas etapas, abaixo) |
+| `admin@ctcore.test` | `admin123` | Administrador de uma unidade |
+| `admin2@ctcore.test` | `admin123` | Administrador de duas unidades |
+| `professor@ctcore.test` | `professor123` | Professor com duas turmas |
+| `aluno@ctcore.test` | `aluno123` | Aluno adulto ativo |
+| `responsavel@ctcore.test` | `responsavel123` | Responsável de dois filhos menores |
+| `multiplo@ctcore.test` | `multiplo123` | Professor na organização principal e aluno na segunda (escolha de organização no login) |
+
+**Duas etapas do Coordenador (só local).** `infra/seed/25-duas-etapas-local.sql` ativa as duas etapas de `coordenador@ctcore.test` com o segredo de teste `MN2GG33SMUWXGZLFMQWTEZTBFV2GK43U` (base32; cadastre num app autenticador ou gere o código por TOTP padrão: SHA-1, 6 dígitos, 30 s). O segredo é cifrado com a chave local de desenvolvimento, por isso o arquivo `*-local.sql` nunca vai para a homologação.
+
+**Homologação.** Com o `psql` instalado, a URL de conexão do banco de homologação (da hospedagem; nunca no repositório) e o back-end já implantado uma vez (migrações):
+
+1. `bash infra/scripts/seed.sh --url "postgres://USUARIO:SENHA@HOST:5432/BANCO"`
+2. O script recusa URL com `prod` no host ou no nome do banco e banco marcado com `ctcore.env=production`; nesses casos não aplica nada. Os arquivos `*-local.sql` são pulados.
+3. Entre com as contas da tabela. O Coordenador configura as duas etapas no primeiro acesso (RN-ACE-17).
+4. Rodar de novo é seguro (idempotente).
 
 **Aulas na Agenda (RN-AGE-01).** O seed cria turmas, mas nenhuma aula: as aulas nascem pela tarefa diária do back-end, que roda às 03:00 UTC e mantém 8 semanas à frente, e também na hora quando uma turma é criada ou tem os horários alterados pela tela (só as aulas dessa turma). Para ver a Agenda com aulas logo depois do seed, com o back-end rodando: em Operação › Turmas, crie uma turma (ou edite os horários de uma turma do seed e salve). A Agenda mostra as 8 semanas a partir de hoje. Dia sem aula do seed (daqui a 10 dias) cancela as aulas do dia quando elas são geradas.
 

@@ -7,10 +7,7 @@ from (values
     (1, 'whatsapp-button', true),
     (1, 'advanced-reports', false),
     (2, 'online-payments', false),
-    (2, 'whatsapp-button', true),
-    (3, 'online-payments', true),
-    (3, 'advanced-reports', true),
-    (3, 'whatsapp-button', false)
+    (2, 'whatsapp-button', true)
 ) as f(n, key, enabled)
-join (values (1), (2), (3)) as o(n) on o.n = f.n
+join (values (1), (2)) as o(n) on o.n = f.n
 on conflict do nothing;

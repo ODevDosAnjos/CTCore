@@ -11,3 +11,14 @@ from (values (1, 1, 'PERCENT', 30, 'Aluno de projeto social', 'Mestre Fictício'
        as b(k, em_k, type, value, reason, decided_by, valid_until, status, ended_at, end_reason)
 join enrollment_modality em on em.id = md5('ctcore-seed-enrollment-modality-' || b.em_k)::uuid
 on conflict do nothing;
+
+-- #644: more benefits over the generated students (every sixth active enrollment gets a common percent scholarship; one gets a high one).
+insert into benefit (id, organization_id, enrollment_modality_id, student_id, unit_id, type, value, reason, decided_by, granted_by_account_id, valid_until, status)
+select md5('ctcore-seed-benefit-s' || n)::uuid, md5('ctcore-seed-org-1')::uuid, em.id, em.student_id, em.unit_id, 'PERCENT',
+       case when n = 36 then 70 else 10 + (n % 3) * 5 end,
+       case when n = 36 then 'Atleta da equipe de competição' else 'Convênio com empresa parceira' end,
+       'Direção Fictícia', md5('ctcore-seed-account-1')::uuid, null, 'ACTIVE'
+from generate_series(7, 56) as n
+join enrollment_modality em on em.id = md5('ctcore-seed-enrollment-modality-s' || n)::uuid and em.status = 'ACTIVE'
+where n % 6 = 0
+on conflict do nothing;

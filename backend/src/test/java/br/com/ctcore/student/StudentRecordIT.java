@@ -26,6 +26,8 @@ class StudentRecordIT extends OrganizationBase {
 
     @AfterEach
     void clean() {
+        // O professor e a turma criados em alguns testes (conta .example) precisam sair, senão o StudentListIT não apaga a conta.
+        EnrollmentFixtures.clean(adminJdbc());
         adminJdbc().update("delete from enrollment_modality_class");
         adminJdbc().update("delete from enrollment_modality");
         adminJdbc().update("delete from enrollment");
