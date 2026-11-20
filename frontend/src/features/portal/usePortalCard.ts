@@ -22,6 +22,7 @@ export interface PortalCardData {
   generatedAt: string;
   timezone: string;
   modalities: CardModality[];
+  memberSince: string | null;
 }
 
 type Failure = "forbidden" | "notFound" | "error";

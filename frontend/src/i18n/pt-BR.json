@@ -4301,19 +4301,29 @@
   "portalCard": {
     "link": "Ver carteirinha",
     "title": "Carteirinha",
-    "selector": "Aluno",
+    "label": "Minhas informações",
     "you": "Você",
     "status": {
       "ACTIVE": "Ativo",
       "INACTIVE": "Inativo"
     },
-    "statusOn": "em {{date}}",
+    "since": "Aluno desde {{date}}",
+    "validOn": "Válida em {{date}}",
+    "madeWith": "feito com ctcore",
+    "reception": "Mostre na recepção quando pedirem. Não tem QR code: a situação e a data do dia já valem como conferência.",
+    "receptionMobile": "Sem QR code. Mostre na recepção quando pedirem.",
+    "installedNote": "No app instalado, a carteirinha abre mesmo sem internet, com \"Sem conexão · Atualizada em…\".",
+    "download": "Baixar imagem",
+    "back": "Voltar",
+    "offlineBanner": "Sem conexão · Atualizada em {{date}}",
+    "offlineText": "Sem internet, o app mostra a última versão do Início, da agenda e da carteirinha. Pagar e enviar pedidos precisam de conexão.",
+    "familyLabel": "Responsável",
+    "familyTitle": "Carteirinhas",
+    "familyText": "Você vê a carteirinha de cada filho ligado à sua conta, seja ou não o responsável financeiro.",
     "modalitiesTitle": "Modalidades",
     "noBelt": "Sem faixa registrada",
     "emptyTitle": "Nenhuma modalidade ativa",
     "emptyText": "Quando houver uma matrícula ativa, as modalidades aparecem aqui.",
-    "updatedAt": "Atualizada em {{date}}",
-    "offline": "Sem conexão",
     "cardLabel": "Carteirinha de {{name}}"
   },
   "portalHome": {

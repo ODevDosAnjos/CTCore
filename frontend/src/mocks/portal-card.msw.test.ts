@@ -21,7 +21,7 @@ describe("Carteirinha do portal x OpenAPI (RF-POR-03, #90)", () => {
     const op = openapi.paths["/portal/card"].get;
     expect(Object.keys(op.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "404"]));
     expect(op.parameters.map((p: { name: string }) => p.name)).toEqual(["studentId"]);
-    expect(required("PortalCard")).toEqual(["generatedAt", "modalities", "organization", "status", "student", "students", "timezone", "today"]);
+    expect(required("PortalCard")).toEqual(["generatedAt", "memberSince", "modalities", "organization", "status", "student", "students", "timezone", "today"]);
     expect(JSON.stringify(openapi.components.schemas.PortalCard)).not.toMatch(/attendance|frequency|progress|cpf|phone|email/i);
   });
 

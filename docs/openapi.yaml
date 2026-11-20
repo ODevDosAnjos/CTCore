@@ -6452,7 +6452,7 @@ components:
               dueOn: { type: string, format: date }
     PortalCard:
       type: object
-      required: [organization, student, students, status, today, generatedAt, timezone, modalities]
+      required: [organization, student, students, status, today, generatedAt, timezone, modalities, memberSince]
       properties:
         organization:
           type: object
@@ -6481,6 +6481,7 @@ components:
         today: { type: string, format: date, description: Data do dia no fuso da unidade de cadastro. }
         generatedAt: { type: string, format: date-time }
         timezone: { type: string, example: America/Sao_Paulo }
+        memberSince: { type: string, format: date, nullable: true, description: "Data da primeira matrícula do aluno, no fuso da unidade de cadastro; nula sem matrícula." }
         modalities:
           type: array
           items:

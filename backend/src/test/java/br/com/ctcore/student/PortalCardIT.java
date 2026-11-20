@@ -69,6 +69,8 @@ class PortalCardIT extends PortalTermBase {
                 assertThat(m.get("belt").isNull()).isTrue();
             }
         }
+        LocalDate since = adminJdbc().queryForObject("select (min(e.enrolled_at) at time zone u.timezone)::date from enrollment e, unit u where e.student_id = ? and u.id = ? group by u.timezone", LocalDate.class, s, t.unitId());
+        assertThat(LocalDate.parse(c.get("memberSince").asText())).as("CA8: memberSince").isEqualTo(since);
         String all = get(portal(t, acc, Role.STUDENT), "/card").getContentAsString().toLowerCase();
         assertThat(all).doesNotContain("attendance", "frequency", "presen", "progress", "cpf", "phone", "email");
     }
@@ -88,6 +90,8 @@ class PortalCardIT extends PortalTermBase {
         assertThat(c.get("timezone").asText()).isEqualTo("Pacific/Kiritimati");
         LocalDate zoneDate = adminJdbc().queryForObject("select (now() at time zone 'Pacific/Kiritimati')::date", LocalDate.class);
         assertThat(LocalDate.parse(c.get("today").asText())).isEqualTo(zoneDate);
+        LocalDate since = adminJdbc().queryForObject("select (min(e.enrolled_at) at time zone 'Pacific/Kiritimati')::date from enrollment e where e.student_id = ?", LocalDate.class, s);
+        assertThat(LocalDate.parse(c.get("memberSince").asText())).as("CA8: memberSince no fuso da unidade").isEqualTo(since);
     }
 
     @Test
