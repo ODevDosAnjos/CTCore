@@ -4080,51 +4080,107 @@
     "reduced": "Seu acesso está reduzido: nenhuma modalidade está ativa no momento."
   },
   "portalOwn": {
-    "title": "Meus pedidos",
-    "intro": "Peça troca de turma, nova modalidade, troca de plano ou encerramento. O pedido não altera a sua matrícula: a academia responde e conclui com você.",
+    "label": "Minhas informações",
+    "title": "Pedidos",
+    "intro": "A academia sempre confirma. Pedidos sem resposta expiram em 30 dias e você é avisado.",
+    "introShort": "A academia sempre confirma. Sem resposta em 30 dias, o pedido expira.",
+    "back": "Voltar",
     "student": "Aluno",
+    "students": "Alunos",
+    "you": "Você",
     "noStudentTitle": "Nenhum aluno ligado à conta",
     "noStudentText": "Quando houver um aluno ligado a esta conta, os pedidos aparecem aqui.",
-    "actionsTitle": "Fazer um pedido",
-    "modalityLine": "{{modality}} ({{unit}}) · turma {{klass}} · plano {{plan}}",
-    "closureOpen": "Encerramento solicitado em {{date}}. A academia vai entrar em contato.",
-    "actions": {
-      "CLASS_CHANGE": "Pedir troca de turma",
-      "PLAN_CHANGE": "Pedir troca de plano",
-      "CLOSURE": "Solicitar encerramento",
-      "NEW_MODALITY": "Pedir nova modalidade"
-    },
-    "listTitle": "Pedidos feitos",
-    "emptyTitle": "Nenhum pedido ainda",
-    "emptyText": "Os pedidos que você fizer aparecem aqui, com a resposta da academia.",
-    "statusLine": "{{status}} · {{date}}",
-    "response": "Resposta da academia: {{response}}",
-    "dialog": {
-      "of": "{{modality}} ({{unit}})",
-      "note": "Mensagem (opcional)",
+    "cardsLabel": "Fazer um pedido",
+    "ask": "Pedir",
+    "askFor": "Pedir: {{title}}",
+    "cards": {
       "CLASS_CHANGE": {
-        "title": "Pedir troca de turma",
-        "effect": "É só um pedido: a turma só muda quando a academia concluir a troca com você.",
-        "field": "Turma desejada",
-        "submit": "Enviar pedido"
-      },
-      "PLAN_CHANGE": {
-        "title": "Pedir troca de plano",
-        "effect": "É só um pedido: o plano e o valor só mudam quando a academia concluir a troca com você.",
-        "field": "Plano desejado",
-        "submit": "Enviar pedido"
+        "title": "Trocar de turma",
+        "hint": "Escolha outra turma da mesma modalidade"
       },
       "NEW_MODALITY": {
-        "title": "Pedir nova modalidade",
-        "effect": "É só um pedido: a academia entra em contato para matricular você.",
-        "field": "Modalidade e unidade",
-        "submit": "Enviar pedido"
+        "title": "Nova modalidade",
+        "hint": "Veja plano e valor antes de pedir"
+      },
+      "PLAN_CHANGE": {
+        "title": "Trocar de plano",
+        "hint": "Vale a partir da próxima cobrança gerada"
       },
       "CLOSURE": {
         "title": "Solicitar encerramento",
-        "effect": "A modalidade deixa de gerar novas cobranças. Se a academia não responder em 7 dias, ela é encerrada na data do pedido. As cobranças já vencidas continuam devidas.",
+        "hint": "A academia tem 7 dias para conversar com você"
+      }
+    },
+    "listTitle": "Meus pedidos",
+    "emptyTitle": "Nenhum pedido ainda",
+    "emptyText": "Os pedidos que você fizer aparecem aqui, com a resposta da academia.",
+    "columns": {
+      "kind": "Pedido",
+      "detail": "Detalhe",
+      "sent": "Enviado",
+      "status": "Situação",
+      "note": "Observação"
+    },
+    "statuses": {
+      "OPEN": "Aguardando a academia",
+      "APPROVED": "Aprovado",
+      "REFUSED": "Recusado",
+      "EXPIRED": "Expirado",
+      "CLOSED": "Encerrado"
+    },
+    "statusesShort": {
+      "OPEN": "Aguardando"
+    },
+    "notes": {
+      "response": "\"{{response}}\""
+    },
+      "detailClosure": "{{modality}} · motivo: {{reason}}",
+    "dialog": {
+      "modality": "Modalidade",
+      "modalityLine": "{{modality}} · {{unit}}",
+      "note": "Mensagem para a academia (opcional)",
+      "submit": "Enviar pedido",
+      "cancel": "Cancelar",
+      "CLASS_CHANGE": {
+        "title": "Pedir troca de turma",
+        "field": "Nova turma principal",
+        "option": "{{name}} · {{schedule}} · {{teacher}}",
+        "help": "Plano e mensalidade não mudam. A troca vale quando a academia aprovar."
+      },
+      "PLAN_CHANGE": {
+        "title": "Pedir troca de plano",
+        "current": "Plano atual",
+        "field": "Novo plano",
+        "unavailable": "Não disponível para a sua idade",
+        "help": "A troca vale a partir da próxima cobrança gerada, depois que a academia aprovar."
+      },
+      "NEW_MODALITY": {
+        "title": "Pedir nova modalidade",
+        "unit": "Unidade",
+        "field": "Modalidade",
+        "help": "Só aparecem as modalidades oferecidas na unidade que você ainda não treina.",
+        "summary": {
+          "choose": "A academia escolhe com você a turma e o plano.",
+          "confirm": "Quando ela aprovar, você confirma o plano e o valor aqui no portal.",
+          "free": "Nada é cobrado antes disso."
+        }
+      },
+      "CLOSURE": {
+        "title": "Solicitar encerramento",
         "field": "Motivo",
-        "submit": "Solicitar encerramento"
+        "more": "Quer contar mais? (opcional)",
+        "back": "Voltar",
+        "summary": {
+          "now": "{{modality}} fica \"Encerramento solicitado\" hoje, {{today}}.",
+          "until": "A academia tem até {{until}} para conversar com você; sem resposta, encerra com a data de hoje.",
+          "charges": "Nenhuma cobrança vence depois do pedido.",
+          "others_one": "{{names}} continua normal.",
+          "others_other": "{{names}} continuam normais."
+        }
+      },
+      "blocked": {
+        "text": "Há um pedido de encerramento aberto para o {{modality}}. Enquanto ele estiver aberto, não dá para pedir troca de turma nem de plano nessa modalidade.",
+        "close": "Entendi"
       }
     },
     "errors": {

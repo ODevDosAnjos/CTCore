@@ -37,8 +37,8 @@ export function PortalTabs({ reduced, count, variant }: { reduced: boolean; coun
       className={bar ? "hidden h-full gap-1 md:flex md:flex-1" : "fixed inset-x-0 bottom-0 z-10 flex border-t bg-background md:hidden"}
     >
       {TABS.filter((tab) => !(reduced && tab.full)).map(({ id, to, Icon }) => {
-        // Minha conta é parte de Minhas informações (canvas PortalConta): a aba continua ativa.
-        const active = pathname === to || (id === "info" && pathname === "/conta");
+        // Minha conta e Pedidos são parte de Minhas informações (canvas PortalConta e PortalPedidos): a aba continua ativa.
+        const active = pathname === to || (id === "info" && (pathname === "/conta" || pathname === "/portal/pedidos"));
         return (
           <Link
             key={id}

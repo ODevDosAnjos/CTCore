@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { Choice } from "@/features/students/ModalityPickers";
+import type { Slot } from "@/features/students/modalityDialogSummary";
 import { useResource } from "@/features/students/useStudentRecord";
 import type { PortalRequest, PortalRequestKind } from "@/features/portal-requests/types";
 
@@ -9,6 +10,15 @@ export interface PortalStudentCard {
   name: string;
   self: boolean;
 }
+export interface ClassOption extends Choice {
+  schedule: Slot[];
+  teacher: string;
+}
+export interface PlanOption extends Choice {
+  valueCents: number;
+  available: boolean;
+  unavailableReason: "AGE" | null;
+}
 export interface ModalityOption {
   modalityRowId: string;
   modality: string;
@@ -16,8 +26,8 @@ export interface ModalityOption {
   currentClass: Choice;
   currentPlan: Choice;
   closureRequestedAt: string | null;
-  classes: Choice[];
-  plans: Choice[];
+  classes: ClassOption[];
+  plans: PlanOption[];
 }
 export interface OfferOption {
   unitId: string;

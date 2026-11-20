@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const CENTRO = "00000000-0000-0000-0000-000000000021";
@@ -15,6 +15,11 @@ const violations = async (page: Page) => {
   return page.evaluate(async () => (await (globalThis as unknown as { axe: { run: () => Promise<{ violations: unknown[] }> } }).axe.run()).violations);
 };
 const noOverflow = (page: Page) => page.evaluate("document.documentElement.scrollWidth <= window.innerWidth");
+
+// Select nativo não aceita trecho: escolhe a opção cujo texto contém o trecho.
+async function pick(select: Locator, text: string) {
+  await select.selectOption({ label: (await select.locator("option").filter({ hasText: text }).first().textContent())! });
+}
 
 async function open(page: Page, path: string) {
   await page.evaluate(`history.pushState({}, "", ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent("popstate"))`);
@@ -64,26 +69,26 @@ test.describe("pedidos do portal a 360 px", () => {
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
       await page.getByRole("dialog", { name: "Nova modalidade" }).getByRole("button", { name: "Depois" }).click({ timeout: 3000 }).catch(() => {}); // janela da modalidade nova (#493) cobre a página
       await open(page, "/portal/pedidos"); // sem link no Início (canvas, #493); a entrada na aba Pedidos é de outra issue
-      await expect(page.getByRole("heading", { name: "Meus pedidos", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Pedidos", level: 1 })).toBeVisible();
       await expect(page.getByText("Nenhum pedido ainda")).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
 
-      await page.getByRole("button", { name: "Pedir troca de turma" }).click();
+      await page.getByRole("button", { name: "Pedir: Trocar de turma" }).click();
       const dialog = page.getByRole("dialog", { name: "Pedir troca de turma" });
-      await dialog.getByLabel("Turma desejada").selectOption({ label: "Jiu-Jitsu Noite" });
-      await dialog.getByLabel("Mensagem (opcional)").fill("Troco por causa do trabalho");
+      await pick(dialog.getByLabel("Nova turma principal *", { exact: true }), "Jiu-Jitsu Noite");
+      await dialog.getByLabel("Mensagem para a academia (opcional)").fill("Troco por causa do trabalho");
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);
       await dialog.getByRole("button", { name: "Enviar pedido" }).click();
       await expect(dialog).toHaveCount(0);
 
-      await page.getByRole("button", { name: "Solicitar encerramento" }).click();
+      await page.getByRole("button", { name: "Pedir: Solicitar encerramento" }).click();
       const closure = page.getByRole("dialog", { name: "Solicitar encerramento" });
-      await closure.getByLabel("Motivo").selectOption("FINANCIAL");
-      await closure.getByRole("button", { name: "Solicitar encerramento" }).click();
-      await expect(page.getByText(/Encerramento solicitado em/)).toBeVisible();
-      await expect(page.getByText("Judô: para a turma Jiu-Jitsu Noite").or(page.getByText(/para a turma Jiu-Jitsu Noite/))).toBeVisible();
+      await closure.getByLabel("Motivo *", { exact: true }).selectOption("FINANCIAL");
+      await closure.getByRole("button", { name: "Enviar pedido" }).click();
+      await expect(page.getByText("Encerramento", { exact: true })).toBeVisible();
+      await expect(page.getByText(/→ Jiu-Jitsu Noite/)).toBeVisible();
 
       // Gestão: recusa o encerramento com mensagem e aprova a troca de turma.
       await chooseLink(page, /Academia Alfa Gestão · Administrador/);
