@@ -25,6 +25,7 @@ Receber online, direto na conta do Mercado Pago de cada unidade, com baixa autom
 ### Meios e taxas
 
 - **RN-PAG-04.** Meios online: Pix, cartão de crédito, cartão de débito e boleto. O boleto só é gerado quando o aluno pede.
+- **RN-PAG-04a.** Cada unidade liga e desliga cada meio online (Pix, cartão de crédito, cartão de débito, boleto e débito automático), todos ligados por padrão; com a conta conectada, ao menos um fica ligado. O portal só oferece os meios ligados. Desligar um meio não afeta pagamentos já feitos, e débitos automáticos já ativos continuam até serem cancelados. (Decisão do dono de 19/11/2026.)
 - **RN-PAG-05.** A unidade informa a taxa de cada meio. O portal mostra o total de cada meio antes de o aluno escolher ("Pix: R$ 180,90 · Cartão: R$ 186,30"). A taxa é arredondada para cima no centavo e aparece no recibo.
 - **RN-PAG-06.** Pix do Mercado Pago vale 30 minutos; um clique gera outro. A confirmação aparece na tela sem recarregar.
 - **RN-PAG-07.** Boleto vence junto com a cobrança; se ela já venceu, 3 dias úteis à frente. O prazo de inativação não muda por causa do boleto. O portal avisa que a confirmação leva até 3 dias úteis.
@@ -47,11 +48,12 @@ Receber online, direto na conta do Mercado Pago de cada unidade, com baixa autom
 ### Mercado Pago indisponível ou desconectado
 
 - **RN-PAG-17.** Com a unidade desconectada, token expirado ou o provedor fora do ar: as cobranças continuam sendo geradas; o portal esconde cartão e boleto e mostra só a chave Pix da unidade, se houver, com "Envie o comprovante"; débitos automáticos são adiados; Coordenador e Administrador recebem alerta urgente por e-mail e uma faixa vermelha com "Reconectar" até resolver.
+- **RN-PAG-17a.** A chave "Aceitar Pix na chave quando o pagamento online estiver fora" (ligada por padrão, por unidade) decide a parte da chave Pix na RN-PAG-17: desligada, o portal não mostra a chave e diz "O pagamento online está indisponível. Fale com a academia" com o contato da unidade; o resto da RN-PAG-17 continua valendo (ninguém é inativado). (Decisão do dono de 19/11/2026.)
 - **RN-PAG-18.** Enquanto a unidade estiver desconectada, ninguém é inativado por atraso nela.
 
 ## Requisitos
 
-- **RF-PAG-01.** Configurações › Unidades › [unidade] › Cobrança: conexão, taxas por meio com prévia do total para um valor de exemplo, chave Pix.
+- **RF-PAG-01.** Configurações › Unidades › [unidade] › Cobrança: conexão, uma chave por meio online (RN-PAG-04a), taxas por meio com prévia do total para um valor de exemplo, chave Pix e a chave "Aceitar Pix na chave quando o pagamento online estiver fora" (RN-PAG-17a).
 - **RF-PAG-02.** Janela de pagamento no portal: cobrança(s) escolhida(s), total por meio, escolha do meio, quem processa ("Pagamento processado pelo Mercado Pago").
 - **RF-PAG-03.** Pix: QR Code, copia e cola, contador de validade, "Gerar novo".
 - **RF-PAG-04.** Cartão: formulário seguro do Mercado Pago, resposta na hora. Recusado: "Nada foi cobrado. A mensalidade continua em aberto." com "Tentar outro cartão", "Pagar com Pix" e "Pagar depois".

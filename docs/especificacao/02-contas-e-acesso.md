@@ -89,7 +89,7 @@ Uma conta por pessoa, um login único para gestão e portal, convites, seguranç
 | Turmas: ver lista e painel, criar, editar e desativar | ● | U | — |
 | Agenda: ver | ● | U | T |
 | Agenda: editar e cancelar aula | ● | U | T* |
-| Dias sem aula | ● (várias unidades de uma vez) | U | — |
+| Feriados e recessos | ● (várias unidades de uma vez) | U | — |
 | Graduação: registrar | ● | U | — (consulta T) |
 | Comunicados | ● (todas as unidades) | U | T* |
 | Aulas experimentais | ● | U | T* (ver) |
