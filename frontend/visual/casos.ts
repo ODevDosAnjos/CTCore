@@ -34,6 +34,7 @@ export type Caso = {
   agendaCanvas?: boolean; // #495: antes de abrir a tela, a semana de 12 a 18 de outubro do canvas (hoje, sexta 16)
   avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
   financeiroCanvas?: boolean; // #497: antes de abrir a tela, o Financeiro do canvas (Bruno Carvalho: 3 abertas, histórico de 2026 e chave Pix CNPJ da Tijuca)
+  informacoesCanvas?: boolean; // #498: antes de abrir a tela, Minhas informações e Minha conta do canvas (Bruno Carvalho: dados, Jiu-Jitsu e Muay Thai com plano, termos e duas sessões)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -81,7 +82,7 @@ export const casos: Caso[] = [
   { nome: "portal-aviso-aberto", rota: "/portal/avisos?aviso=00000000-0000-0000-0000-0000000007d2", perfil: aluno, canvas: "PortalAvisoAberto", canvasCelular: "PortalMAvisoAberto", avisosCanvas: true },
   { nome: "portal-financeiro", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalFinanceiro", canvasCelular: "PortalMFinanceiro", financeiroCanvas: true, passos: [{ clicar: "Selecionar Muay Thai · set/2026", papel: "checkbox" }, { clicar: "Selecionar Jiu-Jitsu · out/2026", papel: "checkbox" }] },
   { nome: "portal-pix-chave", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalPixChave", canvasCelular: "PortalMPixChave", financeiroCanvas: true, limiteCanvas: { valor: 0.7, motivo: "a janela do Pix usa o Modal base com o título do contrato (Pix na chave com comprovante), cartão da chave, seletor de arquivo nativo e o fundo do Financeiro com as tabelas do sistema; o canvas tem título, cartão e fundo próprios (#622 trata a tela e remove esta exceção)" }, passos: [{ clicar: "Selecionar Muay Thai · set/2026", papel: "checkbox" }, { clicar: "Selecionar Jiu-Jitsu · out/2026", papel: "checkbox" }, { clicar: "Enviar comprovante de Pix" }], aguardar: "[role=dialog] button[aria-label='Copiar chave'], [role=dialog] button:has-text('Copiar chave')" },
-  { nome: "portal-informacoes", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalInfo", canvasCelular: "PortalMInfo" },
+  { nome: "portal-informacoes", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalInfo", canvasCelular: "PortalMInfo", informacoesCanvas: true },
   { nome: "portal-carteirinha", rota: "/portal/carteirinha", perfil: aluno, canvas: "PortalCarteirinha", canvasCelular: "PortalMCarteirinhaOk", limiteCanvas: { valor: 0.5, motivo: "celular: sistema e canvas diferem na carteirinha a 390 px (medido na #435; a #499 trata a tela e remove esta exceção)" } },
   { nome: "portal-carteirinha-filhos", rota: "/portal/carteirinha", perfil: familia, canvas: "PortalCarteirinhaFilhos" },
   { nome: "portal-pedidos", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidos", canvasCelular: "PortalMPedidos" },
@@ -152,7 +153,7 @@ export const casos: Caso[] = [
   { nome: "convite-conta-existente", rota: "/convite/existente", canvas: "PrimeiroAcessoConta" },
   { nome: "convite-vencido", rota: "/convite/vencido", canvas: "ConviteVencido" },
   { nome: "sem-acesso", rota: "/configuracoes/usuarios", perfil: prof, canvas: "EstadoSemAcesso", canvasCelular: "SemAcessoM" },
-  { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", limiteCanvas: { valor: 0.80, motivo: "janela ou fundo: sistema e canvas não mostram a mesma janela (divergência medida na #435; a #498 trata a tela e remove esta exceção)" } },
+  { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", informacoesCanvas: true, passos: [{ clicar: "Trocar e-mail" }], limiteCanvas: { valor: 0.75, motivo: "fundo: a janela confere com o canvas (Novo e-mail, Senha atual com a dica, Resumo de 4 avisos, rodapé fixo); atrás dela o canvas mostra só o cartão Acesso, e o sistema mostra a página inteira (medido a 68,5% na #498; a #642 remove este limite)" } },
   { nome: "conta-duas-etapas", rota: "/conta?aba=duas-etapas", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img' },
   { nome: "conta-codigos-reserva", rota: "/conta?aba=duas-etapas", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Ver códigos de reserva novos" }, { clicar: "Guardei os códigos em lugar seguro", papel: "checkbox" }], aguardar: '[role="dialog"] ul li:nth-child(10)' },
   // #490: aba Notificações (Administrador: Receber tudo desabilitado) e a lista de atalhos do celular (GMConta é de 390 px: a 1440 não há comparação, o 390 é conferido nas capturas)
@@ -177,7 +178,7 @@ export const casos: Caso[] = [
   { nome: "professor-painel", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorPainel" },
   { nome: "professor-inativar", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorInativar", passos: [{ clicar: "Inativar" }], limiteCanvas: { valor: 0.45, motivo: "fundo: a ação nasce no painel, então a janela abre sobre a gaveta do professor e o canvas a mostra sobre a lista; dados do mock diferem do canvas (medido a 41,3% na #470; a #553 remove este limite)" } },
   { nome: "professor-modalidade-recusa", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorModalidadeRecusa", passos: [{ clicar: "Editar" }, { clicar: "Judô", papel: "checkbox" }], limiteCanvas: { valor: 0.55, motivo: "janela e fundo: o canvas mostra uma janela curta (Nome, Unidades, modalidades) sobre a lista, e o sistema reaproveita o formulário completo (R9) sobre a gaveta do painel (medido a 51,9% na #470; a #553 remove este limite)" } },
-  { nome: "portal-revogar-imagem", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalRevogarImagem", passos: [{ clicar: "Revogar" }], limiteCanvas: { valor: 0.85, motivo: "fundo: a janela confere com o canvas; a página atrás (Minhas informações) é mais longa que a do canvas (medido na #451; a #498 trata a tela e remove esta exceção)" } },
+  { nome: "portal-revogar-imagem", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalRevogarImagem", passos: [{ clicar: "Termos e uso de imagem", seExistir: true }, { clicar: "Revogar" }], informacoesCanvas: true, limiteCanvas: { valor: 0.8, motivo: "fundo: a janela confere com o canvas; atrás dela o canvas mostra só o cartão Termos, e o sistema mostra Minhas informações inteira (medido a 73,6% na #498; a #642 remove este limite)" } },
   { nome: "turma-desativar", rota: "/turmas/00000000-0000-0000-0000-000000000602", perfil: ana, canvas: "TurmaDesativar", passos: [{ clicar: "Desativar" }] },
   { nome: "turma-nova", rota: "/turmas", perfil: ana, canvas: "TurmaEditar", passos: [{ clicar: "Nova turma" }] },
   { nome: "turma-editar", rota: "/turmas/00000000-0000-0000-0000-000000000601", perfil: ana, canvas: "TurmaEditar", passos: [{ clicar: "Editar" }, { preencher: ["Término de Segunda-feira", "21:00"] }] },
@@ -222,7 +223,8 @@ export const casos: Caso[] = [
   { nome: "matricula-vencimento", rota: matriculaRota, perfil: ana, canvas: "MatriculaVencimento", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }] },
   { nome: "matricula-resumo", rota: matriculaRota, perfil: ana, canvas: "MatriculaResumo", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }, { clicar: "Continuar" }] },
   { nome: "matricula-concluida", rota: matriculaRota, perfil: ana, canvas: "MatriculaConcluida", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }, { clicar: "Continuar" }, { clicar: "Concluir matrícula" }] },
-  { nome: "portal-conta", rota: "/conta", perfil: aluno, canvas: "PortalConta", canvasCelular: "PortalMConta" },
+  { nome: "conta-aluno-pagina", rota: "/conta", perfil: aluno, canvas: "PortalConta", canvasCelular: "PortalMConta", informacoesCanvas: true },
+  { nome: "portal-editar-contato", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalMEditar", canvasCelular: "PortalMEditar", informacoesCanvas: true, passos: [{ clicar: "Editar(?: contato)?$" }] },
   { nome: "portal-familia", rota: "/portal/financeiro", perfil: familia, canvas: "PortalFamilia", canvasCelular: "PortalMFamilia" },
   { nome: "portal-reduzido-info", rota: "/portal/minhas-informacoes", perfil: reduzido, canvas: "PortalReduzidoInfo" },
   // Professor (#443): painel da aula e ficha pela aula, com STUDENT_RECORD ligada no MSW. Aula de segunda, 02/11/2026, da turma Jiu-Jitsu Adulto.
@@ -276,7 +278,7 @@ export const semCaso: Record<string, string[]> = {
     "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir",
     "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
-    "PortalEstados", "PortalMCarteirinha", "PortalMEditar", "PortalMEstados",
+    "PortalEstados", "PortalMCarteirinha", "PortalMEstados",
   ],
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
   "celular a 360 px: o teste visual captura 390 (D5 da #435)": [

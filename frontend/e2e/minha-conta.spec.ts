@@ -22,8 +22,7 @@ test("@critical troca de senha encerrando as outras sessões", async ({ page }) 
   await dialog.getByLabel("Confirmar senha").fill("NovaSenha123");
   await dialog.getByRole("button", { name: "Trocar senha" }).click();
 
-  await expect(dialog.getByText("Senha alterada. As outras sessões foram encerradas.")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
   await page.getByRole("tab", { name: "Sessões" }).click();
   await expect(page.getByText("Safari em iOS")).toHaveCount(0);
   await expect(page.getByText("Chrome em Windows")).toBeVisible();

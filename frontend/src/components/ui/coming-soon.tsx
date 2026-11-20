@@ -14,7 +14,8 @@ const MUTED = "cursor-not-allowed opacity-50";
  * Usa `aria-disabled` (e não `disabled`) para continuar alcançável por teclado; não tem `onClick` nem `href`.
  * O selo fica fora do nome acessível; a dica chega por `aria-describedby`.
  */
-export function ComingSoon({ variant, label, className }: { variant: ComingSoonVariant; label: string; className?: string }) {
+/** `tipAlign="end"`: a dica abre para a esquerda, para não passar da borda da tela (itens no fim da linha). */
+export function ComingSoon({ variant, label, className, tipAlign = "start" }: { variant: ComingSoonVariant; label: string; className?: string; tipAlign?: "start" | "end" }) {
   const { t } = useTranslation();
   const hintId = useId();
   const common = { "aria-disabled": true as const, "aria-describedby": hintId };
@@ -67,7 +68,7 @@ export function ComingSoon({ variant, label, className }: { variant: ComingSoonV
       <span
         role={variant === "menuitem" ? undefined : "tooltip"}
         id={hintId}
-        className="pointer-events-none invisible absolute left-0 top-full z-10 mt-1 whitespace-nowrap rounded-md border bg-card px-2 py-1 text-xs text-foreground shadow group-focus-within:visible group-hover:visible"
+        className={cn("pointer-events-none invisible absolute top-full z-10 mt-1 whitespace-nowrap rounded-md border bg-card px-2 py-1 text-xs text-foreground shadow group-focus-within:visible group-hover:visible", tipAlign === "end" ? "right-0" : "left-0")}
       >
         {t("comingSoon.hint")}
       </span>

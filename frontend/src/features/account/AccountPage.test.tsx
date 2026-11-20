@@ -86,8 +86,16 @@ describe("AccountPage: abas (CA1, CA2)", () => {
     await setup("STUDENT");
     await ready();
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Senha atual")).toBeInTheDocument();
-    expect(screen.getByLabelText("Novo e-mail")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Minha conta" })).toBeInTheDocument();
+    expect(screen.getByText("Minhas informações", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Minhas informações", current: "page" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar" })).toHaveAttribute("href", "/portal/minhas-informacoes");
+    for (const name of ["Acesso", "Verificação em duas etapas", "Sessões ativas", "Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    expect(screen.getByText("Opcional para alunos")).toBeInTheDocument();
+    expect(screen.getByText("No portal, a sessão dura 30 dias.")).toBeInTheDocument();
+    for (const name of ["Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("button", { name })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getAllByText("Em breve").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();
   });
 });
 
@@ -125,8 +133,7 @@ describe("AccountPage: senha (CA3)", () => {
     await user.clear(within(dialog).getByLabelText("Senha atual"));
     await user.type(within(dialog).getByLabelText("Senha atual"), "Atual12345");
     await user.click(within(dialog).getByRole("button", { name: "Trocar senha" }));
-    expect(await within(dialog).findByText("Senha alterada. As outras sessões foram encerradas.")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Senha atual")).toHaveValue("");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("senha conhecida vira erro no campo da senha nova; 429 vira aviso do formulário", async () => {
@@ -160,16 +167,18 @@ describe("AccountPage: senha (CA3)", () => {
     expect(within(dialog).getByRole("button", { name: "Trocar senha" })).toBeDisabled();
   });
 
-  it("o Aluno troca a senha pelo formulário da própria página, e as outras sessões saem da lista", async () => {
+  it("o Aluno troca a senha pela janela da própria página, e as outras sessões saem da lista", async () => {
     const user = userEvent.setup();
     await setup("STUDENT");
     await ready();
     expect(await screen.findByText("Safari em iOS")).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Senha atual"), "Atual12345");
-    await user.type(screen.getByLabelText("Senha", { selector: "#acc-senha" }), strong);
-    await user.type(screen.getByLabelText("Confirmar senha"), strong);
     await user.click(screen.getByRole("button", { name: "Trocar senha" }));
-    expect(await screen.findByText("Senha alterada. As outras sessões foram encerradas.")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Trocar senha" });
+    await user.type(within(dialog).getByLabelText("Senha atual"), "Atual12345");
+    await user.type(within(dialog).getByLabelText("Senha", { selector: "#acc-senha" }), strong);
+    await user.type(within(dialog).getByLabelText("Confirmar senha"), strong);
+    await user.click(within(dialog).getByRole("button", { name: "Trocar senha" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await waitFor(() => expect(screen.queryByText("Safari em iOS")).not.toBeInTheDocument());
     expect(await screen.findByText("Chrome em Windows")).toBeInTheDocument();
   });
@@ -186,22 +195,28 @@ describe("AccountPage: e-mail (CA3)", () => {
     await user.click(send);
     expect(await within(dialog).findByText("Preencha todos os campos.")).toBeInTheDocument();
 
-    await user.type(within(dialog).getByLabelText("Novo e-mail"), "ana@exemplo.com");
-    await user.type(within(dialog).getByLabelText("Sua senha"), "Atual12345");
+    await user.type(within(dialog).getByLabelText(/^Novo e-mail/), "ana@exemplo.com");
+    await user.type(within(dialog).getByLabelText(/^Senha atual/), "Atual12345");
     await user.click(send);
     expect(await within(dialog).findByText("Informe outro e-mail válido.")).toBeInTheDocument();
 
-    await user.clear(within(dialog).getByLabelText("Novo e-mail"));
-    await user.type(within(dialog).getByLabelText("Novo e-mail"), "novo@x.com");
-    await user.clear(within(dialog).getByLabelText("Sua senha"));
-    await user.type(within(dialog).getByLabelText("Sua senha"), "errada");
+    await user.clear(within(dialog).getByLabelText(/^Novo e-mail/));
+    await user.type(within(dialog).getByLabelText(/^Novo e-mail/), "novo@x.com");
+    await user.clear(within(dialog).getByLabelText(/^Senha atual/));
+    await user.type(within(dialog).getByLabelText(/^Senha atual/), "errada");
     await user.click(send);
     expect(await within(dialog).findByText("Senha incorreta.")).toBeInTheDocument();
 
-    await user.clear(within(dialog).getByLabelText("Sua senha"));
-    await user.type(within(dialog).getByLabelText("Sua senha"), "Atual12345");
+    await user.clear(within(dialog).getByLabelText(/^Senha atual/));
+    await user.type(within(dialog).getByLabelText(/^Senha atual/), "Atual12345");
     await user.click(send);
     expect(await within(dialog).findByText(/novo@x\.com puder ser usado/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Senha errada conta para a trava de 5 tentativas.")).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/^Código do app autenticador/)).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Resumo")).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("listitem")).toHaveLength(4);
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("com as duas etapas pede o código", async () => {
@@ -215,15 +230,15 @@ describe("AccountPage: e-mail (CA3)", () => {
     await ready();
     await user.click(screen.getByRole("button", { name: "Trocar e-mail" }));
     const dialog = await screen.findByRole("dialog");
-    await user.type(within(dialog).getByLabelText("Novo e-mail"), "novo@x.com");
-    await user.type(within(dialog).getByLabelText("Sua senha"), "Atual12345");
+    await user.type(within(dialog).getByLabelText(/^Novo e-mail/), "novo@x.com");
+    await user.type(within(dialog).getByLabelText(/^Senha atual/), "Atual12345");
     await user.click(within(dialog).getByRole("button", { name: "Enviar link de confirmação" }));
     expect(await within(dialog).findByText("Preencha todos os campos.")).toBeInTheDocument();
-    await user.type(within(dialog).getByLabelText("Código do app ou de reserva"), "000000");
+    await user.type(within(dialog).getByLabelText(/^Código do app autenticador/), "000000");
     await user.click(within(dialog).getByRole("button", { name: "Enviar link de confirmação" }));
     expect(await within(dialog).findByText("Código incorreto.")).toBeInTheDocument();
-    await user.clear(within(dialog).getByLabelText("Código do app ou de reserva"));
-    await user.type(within(dialog).getByLabelText("Código do app ou de reserva"), "123456");
+    await user.clear(within(dialog).getByLabelText(/^Código do app autenticador/));
+    await user.type(within(dialog).getByLabelText(/^Código do app autenticador/), "123456");
     await user.click(within(dialog).getByRole("button", { name: "Enviar link de confirmação" }));
     expect(await within(dialog).findByText(/novo@x\.com puder ser usado/)).toBeInTheDocument();
   });
@@ -467,5 +482,21 @@ describe("AccountPage: acessibilidade em 360 px (CA13)", () => {
     if (path.includes("notificacoes")) await screen.findByText("Sino da gestão");
     expect(document.documentElement.classList.contains("dark")).toBe(dark);
     expect(await axeViolations(container)).toEqual([]);
+  });
+});
+
+describe("AccountPage do portal: janelas sem violações no axe (CA13)", () => {
+  it.each([
+    ["Trocar e-mail", false],
+    ["Trocar e-mail", true],
+    ["Trocar senha", false],
+    ["Trocar senha", true],
+  ])("janela %s (escuro: %s)", async (name, dark) => {
+    setDevicePrefersDark(dark);
+    await setup("STUDENT", { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" });
+    await ready();
+    await userEvent.setup().click(screen.getByRole("button", { name }));
+    await screen.findByRole("dialog", { name });
+    expect(await axeViolations(document.body)).toEqual([]);
   });
 });

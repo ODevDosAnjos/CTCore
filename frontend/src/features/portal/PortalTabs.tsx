@@ -1,6 +1,6 @@
 import { CalendarDays, House, Bell, User, Wallet, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NavLink } from "react-router";
+import { Link, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
 
 const TABS: { id: string; to: string; full: boolean; Icon: LucideIcon }[] = [
@@ -30,17 +30,20 @@ function Count({ count, className }: { count: number; className?: string }) {
 export function PortalTabs({ reduced, count, variant }: { reduced: boolean; count: number; variant: "bar" | "bottom" }) {
   const { t } = useTranslation();
   const bar = variant === "bar";
+  const { pathname } = useLocation();
   return (
     <nav
       aria-label={t(bar ? "portalShell.nav" : "portalShell.navBottom")}
       className={bar ? "hidden h-full gap-1 md:flex md:flex-1" : "fixed inset-x-0 bottom-0 z-10 flex border-t bg-background md:hidden"}
     >
       {TABS.filter((tab) => !(reduced && tab.full)).map(({ id, to, Icon }) => {
+        // Minha conta é parte de Minhas informações (canvas PortalConta): a aba continua ativa.
+        const active = pathname === to || (id === "info" && pathname === "/conta");
         return (
-          <NavLink
+          <Link
             key={id}
             to={to}
-            end
+            aria-current={active ? "page" : undefined}
             className={cn(
               ring,
               bar
@@ -52,7 +55,7 @@ export function PortalTabs({ reduced, count, variant }: { reduced: boolean; coun
             {t(bar ? `portalShell.tabs.${id}` : `portalShell.tabsShort.${id}`)}
             {id === "notices" && count > 0 && " "}
             {id === "notices" && <Count count={count} className={bar ? undefined : "absolute right-1/4 top-1"} />}
-          </NavLink>
+          </Link>
         );
       })}
     </nav>

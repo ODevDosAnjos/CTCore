@@ -73,10 +73,27 @@ export function PortalContactDialog({ studentId, personal, onClose, onSaved }: {
   }
 
   return (
-    <Modal open onOpenChange={(open) => !open && !busy && onClose()} title={t(`${k}title`)} className="max-h-[90vh] overflow-y-auto">
+    <Modal
+      open
+      onOpenChange={(open) => !open && !busy && onClose()}
+      title={t(`${k}title`)}
+      size="md"
+      fullOnMobile
+      footer={
+        <>
+          <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
+            {t(`${k}cancel`)}
+          </Button>
+          <Button type="submit" form="portal-contact-form" disabled={busy}>
+            {busy ? t(`${k}saving`) : t(`${k}save`)}
+          </Button>
+        </>
+      }
+    >
       <form
+        id="portal-contact-form"
         noValidate
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-4"
         aria-busy={busy}
         onSubmit={(ev) => {
           ev.preventDefault();
@@ -97,27 +114,32 @@ export function PortalContactDialog({ studentId, personal, onClose, onSaved }: {
           )}
         </div>
         <Text label={t(`${k}postalCode`)} value={postalCode} onChange={(v) => setPostalCode(formatCep(v))} error={errors.postalCode} inputMode="numeric" autoComplete="postal-code" />
-        <Text label={t(`${k}street`)} value={street} onChange={setStreet} error={errors.street} autoComplete="address-line1" />
-        <Text label={t(`${k}number`)} value={number} onChange={setNumber} error={errors.number} />
-        <Text label={t(`${k}complement`)} value={complement} onChange={setComplement} error={errors.complement} />
-        <Text label={t(`${k}district`)} value={district} onChange={setDistrict} error={errors.district} />
-        <Text label={t(`${k}city`)} value={city} onChange={setCity} error={errors.city} />
-        <div>
-          <label htmlFor="pc-state" className="block text-sm font-medium">
-            {t(`${k}state`)}
-          </label>
-          <Select id="pc-state" value={state} aria-invalid={!!errors.state || undefined} onChange={(ev) => setState(ev.target.value)}>
-            <option value="">{t(`${k}stateChoose`)}</option>
-            {STATES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </Select>
-          {errors.state && <p className="text-sm text-danger-foreground">{errors.state}</p>}
-        </div>
         <fieldset className="flex flex-col gap-3">
-          <legend className="text-sm font-semibold">{t(`${k}emergency`)}</legend>
+          <legend className="text-sm font-medium">{t(`${k}address`)}</legend>
+          <Text label={t(`${k}street`)} value={street} onChange={setStreet} error={errors.street} autoComplete="address-line1" />
+          <div className="grid grid-cols-2 gap-3">
+            <Text label={t(`${k}number`)} value={number} onChange={setNumber} error={errors.number} />
+            <Text label={t(`${k}district`)} value={district} onChange={setDistrict} error={errors.district} />
+            <Text label={t(`${k}city`)} value={city} onChange={setCity} error={errors.city} />
+            <div>
+              <label htmlFor="pc-state" className="block text-sm font-medium">
+                {t(`${k}state`)}
+              </label>
+              <Select id="pc-state" value={state} aria-invalid={!!errors.state || undefined} onChange={(ev) => setState(ev.target.value)}>
+                <option value="">{t(`${k}stateChoose`)}</option>
+                {STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </Select>
+              {errors.state && <p className="text-sm text-danger-foreground">{errors.state}</p>}
+            </div>
+          </div>
+        </fieldset>
+        <Text label={t(`${k}complement`)} value={complement} onChange={setComplement} error={errors.complement} />
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-sm font-medium">{t(`${k}emergency`)}</legend>
           <Text label={t(`${k}emergencyName`)} value={emergencyName} onChange={setEmergencyName} error={errors.emergencyName} />
           <Text label={t(`${k}emergencyRelationship`)} value={emergencyRelationship} onChange={setEmergencyRelationship} error={errors.emergencyRelationship} />
           <div>
@@ -129,14 +151,7 @@ export function PortalContactDialog({ studentId, personal, onClose, onSaved }: {
             )}
           </div>
         </fieldset>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={onClose}>
-            {t(`${k}cancel`)}
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={busy}>
-            {busy ? t(`${k}saving`) : t(`${k}save`)}
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground">{t(`${k}note`)}</p>
       </form>
     </Modal>
   );

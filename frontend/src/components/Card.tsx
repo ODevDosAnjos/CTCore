@@ -5,6 +5,9 @@ const BOX = "rounded-card border bg-card text-card-foreground";
 
 type Heading = "h2" | "h3";
 
+/** Título de cartão do canvas do portal: fonte de texto, sem o condensado dos títulos de página. */
+export const CARD_TITLE = "font-sans tracking-normal";
+
 /** Cartão com título e ação à direita; o título nomeia a região. */
 export function Section({
   title,

@@ -1,14 +1,18 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { Modal } from "@/components/Modal";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { SummaryBox } from "@/components/ui/summary-box";
 import { CodeField } from "@/features/auth/CodeField";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ApiError, api } from "@/lib/api";
 
-// RN-ACE-15 (D2): o pedido exige a senha e, com as duas etapas, o código. O e-mail só muda ao abrir o link.
-export function ChangeEmailForm() {
+const FORM = "change-email-form";
+
+// RN-ACE-15 (D2): o pedido exige a senha e, com as duas etapas, o código. O e-mail só muda ao abrir o link. Janela "Trocar e-mail" do canvas (rodapé fixo).
+export function ChangeEmailForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
@@ -65,60 +69,38 @@ export function ChangeEmailForm() {
   }
 
   return (
-      <form
-        noValidate
-        onSubmit={submit}
-        className="max-w-md space-y-4"
-        aria-busy={sending}
-      >
-        <p className="text-sm">
-          {t("account.email.intro", { email: session?.account.email ?? "" })}
-        </p>
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t("account.email.modalTitle")}
+      size="sm"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {t("account.email.cancel")}
+          </Button>
+          <Button type="submit" form={FORM} disabled={sending}>
+            {sending ? t("account.email.sending") : t("account.email.submit")}
+          </Button>
+        </>
+      }
+    >
+      <form id={FORM} noValidate onSubmit={submit} className="space-y-4" aria-busy={sending}>
         {errors.form && <Banner tone="danger">{errors.form}</Banner>}
-        <Field label={t("account.email.new")} error={errors.email} alertError>
-          {(c) => (
-            <Input
-              {...c}
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          )}
+        <Field label={t("account.email.new")} required error={errors.email} alertError>
+          {(c) => <Input {...c} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
         </Field>
-        <Field
-          label={t("account.email.password")}
-          error={errors.password}
-          alertError
-        >
-          {(c) => (
-            <Input
-              {...c}
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          )}
+        <Field label={t("account.email.password")} required hint={t("account.email.passwordHint")} error={errors.password} alertError>
+          {(c) => <Input {...c} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
         </Field>
-        {withCode && (
-          <CodeField
-            id="acc-email-code"
-            kind="any"
-            label={t("reauth.code")}
-            value={code}
-            onChange={setCode}
-            error={errors.code}
-          />
-        )}
+        {withCode && <CodeField id="acc-email-code" kind="any" label={`${t("account.email.code")} *`} hint={t("account.email.codeHint")} value={code} onChange={setCode} error={errors.code} />}
+        <SummaryBox label={t("account.email.summaryLabel")} items={[t("account.email.summary1"), t("account.email.summary2"), t("account.email.summary3"), t("account.email.summary4")]} />
         {sentTo && (
           <p role="status" className="text-sm">
             {t("account.email.sent", { email: sentTo })}
           </p>
         )}
-        <Button type="submit" disabled={sending}>
-          {sending ? t("account.email.sending") : t("account.email.submit")}
-        </Button>
       </form>
+    </Modal>
   );
 }
