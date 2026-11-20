@@ -44,7 +44,7 @@ Os prazos desta seção são decisões de produto e precisam da confirmação de
 - **RF-AUD-01.** Configurações › Dados e segurança › Auditoria: lista com quando, quem (nome e perfil), o que aconteceu e onde. Filtros por período, pessoa, unidade e área (Alunos, Financeiro, Agenda, Comunicação, Configurações, Acesso).
 - **RF-AUD-02.** O painel do registro mostra o valor antes e depois de cada campo, o motivo e o atalho para o item.
 - **RF-AUD-03.** Exportar a auditoria filtrada em CSV (vai para a própria auditoria).
-- **RF-LGP-01.** Botão "Baixar meus dados" no portal e "Baixar dados do aluno" na ficha (RN-LGP-04).
+- **RF-LGP-01.** Botão "Baixar meus dados" em Minha conta › Privacidade, para qualquer conta, e "Baixar dados do aluno" na ficha (RN-LGP-04). Para quem não é aluno nem responsável, o arquivo traz a conta (nome, e-mail, telefone, foto), os vínculos, os consentimentos e os acessos registrados; para aluno e responsável, o que a RN-LGP-04 lista. (Alterado em 19/11/2026: antes só no portal.)
 - **RF-LGP-02.** "Excluir minha conta" no portal, explicando o que acontece em cada organização (RN-LGP-05).
 - **RF-LGP-03.** Pedidos de exclusão aparecem no "Precisa de atenção" com o prazo de 15 dias.
 - **RF-LGP-04.** "Anonimizar aluno" na ficha, com confirmação digitada.
