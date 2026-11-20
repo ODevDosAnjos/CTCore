@@ -1,5 +1,3 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Select } from "@/components/ui/field";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -7,7 +5,11 @@ import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { PortalAutoDebitCard } from "./PortalAutoDebitCard";
+import { Avatar } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { PortalChargeHistory } from "./PortalChargeHistory";
+import { PortalHeading } from "./PortalHeading";
+import { PortalReceiptsCard } from "./PortalReceiptsCard";
 import { PortalLayout } from "./PortalLayout";
 import { PortalOpenCharges } from "./PortalOpenCharges";
 import { usePortalFinance, type PortalFinanceData } from "./usePortalFinance";
@@ -39,21 +41,32 @@ export function PortalFinancePage() {
 
   return (
     <PortalLayout>
-      <PageHeader title={t("portalShell.tabs.finance")} className="mb-4" />
+      <PortalHeading
+        className="mb-4"
+        label={t("portalFinance.label")}
+        title={t("portalShell.tabs.finance")}
+        subtitle={shown && family ? t("portalFinance.familyTotal", { value: formatCurrency(shown.familyOpenCents) }) : undefined}
+      />
       {shown && shown.students.length > 1 && (
-        <div className="mb-4 flex flex-col gap-2">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium">{t("portalFinance.student")}</span>
-            <Select value={family ? FAMILY : (student ?? shown.selectedStudentId ?? "")} onChange={(e) => choose(e.target.value)}>
-              {shown.students.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.self ? t("portalFinance.you") : s.name}
-                </option>
-              ))}
-              <option value={FAMILY}>{t("portalFinance.family")}</option>
-            </Select>
-          </label>
-          {family && <p className="font-medium">{t("portalFinance.familyTotal", { value: formatCurrency(shown.familyOpenCents) })}</p>}
+        <div role="group" aria-label={t("portalFinance.student")} className="mb-4 flex flex-wrap gap-2">
+          {[...shown.students.map((s) => ({ id: s.id, name: s.name, label: s.self ? t("portalFinance.you") : s.name })), { id: FAMILY, name: "", label: t("portalFinance.family") }].map((c) => {
+            const on = c.id === (family ? FAMILY : (student ?? shown.selectedStudentId ?? ""));
+            return (
+              <button
+                key={c.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => choose(c.id)}
+                className={cn(
+                  "relative inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm after:absolute after:left-0 after:top-1/2 after:h-11 after:w-full after:-translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  on ? "border-primary bg-primary/10 font-medium" : "border-input bg-card hover:bg-surface-soft",
+                )}
+              >
+                {c.name && <Avatar name={c.name} decorative size="sm" className="size-6 text-[10px]" />}
+                {c.label}
+              </button>
+            );
+          })}
         </div>
       )}
       {status === "loading" || status === "idle" ? (
@@ -63,8 +76,11 @@ export function PortalFinancePage() {
       ) : status === "ready" && data ? (
         <div className="flex flex-col gap-4">
           <PortalOpenCharges items={data.open} showStudent={family} onChanged={reload} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <PortalAutoDebitCard />
+            <PortalReceiptsCard />
+          </div>
           {!family && <PortalChargeHistory items={data.history} year={data.year} years={data.years} onYear={(y) => change({ ano: String(y) })} />}
-          <PortalAutoDebitCard />
         </div>
       ) : (
         <ErrorState variant="card" title={t("portalFinance.states.errorTitle")} onRetry={reload} />

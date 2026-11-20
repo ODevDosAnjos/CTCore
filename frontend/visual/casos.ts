@@ -33,6 +33,7 @@ export type Caso = {
   inicioCanvas?: "em-dia" | "confirmar"; // #493: antes de abrir a tela, o Início sem cobrança e com o próximo vencimento (em-dia) ou com uma modalidade nova pendente (confirmar)
   agendaCanvas?: boolean; // #495: antes de abrir a tela, a semana de 12 a 18 de outubro do canvas (hoje, sexta 16)
   avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
+  financeiroCanvas?: boolean; // #497: antes de abrir a tela, o Financeiro do canvas (Bruno Carvalho: 3 abertas, histórico de 2026 e chave Pix CNPJ da Tijuca)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -78,7 +79,8 @@ export const casos: Caso[] = [
   { nome: "portal-agenda", rota: "/portal/agenda", perfil: aluno, canvas: "PortalAgenda", canvasCelular: "PortalMAgenda", agendaCanvas: true },
   { nome: "portal-avisos", rota: "/portal/avisos", perfil: aluno, canvas: "PortalAvisos", canvasCelular: "PortalMAvisos", avisosCanvas: true },
   { nome: "portal-aviso-aberto", rota: "/portal/avisos?aviso=00000000-0000-0000-0000-0000000007d2", perfil: aluno, canvas: "PortalAvisoAberto", canvasCelular: "PortalMAvisoAberto", avisosCanvas: true },
-  { nome: "portal-financeiro", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalFinanceiro", canvasCelular: "PortalMFinanceiro" },
+  { nome: "portal-financeiro", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalFinanceiro", canvasCelular: "PortalMFinanceiro", financeiroCanvas: true, passos: [{ clicar: "Selecionar Muay Thai · set/2026", papel: "checkbox" }, { clicar: "Selecionar Jiu-Jitsu · out/2026", papel: "checkbox" }] },
+  { nome: "portal-pix-chave", rota: "/portal/financeiro", perfil: aluno, canvas: "PortalPixChave", canvasCelular: "PortalMPixChave", financeiroCanvas: true, limiteCanvas: { valor: 0.7, motivo: "a janela do Pix usa o Modal base com o título do contrato (Pix na chave com comprovante), cartão da chave, seletor de arquivo nativo e o fundo do Financeiro com as tabelas do sistema; o canvas tem título, cartão e fundo próprios (#622 trata a tela e remove esta exceção)" }, passos: [{ clicar: "Selecionar Muay Thai · set/2026", papel: "checkbox" }, { clicar: "Selecionar Jiu-Jitsu · out/2026", papel: "checkbox" }, { clicar: "Enviar comprovante de Pix" }], aguardar: "[role=dialog] button[aria-label='Copiar chave'], [role=dialog] button:has-text('Copiar chave')" },
   { nome: "portal-informacoes", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalInfo", canvasCelular: "PortalMInfo" },
   { nome: "portal-carteirinha", rota: "/portal/carteirinha", perfil: aluno, canvas: "PortalCarteirinha", canvasCelular: "PortalMCarteirinhaOk", limiteCanvas: { valor: 0.5, motivo: "celular: sistema e canvas diferem na carteirinha a 390 px (medido na #435; a #499 trata a tela e remove esta exceção)" } },
   { nome: "portal-carteirinha-filhos", rota: "/portal/carteirinha", perfil: familia, canvas: "PortalCarteirinhaFilhos" },
@@ -291,8 +293,8 @@ export const semCaso: Record<string, string[]> = {
   ],
   // pagamento do portal: depende de cobrança em aberto e do pagamento simulado, que o MSW não deixa em estado fixo
   "pagamento do portal: depende de cobrança em aberto e do pagamento simulado, que o MSW não deixa em estado fixo": [
-    "PortalPagamento", "PortalPix", "PortalBoleto", "PortalPagamentoOk", "PortalPagamentoErro", "PortalPixChave",
+    "PortalPagamento", "PortalPix", "PortalBoleto", "PortalPagamentoOk", "PortalPagamentoErro",
     "PortalDebito", "PortalComprovanteVarias", "PortalMPagamento", "PortalMPix", "PortalMBoleto", "PortalMPagamentoOk",
-    "PortalMCartaoRecusado", "PortalMPixChave", "PortalMDebito",
+    "PortalMCartaoRecusado", "PortalMDebito",
   ],
 };

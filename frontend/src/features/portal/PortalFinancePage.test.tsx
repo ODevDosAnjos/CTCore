@@ -6,7 +6,7 @@ import { App } from "@/App";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { FinanceCharge, PortalFinanceData } from "./usePortalFinance";
 
@@ -106,35 +106,70 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     send.calls.length = 0;
   });
 
-  it("CA9: abertas na ordem do servidor, composição aberta por botão, Em conferência sem Pagar, histórico com recibo e débito automático inativo (CA8)", async () => {
+  it("abertas: tabela na ordem do servidor, subtítulo, Em conferência sem caixa, sem Pagar por linha nem composição; histórico e débito automático (CA1, CA3)", async () => {
     serve(finance());
-    const user = userEvent.setup();
     setup();
     const open = within(await screen.findByRole("region", { name: "Em aberto" }));
-    expect(open.getAllByRole("listitem").map((li) => li.querySelector("p")?.textContent)).toEqual(["Jiu-Jitsu · 10/2026", "Kimono", "Judô · 10/2026", "Seminário"]);
-    expect(open.getByText("Em conferência")).toBeInTheDocument();
-    expect(open.getAllByRole("button", { name: /^Pagar / })).toHaveLength(3);
-    expect(open.queryByRole("button", { name: "Pagar Judô · 10/2026" })).not.toBeInTheDocument();
-    expect(open.queryByRole("checkbox", { name: "Selecionar Judô · 10/2026" })).not.toBeInTheDocument();
-
-    const first = open.getAllByRole("listitem")[0];
-    await user.click(within(first).getByText("Composição"));
-    expect(within(first).getByText("Plano").nextElementSibling).toHaveTextContent(/100,00/);
-    expect(within(first).getByText("Benefício").nextElementSibling).toHaveTextContent(/10,00/);
-    expect(within(first).getByText("Valor final").nextElementSibling).toHaveTextContent(/90,00/);
+    expect(open.getByText("vencidas primeiro")).toBeInTheDocument();
+    expect(open.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Seleção", "Cobrança", "Vencimento", "Valor", "Situação"]);
+    const rows = open.getAllByRole("row").slice(1);
+    expect(rows.map((r) => within(r).getAllByRole("cell")[1].textContent)).toEqual(["Jiu-Jitsu · 10/2026", "Kimono", "Judô · 10/2026", "Seminário"]);
+    expect(within(rows[0]).getByText("05/10/2026")).toBeInTheDocument();
+    expect(within(rows[0]).getByText("Vencida")).toBeInTheDocument();
+    expect(within(rows[2]).getByText("Em conferência")).toBeInTheDocument();
+    expect(within(rows[2]).queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(open.getAllByRole("checkbox")).toHaveLength(3);
+    expect(open.queryByRole("button", { name: /^Pagar / })).not.toBeInTheDocument();
+    expect(open.queryByText("Composição")).not.toBeInTheDocument();
 
     const history = within(screen.getByRole("region", { name: "Histórico" }));
-    expect(history.getByText("Pago em 04/03/2026 · Meio: Pix pela chave")).toBeInTheDocument();
+    expect(history.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Referência", "Vencimento", "Valor pago", "Pago em", "Meio", "Situação", "Recibo"]);
+    expect(history.getByText("04/03/2026")).toBeInTheDocument();
+    expect(history.getByText("Pix pela chave")).toBeInTheDocument();
+    expect(history.queryByRole("combobox")).not.toBeInTheDocument();
     expect(history.getByRole("link", { name: "Baixar recibo de Jiu-Jitsu · 03/2026" })).toHaveAttribute("href", "/api/v1/portal/receipts/RC-7/pdf");
-    expect(history.getAllByRole("link")).toHaveLength(1);
     expect(history.getByText("Cancelada")).toBeInTheDocument();
 
     const debit = within(screen.getByRole("region", { name: "Débito automático" }));
-    expect(debit.getByText("Inativo")).toBeInTheDocument();
-    expect(debit.queryByRole("button")).not.toBeInTheDocument();
+    expect(debit.queryByText("Inativo")).not.toBeInTheDocument();
+    expect(debit.getByRole("button", { name: "Ativar" })).toHaveAttribute("aria-disabled", "true");
+    expect(debit.getByText("Em breve")).toBeInTheDocument();
+    const receipts = within(screen.getByRole("region", { name: "Recibos por e-mail" }));
+    expect(receipts.getByText(/^Chegam em .+ a cada pagamento.$/)).toBeInTheDocument();
   });
 
-  it("CA9, CA10: marcar duas da mesma unidade soma o total e envia o arquivo único; a lista é relida", async () => {
+  it("abertas: no celular as linhas viram cartões (CA1)", async () => {
+    setDeviceNarrow(true);
+    try {
+      serve(finance());
+      setup();
+      const open = within(await screen.findByRole("region", { name: "Em aberto" }));
+      expect(open.queryByRole("table")).not.toBeInTheDocument();
+      const items = open.getAllByRole("listitem");
+      expect(items).toHaveLength(4);
+      expect(within(items[0]).getByText("venceu 05/10")).toBeInTheDocument();
+      expect(within(items[1]).getByText("vence 20/11")).toBeInTheDocument();
+    } finally {
+      setDevicePrefersDark(false);
+    }
+  });
+
+  it("histórico: no celular as linhas são compactas, com Meio · dia, valor e ícone de recibo (CA4)", async () => {
+    setDeviceNarrow(true);
+    try {
+      serve(finance());
+      setup();
+      const history = within(await screen.findByRole("region", { name: "Histórico" }));
+      expect(history.queryByRole("table")).not.toBeInTheDocument();
+      const first = history.getAllByRole("listitem")[0];
+      expect(within(first).getByText("Pix pela chave · 04/03")).toBeInTheDocument();
+      expect(within(first).getByRole("link", { name: "Baixar recibo de Jiu-Jitsu · 03/2026" })).toBeInTheDocument();
+    } finally {
+      setDevicePrefersDark(false);
+    }
+  });
+
+  it("abertas: marcar duas da mesma unidade soma o total, Pagar fica em breve e Enviar comprovante abre a janela; o arquivo único é enviado e a lista relida (CA2)", async () => {
     let reads = 0;
     serve(() => HttpResponse.json((reads++, finance())));
     server.use(http.get("/api/v1/portal/charges/pix-instructions", ({ request }) => (new URL(request.url).searchParams.get("ids") === "c1,c2" ? HttpResponse.json(batch) : HttpResponse.json({}, { status: 404 }))));
@@ -143,14 +178,17 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     const open = within(await screen.findByRole("region", { name: "Em aberto" }));
     await user.click(open.getByRole("checkbox", { name: "Selecionar Jiu-Jitsu · 10/2026" }));
     await user.click(open.getByRole("checkbox", { name: "Selecionar Kimono" }));
-    expect(open.getByRole("status")).toHaveTextContent("2 selecionadas · Total R$ 120,00");
-    const paySelected = open.getByRole("button", { name: "Pagar selecionadas" });
-    expect(paySelected).toBeEnabled();
-    await user.click(paySelected);
+    expect(open.getByRole("status")).toHaveTextContent("2 selecionadas · R$ 120,00");
+    const pay = open.getByRole("button", { name: "Pagar R$ 120,00" });
+    expect(pay).toHaveAttribute("aria-disabled", "true");
+    expect(open.getByText("Em breve")).toBeInTheDocument();
+    await user.click(pay);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(open.getByRole("button", { name: "Enviar comprovante de Pix" }));
 
     const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave com comprovante" }));
     expect(await dialog.findByText("pix@alfa.test")).toBeInTheDocument();
-    expect(dialog.getByText(/120,00/)).toBeInTheDocument();
+    expect(dialog.getByText(/120,00 \(sem taxa\)/)).toBeInTheDocument();
     expect(dialog.getAllByRole("listitem")).toHaveLength(2);
     await user.upload(dialog.getByLabelText(/Comprovante \(JPG/), new File(["x"], "comprovante.png", { type: "image/png" }));
     await user.click(dialog.getByRole("button", { name: "Enviar comprovante" }));
@@ -159,7 +197,7 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     await waitFor(() => expect(reads).toBe(2));
   });
 
-  it("CA9: unidades diferentes mostram o aviso e desabilitam Pagar selecionadas; desmarcar libera", async () => {
+  it("abertas: unidades diferentes mostram o aviso e desabilitam Enviar comprovante; desmarcar libera (CA2)", async () => {
     serve(finance());
     const user = userEvent.setup();
     setup();
@@ -167,21 +205,40 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     await user.click(open.getByRole("checkbox", { name: "Selecionar Jiu-Jitsu · 10/2026" }));
     await user.click(open.getByRole("checkbox", { name: "Selecionar Seminário" }));
     expect(open.getByRole("alert")).toHaveTextContent("Escolha cobranças da mesma unidade para pagar juntas.");
-    expect(open.getByRole("button", { name: "Pagar selecionadas" })).toBeDisabled();
+    expect(open.getByRole("button", { name: "Enviar comprovante de Pix" })).toBeDisabled();
     await user.click(open.getByRole("checkbox", { name: "Selecionar Seminário" }));
     expect(open.queryByRole("alert")).not.toBeInTheDocument();
-    expect(open.getByRole("button", { name: "Pagar selecionadas" })).toBeEnabled();
+    expect(open.getByRole("button", { name: "Enviar comprovante de Pix" })).toBeEnabled();
   });
 
-  it("CA9: Pagar numa cobrança abre o diálogo com uma só", async () => {
+  it("abertas: uma cobrança marcada abre a janela com uma só", async () => {
     serve(finance());
     server.use(http.get("/api/v1/portal/charges/c2/pix-instructions", () => HttpResponse.json({ chargeId: "c2", pixKey: "pix@alfa.test", amountCents: 3000, dueOn: "2026-11-20", unit: "Centro" })));
     const user = userEvent.setup();
     setup();
-    await user.click(await screen.findByRole("button", { name: "Pagar Kimono" }));
+    await user.click(await screen.findByRole("checkbox", { name: "Selecionar Kimono" }));
+    await user.click(screen.getByRole("button", { name: "Enviar comprovante de Pix" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave com comprovante" }));
-    expect(await dialog.findByText(/30,00/)).toBeInTheDocument();
+    expect(await dialog.findByText(/30,00 \(sem taxa\)/)).toBeInTheDocument();
     expect(dialog.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("abertas da família: agrupadas por unidade, cada grupo com o seu resumo (CA5)", async () => {
+    const two = [
+      { id: "s1", name: "Ana Souza", photoUrl: null, self: true, openCents: 12000 },
+      { id: "s2", name: "Davi Souza", photoUrl: null, self: false, openCents: 5000 },
+    ];
+    serve(finance({ students: two, scope: "FAMILY", familyOpenCents: 17000, history: [], open: [charge({}), charge({ id: "c9", studentId: "s2", studentName: "Davi Souza", referenceLabel: "Judô · 10/2026", unit: norte })] }));
+    const user = userEvent.setup();
+    setup("/portal/financeiro?visao=familia");
+    const open = within(await screen.findByRole("region", { name: "Em aberto" }));
+    const centro = within(open.getByRole("region", { name: "Unidade: Centro" }));
+    const north = within(open.getByRole("region", { name: "Unidade: Norte" }));
+    expect(centro.getByText("Ana Souza")).toBeInTheDocument();
+    expect(north.getByText("Davi Souza")).toBeInTheDocument();
+    await user.click(centro.getByRole("checkbox", { name: "Selecionar Jiu-Jitsu · 10/2026 · Ana Souza" }));
+    expect(centro.getByRole("status")).toHaveTextContent("1 selecionadas · R$ 90,00");
+    expect(north.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("CA9: seletor de aluno com Toda a família; a visão lista as cobranças com o aluno, sem histórico, e muda ?visao=", async () => {
@@ -198,16 +255,16 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     });
     const user = userEvent.setup();
     setup();
-    const select = await screen.findByRole("combobox", { name: "Aluno" });
-    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual(["Você", "Davi Souza", "Toda a família"]);
-    await user.selectOptions(select, "FAMILY");
-    expect(await screen.findByText("Total da família em aberto: R$ 170,00")).toBeInTheDocument();
+    const chips = await screen.findByRole("group", { name: "Aluno" });
+    expect(within(chips).getAllByRole("button").map((o) => o.textContent)).toEqual(["AS" + "Você", "DS" + "Davi Souza", "Toda a família"]);
+    await user.click(within(chips).getByRole("button", { name: "Toda a família" }));
+    expect(await screen.findByText("R$ 170,00 em aberto")).toBeInTheDocument();
     expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?visao=familia");
-    expect(await screen.findByText("Davi Souza", { selector: "p" })).toBeInTheDocument();
+    expect(await screen.findByText("Davi Souza", { selector: "span" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Histórico" })).not.toBeInTheDocument();
     expect(seen).toContain("scope=FAMILY");
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Aluno" }), "s2");
+    await user.click(within(screen.getByRole("group", { name: "Aluno" })).getByRole("button", { name: /Davi Souza/ }));
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?aluno=s2"));
     expect(await screen.findByRole("region", { name: "Histórico" })).toBeInTheDocument();
     expect(seen.at(-1)).toBe("studentId=s2");
@@ -220,8 +277,8 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     });
     const user = userEvent.setup();
     setup();
-    await screen.findByText("Pago em 04/03/2026 · Meio: Pix pela chave");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Ano" }), "2025");
+    await screen.findByText("Pix pela chave");
+    await user.click(screen.getByRole("tab", { name: "2025" }));
     expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?ano=2025");
     expect(await screen.findByText("Nenhum histórico neste ano")).toBeInTheDocument();
   });

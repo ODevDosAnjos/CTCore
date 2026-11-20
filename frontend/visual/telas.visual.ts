@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -442,6 +442,59 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (financeiroCanvas) {
+      // #497: o Financeiro do canvas (Bruno Carvalho, Tijuca): abertas Muay Thai set/2026 vencida, Jiu-Jitsu e Muay Thai out/2026, histórico de 2026 e a chave Pix CNPJ da unidade
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async () => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const base = (await (await fetch("/api/v1/portal/finance")).json()) as Record<string, unknown>;
+        const jiu = { id: "00000000-0000-0000-0000-000000000103", name: "Jiu-Jitsu" };
+        const muay = { id: "00000000-0000-0000-0000-00000000010b", name: "Muay Thai" };
+        const tijuca = { id: "00000000-0000-0000-0000-000000000021", name: "Tijuca" };
+        const student = { id: "00000000-0000-0000-0000-000000000701", name: "Bruno Carvalho", self: true };
+        const aberta = (n: string, referenceLabel: string, dueOn: string, situation: string, amountCents: number, modality: object) => ({
+          id: "00000000-0000-0000-0000-0000000007e" + n, studentId: student.id, studentName: student.name, type: "MONTHLY", description: null, referenceLabel, referenceMonth: dueOn.slice(0, 7), dueOn, situation, amountCents, planCents: amountCents, benefitCents: 0, canPay: true, modality, unit: tijuca,
+        });
+        const paga = (n: string, referenceLabel: string, dueOn: string, amountCents: number, paidAt: string, method: string, code: string) => ({ id: "00000000-0000-0000-0000-0000000007f" + n, referenceLabel, dueOn, amountCents, status: "PAID", paidAt, method, receipt: { number: Number(n), code } });
+        const open = [
+          aberta("1", "Muay Thai · set/2026", "2026-09-10", "OVERDUE", 16000, muay),
+          aberta("2", "Jiu-Jitsu · out/2026", "2026-10-10", "DUE_SOON", 18000, jiu),
+          aberta("3", "Muay Thai · out/2026", "2026-10-10", "DUE_SOON", 16000, muay),
+        ];
+        override({
+          method: "get",
+          path: "/portal/finance",
+          status: 200,
+          body: {
+            ...base,
+            reduced: false,
+            students: [student],
+            selectedStudentId: student.id,
+            scope: "STUDENT",
+            year: 2026,
+            years: [2026, 2025, 2024],
+            familyOpenCents: 34000 + 16000,
+            open,
+            history: [
+              paga("1", "Jiu-Jitsu · set/2026", "2026-09-10", 18090, "2026-09-09T15:00:00Z", "PIX_MP", "RC-MOCK-2026-1"),
+              paga("2", "Muay Thai · ago/2026", "2026-08-10", 16560, "2026-08-12T15:00:00Z", "CREDIT_CARD", "RC-MOCK-2026-2"),
+              paga("3", "Jiu-Jitsu · ago/2026", "2026-08-10", 18000, "2026-08-10T15:00:00Z", "CASH", "RC-MOCK-2026-3"),
+            ],
+          },
+        });
+        override({
+          method: "get",
+          path: "/portal/charges/pix-instructions",
+          status: 200,
+          body: {
+            pixKey: "12.345.678/0001-09",
+            totalCents: 34000,
+            unit: "Tijuca",
+            charges: open.slice(0, 2).map((c) => ({ chargeId: c.id, studentName: c.studentName, amountCents: c.amountCents, dueOn: c.dueOn })),
+          },
+        });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -517,7 +570,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }
