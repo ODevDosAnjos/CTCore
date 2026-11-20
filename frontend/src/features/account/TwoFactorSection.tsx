@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/Card";
+import { CARD_TITLE, Card } from "@/components/Card";
 import { Modal } from "@/components/Modal";
 import { ErrorState, ForbiddenState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
@@ -18,7 +18,7 @@ import { useReloadSession } from "./useAccount";
 type Dialog = "setup" | "codes" | "disable" | null;
 
 // RN-ACE-17: quem é obrigado (Coordenador) não vê "Desligar"; o servidor também recusa (403).
-export function TwoFactorSection() {
+export function TwoFactorSection({ portal = false }: { portal?: boolean }) {
   const { t } = useTranslation();
   const { state } = useSession();
   const reload = useReloadSession();
@@ -37,18 +37,19 @@ export function TwoFactorSection() {
     }
   }
 
+  const badge = <Badge tone={enabled ? "ok" : "neutral"}>{t(enabled ? "account.twoFactor.on" : "account.twoFactor.off")}</Badge>;
   return (
-    <Card title={t("account.twoFactor.title")} heading="h2">
+    <Card title={t("account.twoFactor.title")} heading="h2" titleClassName={portal ? CARD_TITLE : undefined} actions={portal && badge}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Badge tone={enabled ? "ok" : "neutral"}>{t(enabled ? "account.twoFactor.on" : "account.twoFactor.off")}</Badge>
+          {!portal && badge}
           <span className="text-sm text-muted-foreground">
-            {enabled && enabledAt ? t("account.twoFactor.detailOn", { date: formatDate(enabledAt) }) : enabled ? "" : t("account.twoFactor.detailOff")}
+            {portal ? t(enabled ? "account.twoFactor.portalOn" : "account.twoFactor.portalOff") : enabled && enabledAt ? t("account.twoFactor.detailOn", { date: formatDate(enabledAt) }) : enabled ? "" : t("account.twoFactor.detailOff")}
           </span>
         </div>
         {failed && <ErrorState onRetry={() => void changed()} />}
-        <div className="flex flex-wrap gap-2">
-          {!enabled && <Button onClick={() => setDialog("setup")}>{t("account.twoFactor.enable")}</Button>}
+        <div className={portal ? "flex flex-col gap-2" : "flex flex-wrap gap-2"}>
+          {!enabled && <Button variant={portal ? "secondary" : "primary"} onClick={() => setDialog("setup")}>{t(portal ? "account.twoFactor.enableShort" : "account.twoFactor.enable")}</Button>}
           {enabled && (
             <Button variant="secondary" onClick={() => setDialog("codes")}>
               {t("account.twoFactor.newCodes")}
@@ -60,7 +61,7 @@ export function TwoFactorSection() {
             </Button>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">{t("account.twoFactor.note")}</p>
+        {!portal && <p className="text-sm text-muted-foreground">{t("account.twoFactor.note")}</p>}
       </div>
       {dialog === "setup" && (
         <TwoFactorSetupDialog

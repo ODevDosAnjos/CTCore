@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
-import { Card } from "@/components/Card";
+import { CARD_TITLE, Card } from "@/components/Card";
+import { useBelowSm } from "@/components/query/useBelowSm";
+import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
+import { PortalHeading } from "@/features/portal/PortalHeading";
+import { MenuList, SoonRow } from "@/features/portal/PortalMenuRows";
 import { Tabs } from "@/components/ui/tabs";
 import { useSession } from "@/features/auth/SessionProvider";
 import { AccessCard } from "./AccessCard";
 import { AccountFrame, MANAGEMENT } from "./AccountFrame";
 import { AccountMenuList } from "./AccountMenuList";
-import { ChangeEmailForm } from "./ChangeEmailForm";
-import { ChangePasswordForm } from "./ChangePasswordForm";
 import { NotificationsTab } from "./NotificationsTab";
 import { SessionsSection } from "./SessionsSection";
 import { TwoFactorSection } from "./TwoFactorSection";
@@ -18,6 +20,7 @@ import { useAccountSessions } from "./useAccount";
 import { useManagementProfile } from "./useManagementProfile";
 
 const TABS = ["acesso", "duas-etapas", "sessoes", "notificacoes"] as const;
+const DATA_CARDS = ["download", "delete"] as const;
 const NARROW = "(max-width: 767px)"; // mesmo ponto de quebra da moldura da gestão (D7)
 
 function useBelowMd() {
@@ -41,21 +44,38 @@ export function AccountPage() {
   return <AccountFrame>{MANAGEMENT.includes(role) ? <ManagementAccount /> : <PortalAccount />}</AccountFrame>;
 }
 
-// Portal (Aluno e Responsável): a página de antes, até o item 498 (D1).
+// Portal (Aluno e Responsável, canvas PortalConta): rótulo, "‹ Voltar" no celular, Acesso, duas etapas, sessões e os cartões de dados ("Em breve", Sprint 13).
 function PortalAccount() {
   const { t } = useTranslation();
   const sessions = useAccountSessions();
+  const narrow = useBelowSm();
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <PageHeader title={t("account.title")} />
-      <Card title={t("account.password.title")} heading="h2">
-        <ChangePasswordForm onChanged={sessions.reload} />
-      </Card>
-      <Card title={t("account.email.title")} heading="h2">
-        <ChangeEmailForm />
-      </Card>
-      <TwoFactorSection />
-      <SessionsSection {...sessions} />
+    <div className="flex flex-col gap-4">
+      <Link to="/portal/minhas-informacoes" className="inline-flex min-h-11 items-center gap-1 self-start text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden">
+        <ArrowLeft aria-hidden className="size-4" />
+        {t("account.portal.back")}
+      </Link>
+      <PortalHeading label={t("account.portal.label")} title={t("account.title")} />
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        <AccessCard onPasswordChanged={sessions.reload} portal />
+        <TwoFactorSection portal />
+      </div>
+      <SessionsSection {...sessions} portal />
+      {narrow ? (
+        <MenuList label={t("account.portal.dataMenu")}>
+          <SoonRow icon={Download} label={t("account.portal.download.title")} />
+          <SoonRow icon={Trash2} label={t("account.portal.delete.title")} />
+        </MenuList>
+      ) : (
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          {DATA_CARDS.map((k) => (
+            <Card key={k} heading="h2" titleClassName={CARD_TITLE} title={t(`account.portal.${k}.title`)}>
+              <p className="mb-3 text-sm text-muted-foreground">{t(`account.portal.${k}.text`)}</p>
+              <ComingSoon tipAlign="end" variant="button" label={t(`account.portal.${k}.title`)} />
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

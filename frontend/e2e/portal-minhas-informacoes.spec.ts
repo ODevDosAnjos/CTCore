@@ -34,36 +34,39 @@ for (const [width, height] of [
         await openTab(page);
         await expect(page.getByRole("heading", { name: "Dados pessoais" })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Treinos" })).toBeVisible();
-        await expect(page.getByRole("heading", { name: "Plano e mensalidade" })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Graduação" })).toBeVisible();
-        await expect(page.getByText("Jiu-Jitsu Mensal · R$ 200,00")).toBeVisible();
+        await expect(page.getByText(/Mensal · R\$\s200,00/).first()).toBeVisible();
         expect(await noOverflow(page)).toBe(true);
         expect(await violations(page)).toEqual([]);
 
-        await page.getByRole("button", { name: "Editar contato" }).click();
+        await page.getByRole("button", { name: width < 640 ? "Editar" : "Editar contato", exact: true }).click();
         const dialog = page.getByRole("dialog", { name: "Editar contato" });
         await dialog.getByLabel("Logradouro").fill("Rua das Flores");
         await dialog.getByRole("button", { name: "Salvar" }).click();
         await expect(dialog).toBeHidden();
         await expect(page.getByText(/Rua das Flores, 2/)).toBeVisible();
 
-        await page.getByRole("combobox", { name: "Aluno" }).selectOption(CHILD_TWO);
+        await page.getByRole("group", { name: "Aluno" }).getByRole("button", { name: "Filho Fictício Dois" }).click();
         await expect(page).toHaveURL(new RegExp(`aluno=${CHILD_TWO}`));
-        await expect(page.locator("dd", { hasText: "Filho Fictício Dois" })).toBeVisible();
+        await expect(page.locator(width < 640 ? "span.font-medium" : "dd", { hasText: "Filho Fictício Dois" })).toBeVisible();
 
-        await expect(page.getByText("Não concedido")).toBeVisible();
-        await page.getByRole("button", { name: "Conceder uso de imagem" }).click();
-        await expect(page.getByText(/^Concedido \(versão/)).toBeVisible();
-        await page.getByRole("button", { name: "Revogar uso de imagem" }).click();
+        // Celular: Termos fica atrás da linha do menu.
+        if (width < 640) await page.getByRole("button", { name: "Termos e uso de imagem" }).click();
+        await expect(page.getByText("Não autorizado")).toBeVisible();
+        await page.getByRole("button", { name: "Conceder", exact: true }).click();
+        await expect(page.getByText(/^Autorizado em/)).toBeVisible();
+        await page.getByRole("button", { name: "Revogar", exact: true }).click();
         const revoke = page.getByRole("dialog", { name: "Revogar uso de imagem" });
         await revoke.getByRole("button", { name: "Revogar", exact: true }).click();
         await expect(revoke).toBeHidden();
-        await expect(page.getByText("Não concedido")).toBeVisible();
+        await expect(page.getByText("Não autorizado")).toBeVisible();
 
         await expect(page.getByRole("link", { name: "Fazer um pedido" })).toHaveAttribute("href", "/portal/pedidos");
-        await expect(page.getByRole("heading", { name: "Minha conta", level: 2 })).toBeVisible();
-        await expect(page.getByRole("button", { name: "Baixar meus dados" })).toBeDisabled();
-        await expect(page.getByRole("button", { name: "Excluir minha conta" })).toBeDisabled();
+        if (width >= 640) await expect(page.getByRole("heading", { name: "Conta e privacidade", level: 2 })).toBeVisible();
+        await expect(page.getByRole("link", { name: "Minha conta" }).first()).toHaveAttribute("href", "/conta");
+        const soon = (name: string) => page.getByRole(width < 640 ? "link" : "button", { name });
+        await expect(soon("Baixar meus dados")).toHaveAttribute("aria-disabled", "true");
+        await expect(soon("Excluir minha conta")).toHaveAttribute("aria-disabled", "true");
         expect(await noOverflow(page)).toBe(true);
         expect(await violations(page)).toEqual([]);
       });
@@ -73,9 +76,9 @@ for (const [width, height] of [
       await login(page, "reduzido@exemplo.com");
       await openTab(page);
       await expect(page.getByRole("heading", { name: "Dados pessoais" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Contato da academia" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Termos aceitos" })).toBeVisible();
-      for (const name of ["Treinos", "Plano e mensalidade", "Graduação", "Pedidos à academia"]) await expect(page.getByRole("heading", { name })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: "Contato da unidade" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Termos" })).toBeVisible();
+      for (const name of ["Treinos", "Plano e mensalidade", "Graduação", "Últimos pedidos"]) await expect(page.getByRole("heading", { name })).toHaveCount(0);
       expect(await noOverflow(page)).toBe(true);
     });
   });

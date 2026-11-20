@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -495,6 +495,50 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (informacoesCanvas) {
+      // #498: Minhas informações e Minha conta do canvas (Bruno Carvalho, Tijuca): dados, Jiu-Jitsu e Muay Thai com plano e mensalidade, termos e as duas sessões
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async () => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const base = (await (await fetch("/api/v1/portal/info")).json()) as { personal: object; reduced: boolean; [k: string]: unknown };
+        if (base.reduced) return;
+        const jiu = { id: "00000000-0000-0000-0000-000000000103", name: "Jiu-Jitsu" };
+        const muay = { id: "00000000-0000-0000-0000-00000000010b", name: "Muay Thai" };
+        const tijuca = { id: "00000000-0000-0000-0000-000000000021", name: "Tijuca", phone: "2133334444", whatsapp: "21970001200", email: "tijuca@academialeao.example" };
+        const student = { id: "00000000-0000-0000-0000-000000000701", name: "Bruno Carvalho", photoUrl: null, self: true };
+        const turma = (id: string, name: string, teacherName: string, weekdays: number[], startsAt: string, endsAt: string) => ({ clazz: { id, name }, teacherName, schedule: weekdays.map((weekday) => ({ weekday, startsAt, endsAt })) });
+        const plano = (modality: object, name: string, cents: number) => ({ modality, plan: { id: "00000000-0000-0000-0000-0000000005" + name.length, name }, planCents: cents, benefit: null, benefitCents: 0, monthlyCents: cents, dueDay: 10, nextPlan: null });
+        override({
+          method: "get",
+          path: "/portal/info",
+          status: 200,
+          body: {
+            ...base,
+            students: [student],
+            selectedStudentId: student.id,
+            personal: { ...base.personal, name: "Bruno Carvalho", birthDate: "1992-02-14", maskedCpf: "***.381.204-**", photoUrl: null, phone: "21981234410", email: "bruno.carvalho@email.example", address: { postalCode: "20521110", street: "Rua Conde de Bonfim", number: "820", complement: "ap. 302", district: "Tijuca", city: "Rio de Janeiro", state: "RJ" }, emergency: { name: "Larissa Carvalho", relationship: "Esposa", phone: "21997612280" }, canEdit: true, editableFields: ["phone", "address", "emergency", "photo"] },
+            unitContacts: [tijuca],
+            trainings: [
+              { modality: jiu, unit: tijuca, mainClass: turma("00000000-0000-0000-0000-000000000601", "Adulto · Noite", "Rafael Duarte", [1, 3, 5], "19:30", "21:00"), otherClasses: [turma("00000000-0000-0000-0000-000000000602", "No-Gi", "Rafael Duarte", [6], "10:00", "11:00")] },
+              { modality: muay, unit: tijuca, mainClass: turma("00000000-0000-0000-0000-000000000603", "Adulto · Noite", "Bianca Torres", [2, 4], "19:00", "20:00"), otherClasses: [] },
+            ],
+            plans: [plano(jiu, "Adulto 3x", 18000), plano(muay, "Adulto 2x", 16000)],
+            graduation: [],
+            emailAnnouncements: true,
+            terms: { enrollment: { version: 2, acceptedAt: "2022-03-03T15:00:00Z" }, imageUse: { granted: true, version: 2, at: "2022-03-03T15:00:00Z" } },
+          },
+        });
+        override({
+          method: "get",
+          path: "/auth/sessions",
+          status: 200,
+          body: [
+            { id: "00000000-0000-0000-0000-0000000008a1", device: "Chrome · Windows", city: null, createdAt: "2026-10-29T14:00:00Z", lastUsedAt: "2026-10-29T14:59:00Z", current: true },
+            { id: "00000000-0000-0000-0000-0000000008a2", device: "App · Android", city: null, createdAt: "2026-10-20T14:00:00Z", lastUsedAt: "2026-10-28T14:00:00Z", current: false },
+          ],
+        });
+      });
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -570,7 +614,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

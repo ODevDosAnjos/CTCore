@@ -6,7 +6,7 @@ import { App } from "@/App";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
-import { setDevicePrefersDark } from "@/test/device";
+import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { PortalInfoData } from "./usePortalInfo";
 
@@ -86,6 +86,27 @@ function setup(path = "/portal/minhas-informacoes", reduced = false) {
 const card = (name: string) => screen.getByRole("heading", { name }).closest("section") as HTMLElement;
 
 describe("PortalInfoPage (RF-POR-07)", () => {
+  it("celular (canvas PortalMInfo): título Eu, dados enxutos, Treinos e menu de linhas com Em breve", async () => {
+    setDeviceNarrow(true);
+    try {
+      serve(info());
+      setup();
+      expect(await screen.findByRole("heading", { level: 1, name: "Eu" })).toBeInTheDocument();
+      const personal = card("Dados pessoais");
+      expect(within(personal).queryByText("Nascimento")).not.toBeInTheDocument();
+      expect(within(personal).getByText("Rua Fictícia, 1")).toBeInTheDocument();
+      expect(within(personal).getByRole("button", { name: "Editar" })).toBeInTheDocument();
+      const menu = screen.getByRole("list", { name: "Mais opções" });
+      expect(within(menu).getByRole("link", { name: "Minha conta" })).toHaveAttribute("href", "/conta");
+      expect(within(menu).getByRole("button", { name: "Termos e uso de imagem" })).toHaveAttribute("aria-expanded", "false");
+      await userEvent.click(within(menu).getByRole("button", { name: "Preferências de e-mail" }));
+      expect(await within(menu).findByRole("switch")).toBeInTheDocument();
+      for (const name of ["Baixar meus dados", "Excluir minha conta", "Instalar o app"]) expect(within(menu).getByRole("link", { name })).toHaveAttribute("aria-disabled", "true");
+    } finally {
+      setDeviceNarrow(false);
+    }
+  });
+
   it("dados: mostra o CPF mascarado, o telefone e o endereço; sem CPF completo", async () => {
     serve(info());
     setup();
@@ -95,7 +116,11 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     expect(within(personal).getByText("(21) 90000-0001")).toBeInTheDocument();
     expect(within(personal).getByText(/Rua Fictícia, 1 · Centro · Rio de Janeiro\/RJ · CEP 01001000/)).toBeInTheDocument();
     expect(within(personal).getByText("Não informado", { selector: "dd" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ver carteirinha" })).toHaveAttribute("href", "/portal/carteirinha");
+    expect(screen.getByRole("link", { name: "Carteirinha" })).toHaveAttribute("href", "/portal/carteirinha");
+    expect(screen.getByRole("heading", { level: 1, name: "Ana Souza" })).toBeInTheDocument();
+    expect(screen.getByText("Minhas informações", { selector: "p" })).toBeInTheDocument();
+    expect(within(personal).getByText("ana@exemplo.test · trocar exige confirmação")).toBeInTheDocument();
+    expect(within(personal).getByText("Nome, CPF e nascimento só a academia altera.")).toBeInTheDocument();
   });
 
   it("dados: editar o contato envia só os campos da lista e mostra o dado novo", async () => {
@@ -197,29 +222,20 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     }
   });
 
-  it("treinos: modalidade, unidade com contato, turma principal com dia e professor, outros horários; sem contato do professor", async () => {
+  it("treinos: tabela com modalidade, turma principal com dia e professor, outros horários, plano, benefício e mensalidade; Fazer um pedido; sem contato do professor", async () => {
     serve(info());
     setup();
     await screen.findByRole("heading", { name: "Treinos" });
     const trainings = card("Treinos");
-    expect(within(trainings).getByText("Jiu-Jitsu")).toBeInTheDocument();
-    expect(within(trainings).getByText("Jiu-Jitsu Adulto · Prof. Fictício")).toBeInTheDocument();
-    expect(within(trainings).getByText("Segunda-feira 19:00–20:00")).toBeInTheDocument();
-    expect(within(trainings).getByText("Sexta-feira 20:00–21:00")).toBeInTheDocument();
-    expect(within(trainings).getByText("(21) 3333-4444")).toBeInTheDocument();
-    expect(within(trainings).queryByText(/WhatsApp/)).not.toBeInTheDocument();
-  });
-
-  it("plano: valor do plano, benefício, mensalidade resultante e vencimento, sem botão de alterar", async () => {
-    serve(info());
-    setup();
-    await screen.findByRole("heading", { name: "Plano e mensalidade" });
-    const plans = card("Plano e mensalidade");
-    expect(within(plans).getByText(/Mensal · R\$\s20\.000,00|Mensal · R\$\s200,00/)).toBeInTheDocument();
-    expect(within(plans).getByText("10% de desconto")).toBeInTheDocument();
-    expect(within(plans).getByText(/R\$\s180,00/)).toBeInTheDocument();
-    expect(within(plans).getByText("todo dia 5")).toBeInTheDocument();
-    expect(within(plans).queryByRole("button")).not.toBeInTheDocument();
+    const row = within(trainings).getByRole("row", { name: /Jiu-Jitsu/ });
+    expect(within(row).getByText("Jiu-Jitsu Adulto · Seg 19:00 · Fictício")).toBeInTheDocument();
+    expect(within(row).getByText("Livre (Sex 20:00)")).toBeInTheDocument();
+    expect(within(row).getByText(/Mensal · R\$\s200,00 · 10% de desconto/)).toBeInTheDocument();
+    expect(within(row).getByText(/R\$\s180,00 · dia 5/)).toBeInTheDocument();
+    expect(within(row).getByText("Ativa")).toBeInTheDocument();
+    expect(within(trainings).getByRole("link", { name: "Fazer um pedido" })).toHaveAttribute("href", "/portal/pedidos");
+    expect(screen.queryByRole("heading", { name: "Plano e mensalidade" })).not.toBeInTheDocument();
+    expect(trainings.textContent).not.toMatch(/\(21\) 3333-4444/);
   });
 
   it("graduação: faixa atual e histórico com a marca de origem", async () => {
@@ -247,11 +263,15 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     );
     setup();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("checkbox", { name: "Receber comunicados por e-mail" }));
+    const toggle = await screen.findByRole("switch", { name: "Comunicados da academia" });
+    expect(screen.getByText("Cobranças, lembretes, recibos e avisos de aula sempre chegam")).toBeInTheDocument();
+    await user.click(toggle);
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
     await waitFor(() => expect(prefs).toEqual({ announcements: false }));
-    const terms = card("Termos aceitos");
-    expect(within(terms).getByText(/Aceito \(versão 1\) em 10\/01\/2026/)).toBeInTheDocument();
-    await user.click(within(terms).getByRole("button", { name: "Revogar uso de imagem" }));
+    const terms = card("Termos");
+    expect(within(terms).getByText("Aceito em 10/01/2026 · versão 1")).toBeInTheDocument();
+    expect(within(terms).getByText("Autorizado em 10/01/2026")).toBeInTheDocument();
+    await user.click(within(terms).getByRole("button", { name: "Revogar" }));
     expect(image).toBeUndefined();
     const dialog = await screen.findByRole("dialog", { name: "Revogar uso de imagem" });
     expect(within(dialog).getByText("Resumo")).toBeInTheDocument();
@@ -259,7 +279,7 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     expect(within(dialog).getByText(/Revogado em \d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Revogar" }));
     await waitFor(() => expect(image).toEqual({ granted: false }));
-    expect(await within(card("Termos aceitos")).findByText("Não concedido")).toBeInTheDocument();
+    expect(await within(card("Termos")).findByText("Não autorizado")).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Revogar uso de imagem" })).not.toBeInTheDocument();
   });
 
@@ -276,7 +296,7 @@ describe("PortalInfoPage (RF-POR-07)", () => {
       server.use(putImage(calls));
       setup();
       const user = userEvent.setup();
-      const open = await within(await screen.findByRole("heading", { name: "Termos aceitos" }).then(() => card("Termos aceitos"))).findByRole("button", { name: "Revogar uso de imagem" });
+      const open = await within(await screen.findByRole("heading", { name: "Termos" }).then(() => card("Termos"))).findByRole("button", { name: "Revogar" });
       await user.click(open);
       await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancelar" }));
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -294,7 +314,7 @@ describe("PortalInfoPage (RF-POR-07)", () => {
       server.use(http.get("/api/v1/portal/students/s1/image-use", () => HttpResponse.json({ version: 1 })), putImage(calls));
       setup();
       const user = userEvent.setup();
-      await user.click(await screen.findByRole("button", { name: "Conceder uso de imagem" }));
+      await user.click(await screen.findByRole("button", { name: "Conceder" }));
       await waitFor(() => expect(calls).toEqual([{ granted: true, version: 1 }]));
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
@@ -305,9 +325,9 @@ describe("PortalInfoPage (RF-POR-07)", () => {
       server.use(putImage(calls, 500));
       setup();
       const user = userEvent.setup();
-      await user.click(await screen.findByRole("button", { name: "Revogar uso de imagem" }));
+      await user.click(await screen.findByRole("button", { name: "Revogar" }));
       await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Revogar" }));
-      expect(await within(card("Termos aceitos")).findByText("Não foi possível salvar. Tente de novo.")).toBeInTheDocument();
+      expect(await within(card("Termos")).findByText("Não foi possível salvar. Tente de novo.")).toBeInTheDocument();
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       expect(calls).toHaveLength(1);
     });
@@ -318,14 +338,14 @@ describe("PortalInfoPage (RF-POR-07)", () => {
         serve(info());
         setup();
         const user = userEvent.setup();
-        await user.click(await screen.findByRole("button", { name: "Revogar uso de imagem" }));
+        await user.click(await screen.findByRole("button", { name: "Revogar" }));
         await screen.findByRole("dialog");
         expect(await axeViolations(document.body)).toEqual([]);
       });
     }
   });
 
-  it("pedidos, conta e ações de dados: lista os pedidos, leva a /portal/pedidos, mostra Minha conta e deixa as duas ações desabilitadas sem chamada", async () => {
+  it("pedidos, conta e privacidade: lista os pedidos, mostra Minha conta e deixa baixar, excluir e instalar visíveis e desabilitados sem chamada", async () => {
     const calls: string[] = [];
     serve(info());
     setup();
@@ -338,14 +358,20 @@ describe("PortalInfoPage (RF-POR-07)", () => {
       ),
       http.all("/api/v1/portal/*download*", () => (calls.push("x"), HttpResponse.json({}))),
     );
-    await screen.findByRole("heading", { name: "Pedidos à academia" });
-    const requests = card("Pedidos à academia");
+    await screen.findByRole("heading", { name: "Últimos pedidos" });
+    const requests = card("Últimos pedidos");
     expect(await within(requests).findByText("Troca de turma · Aberto · 20/10/2026")).toBeInTheDocument();
     expect(within(requests).getByText("Troca de plano · Recusado · 10/10/2026")).toBeInTheDocument();
-    expect(within(requests).getByRole("link", { name: "Fazer um pedido" })).toHaveAttribute("href", "/portal/pedidos");
-    for (const name of ["Senha", "E-mail", "Verificação em duas etapas", "Sessões"]) expect(screen.getAllByRole("heading", { name: new RegExp(`^${name}`) }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Baixar meus dados" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Excluir minha conta" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Minha conta" })).toHaveAttribute("href", "/conta");
+    for (const name of ["Senha", "E-mail", "Verificação em duas etapas", "Sessões ativas"]) expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+    for (const name of ["Baixar meus dados", "Excluir minha conta", "Instalar o app"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      await userEvent.setup().click(button);
+    }
+    expect(screen.getAllByText("Em breve").length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText(/ficam disponíveis em breve/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(calls).toEqual([]);
   });
 
@@ -355,8 +381,8 @@ describe("PortalInfoPage (RF-POR-07)", () => {
       serve(info());
       const view = setup();
       server.use(http.get("/api/v1/portal/students/s1/requests", () => new Promise<Response>(() => {})));
-      await screen.findByRole("heading", { name: "Pedidos à academia" });
-      expect(within(card("Pedidos à academia")).getByRole("status")).toBeInTheDocument();
+      await screen.findByRole("heading", { name: "Últimos pedidos" });
+      expect(within(card("Últimos pedidos")).getByRole("status")).toBeInTheDocument();
       expect(await axeViolations(view.container)).toEqual([]);
     });
   }
@@ -365,8 +391,8 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     serve(info());
     setup();
     server.use(http.get("/api/v1/portal/students/s1/requests", () => new HttpResponse(null, { status: 403 })));
-    await screen.findByRole("heading", { name: "Pedidos à academia" });
-    expect(await within(card("Pedidos à academia")).findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Últimos pedidos" });
+    expect(await within(card("Últimos pedidos")).findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
   });
 
   for (const dark of [false, true]) {
@@ -382,13 +408,13 @@ describe("PortalInfoPage (RF-POR-07)", () => {
           return fail ? new HttpResponse(null, { status: 500 }) : HttpResponse.json([]);
         }),
       );
-      await screen.findByRole("heading", { name: "Pedidos à academia" });
-      const retry = await within(card("Pedidos à academia")).findByRole("button", { name: "Tentar de novo" });
+      await screen.findByRole("heading", { name: "Últimos pedidos" });
+      const retry = await within(card("Últimos pedidos")).findByRole("button", { name: "Tentar de novo" });
       expect(await axeViolations(view.container)).toEqual([]);
       fail = false;
       const before = calls;
       await userEvent.click(retry);
-      expect(await within(card("Pedidos à academia")).findByText("Nenhum pedido feito.")).toBeInTheDocument();
+      expect(await within(card("Últimos pedidos")).findByText("Você ainda não fez pedidos")).toBeInTheDocument();
       expect(calls).toBe(before + 1);
     });
   }
@@ -397,22 +423,66 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     serve(info({ reduced: true, trainings: [], plans: [], graduation: [] }));
     setup("/portal/minhas-informacoes", true);
     await screen.findByRole("heading", { name: "Dados pessoais" });
-    expect(screen.getByRole("heading", { name: "Contato da academia" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Preferências" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Termos aceitos" })).toBeInTheDocument();
-    for (const name of ["Treinos", "Plano e mensalidade", "Graduação", "Pedidos à academia"]) expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Contato da unidade" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Preferências de e-mail" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Termos" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Conta e dados" })).toBeInTheDocument();
+    expect(screen.getByText("Treinos, plano, graduação e pedidos voltam a aparecer quando uma modalidade estiver ativa de novo.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "WhatsApp da unidade" })).not.toBeInTheDocument();
+    for (const name of ["Treinos", "Plano e mensalidade", "Graduação", "Últimos pedidos"]) expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
   });
+
+  it("portal reduzido: com WhatsApp na unidade mostra o botão verde que abre o wa.me", async () => {
+    serve(info({ reduced: true, trainings: [], plans: [], graduation: [], unitContacts: [{ ...centro, whatsapp: "21999990000" }] }));
+    setup("/portal/minhas-informacoes", true);
+    expect(await screen.findByRole("link", { name: "WhatsApp da unidade" })).toHaveAttribute("href", "https://wa.me/5521999990000");
+  });
+
+  it("contato: Cancelar e Esc fecham sem gravar; os campos seguem a ordem do canvas", async () => {
+    let calls = 0;
+    serve(info());
+    server.use(http.put("/api/v1/portal/students/s1/contact", () => (calls++, HttpResponse.json(info().personal))));
+    setup();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Editar contato" }));
+    const dialog = await screen.findByRole("dialog", { name: "Editar contato" });
+    const labels = within(dialog).getAllByRole("textbox").map((el) => el.getAttribute("id"));
+    expect(labels.length).toBeGreaterThan(5);
+    const order = ["Celular", "CEP", "Logradouro", "Complemento", "Nome do contato"].map((l) => within(dialog).getByLabelText(l));
+    const all = Array.from(dialog.querySelectorAll("input, select"));
+    const idx = order.map((el) => all.indexOf(el as Element));
+    expect(idx).toEqual([...idx].sort((a, b) => a - b));
+    expect(within(dialog).getByText(/Para trocar o e-mail, use Minha conta./)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Editar contato" }));
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(calls).toBe(0);
+  });
+
+  for (const dark of [false, true]) {
+    it(`axe: janela Editar contato sem violações no tema ${dark ? "escuro" : "claro"}`, async () => {
+      setDevicePrefersDark(dark);
+      serve(info());
+      setup();
+      await userEvent.setup().click(await screen.findByRole("button", { name: "Editar contato" }));
+      await screen.findByRole("dialog", { name: "Editar contato" });
+      expect(await axeViolations(document.body)).toEqual([]);
+    });
+  }
 
   it("vazio: aluno sem modalidade mostra o vazio dos treinos, os dados, os termos e a conta", async () => {
     serve(info({ trainings: [], plans: [], graduation: [] }));
     setup();
-    expect(await screen.findByText("Nenhuma modalidade ativa")).toBeInTheDocument();
+    expect(await screen.findByText("Nenhum treino")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Dados pessoais" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Termos aceitos" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Plano e mensalidade" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Termos" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Graduação" })).not.toBeInTheDocument();
   });
 
-  it("responsável: o seletor troca de aluno, refaz a leitura e muda ?aluno=", async () => {
+  it("responsável: os chips trocam de aluno, refaz a leitura, mantêm os chips na tela e mudam ?aluno=", async () => {
     const asked: (string | null)[] = [];
     const two = [
       { id: "s1", name: "Ana Souza", photoUrl: null, self: false },
@@ -426,8 +496,12 @@ describe("PortalInfoPage (RF-POR-07)", () => {
     });
     setup();
     await screen.findByText("Ana Souza", { selector: "dd" });
-    await userEvent.setup().selectOptions(screen.getByRole("combobox", { name: "Aluno" }), "s2");
+    const chips = screen.getByRole("group", { name: "Aluno" });
+    expect(within(chips).getByRole("button", { name: "Ana Souza" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.setup().click(within(chips).getByRole("button", { name: "Beto Souza" }));
+    expect(screen.getByRole("group", { name: "Aluno" })).toBeInTheDocument();
     expect(await screen.findByText("Beto Souza", { selector: "dd" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Beto Souza" })).toBeInTheDocument();
     expect(asked).toEqual([null, "s2"]);
   });
 

@@ -3704,14 +3704,22 @@
       "currentWrong": "A senha atual está incorreta.",
       "submit": "Trocar senha",
       "sending": "Trocando...",
-      "done": "Senha alterada. As outras sessões foram encerradas.",
+      "cancel": "Cancelar",
       "modalTitle": "Trocar senha"
     },
     "email": {
       "title": "E-mail",
-      "intro": "E-mail atual: {{email}}. Para trocar, enviamos um link de confirmação ao endereço novo.",
       "new": "Novo e-mail",
-      "password": "Sua senha",
+      "password": "Senha atual",
+      "passwordHint": "Senha errada conta para a trava de 5 tentativas.",
+      "code": "Código do app autenticador",
+      "codeHint": "Pedimos porque a verificação em duas etapas está ligada.",
+      "summaryLabel": "Resumo",
+      "summary1": "Enviamos um link para o novo e-mail, válido por 24 horas.",
+      "summary2": "A troca só vale depois de confirmada. Até lá, continue entrando com o e-mail atual.",
+      "summary3": "O e-mail atual recebe um aviso.",
+      "summary4": "O e-mail de contato do seu cadastro muda junto, em todas as academias da sua conta.",
+      "cancel": "Cancelar",
       "required": "Preencha todos os campos.",
       "invalid": "Informe outro e-mail válido.",
       "submit": "Enviar link de confirmação",
@@ -3725,6 +3733,9 @@
       "off": "Desligada",
       "detailOn": "app autenticador · ativada em {{date}}",
       "detailOff": "As duas etapas estão desligadas.",
+      "portalOn": "App autenticador",
+      "portalOff": "Opcional para alunos",
+      "enableShort": "Ativar",
       "enable": "Ativar duas etapas",
       "newCodes": "Ver códigos de reserva novos",
       "disable": "Desligar",
@@ -3748,6 +3759,7 @@
       "device": "Aparelho",
       "place": "Local",
       "note": "Sessões da gestão duram 12 horas; do portal, 30 dias.",
+      "notePortal": "No portal, a sessão dura 30 dias.",
       "actions": "Ações",
       "list": "Sessões ativas"
     },
@@ -3771,6 +3783,19 @@
       "notifications": "Notificações"
     },
     "back": "Voltar para Minha conta",
+    "portal": {
+      "label": "Minhas informações",
+      "back": "Voltar",
+      "dataMenu": "Dados da conta",
+      "download": {
+        "title": "Baixar meus dados",
+        "text": "Cadastro, matrículas, graduações, cobranças, pagamentos e aceites num arquivo. Fica registrado na academia."
+      },
+      "delete": {
+        "title": "Excluir minha conta",
+        "text": "Pede a exclusão dos seus dados em cada academia ligada à sua conta."
+      }
+    },
     "access": {
       "title": "Acesso",
       "email": "E-mail",
@@ -4052,7 +4077,7 @@
       "withCount": "Avisos, {{count}} não lidos"
     },
     "inactive": "{{role}} · Inativo",
-    "reduced": "Seu acesso está reduzido: você vê Início, Financeiro e Minhas informações. Fale com a academia para voltar a treinar."
+    "reduced": "Seu acesso está reduzido: nenhuma modalidade está ativa no momento."
   },
   "portalOwn": {
     "title": "Meus pedidos",
@@ -4367,22 +4392,24 @@
     "title": "Minhas informações",
     "selector": "Aluno",
     "you": "Você",
-    "cardLink": "Ver carteirinha",
     "none": "Não informado",
-    "emptyTitle": "Nenhuma modalidade ativa",
+    "emptyTitle": "Nenhum treino",
     "emptyText": "Quando houver uma matrícula ativa, os treinos, o plano e a graduação aparecem aqui.",
     "personal": {
       "title": "Dados pessoais",
       "edit": "Editar contato",
-      "readOnlyHint": "Nome, CPF, nascimento e e-mail só mudam pela academia (o e-mail, em Minha conta).",
+      "editShort": "Editar",
+      "addressShort": "{{street}}, {{number}}{{complement}}",
+      "emergencyShort": "{{name}} · {{phone}}",
+      "readOnlyHint": "Nome, CPF e nascimento só a academia altera.",
       "name": "Nome",
       "birthDate": "Nascimento",
       "cpf": "CPF",
-      "phone": "Telefone",
+      "phone": "Celular",
       "email": "E-mail",
       "address": "Endereço",
       "addressLine": "{{street}}, {{number}}{{complement}} · {{district}} · {{city}}/{{state}} · CEP {{postalCode}}",
-      "emergency": "Contato de emergência",
+      "emergency": "Emergência",
       "emergencyLine": "{{name}} ({{relationship}}) · {{phone}}",
       "photo": "Foto",
       "photoChoose": "Escolher foto",
@@ -4394,11 +4421,14 @@
       "photoFailed": "Não foi possível salvar a foto. Tente de novo.",
       "cropTitle": "Cortar a foto",
       "cropHint": "Arraste a imagem ou use os controles para escolher o quadrado.",
-      "cropPreview": "Prévia do corte da foto"
+      "cropPreview": "Prévia do corte da foto",
+      "emailNote": "{{email}} · trocar exige confirmação",
+      "card": "Carteirinha",
+      "photoLabel": "Foto"
     },
     "contact": {
       "title": "Editar contato",
-      "phone": "Telefone",
+      "phone": "Celular",
       "postalCode": "CEP",
       "street": "Logradouro",
       "number": "Número",
@@ -4418,34 +4448,39 @@
       "failed": "Não foi possível salvar. Tente de novo.",
       "save": "Salvar",
       "saving": "Salvando...",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "address": "Endereço",
+      "note": "Nome, CPF e nascimento só a academia altera. Para trocar o e-mail, use Minha conta.",
+      "mobileCancel": "Cancelar"
     },
     "units": {
-      "title": "Contato da academia",
+      "title": "Contato da unidade",
       "phone": "Telefone",
       "whatsapp": "WhatsApp",
-      "email": "E-mail"
+      "email": "E-mail",
+      "whatsappButton": "WhatsApp da unidade"
     },
     "trainings": {
       "title": "Treinos",
-      "unit": "Unidade",
+      "make": "Fazer um pedido",
+      "modality": "Modalidade",
       "main": "Turma principal",
       "others": "Outros horários",
-      "slot": "{{days}} {{from}}–{{to}}",
-      "classLine": "{{name}} · Prof. {{teacher}}",
-      "noSchedule": "Sem horário definido"
-    },
-    "plans": {
-      "title": "Plano e mensalidade",
-      "plan": "Plano",
+      "plan": "Plano e benefício",
+      "monthly": "Mensalidade",
+      "status": "Situação",
+      "active": "Ativa",
+      "slot": "{{days}} {{from}}",
+      "mainLine": "{{name}} · {{slots}} · {{teacher}}",
+      "otherLine": "{{name}} ({{slots}})",
+      "noSchedule": "Sem horário definido",
+      "monthlyLine": "{{value}} · dia {{day}}",
+      "planLine": "{{plan}} · {{value}}",
       "benefit": "Benefício",
       "benefitPercent": "{{value}}% de desconto",
       "benefitAmount": "{{value}} de desconto",
       "benefitUntil": "até {{date}}",
       "noBenefit": "Sem benefício",
-      "monthly": "Mensalidade",
-      "dueDay": "Vencimento",
-      "dueDayValue": "todo dia {{day}}",
       "next": "Plano seguinte",
       "nextValue": "{{name}} ({{value}})",
       "changeHint": "Para mudar de plano, turma ou horário, faça um pedido à academia."
@@ -4460,20 +4495,21 @@
       "on": "em {{date}}"
     },
     "preferences": {
-      "title": "Preferências",
-      "emailAnnouncements": "Receber comunicados por e-mail",
+      "title": "Preferências de e-mail",
+      "emailAnnouncements": "Comunicados da academia",
+      "note": "Cobranças, lembretes, recibos e avisos de aula sempre chegam",
       "failed": "Não foi possível salvar a preferência. Tente de novo."
     },
     "terms": {
-      "title": "Termos aceitos",
+      "title": "Termos",
       "enrollment": "Termo de matrícula",
-      "enrollmentAccepted": "Aceito (versão {{version}}) em {{date}}",
+      "enrollmentAccepted": "Aceito em {{date}} · versão {{version}}",
       "enrollmentNone": "Ainda não aceito",
       "imageUse": "Uso de imagem",
-      "imageGranted": "Concedido (versão {{version}}) em {{date}}",
-      "imageNotGranted": "Não concedido",
-      "revoke": "Revogar uso de imagem",
-      "grant": "Conceder uso de imagem",
+      "imageGranted": "Autorizado em {{date}}",
+      "imageNotGranted": "Não autorizado",
+      "revoke": "Revogar",
+      "grant": "Conceder",
       "revokeTitle": "Revogar uso de imagem",
       "revokeSummary": "A academia deixa de usar fotos e vídeos em que você aparece a partir de hoje. O que já foi publicado antes não é apagado automaticamente: se quiser, peça à unidade.",
       "revokeSummaryLabel": "Resumo",
@@ -4481,22 +4517,26 @@
       "revokeItem2": "Nada mais muda na sua matrícula nem no portal.",
       "revokeItem3": "Você pode autorizar de novo quando quiser.",
       "revokeConfirm": "Revogar",
-      "failed": "Não foi possível salvar. Tente de novo."
+      "failed": "Não foi possível salvar. Tente de novo.",
+      "view": "Ver"
     },
     "requests": {
-      "title": "Pedidos à academia",
-      "empty": "Nenhum pedido feito.",
+      "title": "Últimos pedidos",
+      "empty": "Você ainda não fez pedidos",
       "line": "{{kind}} · {{status}} · {{date}}",
       "make": "Fazer um pedido"
     },
     "account": {
-      "title": "Minha conta"
-    },
-    "data": {
-      "title": "Seus dados",
+      "title": "Conta e privacidade",
+      "mine": "Minha conta",
       "download": "Baixar meus dados",
       "delete": "Excluir minha conta",
-      "soon": "Estas ações ficam disponíveis em breve."
-    }
+      "install": "Instalar o app"
+    },
+    "label": "Minhas informações",
+    "mobileTitle": "Eu",
+    "menu": { "label": "Mais opções", "terms": "Termos e uso de imagem", "preferences": "Preferências de e-mail" },
+    "reducedNote": "Treinos, plano, graduação e pedidos voltam a aparecer quando uma modalidade estiver ativa de novo.",
+    "accountReduced": "Conta e dados"
   }
 }
