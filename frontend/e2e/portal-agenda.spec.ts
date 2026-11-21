@@ -66,11 +66,11 @@ test.describe("agenda do portal a 360 px", () => {
     });
   }
 
-  test("@critical portal reduzido não tem a aba Agenda e /portal/agenda leva ao Início", async ({ page }) => {
+  test("@critical portal reduzido não tem a aba Agenda e /portal/agenda leva ao Financeiro", async ({ page }) => {
     await login(page, "reduzido@exemplo.com");
     await expect(page.getByRole("link", { name: "Agenda", exact: true })).toHaveCount(0);
     await page.evaluate("window.history.pushState({}, '', '/portal/agenda'); window.dispatchEvent(new PopStateEvent('popstate'))");
-    await expect(page).not.toHaveURL(/agenda/);
+    await expect(page).toHaveURL(/\/portal\/financeiro$/);
   });
 });
 

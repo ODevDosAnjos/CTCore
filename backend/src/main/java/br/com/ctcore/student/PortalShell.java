@@ -16,7 +16,7 @@ public class PortalShell {
     public record View(OrganizationProfile.Brand organization, boolean reduced, int unreadAnnouncements, Unit unit) {}
 
     /** Unidade do rodapé (dado público da academia); campos nulos quando não cadastrados. */
-    public record Unit(String name, String address, String whatsapp) {}
+    public record Unit(String name, String address, String whatsapp, String email) {}
 
     /** Alunos ligados à conta (:acc) na organização (:org); alias {@code s}. Mesma ligação de {@link PortalStudents#cards}. */
     private static final String LINKED = "s.organization_id = :org and (s.account_id = :acc or exists (select 1 from student_guardian sg join guardian g "
@@ -65,16 +65,19 @@ public class PortalShell {
         return transactions.execute(() -> {
             boolean reduced = isReduced(who);
             int unread = reduced ? 0 : jdbc.sql("select count(*) " + UNREAD_FROM).param("org", who.organizationId()).param("acc", who.accountId()).query(Integer.class).single();
-            return new View(brand, reduced, unread, reduced ? null : unit(who));
+            return new View(brand, reduced, unread, unit(who, reduced));
         });
     }
 
-    // Unidade da primeira modalidade ativa do primeiro aluno ligado (ordem estável); dentro de uma transação da organização.
-    private Unit unit(AccountPrincipal who) {
-        return jdbc.sql("select u.name, u.address, u.whatsapp from student s join enrollment_modality em on em.organization_id = s.organization_id and em.student_id = s.id "
-                + "and em.status = 'ACTIVE' join unit u on u.organization_id = em.organization_id and u.id = em.unit_id where " + LINKED + " order by s.name, em.id limit 1")
-                .param("org", who.organizationId()).param("acc", who.accountId())
-                .query((rs, n) -> new Unit(rs.getString("name"), rs.getString("address"), rs.getString("whatsapp"))).optional().orElse(null);
+    // Reduzido: unidade de cadastro do primeiro aluno ligado (a do contato de Minhas informações). Completo: unidade da primeira modalidade ativa.
+    // Ordem estável; dentro de uma transação da organização.
+    private Unit unit(AccountPrincipal who, boolean reduced) {
+        String sql = reduced
+                ? "select u.name, u.address, u.whatsapp, u.email from student s join unit u on u.organization_id = s.organization_id and u.id = s.registered_unit_id where " + LINKED + " order by s.name, s.id limit 1"
+                : "select u.name, u.address, u.whatsapp, u.email from student s join enrollment_modality em on em.organization_id = s.organization_id and em.student_id = s.id "
+                + "and em.status = 'ACTIVE' join unit u on u.organization_id = em.organization_id and u.id = em.unit_id where " + LINKED + " order by s.name, em.id limit 1";
+        return jdbc.sql(sql).param("org", who.organizationId()).param("acc", who.accountId())
+                .query((rs, n) -> new Unit(rs.getString("name"), rs.getString("address"), rs.getString("whatsapp"), rs.getString("email"))).optional().orElse(null);
     }
 
     /** RN-POR-08: a conta tem aluno matriculado e nenhum aluno ligado tem modalidade ativa. */

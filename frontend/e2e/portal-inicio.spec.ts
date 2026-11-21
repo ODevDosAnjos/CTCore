@@ -61,9 +61,9 @@ test.describe("início do portal a 360 px", () => {
     });
   }
 
-  test("@critical portal reduzido mostra só a cobrança vencida e o Pagar abre o Pix", async ({ page }) => {
+  test("@critical portal reduzido abre no Financeiro, mostra a cobrança vencida e o Pagar abre o Pix", async ({ page }) => {
     await login(page, "reduzido@exemplo.com");
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText(["Mensalidade em atraso"]);
+    await expect(page).toHaveURL(/\/portal\/financeiro$/);
     await expect(page.getByText("Vencida", { exact: true })).toBeVisible();
     expect(await violations(page)).toEqual([]);
     await page.getByRole("button", { name: "Pagar Mensalidade em atraso" }).click();

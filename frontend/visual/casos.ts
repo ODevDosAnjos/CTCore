@@ -35,6 +35,7 @@ export type Caso = {
   avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
   financeiroCanvas?: boolean; // #497: antes de abrir a tela, o Financeiro do canvas (Bruno Carvalho: 3 abertas, histórico de 2026 e chave Pix CNPJ da Tijuca)
   informacoesCanvas?: boolean; // #498: antes de abrir a tela, Minhas informações e Minha conta do canvas (Bruno Carvalho: dados, Jiu-Jitsu e Muay Thai com plano, termos e duas sessões)
+  reduzidoCanvas?: boolean; // #501: antes de abrir a tela, o Financeiro reduzido do canvas (Gabriel Rocha, Academia Leão, Tijuca: Muay Thai ago/2026 vencida e o recibo de jul/2026)
   pedidosCanvas?: "lista" | "turma" | "plano" | "modalidade" | "encerrar" | "bloqueado"; // #500: antes de abrir a tela, Bruno Carvalho com Jiu-Jitsu e Muay Thai (Tijuca), os três pedidos do canvas e a unidade Tijuca da Academia Leão; o variante decide o que a janela mostra (bloqueado: encerramento aberto no Muay Thai; modalidade: só o Jiu-Jitsu e a oferta do Muay Thai)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
@@ -68,10 +69,9 @@ export const casos: Caso[] = [
   // Moldura do portal (#418): barra com a marca, abas, sino, rodapé e faixa de acesso reduzido; a 390 px, barra de cima e abas embaixo
   { nome: "portal-aluno", rota: "/", perfil: aluno, canvas: "PortalInicio", canvasCelular: "PortalMInicio" },
   { nome: "portal-responsavel", rota: "/portal/financeiro", perfil: familia, canvas: "PortalNav" },
-  { nome: "portal-reduzido", rota: "/", perfil: reduzido, canvas: "PortalReduzido" },
+  { nome: "portal-reduzido", rota: "/portal/financeiro", perfil: reduzido, canvas: "PortalReduzido", canvasCelular: "PortalMReduzido", reduzidoCanvas: true },
   { nome: "portal-celular-topo", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalMTopo" },
   { nome: "portal-celular-abas", rota: "/portal/agenda", perfil: familia, canvas: "PortalMTabs" },
-  { nome: "portal-celular-reduzido", rota: "/portal/financeiro", perfil: reduzido, canvas: "PortalMReduzido" },
   // Páginas do portal do aluno e do responsável (#423). Janelas e estados que o MSW não alcança (comprovante com envio, pedidos por id gerado) ficam sem caso (D2).
   { nome: "portal-inicio-responsavel", rota: "/", perfil: familia, canvas: "PortalResponsavel", canvasCelular: "PortalMResponsavel" },
   { nome: "portal-inicio-em-dia", rota: "/", perfil: aluno, canvas: "PortalEmDia", inicioCanvas: "em-dia" },

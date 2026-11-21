@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false, pedidosCanvas?: Caso["pedidosCanvas"]) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false, pedidosCanvas?: Caso["pedidosCanvas"], reduzidoCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -19,6 +19,8 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
       await page.getByLabel("Código").fill("123456"); // envia sozinho; conta com as duas etapas ligadas
     }
     await expect(page.getByRole("heading", { name: /Bem-vindo ao ctcore|^Olá/ })).toBeVisible(); // portal: "Olá, <nome>" (#493)
+    // #501: o portal reduzido não tem Início: o "/" leva ao Financeiro; sem esperar, essa troca chegaria depois da navegação do caso
+    if (perfil === "reduzido@exemplo.com") await expect(page).toHaveURL(/\/portal\/financeiro$/);
     if (oferta) {
       // a Coordenação liga Jiu-Jitsu na unidade Centro para o assistente oferecer a modalidade
       await page.evaluate(async () => {
@@ -539,6 +541,50 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (reduzidoCanvas) {
+      // #501: o Financeiro reduzido do canvas (Gabriel Rocha, Academia Leão, Tijuca): Muay Thai ago/2026 vencida e o recibo de jul/2026
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async () => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const base = (await (await fetch("/api/v1/portal/finance")).json()) as Record<string, unknown>;
+        const shell = (await (await fetch("/api/v1/portal/shell")).json()) as { organization: object; [k: string]: unknown };
+        const student = { id: "00000000-0000-0000-0000-000000000701", name: "Gabriel Rocha", self: true };
+        const muay = { id: "00000000-0000-0000-0000-00000000010b", name: "Muay Thai" };
+        const tijuca = { id: "00000000-0000-0000-0000-000000000021", name: "Tijuca" };
+        override({
+          method: "get",
+          path: "/portal/shell",
+          status: 200,
+          body: { ...shell, organization: { ...shell.organization, name: "Academia Leão" }, unit: { name: "Tijuca", address: "Rua Conde de Bonfim, 600", whatsapp: "(21) 97000-1200", email: "tijuca@academialeao.example" } },
+        });
+        override({
+          method: "get",
+          path: "/portal/finance",
+          status: 200,
+          body: {
+            ...base,
+            reduced: true,
+            students: [{ ...student, photoUrl: null, openCents: 16000 }],
+            selectedStudentId: student.id,
+            scope: "STUDENT",
+            year: 2026,
+            years: [2026, 2025],
+            familyOpenCents: 16000,
+            open: [
+              {
+                id: "00000000-0000-0000-0000-0000000007e1", studentId: student.id, studentName: student.name, type: "MONTHLY", description: null, referenceLabel: "Muay Thai · ago/2026", referenceMonth: "2026-08-01",
+                dueOn: "2026-08-10", situation: "OVERDUE", amountCents: 16000, planCents: 16000, benefitCents: 0, canPay: true, modality: muay, unit: tijuca,
+              },
+            ],
+            history: [{ id: "00000000-0000-0000-0000-0000000007f1", referenceLabel: "Muay Thai · jul/2026", dueOn: "2026-07-10", amountCents: 16560, status: "PAID", paidAt: "2026-07-15T15:00:00Z", method: "CREDIT_CARD", receipt: { number: 1, code: "RC-MOCK-2026-1" } }],
+          },
+        });
+      });
+      // o reduzido já caiu no Financeiro ao entrar, com os dados do MSW: sai e volta pela navegação seguinte para o layout reler a moldura e as cobranças
+      await page.evaluate(`history.pushState({}, "", "/portal/minhas-informacoes"); dispatchEvent(new PopStateEvent("popstate"))`);
+      await expect(page.getByRole("heading", { name: "Dados pessoais" })).toBeVisible();
+      await page.mouse.move(0, 0); // o ponteiro do clique em "Entrar" ficaria sobre o "Em breve" e abriria a dica
+    }
     if (pedidosCanvas) {
       // #500: Pedidos do canvas (Bruno Carvalho, Academia Leão, Tijuca): Jiu-Jitsu e Muay Thai, os três pedidos da lista e o contato da unidade no aprovado
       await page.waitForFunction("window.__mswOverride");
@@ -671,7 +717,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas, caso.pedidosCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas, caso.pedidosCanvas, caso.reduzidoCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

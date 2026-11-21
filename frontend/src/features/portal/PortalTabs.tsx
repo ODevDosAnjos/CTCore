@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
 
 const TABS: { id: string; to: string; full: boolean; Icon: LucideIcon }[] = [
-  { id: "home", to: "/", full: false, Icon: House },
+  { id: "home", to: "/", full: true, Icon: House },
   { id: "schedule", to: "/portal/agenda", full: true, Icon: CalendarDays },
   { id: "finance", to: "/portal/financeiro", full: false, Icon: Wallet },
   { id: "notices", to: "/portal/avisos", full: true, Icon: Bell },
@@ -26,7 +26,7 @@ function Count({ count, className }: { count: number; className?: string }) {
   );
 }
 
-// Abas do portal: na barra escura a partir de 768 px e embaixo, com ícone e nome curto, abaixo disso. Agenda e Avisos somem no reduzido (RN-POR-08).
+// Abas do portal: na barra escura a partir de 768 px e embaixo, com ícone e nome curto, abaixo disso. Início, Agenda e Avisos somem no reduzido (RN-POR-08).
 export function PortalTabs({ reduced, count, variant }: { reduced: boolean; count: number; variant: "bar" | "bottom" }) {
   const { t } = useTranslation();
   const bar = variant === "bar";

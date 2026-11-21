@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import { SessionProvider } from "@/features/auth/SessionProvider";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
@@ -34,6 +34,9 @@ const home = (over: Partial<PortalHomeData> = {}): PortalHomeData => ({
 });
 const serve = (data: PortalHomeData | (() => Response)) => server.use(http.get("/api/v1/portal/home", typeof data === "function" ? data : () => HttpResponse.json(data)));
 const session = { account: { id: "a1", email: "bruno@alfa.test", name: "Bruno Lima" }, links: [], activeLinkId: null, twoFactor: { enabled: false, required: false } };
+function Where() {
+  return <span data-testid="where">{useLocation().pathname}</span>;
+}
 const view = () => {
   server.use(http.get("/api/v1/auth/session", () => HttpResponse.json(session)));
   return render(
@@ -41,6 +44,7 @@ const view = () => {
       <MemoryRouter>
         <SessionProvider>
           <PortalHomePage />
+          <Where />
         </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,
@@ -212,12 +216,11 @@ describe("PortalHomePage (RF-POR-02)", () => {
     expect(screen.queryByRole("region", { name: "Alunos da família" })).not.toBeInTheDocument();
   });
 
-  it("CA12: portal reduzido mostra só a cobrança", async () => {
+  it("CA12: portal reduzido não tem Início e vai ao Financeiro", async () => {
     serve(home({ reduced: true, lessons: [], belts: [], announcements: { unreadCount: 0, items: [] } }));
     view();
-    await screen.findByText("Vencida");
-    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Jiu-Jitsu"]);
-    expect(screen.getByRole("link", { name: "Ver carteirinha" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro"));
+    expect(screen.queryByText("Vencida")).not.toBeInTheDocument();
   });
 
   it("CA15: carregando, erro com Tentar de novo, sem permissão e seções vazias", async () => {
