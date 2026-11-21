@@ -6,6 +6,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import type { ChargeRow } from "@/features/charges/types";
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
+import { PermissionsFrame } from "@/test/PermissionsFrame";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
@@ -56,7 +57,7 @@ function setup(opts: { role?: string; charges?: () => Response | Promise<Respons
     <ThemeProvider>
       <MemoryRouter>
         <SessionProvider>
-          <StudentRecordPanel id="s1" onClose={() => {}} />
+          <PermissionsFrame><StudentRecordPanel id="s1" onClose={() => {}} /></PermissionsFrame>
         </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,

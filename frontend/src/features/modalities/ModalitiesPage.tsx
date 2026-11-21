@@ -13,7 +13,6 @@ import { Banner } from "@/components/ui/banner";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModalityDot } from "@/components/ui/modality-dot";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ApiError } from "@/lib/api";
 import { DeactivateModalityDialog, type Blocker } from "./DeactivateModalityDialog";
 import { GraduationDialog } from "./GraduationDialog";
@@ -268,9 +267,5 @@ function Content() {
 
 // RF-MOD-01: Coordenador altera; Administrador só consulta (canManage). A barreira de dados é o servidor.
 export function ModalitiesPage() {
-  return (
-    <ManagementLayout activeId="modalities">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

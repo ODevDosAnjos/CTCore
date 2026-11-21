@@ -159,6 +159,7 @@ export const casos: Caso[] = [
   { nome: "convite", rota: "/convite/valido", canvas: "PrimeiroAcesso" },
   { nome: "convite-conta-existente", rota: "/convite/existente", canvas: "PrimeiroAcessoConta" },
   { nome: "convite-vencido", rota: "/convite/vencido", canvas: "ConviteVencido" },
+  { nome: "pagina-nao-encontrada", rota: "/pagina-que-nao-existe", perfil: prof }, // #675: sem canvas (D6); segue a especificação e os estados base
   { nome: "sem-acesso", rota: "/configuracoes/usuarios", perfil: prof, canvas: "EstadoSemAcesso", canvasCelular: "SemAcessoM" },
   { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", informacoesCanvas: true, passos: [{ clicar: "Trocar e-mail" }], limiteCanvas: { valor: 0.75, motivo: "fundo: a janela confere com o canvas (Novo e-mail, Senha atual com a dica, Resumo de 4 avisos, rodapé fixo); atrás dela o canvas mostra só o cartão Acesso, e o sistema mostra a página inteira (medido a 68,5% na #498; a #642 remove este limite)" } },
   { nome: "conta-duas-etapas", rota: "/conta?aba=duas-etapas", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img' },

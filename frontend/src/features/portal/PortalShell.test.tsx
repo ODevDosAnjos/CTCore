@@ -50,7 +50,7 @@ const label = (a: HTMLElement) => a.getAttribute("aria-label") ?? a.textContent;
 const current = () => tabs().filter((a) => a.getAttribute("aria-current") === "page").map(label);
 const bell = () => screen.queryAllByRole("link", { name: /^Avisos/ }).find((a) => !a.closest("nav"));
 
-describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
+describe("PortalShell: barra e navegação do portal (RF-POR-01)", () => {
   it("CA1: mostra organização, logo, nome e papel (Aluno e Responsável); sem logo não há imagem", async () => {
     const { container, unmount } = setup("/", { data: shell({ organization: { name: "Academia Alfa", color: "#1d4ed8", logoUrl: "data:image/png;base64,AAAA" } }) });
     await ready();
@@ -160,6 +160,34 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     await screen.findByRole("heading", { name: "Agenda", level: 1 });
   });
 
+  it("#675 CA2, CA3: navegar entre telas do portal mantém a barra e lê /portal/shell uma vez; o carregando fica na área central", async () => {
+    let calls = 0;
+    let release = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    server.use(http.get("/api/v1/portal/info", async () => {
+      await gate;
+      return new HttpResponse(null, { status: 500 });
+    }));
+    const { container } = setup("/", { shell: () => (calls += 1, HttpResponse.json(shell())) });
+    await ready();
+    const bar = container.querySelector("header")!;
+    await userEvent.setup().click(screen.getAllByRole("link", { name: "Minhas informações" })[0]);
+    expect(await within(screen.getByRole("main")).findByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Academia Alfa" })).toBeInTheDocument();
+    expect(bar.isConnected).toBe(true);
+    release();
+    await screen.findByRole("alert");
+    expect(bar.isConnected).toBe(true);
+    expect(calls).toBe(1);
+  });
+
+  it("#675 CA11: no reduzido /portal/agenda vai ao Financeiro sem segunda leitura da moldura", async () => {
+    let calls = 0;
+    setup("/portal/agenda", { data: shell({ reduced: true, unreadAnnouncements: 0 }), shell: () => (calls += 1, HttpResponse.json(shell({ reduced: true, unreadAnnouncements: 0 }))) });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
+    expect(calls).toBe(1);
+  });
+
   it("CA12: erro de leitura aparece no lugar do conteúdo, com a barra de abas, e Tentar de novo refaz a chamada", async () => {
     let calls = 0;
     setup("/", {
@@ -244,7 +272,7 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
 
 });
 
-describe("PortalLayout: sair da conta (#434)", () => {
+describe("PortalShell: sair da conta (#434)", () => {
   it.each([
     ["completo", false],
     ["reduzido", true],

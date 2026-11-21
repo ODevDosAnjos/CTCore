@@ -11,7 +11,6 @@ import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PortalHeading } from "./PortalHeading";
-import { PortalLayout } from "./PortalLayout";
 import { PortalMemberCard } from "./PortalMemberCard";
 import { usePortalCard, type PortalCardData } from "./usePortalCard";
 
@@ -48,7 +47,7 @@ export function PortalCardPage() {
   );
   const ids = family ? (student ? [student] : list.students.map((s) => s.id)) : [];
   return (
-    <PortalLayout>
+    <>
       {offline && data && (
         <Banner tone="warn" className="mb-4">
           {t("portalCard.offlineBanner", { date: formatDateTime(data.generatedAt, data.timezone) })}
@@ -103,6 +102,6 @@ export function PortalCardPage() {
       ) : (
         <ErrorState onRetry={reload} />
       )}
-    </PortalLayout>
+    </>
   );
 }

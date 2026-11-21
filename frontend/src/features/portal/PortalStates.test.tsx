@@ -109,6 +109,7 @@ function setup(path: string, main: (typeof routes)[number], response: () => Resp
     // O portão do termo e a moldura respondem bem; só a busca principal da rota muda.
     http.get("/api/v1/portal/term", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
+    http.get("/api/v1/portal/students/:id/requests", () => HttpResponse.json([])), // o resumo de pedidos de Minhas informações
     http.get("/api/v1/portal/modality-confirmations", () => HttpResponse.json([])),
     http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0 })),
   );

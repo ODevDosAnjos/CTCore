@@ -9,9 +9,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PortalHeading } from "@/features/portal/PortalHeading";
 import { MenuList, SoonRow } from "@/features/portal/PortalMenuRows";
 import { Tabs } from "@/components/ui/tabs";
+import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
+import { isManagement } from "@/routes";
 import { AccessCard } from "./AccessCard";
-import { AccountFrame, MANAGEMENT } from "./AccountFrame";
 import { AccountMenuList } from "./AccountMenuList";
 import { NotificationsTab } from "./NotificationsTab";
 import { SessionsSection } from "./SessionsSection";
@@ -41,7 +42,16 @@ export function AccountPage() {
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role ?? "";
-  return <AccountFrame>{MANAGEMENT.includes(role) ? <ManagementAccount /> : <PortalAccount />}</AccountFrame>;
+  if (isManagement(role)) return <ManagementAccount />;
+  // No celular a barra do portal não tem o botão de sair: ele fica no fim de Minha conta.
+  return (
+    <>
+      <PortalAccount />
+      <div className="mt-6 md:hidden">
+        <LogoutButton />
+      </div>
+    </>
+  );
 }
 
 // Portal (Aluno e Responsável, canvas PortalConta): rótulo, "‹ Voltar" no celular, Acesso, duas etapas, sessões e os cartões de dados ("Em breve", Sprint 13).

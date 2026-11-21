@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { useSession } from "@/features/auth/SessionProvider";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -150,9 +149,5 @@ function Content() {
 
 // RF-AGE-01: a barreira de dados é o servidor (403 vira "sem permissão" na própria tela).
 export function AgendaPage() {
-  return (
-    <ManagementLayout activeId="agenda">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

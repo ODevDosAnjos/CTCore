@@ -37,7 +37,8 @@ const units = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" 
 
 // RF-ACE-05 / RN-ACE-03: página (não janela) que só sai com a escolha ou com "Sair". A área vem do papel do vínculo.
 // `onClose`: aberta pelo gatilho da casca, quando a pessoa já tem vínculo ativo (sai também por "Voltar" ou Esc).
-export function ChooseLinkPage({ onClose }: { onClose?: () => void }) {
+// `onChosen`: só quando um vínculo foi escolhido (D2: o gatilho leva ao Início do vínculo novo).
+export function ChooseLinkPage({ onClose, onChosen }: { onClose?: () => void; onChosen?: () => void }) {
   const { t } = useTranslation();
   const { state, setSession } = useSession();
   const [pending, setPending] = useState<Link | null>(null);
@@ -57,6 +58,7 @@ export function ChooseLinkPage({ onClose }: { onClose?: () => void }) {
       remember(keep || silent ? link.id : null);
       setPending(null);
       setSession(view);
+      onChosen?.();
       onClose?.();
     } catch (e) {
       setPending(null);

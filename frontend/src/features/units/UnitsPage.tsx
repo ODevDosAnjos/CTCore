@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { formatDate } from "@/lib/format";
 import { DeactivateUnitDialog } from "./DeactivateUnitDialog";
 import { MAX_UNITS, useUnits, type UnitSummary } from "./useUnits";
@@ -157,9 +156,5 @@ function Content() {
 
 // RF-ACE-06: só o Coordenador (a rota já nega os demais; a barreira de dados é o servidor).
 export function UnitsPage() {
-  return (
-    <ManagementLayout activeId="units">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

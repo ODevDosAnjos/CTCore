@@ -9,7 +9,6 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ApiError } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useEditConflict } from "@/lib/useEditConflict";
@@ -261,9 +260,5 @@ function Content() {
 
 // RF-ORG-04: Coordenador e Administrador (a rota já nega os demais; a barreira de dados é o servidor).
 export function UnitSettingsPage() {
-  return (
-    <ManagementLayout activeId="unitSettings">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

@@ -8,7 +8,6 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { useTexts, type TextModel } from "./useTexts";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -245,9 +244,5 @@ function Content() {
 
 // RF-COM-03: Coordenador edita; Administrador só consulta (canManage). A barreira de dados é o servidor.
 export function TextsPage() {
-  return (
-    <ManagementLayout activeId="texts">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

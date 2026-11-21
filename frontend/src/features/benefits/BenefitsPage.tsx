@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PersonAvatar, PersonRow } from "@/components/ui/person-row";
 import { QuickFilters } from "@/components/ui/quick-filters";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatDate } from "@/lib/format";
@@ -139,9 +138,5 @@ function Content() {
 }
 
 export function BenefitsPage() {
-  return (
-    <ManagementLayout activeId="benefits">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

@@ -1,7 +1,7 @@
-import { useRef, type ReactNode } from "react";
+import { useRef } from "react";
 import { Bell, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, Outlet } from "react-router";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
 import { LogoutButton } from "@/features/auth/LogoutButton";
@@ -12,15 +12,15 @@ import { OrgMark, orgStyle } from "./OrgMark";
 import { PortalAccount } from "./PortalAccount";
 import { PortalFooter } from "./PortalFooter";
 import { PortalTabs } from "./PortalTabs";
-import { usePortalShell } from "./usePortalShell";
+import { PortalShellContext, useLoadPortalShell } from "./usePortalShell";
 
 const barButton = "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground";
 
-// RF-POR-01: moldura única do portal (barra escura com a marca, abas e sino; abas embaixo no celular). Agenda e Avisos somem no portal reduzido (RN-POR-08).
-export function PortalLayout({ children }: { children: ReactNode }) {
+// RF-POR-01, RNF-43: moldura única do portal, rota-pai montada uma vez (a leitura e o relógio são dela; só a área central troca) (barra escura com a marca, abas e sino; abas embaixo no celular). Agenda e Avisos somem no portal reduzido (RN-POR-08).
+export function PortalShell() {
   const { t } = useTranslation();
   const { state } = useSession();
-  const shell = usePortalShell();
+  const shell = useLoadPortalShell();
   const main = useRef<HTMLElement>(null);
   useFocusOnRoute(main);
   const session = state.status === "ready" ? state.session : undefined;
@@ -34,6 +34,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
   const roleLabel = reduced ? t("portalShell.inactive", { role: roleName }) : roleName;
   const orgName = data?.organization.name ?? t("app.name");
   return (
+    <PortalShellContext.Provider value={shell}>
     <div className="flex min-h-screen flex-col" style={orgStyle(data?.organization.color)}>
       <a
         href="#conteudo"
@@ -85,7 +86,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
         </p>
       )}
       <main id="conteudo" ref={main} tabIndex={-1} className="mx-auto w-full max-w-280 flex-1 px-4 pb-6 pt-6 focus:outline-none">
-        {shell.status === "loading" ? <LoadingState /> : shell.status === "forbidden" ? <ForbiddenState /> : shell.status === "error" ? <ErrorState onRetry={shell.retry} /> : children}
+        {shell.status === "loading" ? <LoadingState /> : shell.status === "forbidden" ? <ForbiddenState /> : shell.status === "error" ? <ErrorState onRetry={shell.retry} /> : <Outlet />}
       </main>
       <div className="mx-auto w-full max-w-280 px-4 pb-4 empty:hidden md:hidden">
         <ChooseLinkTrigger />
@@ -93,5 +94,6 @@ export function PortalLayout({ children }: { children: ReactNode }) {
       <PortalFooter organization={orgName} unit={data?.unit} />
       <PortalTabs reduced={reduced} count={count} variant="bottom" />
     </div>
+    </PortalShellContext.Provider>
   );
 }

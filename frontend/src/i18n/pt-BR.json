@@ -45,6 +45,11 @@
     "financeHome": "Voltar ao Início",
     "classes": "Ver minhas turmas"
   },
+  "notFound": {
+    "title": "Página não encontrada",
+    "text": "O endereço que você abriu não existe ou mudou de lugar.",
+    "home": "Ir para o Início"
+  },
   "chooseLink": {
     "title": "Onde você quer entrar?",
     "intro": "Olá, {{name}}. Sua conta tem acesso a mais de um lugar. Você pode trocar depois pelo menu da sua foto.",

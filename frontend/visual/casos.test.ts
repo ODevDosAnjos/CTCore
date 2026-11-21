@@ -7,9 +7,11 @@ const nomeTela = (t: { arquivo: string }) => t.arquivo.replace(".dc.html", "");
 const telas = new Set(indice.map(nomeTela));
 const larguraDe = new Map(indice.map((t) => [nomeTela(t), t.largura]));
 const app = readFileSync("src/App.tsx", "utf8");
-const paths = [...app.matchAll(/<Route path=(?:"|\{)([^"}]+)/g)].map((m) => m[1]);
+const mapa = readFileSync("src/routes.ts", "utf8"); // lido como texto: importar `src` traria os tipos de DOM ao projeto do e2e (typecheck)
+// As rotas vêm do App (telas públicas) e do mapa de rotas (RNF-43, `src/routes.ts`).
+const paths = [...[...app.matchAll(/<Route path="([^"]+)/g)].map((m) => m[1]), ...[...mapa.matchAll(/"(\/[^"]*)"/g)].map((m) => m[1])];
 const casa = (rota: string) =>
-  paths.some((p) => new RegExp(`^${p.replace(/\/:\w+\??/g, "(/[^/]+)?")}/?$`).test(rota.split("?")[0]));
+  paths.some((p) => p === "*" || new RegExp(`^${p.replace(/\/:\w+\??/g, "(/[^/]+)?")}/?$`).test(rota.split("?")[0]));
 
 describe("casos do teste visual", () => {
   it("nomes únicos", () => expect(new Set(casos.map((c) => c.nome)).size).toBe(casos.length));

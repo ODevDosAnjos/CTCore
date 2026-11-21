@@ -11,6 +11,8 @@ import { Breadcrumb } from "./Breadcrumb";
 export interface TopbarProps {
   groups: NavGroup[];
   activeId: string;
+  /** Item do cabeçalho do celular; padrão é o `activeId`. */
+  mobileActiveId?: string;
   org?: string;
   /** Seletor de unidade: a versão do desktop (botão e lista) ou a do celular (botão e folha). */
   unit?: (variant: "desktop" | "mobile" | "compact") => ReactNode;
@@ -24,12 +26,12 @@ export interface TopbarProps {
 // Barra de cima. Desktop (md+), numa só linha: trilha, unidade, busca, sino, tema, ajuda, divisória e conta.
 // Celular: seta de voltar (fora do Início), marca, título e unidade à esquerda; lupa e sino à direita (R5, R7).
 // Busca e ajuda ainda sem tela: desabilitadas com motivo ("Em breve").
-export function Topbar({ groups, activeId, org, unit, bell, userMenu, trail, children }: TopbarProps) {
+export function Topbar({ groups, activeId, mobileActiveId = activeId, org, unit, bell, userMenu, trail, children }: TopbarProps) {
   const { t } = useTranslation();
   const soon = t("layout.soon");
   const desktopUnit = unit?.("desktop");
   const mobileUnit = unit?.("compact");
-  const title = groups.flatMap((g) => g.items).find((i) => i.id === activeId)?.label;
+  const title = groups.flatMap((g) => g.items).find((i) => i.id === mobileActiveId)?.label;
   return (
     <header className="flex flex-nowrap items-center gap-1 border-b px-4 py-2 md:gap-2">
       <div className="hidden min-w-0 flex-1 md:block">
@@ -37,7 +39,7 @@ export function Topbar({ groups, activeId, org, unit, bell, userMenu, trail, chi
       </div>
       <div className="hidden min-w-0 md:flex">{desktopUnit}</div>
       <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
-        {activeId !== "home" && (
+        {mobileActiveId !== "home" && (
           <Button asChild variant="ghost" size="icon" className="shrink-0">
             <Link to="/" aria-label={t("layout.back")}>
               <ArrowLeft aria-hidden="true" />

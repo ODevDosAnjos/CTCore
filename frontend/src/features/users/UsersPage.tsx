@@ -15,7 +15,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PillFilter } from "@/components/ui/pill-filter";
 import { SearchBox } from "@/components/ui/search-box";
 import type { Tone } from "@/components/ui/status-tone";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { useUnitScope } from "@/features/units/UnitScopeProvider";
 import { DeactivateUserDialog } from "./DeactivateUserDialog";
 import { EditUnitsDialog } from "./EditUnitsDialog";
@@ -213,9 +212,5 @@ function Content() {
 
 // RF-ACE-06: a rota já nega Professor; a barreira de dados é o servidor.
 export function UsersPage() {
-  return (
-    <ManagementLayout activeId="staffUsers">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

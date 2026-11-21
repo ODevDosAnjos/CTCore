@@ -11,7 +11,6 @@ import { ComingSoon } from "@/components/ui/coming-soon";
 import { Tabs } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { useTerms, type TermsKind, type TermsVersion } from "./useTerms";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -176,9 +175,5 @@ function Content() {
 
 // RF-MAT-05: Coordenador publica; Administrador só consulta (canManage). A barreira de dados é o servidor.
 export function TermsPage() {
-  return (
-    <ManagementLayout activeId="terms">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

@@ -8,7 +8,6 @@ import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/componen
 import { PortalAnnouncementItem } from "./PortalAnnouncementItem";
 import { PortalAnnouncementView } from "./PortalAnnouncementView";
 import { PortalHeading } from "./PortalHeading";
-import { PortalLayout } from "./PortalLayout";
 import { markAllPortalAnnouncementsRead, usePortalAnnouncements, type AnnouncementFilter, type PortalAnnouncementsData } from "./usePortalAnnouncements";
 
 const SLUG = { ALL: "todos", UNREAD: "nao-lidos", MODALITY: "modalidade" } as const;
@@ -67,13 +66,13 @@ export function PortalAnnouncementsPage() {
     : [];
   if (opened) {
     return (
-      <PortalLayout>
+      <>
         <PortalAnnouncementView id={opened} studentId={student} onBack={() => change({ aviso: null })} onRead={reload} />
-      </PortalLayout>
+      </>
     );
   }
   return (
-    <PortalLayout>
+    <>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <PortalHeading label={t("portalAnnouncements.label")} title={t("portalAnnouncements.title")} />
         {showControls && (
@@ -157,6 +156,6 @@ export function PortalAnnouncementsPage() {
       ) : (
         <ErrorState onRetry={reload} />
       )}
-    </PortalLayout>
+    </>
   );
 }

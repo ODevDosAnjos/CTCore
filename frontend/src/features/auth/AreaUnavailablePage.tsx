@@ -3,13 +3,12 @@ import { Link, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ForbiddenState } from "@/components/states";
 import { buttonVariants } from "@/components/ui/button";
-import { AreaUnavailableShell } from "./AreaUnavailableShell";
 import { ChooseLinkTrigger } from "./ChooseLinkTrigger";
 import { useSession } from "./SessionProvider";
 
 // RF-ACE-08: texto único para qualquer área negada (D3); a recusa de dados é do servidor (403).
-// Dentro da casca do app: gestão com menu e barra, portal com a do portal; sem vínculo ativo, sem casca.
-// `bare`: só o estado; o `ManagementLayout` já é a casca (e chama esta página quando não há menu algum).
+// Gestão e portal: dentro da moldura da rota-pai (RoleShell); sem vínculo ativo, sem moldura.
+// `bare`: só o estado, sem a moldura (a `ManagementShell` chama esta página quando não há menu algum).
 export function AreaUnavailablePage({ bare = false }: { bare?: boolean }) {
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
@@ -20,11 +19,10 @@ export function AreaUnavailablePage({ bare = false }: { bare?: boolean }) {
         <AreaUnavailableState role={role} withChoose />
       </main>
     );
-  const content = <AreaUnavailableState role={role} />;
-  return <AreaUnavailableShell role={role}>{content}</AreaUnavailableShell>;
+  return <AreaUnavailableState role={role} />;
 }
 
-// A casca já traz o botão de trocar organização ou área; sem casca, ele vem aqui.
+// A moldura já traz o botão de trocar organização ou área; sem moldura, ele vem aqui.
 // Em Financeiro › Cobranças o canvas (EstadoSemAcesso) traz o texto próprio da área e "Voltar ao Início"; o Professor ganha "Ver minhas turmas".
 function AreaUnavailableState({ role, withChoose = false }: { role?: string; withChoose?: boolean }) {
   const { t } = useTranslation();

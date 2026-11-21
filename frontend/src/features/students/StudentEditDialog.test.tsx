@@ -7,6 +7,7 @@ import { App } from "@/App";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
+import { PermissionsFrame } from "@/test/PermissionsFrame";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
@@ -235,7 +236,7 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
       <ThemeProvider>
         <MemoryRouter>
           <SessionProvider>
-            <StudentRecordPanel id="s1" onClose={() => undefined} />
+            <PermissionsFrame><StudentRecordPanel id="s1" onClose={() => undefined} /></PermissionsFrame>
           </SessionProvider>
         </MemoryRouter>
       </ThemeProvider>,

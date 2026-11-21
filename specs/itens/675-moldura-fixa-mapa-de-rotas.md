@@ -1,0 +1,200 @@
+# 675 — RNF-43 · Moldura fixa na rota: menu e barra montados uma vez, mapa único de rotas e página não encontrada
+
+Origem: issue #675 (Sprint 10.5), `docs/especificacao/00-visao-geral.md` RNF-43, decisão 33 de `docs/auditoria/decisoes-canvas.md`. Branch: `item/675-moldura-fixa-mapa-de-rotas`.
+
+## 1. Objetivo
+
+Fazer a RNF-43 valer de verdade para quem usa a gestão e o portal: a moldura (menu lateral, barra de cima, abas do celular, barra do portal) é montada uma vez numa rota-pai e fica; ao navegar, só a área central troca, sem a tela inteira sumir e sem o menu fechar os grupos. Junto, um mapa único de rotas (endereço, acesso, item do menu, trilha) passa a gerar rotas, menu, item ativo, trilha e destinos de notificação, e o endereço inexistente mostra "página não encontrada" dentro da moldura.
+
+Fora do escopo: painéis, abas e filtros no endereço (#676); regras no `AGENTS.md` e nos docs (#677); transições e barra de carregamento (#645); visual do menu (#624). API, contrato OpenAPI e MSW não mudam (salvo atraso de MSW nos testes).
+
+## 2. Requisitos
+
+- R1: Gestão e portal têm cada um uma rota de layout com `<Outlet />`, montada uma vez; nenhum arquivo fora dela importa `ManagementLayout` ou `PortalLayout`. Na raiz das rotas logadas a moldura é escolhida pelo perfil do vínculo ativo, para `/` e `/conta` servirem os dois.
+- R2: `GET /permissions` (gestão) e `GET /portal/shell` (portal) são lidos uma vez pela moldura e compartilhados (contexto) com as telas e os guardas; nenhuma tela nem guarda faz segunda leitura, e o relógio de 60 s do portal é um só.
+- R3: Ao trocar de tela, o menu, a barra, o estado dos grupos abertos e do menu recolhido, o seletor de unidade e o sino continuam o mesmo elemento; o "carregando" aparece só dentro do `<Outlet />`. Vale também para Agenda e Avisos do portal (D4).
+- R4: Existe um mapa único (`frontend/src/routes.ts`) com, por rota: endereço, acesso, item do menu e trilha. Dele saem as rotas do `App.tsx`, o `menuCatalog`, o item ativo, a trilha, as abas do celular e os destinos das notificações; as telas não passam `activeId` nem `trail`.
+- R5: O acesso da rota e a visibilidade do item no menu vêm da mesma regra (D1, muda o comportamento).
+- R6: Endereço que mudou deixa um redirecionamento no mapa (o `/planos/lista` → `/planos` atual passa a viver nele).
+- R7: Rota `*` mostra "página não encontrada" (pt-BR, botão para o Início) dentro da moldura do perfil; sem sessão, na tela de acesso (D3).
+- R8: Trocar de vínculo (organização ou perfil) pelo `ChooseLinkTrigger` leva ao Início do vínculo novo e refaz a moldura (D2, muda o comportamento).
+- R9: Saem no mesmo PR: `<ManagementLayout>`/`<PortalLayout>` de dentro das telas, `AccountFrame` e `AreaUnavailableShell` como escolhedores de moldura, o `Home` de dois ramos e a leitura extra do `RequireFullPortal`.
+- R10: `shell.test.ts` (CA8 da #417) passa a reprovar qualquer `*Page.tsx` que importe `ManagementLayout` ou `PortalLayout`; a regra de um `h1` vindo de `PageHeader` continua.
+- R11: Moldura e página não encontrada têm os quatro estados, funcionam a partir de 360 px, passam no axe nos dois temas e têm texto em `pt-BR.json`. Sem mudança visual pedida nas telas existentes.
+
+## 3. Critérios de aceite
+
+- CA1 (R1, R3): dado um Coordenador na gestão, desktop e 360 px, quando navega por todos os itens do menu e das abas, então o elemento do menu e o da barra marcados com `data-marca` continuam os mesmos, um grupo expandido continua expandido e o menu recolhido continua recolhido.
+- CA2 (R2): dado o mesmo percurso (gestão e portal), então `GET /permissions` (ou `/portal/shell`) é chamado uma vez só (contagem pelo MSW), e `RequireFullPortal` não faz leitura própria.
+- CA3 (R3): dado uma tela com atraso no MSW (inclui Agenda e Avisos do portal), quando se navega até ela, então a moldura continua visível e o "carregando" aparece só na área central.
+- CA4 (R4, R5): dado o mapa, então todo item do `menuCatalog`, toda aba do celular (`buildTabs`) e todo destino de `notificationTarget` existe nele; o item ativo e a trilha de cada rota vêm do mapa; e a rota e o item do menu usam a mesma regra, sem lista de perfis duplicada no `App.tsx`.
+- CA5 (R5): dado um Professor sem a chave de comunicados, quando abre `/comunicados` pelo endereço, então vê "sem acesso" dentro da moldura (não a tela com 403); e um Administrador sem `ORGANIZATION_SETTINGS`, idem em `/configuracoes/organizacao`. Para cada rota do mapa, quem hoje entra pela lista de perfis continua entrando (teste de equivalência, D1).
+- CA6 (R6): dado um endereço antigo do mapa (`/planos/lista`), quando abre, então chega ao endereço novo (`/planos`) dentro da moldura.
+- CA7 (R7): dado um endereço inexistente, logado na gestão ou no portal, então aparece "página não encontrada" dentro da moldura, com botão que leva ao Início; sem sessão, a tela de acesso (login) com o aviso.
+- CA8 (R8): dado um usuário com dois vínculos em `/alunos/123`, quando troca de vínculo, então fica em `/` do vínculo novo, com menu e permissões do vínculo novo (uma nova leitura de `/permissions`).
+- CA9 (R9, R10): dado o repositório, então nenhum `*Page.tsx` importa `ManagementLayout` ou `PortalLayout`, `AccountFrame` e `AreaUnavailableShell` não escolhem moldura, e todo `*Page.tsx` tem `PageHeader` e nenhum `<h1`.
+- CA10 (R1): dado `/` e `/conta`, quando o perfil é Aluno ou Responsável, então saem na moldura do portal; Coordenador, Administrador e Professor, na da gestão.
+- CA11 (R2, R3): dado o portal reduzido, quando abre `/portal/agenda` pelo endereço, então vai a `/portal/financeiro` sem tela cheia de "carregando" e sem segunda leitura de `/portal/shell`.
+- CA12 (R11): dado a moldura e a página não encontrada, então axe sem violação nos dois temas, a 360 px sem rolagem horizontal, e o teste visual dos casos de moldura e telas passa sem `--update-snapshots`; o caso novo da página não encontrada tem referência.
+- CA13 (R5): dado um perfil sem acesso a uma rota, quando a rota abre, então "sem acesso" aparece dentro da moldura; no desktop nenhum item do menu fica marcado (não o Início); no celular (390 px) o cabeçalho e a aba mostram o Início marcado, como no canvas `SemAcessoM` (D7).
+
+## 4. Plano técnico
+
+Esta especificação é dividida em três partes, construídas em sessões separadas; é um item só, com um PR.
+
+- Dados e API: não mudam. Contrato OpenAPI e MSW não mudam.
+- Interface: moldura passa para rotas de layout; contextos de permissões e de `portal/shell`; mapa de rotas; página não encontrada nova (`notFound.*` em `pt-BR.json`).
+- Segurança: o servidor continua sendo a barreira (403 em toda rota); o guarda do front só evita mostrar tela que o servidor recusaria. Não envia ao navegador dado que o perfil não vê.
+- Arquivos (vistos no repositório):
+  - `frontend/src/App.tsx`: hoje `Home` com dois ramos, `RequireArea` com listas de perfil, 29 telas com moldura própria; passa a montar as rotas a partir do mapa dentro de `RoleShell` (gestão ou portal) e ganha `*`.
+  - `frontend/src/features/permissions/ManagementLayout.tsx` (hoje por tela; vira a rota de layout da gestão, nome a decidir na construção, ex.: `ManagementShell`, com `<Outlet />`, `UnitScopeProvider` e leitura única de permissões e de pedidos pendentes), `usePermissions.ts` (passa a ler o contexto da moldura; testes de tela usam provedor de teste), `usePendingRequests.ts`, `buildMenu.ts`, `buildTabs.ts`, `menuCatalog.ts` (passa a ser derivado do mapa), `ManagementLayout.test.tsx`.
+  - `frontend/src/features/portal/PortalLayout.tsx` (vira rota de layout do portal com `<Outlet />`; o `shell.status` de "carregando/forbidden/erro" fica na área central), `usePortalShell.ts` (um provedor na moldura; relógio único), `RequireFullPortal.tsx`, `RequirePortalTerm.tsx`, `PortalFinancePage.tsx` (lia `usePortalShell` próprio), `PortalLayout.test.tsx`.
+  - `frontend/src/components/layout/AppLayout.tsx`, `Sidebar.tsx` (estado `open` dos grupos hoje só inicial: ao mudar o item ativo, abre o grupo dele sem fechar os outros), `Topbar.tsx`, `Breadcrumb.tsx`, `MobileTabs.tsx`: o item ativo e a trilha vêm do mapa (props `activeId`/`trail` deixam de ser passadas pelas telas); `shell.test.ts` (inverter).
+  - Telas a desembrulhar (remover `<ManagementLayout …>`/`<PortalLayout>` e `activeId`/`trail`): `AgeRangesPage`, `AgendaPage` (mantém o `Outlet` dos painéis), `AnnouncementsPage`, `NewAnnouncementPage`, `BenefitsPage`, `ChargePreviewPage`, `ChargesPage`, `DailyReceiptsPage`, `OverduePage`, `ClassesPage`, `ModalitiesPage`, `NoClassDaysPage`, `OrganizationSettingsPage`, `PaymentProofsPage`, `PlansPage`, `portal-requests/PortalRequestsPage`, `EnrollmentWizardPage` (trilha vai para o mapa), `StudentsPage`, `TeachersPage`, `TermsPage`, `TextsPage`, `NewUnitPage`, `SettingsIndexPage` (hoje `activeId="settings"`, que não é item do menu), `UnitSettingsPage`, `UnitsPage`, `PermissionsTablePage` (trilha), `UsersPage`, e do portal `PortalAgendaPage`, `PortalAnnouncementsPage`, `PortalCardPage`, `PortalFinancePage`, `PortalInfoPage`, `portal/PortalRequestsPage`, `AccountPage` e `ConfirmEmailPage` (via `AccountFrame`).
+  - `frontend/src/features/account/AccountFrame.tsx` (apaga o escolhedor; `AccountLink`/`MANAGEMENT` ficam se tiverem uso), `frontend/src/features/auth/AreaUnavailablePage.tsx`, `AreaUnavailableShell.tsx` (apagar), `RequireArea.tsx` (vira guarda do mapa), `ChooseLinkTrigger.tsx` (ir ao Início ao trocar), `features/notifications/notificationActions.ts` (`notificationTarget` lê o mapa).
+  - A criar: `frontend/src/routes.ts` (+ `routes.test.ts`), `RoleShell` (escolhe a moldura pelo vínculo ativo, com `key` do vínculo), `NotFoundPage` (ex.: `features/auth/NotFoundPage.tsx`), `frontend/e2e/moldura-fixa.spec.ts`, caso `pagina-nao-encontrada` em `frontend/visual/casos.ts`.
+- Reuso: `useFocusOnRoute` (#643) e o `Link` das molduras; `PageHeader`; `ForbiddenState`/`LoadingState`/`ErrorState`; `AreaUnavailablePage` como corpo do "sem acesso"; `matchPath`/`useMatch` do `react-router` para achar a rota ativa; `buildMenu`/`buildTabs` continuam filtrando por permissão.
+- Riscos: (1) testes unitários de ~15 telas chamam `usePermissions` e renderizam a tela com a moldura própria; passam a precisar do provedor/rota de teste (um helper único de teste evita 15 ajustes à mão). (2) `/portal/termo` e as telas sem moldura (`/entrar`, `/convite`, `/recibo`, `/configurar-duas-etapas`) ficam fora das molduras (D5). (3) `AgendaPage` já é rota-pai de painéis; a regra dela com o `Outlet` precisa continuar. (4) Estados de erro de `GET /permissions` na moldura (hoje tela cheia sem menu) continuam como estado só da primeira carga. (5) Os casos do teste visual de moldura e telas devem passar sem atualizar referência; qualquer diferença é erro do item.
+
+### Partes
+
+- Parte 1 — mapa de rotas e moldura da gestão (T1 a T5).
+- Parte 2 — moldura do portal, guardas, `/`, `/conta`, não encontrada e troca de vínculo (T6 a T9).
+- Parte 3 — apagar o antigo, testes inversos e e2e (T10 a T12).
+
+## 5. Tarefas
+
+### Parte 1 — mapa e moldura da gestão
+
+- [x] T1: Criar `frontend/src/routes.ts` com o mapa (endereço, acesso por permissão, item do menu, trilha por chave i18n, redirecionamentos, itens "Em breve" sem elemento) cobrindo todas as rotas de hoje, e as funções `findRoute(pathname)` e de acesso; derivar `menuCatalog` e `notificationTarget` dele — cobre CA4, CA6 — prova: `cd frontend && npx vitest run src/routes.test.ts src/features/permissions/buildMenu.test.ts src/features/notifications`
+- [x] T2: Teste de equivalência do acesso: para cada rota, a regra por permissão libera os mesmos perfis que a lista de perfis de hoje (tabela de permissões do servidor no MSW), registrando divergências como decisão — cobre CA5 — prova: `cd frontend && npx vitest run src/routes.test.ts -t "equivalência"`
+- [x] T3: Rota de layout da gestão (`ManagementShell`) com `<Outlet />`, `UnitScopeProvider`, permissões e pedidos pendentes lidos uma vez em contexto; `usePermissions` passa a ler o contexto; item ativo e trilha vêm do mapa; `Sidebar` abre o grupo do item ativo sem fechar os outros — cobre CA1, CA2, CA13 — prova: `cd frontend && npx vitest run src/features/permissions src/components/layout`
+- [x] T4: Guarda de acesso do mapa (substitui `RequireArea` e as listas de perfil do `App.tsx`), "sem acesso" dentro da moldura com nenhum item marcado; `App.tsx` gera as rotas da gestão a partir do mapa — cobre CA5, CA6, CA13 — prova: `cd frontend && npx vitest run src/features/auth/RequireArea.test.tsx src/features/auth/AreaUnavailablePage.test.tsx src/App`
+- [x] T5: Desembrulhar as 27 telas da gestão (remover `ManagementLayout`, `activeId`, `trail`) e ajustar seus testes com um helper único de teste da moldura — cobre CA9 (gestão) — prova: `cd frontend && npx vitest run src/features/{age-ranges,agenda,announcements,benefits,charges,classes,modalities,noClassDays,organization,payment-proofs,plans,portal-requests,students,teachers,terms,texts,units,users}`
+
+### Parte 2 — portal, `/`, `/conta`, não encontrada, vínculo
+
+- [x] T6: Rota de layout do portal (`PortalShell`) com `<Outlet />`, `usePortalShell` num provedor único (leitura e relógio de 60 s uma vez), "carregando/sem permissão/erro" só na área central; `RequireFullPortal` e `PortalFinancePage` leem o contexto; desembrulhar as telas do portal — cobre CA2, CA3, CA11 — prova: `cd frontend && npx vitest run src/features/portal`
+- [x] T7: `RoleShell` na raiz das rotas logadas (gestão ou portal pelo vínculo ativo, `key` do vínculo); `Home` sem dois ramos; `/conta` e `/confirmar-email/:code` dentro da moldura; apagar `AccountFrame` como escolhedor e `AreaUnavailableShell` — cobre CA10, CA9 — prova: `cd frontend && npx vitest run src/features/account src/features/auth src/App`
+- [x] T8: `NotFoundPage` e rota `*` dentro de cada moldura (e na tela de acesso sem sessão), com texto em `pt-BR.json`, quatro estados, axe nos dois temas; caso `pagina-nao-encontrada` no teste visual — cobre CA7, CA12 — prova: `cd frontend && npx vitest run src/features/auth/NotFoundPage.test.tsx` e `npm run test:visual:docker -- --update-snapshots -g "pagina-nao-encontrada"` (só o caso novo)
+- [x] T9: `ChooseLinkTrigger` leva ao Início ao trocar de vínculo (não no primeiro escolher do login, para não perder o `next`) — cobre CA8 — prova: `cd frontend && npx vitest run src/features/auth/ChooseLinkPage.test.tsx src/features/auth/ChooseLinkTrigger`
+
+### Parte 3 — limpeza, regra e e2e
+
+- [x] T10: Inverter `shell.test.ts` (reprova `*Page.tsx` que importe `ManagementLayout`/`PortalLayout`, mantém `PageHeader` e sem `<h1`), ajustar `portalPages.test.ts`, e conferir por busca que não sobrou `AccountFrame`/`AreaUnavailableShell` no papel antigo — cobre CA9 — prova: `cd frontend && npx vitest run src/components/layout/shell.test.ts src/features/portal/portalPages.test.ts`
+- [x] T11: E2E `@critical` `moldura-fixa.spec.ts`: marcador no elemento do menu e da barra, grupo expandido e menu recolhido preservados, contagem de `/permissions` e `/portal/shell`, atraso do MSW (moldura visível, Agenda e Avisos do portal), endereço inexistente, `/planos/lista`, troca de vínculo; gestão em desktop e 360 px e portal — cobre CA1, CA2, CA3, CA6, CA7, CA8, CA11 — prova: `cd frontend && npx playwright test e2e/moldura-fixa.spec.ts`
+- [x] T13 (ajuste, D7): no "sem acesso", a moldura do celular (cabeçalho com avatar e título "Início", aba "Início" em negrito) mostra o Início marcado, e o desktop mantém nenhum item marcado; teste para os dois tamanhos e `sem-acesso`/`cobrancas-sem-acesso` a 390 px passando sem `--update-snapshots` — cobre CA13, CA12 — prova: `cd frontend && npx vitest run src/features/permissions src/features/auth/AreaUnavailablePage.test.tsx` e `npm run test:visual:docker -- -g "sem-acesso"` (fazer antes da T12)
+- [x] T12: Regressão do front e visual sem `--update-snapshots`: `npm run lint && npm run typecheck && npm run test:cov` e `npm run test:visual:docker -- -g "moldura|<casos das telas>"`; registrar `Visual do CI: <caso> → passou/falhou` no arquivo do item — cobre CA12 — não cobre outro critério: garante que o visual das telas não mudou — prova: `cd frontend && npm run lint && npm run typecheck && npm run test:cov`
+
+## 6. Decisões
+
+- D1 (muda o comportamento): o acesso da rota usa a mesma regra do menu, o nível da permissão do servidor (`permissions[x] !== "NONE"`, lido uma vez na moldura), em vez da lista fixa de perfis do `App.tsx`; rota sem item de menu herda a permissão da tela-mãe (ex.: `/cobrancas/previa` → `COLLECTIONS`), e só rota sem permissão equivalente (ex.: ficha do Professor, `TEACHER`) mantém uma lista de perfis no próprio mapa. Efeito: Professor sem a chave de comunicados e Administrador sem uma permissão passam a ver "sem acesso" no lugar de uma tela com 403. Motivo: uma regra só, como a issue pede. Alternativa descartada: manter as duas regras.
+- D2 (muda o comportamento): trocar de vínculo pelo gatilho da moldura leva ao Início (`/`) do vínculo novo; a escolha logo após o login não navega, para não perder o `next`. Alternativa: sempre ir ao Início (perderia o endereço que a pessoa pediu).
+- D3: "página não encontrada" fora da moldura (sem sessão) usa a tela de acesso, com o mesmo texto; para endereço desconhecido sem sessão, a regra de hoje (ir ao login com `next`) continua e, depois de entrar, cai na página não encontrada. Alternativa: página própria sem moldura (mais uma tela sem canvas).
+- D4: o "carregando" dentro do `<Outlet />` vem do que cada tela já mostra; a moldura só mostra o carregando próprio na primeira leitura de permissões ou do `portal/shell` (não há menu ainda). Alternativa: `Suspense` por rota (não há rotas `lazy` hoje; fora do item).
+- D5: `/portal/termo`, `/configurar-duas-etapas`, `/entrar` e as demais telas públicas ficam fora das molduras: a primeira é a tela do aceite antes da moldura (TERM_PENDING, `AccountFrame plain` nunca teve uso) e a segunda é a única que o perfil bloqueado alcança.
+- D6: o caso de teste visual `pagina-nao-encontrada` é novo e sem canvas; segue a especificação e os componentes base (`ForbiddenState`/`EmptyState`), sem `limiteCanvas` (nenhuma divergência conhecida).
+- D7 (ajuste pedido na construção, parte 2; visual, não muda regra): no "sem acesso" o celular continua mostrando o Início marcado e só o desktop não marca item. Motivo: o `AGENTS.md` diz que o canvas vence em layout e rótulos, e o `SemAcessoM` mostra o Início marcado; a regra de acesso (R5) não muda. Alternativa descartada: manter o CA13 e regerar as quatro referências (`sem-acesso` e `cobrancas-sem-acesso`, 390, claro e escuro) com a divergência registrada, que afastaria o sistema do canvas sem necessidade. Nenhuma referência é regerada.
+- Suposição: o `/permissions` do MSW já reproduz a tabela do servidor para os cinco perfis; se T2 achar rota em que a regra por permissão libera mais ou menos que a lista de hoje, a divergência vira linha do mapa (perfil explícito) e entra no PR, e se for regra de negócio nova PARA e vai ao dono.
+- Suposição: o `useUnitScope` hoje montado por tela passa a ser montado uma vez na moldura sem mudar o valor visível; se alguma tela depender do reinício do escopo ao navegar, o e2e de T11 mostra.
+
+## Construção
+
+Parte 1 (T1 a T5) feita na sessão anterior. Parte 2 (T6 a T9) feita na segunda sessão, junto com a T10 da parte 3. Faltam T11 (e2e) e T12 (regressão e visual), e o pedido de ajuste abaixo.
+
+- T1 — arquivos: `frontend/src/routes.ts` (novo: mapa com id, endereço, área, permissão, perfis, item do menu, trilha, mãe, redirecionamento; `findRoute`, `hrefOf`, `canAccess`, `activeItemOf`), `features/permissions/menuCatalog.ts` (derivado do mapa), `features/notifications/notificationActions.ts` (`notificationTarget` lê o mapa), `src/routes.test.ts` (novo) — prova: `npx vitest run src/routes.test.ts src/features/permissions/buildMenu.test.ts src/features/notifications` → passou
+- T2 — arquivos: `src/routes.test.ts` (equivalência: para cada rota da gestão, `canAccess` com a tabela do mock libera os mesmos perfis da lista fixa antiga) — prova: `npx vitest run src/routes.test.ts -t "equivalência"` → passou, sem divergência; `/configuracoes` (índice) ficou com `UNIT_SETTINGS`, que libera Coordenador e Administrador como antes
+- T3 — arquivos: `features/permissions/ManagementLayout.tsx` → `ManagementShell.tsx` (rota-pai com `<Outlet />`, `UnitScopeProvider`, permissões e pedidos pendentes lidos uma vez, item ativo e trilha do mapa, nenhum item marcado sem acesso), `usePermissions.ts` (`useLoadPermissions` só na moldura; `usePermissions` lê o contexto), `components/layout/Sidebar.tsx` (item ativo abre o grupo sem fechar os outros), `features/auth/RoleShell.tsx` (novo), `src/test/PermissionsFrame.tsx` (provedor de teste), testes `ManagementShell.test.tsx` e `Sidebar.test.tsx` — prova: `npx vitest run src/features/permissions src/components/layout` → passou
+- T4 — arquivos: `features/auth/RequireArea.tsx` (guarda do mapa: `<RequireArea route>`), `AreaUnavailablePage.tsx`/`AreaUnavailableShell.tsx` (gestão não escolhe mais moldura), `App.tsx` (rotas da gestão geradas do mapa; `/agenda` com os painéis como filhas), testes `RequireArea.test.tsx`, `AreaUnavailablePage.test.tsx`, `visual/casos.test.ts` (lê as rotas do mapa além do App) — prova: `npx vitest run src/features/auth/RequireArea.test.tsx src/features/auth/AreaUnavailablePage.test.tsx visual/casos.test.ts` → passou
+- T5 — arquivos: 27 telas da gestão sem `ManagementLayout`/`activeId`/`trail` (Age ranges, Agenda, Announcements, NewAnnouncement, Benefits, Charge*, Classes, Modalities, NoClassDays, Organization, PaymentProofs, Plans, portal-requests, EnrollmentWizard, Students, Teachers, Terms, Texts, NewUnit, SettingsIndex, UnitSettings, Units, PermissionsTable, Users), `AccountFrame.tsx` (gestão já está na moldura), `components/layout/shell.test.ts` (inverte: reprova `ManagementLayout`/`<PortalLayout` fora do portal, mantém PageHeader e sem `<h1` nas telas da gestão) — prova: `npx vitest run` das pastas das telas (dentro da regressão abaixo) → passou
+Regressão: `cd frontend && npx vitest run` → 271 arquivos, 2774 testes, todos passaram; `npm run lint` → sem erro; `npm run typecheck` → só os erros que já existiam em `e2e/navegacao-sem-recarregar.spec.ts` e `e2e/no-class-days.spec.ts` (`getAttribute`/`scrollWidth` em `SVGElement`), arquivos que a parte 1 não tocou. Não rodou nesta sessão: `test:cov`, `e2e`, `test:visual:docker` (T11 e T12 da parte 3).
+Desvios: (1) `ManagementLayout` virou `ManagementShell` (arquivo e teste renomeados). (2) A parte 1 já inclui um `RoleShell` provisório (gestão pela moldura nova; portal ainda `<Outlet />` com a moldura própria das telas); a parte 2 o completa (T7). (3) `AreaUnavailableShell` ficou só com a casca do portal até a parte 2 apagá-lo. (4) `AccountFrame` na gestão só devolve os filhos até a parte 2 apagá-lo. (5) Rotas do portal continuam escritas à mão no `App.tsx` (paths vindos do mapa); a parte 2 as move para a moldura do portal. (6) `visual/casos.test.ts` passou a ler as rotas também de `src/routes.ts`.
+Decisões (D1 em ação): o guarda por permissão faz tela que antes abria com botões desligados mostrar "sem acesso" quando o nível é `NONE`. Testes ajustados: `BenefitsPage` (BENEFITS NONE → sem acesso), `PlansPage` (PLANS NONE → sem acesso; READ mantém o 403 do servidor), `ClassPanelPage` (a parte "sem CLASSES_MANAGE" saiu: com NONE a rota nem abre), `EnrollmentWizardPage` (a troca de permissão vale antes de abrir a tela, porque as permissões são lidas uma vez), `AreaUnavailablePage` (sem item marcado a barra do celular também mostra "Voltar ao Início"; o teste olha o do corpo).
+Não é do item: nenhuma mudança fora do escopo; os erros de `typecheck` em `e2e/` já existiam.
+
+### Parte 2 (segunda sessão)
+
+- T6 — arquivos: `features/portal/PortalLayout.tsx` → `PortalShell.tsx` (rota-pai com `<Outlet />`, leitura e relógio de 60 s uma vez, "carregando/sem permissão/erro" só na área central, `PortalShellContext`), `usePortalShell.ts` (`useLoadPortalShell` só na moldura; `usePortalShell` lê o contexto), `RequireFullPortal.tsx` (sem leitura própria), `RequirePortalTerm.tsx` (recebe filhos), seis telas do portal desembrulhadas (Agenda, Avisos, Carteirinha, Financeiro, Informações, Pedidos), testes `PortalShell.test.tsx` (renomeado; ganhou CA2/CA3 e CA11 da #675), `PortalStates.test.tsx`, `PortalInfoPage.test.tsx` — prova: `npx vitest run src/features/portal` → passou
+- T7 — arquivos: `features/auth/RoleShell.tsx` (gestão: `ManagementShell`; portal: `RequirePortalTerm` + `PortalShell`; `key` do vínculo), `App.tsx` (rotas do portal sem `RequirePortalTerm` próprio, com o guarda do mapa e `path="*"`), `AccountFrame.tsx` e `AreaUnavailableShell.tsx` apagados, `AccountPage.tsx` (o botão Sair do celular passou para ela), `ConfirmEmailPage.tsx`, `AreaUnavailablePage.tsx`, `AreaUnavailablePage.test.tsx` — prova: `npx vitest run src/features/account src/features/auth src/App` → passou
+- T8 — arquivos: `features/auth/NotFoundPage.tsx` e `.test.tsx` (gestão, portal, sem sessão, axe claro e escuro a 360 px, foco no título), `i18n/pt-BR.json` (`notFound.*`), `visual/casos.ts` (caso `pagina-nao-encontrada`), `visual/casos.test.ts` (aceita `path="*"`) — prova: `npx vitest run src/features/auth/NotFoundPage.test.tsx` → passou; `npm run test:visual:docker -- --update-snapshots -g "pagina-nao-encontrada"` → 4 passaram (referências novas)
+- T9 — arquivos: `ChooseLinkTrigger.tsx` (`onChosen` leva a `/`), `ChooseLinkPage.tsx` (`onChosen`; o login não passa por ele, mantém o `next`), `ChooseLinkPage.test.tsx` (caso CA8 a partir de `/turmas`; permissões lidas 2 vezes) — prova: `npx vitest run src/features/auth/ChooseLinkPage.test.tsx` → passou
+- T10 — arquivos: `components/layout/shell.test.ts` (reprova qualquer `*Page.tsx` que cite `ManagementLayout` ou `PortalLayout`), `portalPages.test.ts` (`PortalShell.tsx`), `docs/design/README.md` linha 102 (`PortalLayout` → `PortalShell`, exigido por `design-readme.test.ts`) — prova: `npx vitest run src/components/layout/shell.test.ts src/features/portal/portalPages.test.ts` → passou; busca por `ManagementLayout|PortalLayout|AccountFrame|AreaUnavailableShell` em `src`, `e2e` e `visual` → sem ocorrência
+Regressão (segunda sessão): `npx vitest run` → 272 arquivos, 2792 testes, todos passaram (depois do ajuste do README); `npm run lint` → sem erro; `npm run typecheck` → só erros em `e2e/` (SVGElement), que o item não tocou. Não rodou: `test:cov`, `e2e` (T11 e T12).
+Visual do CI (suíte inteira, sem `--update-snapshots`): primeira passada 74 falhas, todas por causa do harness: o caso faz overrides do MSW depois do login e antes de abrir a tela, e a moldura (montada uma vez, RNF-43) não relia unidades, permissões nem portal. Correção em `visual/telas.visual.ts`: `sairDaMoldura` (vai à vitrine, fora da moldura, e volta) antes de abrir o caso e nos dois passos que já saíam e voltavam. Segunda passada dos casos afetados (beneficio*, comunicados*, configuracoes-unidade*, configuracoes-usuario-convidar, planos, portal-pedidos, portal-reduzido, sem-acesso, cobrancas-sem-acesso): 112 passaram, 4 falharam: `sem-acesso 390 claro/escuro` e `cobrancas-sem-acesso 390 claro/escuro` (ver pedido de ajuste). Os demais casos da suíte passaram na primeira passada. Referências regeradas: só `pagina-nao-encontrada-{1440,390}-{claro,escuro}.png` (novas).
+Desvios: (1) `RequirePortalTerm` ficou acima da `PortalShell` (dentro da `RoleShell`): com termo pendente o portal vai ao aceite sem a moldura ler `/portal/shell` (o servidor responde TERM_PENDING). Efeito: `/conta`, `/sem-acesso` e `/confirmar-email/:code` do portal também passam pelo portão do termo. (2) `Home` ainda escolhe o conteúdo pelo perfil (`Welcome` + aniversariantes na gestão; Início + confirmações no portal), mas sem moldura nenhuma; os dois ramos viraram só o conteúdo. (3) `NotFoundPage` usa `StateCard` direto (nível 1, ícone em quadro) porque `EmptyState`/`ForbiddenState` em cartão não têm o título como h1 com foco; sem canvas (D6). (4) Sem sessão, `*` segue D3 (login com `next`); o "aviso" do CA7 não foi criado. (5) A tela do portal só monta depois de a moldura ler `/portal/shell` (leitura em série, não mais em paralelo), por D4; três testes passaram a esperar a tela (`PortalInfoPage`, `PortalStates`, `AreaUnavailablePage` mockam o que antes ficava por trás da corrida).
+Pedido de ajuste: CA13/R11 contra o canvas `SemAcessoM` (e a cópia de Cobranças) — em /configuracoes/usuarios com o Professor, a 390 px, o CA13 manda nenhum item marcado: o cabeçalho do celular troca avatar e título "Início" por seta de voltar e a aba "Início" deixa de ficar em negrito. O canvas mostra "Início" marcado. Quatro referências (`sem-acesso` e `cobrancas-sem-acesso`, 390, claro e escuro) divergem por isso. Decidir: (a) manter o CA13 e regerar essas quatro referências com a divergência registrada, ou (b) no "sem acesso" o celular continua mostrando o Início marcado e só o desktop não marca item. Não regerei nada.
+Não é do item: nenhuma mudança fora do escopo.
+
+### Parte 3 (terceira sessão)
+
+- T13 — arquivos: `components/layout/AppLayout.tsx` e `Topbar.tsx` (prop `mobileActiveId`, padrão `activeId`), `features/permissions/ManagementShell.tsx` (sem acesso: `activeId` vazio no desktop, `mobileActiveId="home"` no celular), `ManagementShell.test.tsx` (aba e cabeçalho do celular com Início marcado, sem seta de voltar) — prova: `npx vitest run src/features/permissions src/features/auth/AreaUnavailablePage.test.tsx src/components/layout` → 154 passaram; `npm run test:visual:docker -- -g "sem-acesso"` → 8 passaram sem `--update-snapshots`
+- T11 — arquivos: `e2e/moldura-fixa.spec.ts` (8 testes `@critical`: marcador no menu e na barra, grupo aberto e menu recolhido, contagem de `/permissions` e `/portal/shell` depois da montagem, atraso no fetch, `/planos/lista`, endereço inexistente (logado e sem sessão), troca de vínculo, 360 px gestão e portal, portal reduzido) — prova: `npx playwright test e2e/moldura-fixa.spec.ts` → 8 passaram. Nota: o StrictMode do dev lê duas vezes na montagem; a contagem vale a partir daí (não aumenta ao navegar).
+- T12 — `npm run lint` → sem erro; `npm run typecheck` → só erros antigos em `e2e/` (SVGElement), nenhum em `moldura-fixa.spec.ts`; `npm run test:cov` → 272 arquivos, 2792 testes passaram, limite de cobertura ok.
+Referências visuais: `pagina-nao-encontrada-390-{claro,escuro}.png` regeradas (o celular agora marca o Início, como no "sem acesso", D7); as de 1440 e as demais não mudaram.
+Visual do CI: suíte inteira sem `--update-snapshots` → 639 passaram, 2 falharam (`pagina-nao-encontrada 390 claro/escuro`, pelo motivo acima); depois de regerar, `pagina-nao-encontrada` (4 casos) → passou; `sem-acesso` e `cobrancas-sem-acesso` → passou.
+Desvios: a prova da T13 saiu de `-g "sem-acesso"` como pedido; nenhum outro. Containers órfãos do teste visual removidos (`kind_easley`).
+Não é do item: nada.
+
+## Verificação
+
+### Rodada 1 — OK — 2026-11-21, estado 685cc513a617d21cfbd3b37077a65dd5283547c1
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1, CA3 | PASSOU | `npx playwright test e2e/moldura-fixa.spec.ts` → 8 passaram (marcador no menu/barra, grupos, atraso, 360 px) |
+| CA2, CA11 | PASSOU | e2e (contagem de `/permissions` e `/portal/shell`, portal reduzido) e `test:cov` |
+| CA4, CA5, CA6 | PASSOU | `src/routes.test.ts` (mapa, equivalência, redirecionamento) dentro do `test:cov` |
+| CA7, CA8, CA10 | PASSOU | `NotFoundPage.test.tsx`, `ChooseLinkPage.test.tsx`, e2e (inexistente, troca de vínculo) |
+| CA9 | PASSOU | busca: só `shell.test.ts` cita `ManagementLayout`/`PortalLayout`/`AccountFrame`/`AreaUnavailableShell`; nenhum `activeId=`/`trail=` em `*Page.tsx` |
+| CA12, CA13 | PASSOU | `test:visual:docker -g "pagina-nao-encontrada\|sem-acesso\|menu\|portal"` sem `--update-snapshots` → 128 passaram; a comparação lado a lado com o canvas não foi refeita aqui (D7 registrada) |
+
+Comandos: `npm run lint` sem erro; `npm run typecheck` só erros antigos em `e2e/` (SVGElement), arquivos fora do item; `npm run test:cov` → 271 de 272 arquivos, 2791 de 2792 testes (1 instável, abaixo); visual e e2e acima.
+Instáveis: `RecordEnrollment.test.tsx` CA7 (troca de turma): falhou 1 vez na suíte com cobertura, passou em 3 de 3 execuções do arquivo isolado.
+Achados:
+- sugestão, código, `e2e/*.spec.ts` — o `typecheck` já tinha erros em `e2e/` (alunos, navegacao-sem-recarregar, no-class-days) que não são do item.
+
+## Entrega
+
+- O que muda: a moldura da gestão e a do portal são rotas-pai montadas uma vez (`ManagementShell`, `PortalShell`, escolhidas por `RoleShell`); menu, barra, seletor de unidade e sino não são remontados ao trocar de tela, e o "carregando" fica só no `<Outlet />`. O mapa de rotas (`frontend/src/routes.ts`) é a fonte única de endereço, área, permissão, item do menu e trilha. Telas da gestão não recebem mais `ManagementLayout`/`activeId`/`trail`; `AccountFrame` e `AreaUnavailableShell` foram apagados. Página não encontrada nova (`NotFoundPage`, rota `*`), e Chooser de vínculo leva a `/`.
+- Decisão do pedido de ajuste (CA13/R11, celular em "sem acesso"): opção (b). No desktop nenhum item fica marcado; no celular (390 px) o cabeçalho e a aba mostram o Início marcado, como no canvas `SemAcessoM`. As referências `sem-acesso` e `cobrancas-sem-acesso` a 390 px não divergem do canvas por isso.
+- Verificação: rodada 1 OK (estado `685cc513a617d21cfbd3b37077a65dd5283547c1`). Depois dela só este arquivo mudou no item; o código é o do estado verificado.
+- Regressão (construção): `npx vitest run` 272 arquivos, 2792 testes, todos passaram; `npm run test:cov` no limite; `npm run lint` sem erro. `npm run typecheck` acusa só erros antigos de `e2e/` (`getAttribute`/`scrollWidth` em `SVGElement`, em `e2e/alunos`, `navegacao-sem-recarregar` e `no-class-days`), arquivos que este item não toca; já existiam na linha de base, não entram neste PR. Instável visto na verificação: `RecordEnrollment.test.tsx` CA7 (troca de turma), passou em 3 de 3 execuções isoladas.
+- Visual do CI: suíte inteira sem `--update-snapshots` passou (639) depois das correções de harness e da regeração das referências `pagina-nao-encontrada-390-{claro,escuro}`; as de 1440 não mudaram.
+- Limitações: a comparação lado a lado com o canvas não foi refeita nesta fase (D7 registrada na verificação); a #676 e a #677 seguem como próximas da sequência.
+
+- **Falha no CI do PR #682 (head e1d0237f9205d7d3054e56fea75e20f860057ac0), para `construir --corrigir`:** (1) job `frontend`, passo `npm run typecheck`: 6 erros TS2339 (`scrollWidth`, `clientWidth` e `getAttribute` não existem em `SVGElement | HTMLElement`) em `e2e/alunos.spec.ts` (117, 131), `e2e/navegacao-sem-recarregar.spec.ts` (19) e `e2e/no-class-days.spec.ts` (26). Em `origin/dev` o typecheck dá 0 erros (conferido em worktree limpo) e sem `e2e/moldura-fixa.spec.ts` os 6 erros continuam: a causa está em outra mudança do item, não é erro antigo como a Construção registrou. (2) job `e2e`: falharam `comprovantes.spec.ts:59` (360 px, claro e escuro, timeout de 60 s) e `recuperar-senha.spec.ts:4`, que podem ser regressão da moldura fixa; confirmar rodando de novo isolados. `backend` e `visual` (1/2 e 2/2) passaram. O check `Vercel` também falhou no deploy, provavelmente pelo mesmo typecheck do build.
+
+### Correção da entrega
+
+- Typecheck do CI (6 erros TS2339 em `e2e/`) — causa: `visual/casos.test.ts` importava `../src/routes`, o que trazia os tipos de DOM de `src` ao projeto `tsconfig.node.json` (sem DOM), e o `Locator.evaluate` passou a tipar `SVGElement | HTMLElement` como tipos reais; os erros não eram antigos. Correção: o teste lê `src/routes.ts` como texto (como já fazia com `App.tsx`) — arquivos: `frontend/visual/casos.test.ts` — prova: `npm run typecheck` → 0 erros; `npx vitest run visual/casos.test.ts` → 164 passaram
+- E2E `comprovantes.spec.ts:59` (360 px, claro e escuro) — causa: a troca de vínculo agora leva ao Início (D2) e a janela "Nova modalidade" (#493) volta a abrir no portal, cobrindo o botão "Trocar organização ou área" (`aria-modal`). Correção: `dismissNewModality` depois da segunda entrada no portal — arquivos: `frontend/e2e/comprovantes.spec.ts` — prova: `npx playwright test e2e/comprovantes.spec.ts e2e/recuperar-senha.spec.ts` → 3 passaram
+- E2E `recuperar-senha.spec.ts:4` — não reproduzido: passou isolado 2 de 2; registrado como instável (carga do runner).
+Regressão: `npm run lint` sem erro; `npm run typecheck` 0 erros; `npm run e2e` → 109 passaram.
+Correção da nota da Construção: os erros de `typecheck` em `e2e/` não eram antigos, vinham deste item e agora estão resolvidos.
+Visual do CI: sem mudança visual nesta correção; não rodou de novo.
+Não é do item: nada.
+
+### Rodada 2 — OK — 2026-11-21, estado da pasta de trabalho depois de e1d0237 (correção da entrega: `visual/casos.test.ts`, `e2e/comprovantes.spec.ts`)
+
+| Critério | Status | Evidência |
+|---|---|---|
+| Falha CI 1 (typecheck, 6 erros TS2339) | PASSOU | `npm run typecheck` → 0 erros; `npx vitest run visual/casos.test.ts` → 164 passaram |
+| Falha CI 2 (`comprovantes.spec.ts:59`, claro e escuro) | PASSOU | `npx playwright test e2e/comprovantes.spec.ts e2e/recuperar-senha.spec.ts e2e/moldura-fixa.spec.ts` → 11 passaram |
+| `recuperar-senha.spec.ts:4` | PASSOU | passou na execução acima (instável por carga, sem relação com o diff) |
+| CA1 a CA13 | mantido da rodada 1 | a mudança toca só um teste visual (lê o mapa como texto) e um helper de e2e; sem mudança de produto |
+
+Comandos: `npm run lint` sem erro; `npm run typecheck` 0 erros; vitest do caso e e2e acima. Não rodei `test:cov` nem o visual de novo (sem mudança visual nem de código de produto; vale o CI do PR).
+Instáveis: `recuperar-senha.spec.ts:4` falhou uma vez no CI e passou aqui.
+Achados: nenhum obrigatório.
+
+### Rodada 3 — OK — 2026-11-21, estado ebea48ce81af7b13faad3180df7bb3be4050527c
+
+| Critério | Status | Evidência |
+|---|---|---|
+| Falha CI 1 (typecheck) | PASSOU | `npm run typecheck` → 0 erros; `npx vitest run visual/casos.test.ts` → 164 passaram |
+| Falha CI 2 (`comprovantes.spec.ts`, `recuperar-senha.spec.ts`) | PASSOU | `npx playwright test e2e/comprovantes.spec.ts e2e/recuperar-senha.spec.ts e2e/moldura-fixa.spec.ts` → 11 passaram |
+| CA1 a CA13 | mantido da rodada 1 | a correção toca só um teste visual e um helper de e2e |
+
+Comandos: `npm run lint` sem erro; demais acima. Não rodei `test:cov` nem o visual (sem mudança de código de produto; vale o CI do PR).
+Achados:
+- sugestão, código, `frontend/visual/casos.test.ts` — a regex `"(\/[^"]*)"` sobre `src/routes.ts` aceita qualquer string que comece com `/` (não só `path`), podendo afrouxar a checagem de que o caso visual aponta rota existente.

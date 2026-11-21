@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import type { PortalRequestKind } from "@/features/portal-requests/types";
 import { cn } from "@/lib/utils";
 import { PortalHeading } from "./PortalHeading";
-import { PortalLayout } from "./PortalLayout";
 import { PortalMyRequests } from "./PortalMyRequests";
 import { PortalRequestCards } from "./PortalRequestCards";
 import { PortalRequestDialog } from "./PortalRequestDialog";
@@ -71,7 +70,7 @@ export function PortalRequestsPage() {
     );
   }
   return (
-    <PortalLayout>
+    <>
       {narrow && (
         <Button variant="ghost" onClick={() => navigate("/portal/minhas-informacoes")} className="-ml-3 mb-2 text-muted-foreground">
           <ChevronLeft aria-hidden className="size-4" />
@@ -80,6 +79,6 @@ export function PortalRequestsPage() {
       )}
       <PortalHeading label={t("portalOwn.label")} title={t("portalOwn.title")} subtitle={t(narrow ? "portalOwn.introShort" : "portalOwn.intro")} className="mb-4" />
       {body}
-    </PortalLayout>
+    </>
   );
 }

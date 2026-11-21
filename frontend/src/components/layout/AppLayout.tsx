@@ -14,6 +14,7 @@ export type NavGroup = { id: string; label: string; icon?: string; items: NavIte
 export function AppLayout({
   groups,
   activeId,
+  mobileActiveId = activeId,
   headerExtra,
   unit,
   bell,
@@ -28,6 +29,8 @@ export function AppLayout({
 }: {
   groups: NavGroup[];
   activeId: string;
+  /** Item marcado no celular (cabeçalho e abas); no "sem acesso" fica o Início, como no canvas (D7). */
+  mobileActiveId?: string;
   headerExtra?: ReactNode;
   unit?: TopbarProps["unit"];
   bell?: ReactNode;
@@ -61,13 +64,13 @@ export function AppLayout({
         <Sidebar {...side} collapsed={collapsed} onToggle={toggle} />
       </aside>
       <div className="min-w-0 flex-1">
-        <Topbar groups={groups} activeId={activeId} org={org} unit={unit} bell={bell} userMenu={userMenu} trail={trail}>
+        <Topbar groups={groups} activeId={activeId} mobileActiveId={mobileActiveId} org={org} unit={unit} bell={bell} userMenu={userMenu} trail={trail}>
           {headerExtra}
         </Topbar>
         <main id="conteudo" ref={main} tabIndex={-1} className="px-4 py-6 pb-20 focus:outline-none md:pb-6">
           {children}
         </main>
-        <MobileTabs tabs={tabs} {...side} />
+        <MobileTabs tabs={tabs} {...side} activeId={mobileActiveId} />
       </div>
     </div>
   );

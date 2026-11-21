@@ -18,14 +18,14 @@ const session = (role: string): SessionView => ({
   twoFactor: { enabled: false, required: false },
 });
 
-function setup(role: string, permissions?: () => Response | Promise<Response>) {
+function setup(role: string, permissions?: () => Response | Promise<Response>, path = "/") {
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", permissions ?? (() => HttpResponse.json({ permissions: mockPermissions(role) }))),
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -34,7 +34,7 @@ function setup(role: string, permissions?: () => Response | Promise<Response>) {
   );
 }
 
-describe("ManagementLayout", () => {
+describe("ManagementShell", () => {
   it("CA13: carregando mostra o estado de carregamento", async () => {
     setup("COORDINATOR", () => new Promise<Response>(() => {}));
     expect(await screen.findByRole("status")).toHaveTextContent(/carregando/i);
@@ -128,5 +128,71 @@ describe("ManagementLayout", () => {
     expect(await within(menu).findByText("Tijuca")).toBeInTheDocument();
     expect(within(menu).getByRole("link", { name: "Minha conta" })).toBeInTheDocument();
     expect(within(menu).getByRole("button", { name: "Sair da conta" })).toBeInTheDocument();
+  });
+
+  // RNF-43: a moldura é a rota-pai; navegar só troca a área central.
+  describe("moldura fixa na rota (#675)", () => {
+    const menu = () => screen.getByRole("navigation", { name: "Menu principal", hidden: true });
+    const go = (name: string) => userEvent.setup().click(within(menu()).getByRole("link", { name, hidden: true }));
+
+    it("CA1/CA2: menu, barra e grupo aberto continuam os mesmos e /permissions é lido uma vez", async () => {
+      let reads = 0;
+      window.innerWidth = 1440;
+      setup("COORDINATOR", () => (reads++, HttpResponse.json({ permissions: mockPermissions("COORDINATOR") })));
+      await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+      const nav = menu();
+      const top = document.querySelector("header");
+      await userEvent.setup().click(within(nav).getByRole("button", { name: "Pessoas", hidden: true }));
+      await go("Alunos");
+      expect(await screen.findByRole("heading", { name: "Alunos" })).toBeInTheDocument();
+      expect(within(menu()).getByRole("link", { name: "Alunos", hidden: true })).toHaveAttribute("aria-current", "page");
+      await go("Pedidos");
+      await screen.findByRole("heading", { name: "Pedidos" });
+      await go("Início");
+      await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+      expect(menu()).toBe(nav);
+      expect(document.querySelector("header")).toBe(top);
+      expect(within(nav).getByRole("link", { name: "Pedidos", hidden: true })).toBeInTheDocument();
+      expect(reads).toBe(1);
+    });
+
+    it("CA3: com a tela atrasada, a moldura fica e o carregando aparece só na área central", async () => {
+      window.innerWidth = 1440;
+      server.use(http.get("/api/v1/students", async () => (await new Promise(() => {}), HttpResponse.json({}))));
+      setup("COORDINATOR");
+      await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
+      const nav = menu();
+      await userEvent.setup().click(within(nav).getByRole("button", { name: "Pessoas", hidden: true }));
+      await go("Alunos");
+      expect(await within(screen.getByRole("main")).findByRole("status")).toHaveTextContent(/carregando/i);
+      expect(menu()).toBe(nav);
+    });
+
+    it("CA5/CA13: sem a chave do servidor mostra 'sem acesso' dentro da moldura, sem item marcado e sem chamar a tela", async () => {
+      let calls = 0;
+      server.use(http.get("/api/v1/announcements", () => (calls++, HttpResponse.json({ items: [], total: 0 }))));
+      setup("TEACHER", () => HttpResponse.json({ permissions: { ...mockPermissions("TEACHER"), ANNOUNCEMENTS: "NONE" } }), "/comunicados");
+      expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+      expect(menu()).toBeInTheDocument();
+      expect(within(menu()).queryAllByRole("link", { hidden: true }).filter((l) => l.getAttribute("aria-current") === "page")).toEqual([]);
+      expect(calls).toBe(0);
+      // Celular (D7): o Início fica marcado na aba e no cabeçalho, sem seta de voltar, como no canvas SemAcessoM.
+      const tabs = screen.getByRole("navigation", { name: "Abas principais", hidden: true });
+      expect(within(tabs).getByRole("link", { name: "Início", hidden: true })).toHaveAttribute("aria-current", "page");
+      const header = document.querySelector("header") as HTMLElement;
+      expect(within(header).queryByRole("link", { name: "Voltar ao Início", hidden: true })).toBeNull();
+      expect(within(header).getByText("Início")).toBeInTheDocument();
+    });
+
+    it("CA5: Administrador sem Organização vê 'sem acesso' em /configuracoes/organizacao", async () => {
+      setup("ADMINISTRATOR", () => HttpResponse.json({ permissions: { ...mockPermissions("ADMINISTRATOR"), ORGANIZATION_SETTINGS: "NONE" } }), "/configuracoes/organizacao");
+      expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+    });
+
+    it("CA6: o endereço antigo /planos/lista chega a /planos dentro da moldura", async () => {
+      setup("COORDINATOR", undefined, "/planos/lista");
+      expect(await screen.findByRole("heading", { name: "Planos e benefícios" })).toBeInTheDocument();
+      expect(within(menu()).getByRole("link", { name: "Planos", hidden: true })).toHaveAttribute("aria-current", "page");
+    });
   });
 });

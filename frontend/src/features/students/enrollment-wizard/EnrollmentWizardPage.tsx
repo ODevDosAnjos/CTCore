@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
 import { WindowSteps } from "@/components/ui/window-steps";
 import { useUnitScope } from "@/features/units/UnitScopeProvider";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ApiError } from "@/lib/api";
 import type { StudentDetail } from "../types";
 import { useEnrollment, useResource } from "../useStudentRecord";
@@ -207,10 +206,5 @@ function Wizard() {
 
 // RF-MAT-01: "Nova matrícula" em cinco etapas. A barreira de dados e de perfil é o servidor; a rota já é só da gestão.
 export function EnrollmentWizardPage() {
-  const { t } = useTranslation();
-  return (
-    <ManagementLayout activeId="students" trail={t("enrollmentWizard.trail")}>
-      <Wizard />
-    </ManagementLayout>
-  );
+  return <Wizard />;
 }

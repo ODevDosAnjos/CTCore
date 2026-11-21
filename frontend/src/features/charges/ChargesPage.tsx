@@ -9,7 +9,6 @@ import type { Column } from "@/components/query/DataTable";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { useQueryParams } from "@/components/query/useQueryParams";
 import { SupportLink } from "@/features/auth/SupportContact";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -145,9 +144,5 @@ function Content() {
 
 // RF-COB-01: lista de cobranças da gestão; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
 export function ChargesPage() {
-  return (
-    <ManagementLayout activeId="collections">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

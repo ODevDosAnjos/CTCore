@@ -9,6 +9,12 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
+// #675: a moldura é montada uma vez e lê permissões, unidades e portal ao entrar; os overrides do caso valem depois do login, então o caso sai da moldura (vitrine, fora dela) e volta para ela reler tudo, como numa entrada nova.
+async function sairDaMoldura(page: Page) {
+  await page.evaluate(`history.pushState({}, "", "/dev/vitrine"); dispatchEvent(new PopStateEvent("popstate"))`);
+  await expect(page.locator("[data-vitrine]").first()).toBeVisible();
+}
+
 async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false, pedidosCanvas?: Caso["pedidosCanvas"], reduzidoCanvas = false) {
   if (perfil) {
     await page.goto("/entrar");
@@ -371,6 +377,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
       }, inicioCanvas);
       // o Início já carregou antes do override: sai e volta pelo histórico (recarregar perderia a sessão simulada)
       const ir = (r: string) => page.evaluate(`history.pushState({}, "", ${JSON.stringify(r)}); dispatchEvent(new PopStateEvent("popstate"))`);
+      await sairDaMoldura(page); // a moldura (#675) é montada uma vez e já leu o portal antes do override: sai dela para relê-lo
       await ir("/portal/avisos");
       await expect(page.getByRole("heading", { name: "Avisos", level: 1 })).toBeVisible();
       await ir("/");
@@ -581,6 +588,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
       // o reduzido já caiu no Financeiro ao entrar, com os dados do MSW: sai e volta pela navegação seguinte para o layout reler a moldura e as cobranças
+      await sairDaMoldura(page);
       await page.evaluate(`history.pushState({}, "", "/portal/minhas-informacoes"); dispatchEvent(new PopStateEvent("popstate"))`);
       await expect(page.getByRole("heading", { name: "Dados pessoais" })).toBeVisible();
       await page.mouse.move(0, 0); // o ponteiro do clique em "Entrar" ficaria sobre o "Em breve" e abriria a dica
@@ -683,6 +691,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
       }, perfil);
     }
     // recarregar perderia a sessão simulada: navega pelo histórico
+    await sairDaMoldura(page);
     await page.evaluate(`history.pushState({}, "", ${JSON.stringify(rota)}); dispatchEvent(new PopStateEvent("popstate"))`);
     if (rota !== "/") await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeHidden();
   } else {

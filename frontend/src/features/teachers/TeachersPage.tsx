@@ -11,7 +11,6 @@ import { ModalityDot } from "@/components/ui/modality-dot";
 import { GraduationBelt } from "@/components/ui/graduation-belt";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { TeacherFilters } from "./TeacherFilters";
 import { TeacherFormDialog } from "./TeacherFormDialog";
@@ -155,9 +154,9 @@ function Content() {
 // RF-PRO-01 e RF-PRO-03: lista (`children`: a gaveta do painel, dentro do mesmo layout) com "Novo professor"; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
 export function TeachersPage({ children }: { children?: ReactNode }) {
   return (
-    <ManagementLayout activeId="teachers">
+    <>
       <Content />
       {children}
-    </ManagementLayout>
+    </>
   );
 }

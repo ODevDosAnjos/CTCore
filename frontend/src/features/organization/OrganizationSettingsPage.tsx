@@ -8,7 +8,6 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { useSession } from "@/features/auth/SessionProvider";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ApiError } from "@/lib/api";
 import { useEditConflict } from "@/lib/useEditConflict";
 import { BrandCard } from "./BrandCard";
@@ -209,8 +208,6 @@ export function OrganizationSettingsPage() {
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role;
   return (
-    <ManagementLayout activeId="organizationSettings">
-      <Content canEdit={role === "COORDINATOR"} />
-    </ManagementLayout>
+    <Content canEdit={role === "COORDINATOR"} />
   );
 }

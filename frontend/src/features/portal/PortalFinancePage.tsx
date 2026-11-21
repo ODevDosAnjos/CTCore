@@ -15,7 +15,6 @@ import { PortalChargeCard } from "./PortalChargeCard";
 import { PortalChargeHistory } from "./PortalChargeHistory";
 import { PortalHeading } from "./PortalHeading";
 import { PortalReceiptsCard } from "./PortalReceiptsCard";
-import { PortalLayout } from "./PortalLayout";
 import { PortalOpenCharges } from "./PortalOpenCharges";
 import { usePortalFinance, type PortalFinanceData } from "./usePortalFinance";
 
@@ -51,7 +50,7 @@ export function PortalFinancePage() {
   const choose = (value: string) => (value === FAMILY ? change({ visao: "familia", ano: null }) : change({ aluno: value, visao: null, ano: null }));
 
   return (
-    <PortalLayout>
+    <>
       <PortalHeading
         className="mb-4"
         label={reduced ? (shell.data?.unit ? t("portalFinance.reduced.label", { unit: shell.data.unit.name }) : undefined) : t("portalFinance.label")}
@@ -113,6 +112,6 @@ export function PortalFinancePage() {
       ) : (
         <ErrorState variant="card" title={t("portalFinance.states.errorTitle")} onRetry={reload} />
       )}
-    </PortalLayout>
+    </>
   );
 }
