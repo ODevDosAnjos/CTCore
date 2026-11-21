@@ -31,7 +31,11 @@ public class SessionService {
 
     record Link(UUID id, UUID organizationId, Role role) {}
 
-    private record Row(UUID id, UUID accountId, UUID activeLinkId, OffsetDateTime lastUsedAt, OffsetDateTime expiresAt, String status) {}
+    private record Row(UUID id, UUID accountId, UUID activeLinkId, OffsetDateTime lastUsedAt, OffsetDateTime expiresAt, String status,
+            String endedReason) {}
+
+    /** Request attribute set when the cookie belongs to a session ended by another device (401 SESSION_REPLACED). */
+    public static final String REPLACED_ATTRIBUTE = SessionService.class.getName() + ".replaced";
 
     private final JdbcClient jdbc;
     private final AccountTransactions accountTx;
@@ -71,31 +75,64 @@ public class SessionService {
 
     /** Starts a session; a single active link becomes the active one (RN-ACE-03), several leave it empty. */
     public Created create(UUID accountId, String ip, String device) {
+        int[] replaced = {0};
         Created created = accountTx.forAccount(accountId, () -> {
             List<Link> links = activeLinks(accountId);
             String token = Codes.random();
             UUID active = links.size() == 1 ? links.get(0).id() : null;
+            Role activeRole = links.size() == 1 ? links.get(0).role() : null;
             OffsetDateTime now = now();
-            jdbc.sql("insert into account_session (account_id, token_hash, active_link_id, device, ip, created_at, last_used_at, expires_at) "
-                    + "values (:a, :h, :l, :d, :ip, :now, :now, :exp)")
+            UUID sessionId = jdbc.sql("insert into account_session (account_id, token_hash, active_link_id, device, ip, created_at, last_used_at, expires_at, area) "
+                    + "values (:a, :h, :l, :d, :ip, :now, :now, :exp, :area) returning id")
                     .param("a", accountId).param("h", Codes.hash(token)).param("l", active).param("d", device)
-                    .param("ip", ip).param("now", now).param("exp", now.plus(idle(links))).update();
+                    .param("ip", ip).param("now", now).param("exp", now.plus(idle(links))).param("area", areaOf(activeRole))
+                    .query(UUID.class).single();
+            replaced[0] = activeRole != null && activeRole.management() ? replaceManagement(accountId, sessionId, now) : 0;
             jdbc.sql("update account set last_access_at = :now where id = :a").param("now", now).param("a", accountId).update();
             return new Created(accountId, token, active);
         });
+        auditReplaced(accountId, replaced[0], ip);
         newAccess.loggedIn(accountId, ip, device);
         return created;
     }
 
+    private static String areaOf(Role role) {
+        return role == null ? null : role.management() ? "MANAGEMENT" : "PORTAL";
+    }
+
+    /** RN-ACE-23 (D1): ends, on the spot, the other management sessions of the account; portal and undecided ones stay. */
+    private int replaceManagement(UUID accountId, UUID keepSessionId, OffsetDateTime now) {
+        return jdbc.sql("update account_session set ended_at = :now, ended_reason = 'REPLACED' "
+                + "where account_id = :a and id <> :k and area = 'MANAGEMENT' and ended_at is null")
+                .param("now", now).param("a", accountId).param("k", keepSessionId).update();
+    }
+
+    private void auditReplaced(UUID accountId, int replaced, String ip) {
+        for (int i = 0; i < replaced; i++) {
+            audit.record(accountId, new AuditActor(AuditActor.Type.ACCOUNT, accountId, null), ip, "account.session_replaced");
+        }
+    }
+
     /** The principal of a valid session, renewing it (write at most once a minute); empty when unknown, expired or inactive. */
     public Optional<AccountPrincipal> authenticate(String token) {
-        Row s = jdbc.sql("select s.id, s.account_id, s.active_link_id, s.last_used_at, s.expires_at, a.status "
+        return authenticate(token, null);
+    }
+
+    /** Same, flagging {@code request} when the session was ended by another device, so the 401 can say so. */
+    public Optional<AccountPrincipal> authenticate(String token, jakarta.servlet.http.HttpServletRequest request) {
+        Row s = jdbc.sql("select s.id, s.account_id, s.active_link_id, s.last_used_at, s.expires_at, a.status, s.ended_reason "
                 + "from account_session s join account a on a.id = s.account_id where s.token_hash = :h")
                 .param("h", Codes.hash(token))
                 .query((rs, n) -> new Row(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class),
-                        rs.getObject(4, OffsetDateTime.class), rs.getObject(5, OffsetDateTime.class), rs.getString(6)))
+                        rs.getObject(4, OffsetDateTime.class), rs.getObject(5, OffsetDateTime.class), rs.getString(6), rs.getString(7)))
                 .optional().orElse(null);
         if (s == null) {
+            return Optional.empty();
+        }
+        if (s.endedReason() != null) {
+            if (request != null) {
+                request.setAttribute(REPLACED_ATTRIBUTE, true);
+            }
             return Optional.empty();
         }
         OffsetDateTime now = now();
@@ -150,17 +187,17 @@ public class SessionService {
     }
 
     /** PUT /session/link: only an active link of the same account; anything else is a 404 and nothing changes. */
-    public void selectLink(UUID accountId, UUID sessionId, UUID linkId) {
-        accountTx.forAccount(accountId, () -> {
-            if (activeLinks(accountId).stream().noneMatch(l -> l.id().equals(linkId))) {
-                throw new IdentityException(Code.LINK_NOT_FOUND, null);
-            }
-            jdbc.sql("update account_session set active_link_id = :l where id = :s and account_id = :a")
-                    .param("l", linkId).param("s", sessionId).param("a", accountId).update();
+    public void selectLink(UUID accountId, UUID sessionId, UUID linkId, String ip) {
+        int replaced = accountTx.forAccount(accountId, () -> {
+            Role role = activeLinks(accountId).stream().filter(l -> l.id().equals(linkId)).map(Link::role).findFirst()
+                    .orElseThrow(() -> new IdentityException(Code.LINK_NOT_FOUND, null));
+            jdbc.sql("update account_session set active_link_id = :l, area = :area where id = :s and account_id = :a")
+                    .param("l", linkId).param("area", areaOf(role)).param("s", sessionId).param("a", accountId).update();
             jdbc.sql("update account_link set last_access_at = :now where id = :l and account_id = :a")
                     .param("now", now()).param("l", linkId).param("a", accountId).update();
-            return null;
+            return role.management() ? replaceManagement(accountId, sessionId, now()) : 0;
         });
+        auditReplaced(accountId, replaced, ip);
     }
 
     public void end(UUID sessionId) {
@@ -180,7 +217,7 @@ public class SessionService {
     /** Live sessions of the account only (account_session has no RLS: the filter by account is the barrier). */
     public List<SessionItem> list(UUID accountId, UUID currentId) {
         return jdbc.sql("select id, device, ip, created_at, last_used_at from account_session "
-                + "where account_id = :a and expires_at > :now order by last_used_at desc, id")
+                + "where account_id = :a and expires_at > :now and ended_at is null order by last_used_at desc, id")
                 .param("a", accountId).param("now", now())
                 .query((rs, n) -> {
                     String ip = rs.getString(3);
@@ -196,7 +233,7 @@ public class SessionService {
         if (id.equals(currentId)) {
             throw new IdentityException(Code.SESSION_CURRENT, null);
         }
-        int ended = jdbc.sql("delete from account_session where id = :id and account_id = :a and expires_at > :now")
+        int ended = jdbc.sql("delete from account_session where id = :id and account_id = :a and expires_at > :now and ended_at is null")
                 .param("id", id).param("a", accountId).param("now", now()).update();
         if (ended == 0) {
             throw new IdentityException(Code.SESSION_NOT_FOUND, null);

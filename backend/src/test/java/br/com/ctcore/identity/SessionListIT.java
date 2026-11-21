@@ -27,7 +27,7 @@ class SessionListIT extends AuthBase {
     @DisplayName("RF-ACE-04: CA10: lista só as sessões vivas da conta, marca a atual e não expõe token, hash nem IP")
     void list() throws Exception {
         UUID org = org();
-        link(account("ana@x.com"), org, "ADMINISTRATOR", "ACTIVE");
+        link(account("ana@x.com"), org, "STUDENT", "ACTIVE");
         link(account("bia@x.com"), org, "TEACHER", "ACTIVE");
         Cookie a1 = sessionOf("ana@x.com"), a2 = sessionOf("ana@x.com"), a3 = sessionOf("ana@x.com");
         sessionOf("bia@x.com");
@@ -47,7 +47,7 @@ class SessionListIT extends AuthBase {
     @DisplayName("RF-ACE-04: CA11: encerra outra sessão da conta (204), a atual é 409, sessão de outra conta ou inexistente é 404")
     void endOne() throws Exception {
         UUID org = org();
-        link(account("ana@x.com"), org, "ADMINISTRATOR", "ACTIVE");
+        link(account("ana@x.com"), org, "STUDENT", "ACTIVE");
         link(account("bia@x.com"), org, "TEACHER", "ACTIVE");
         Cookie a1 = sessionOf("ana@x.com"), a2 = sessionOf("ana@x.com"), b = sessionOf("bia@x.com");
 
@@ -67,7 +67,7 @@ class SessionListIT extends AuthBase {
     @DisplayName("RF-ACE-04: CA12, CA13: encerrar as outras mantém a atual e não toca nas sessões de outras contas")
     void endOthers() throws Exception {
         UUID org = org();
-        link(account("ana@x.com"), org, "ADMINISTRATOR", "ACTIVE");
+        link(account("ana@x.com"), org, "STUDENT", "ACTIVE");
         link(account("bia@x.com"), org, "TEACHER", "ACTIVE");
         Cookie a1 = sessionOf("ana@x.com"), a2 = sessionOf("ana@x.com"), a3 = sessionOf("ana@x.com"), b = sessionOf("bia@x.com");
 

@@ -8,6 +8,12 @@ export class ApiError extends Error {
   }
 }
 
+let onSessionReplaced: (() => void) | undefined;
+/** RN-ACE-23: o SessionProvider é avisado quando qualquer resposta traz SESSION_REPLACED. */
+export function setSessionReplacedHandler(fn: (() => void) | undefined) {
+  onSessionReplaced = fn;
+}
+
 const cookie = (name: string) =>
   document.cookie
     .split("; ")
@@ -37,6 +43,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    if (err.code === "SESSION_REPLACED") onSessionReplaced?.();
     throw new ApiError(res.status, err.code ?? "INTERNAL_ERROR", err.fields ?? []);
   }
   if (res.status === 204) return undefined as T;

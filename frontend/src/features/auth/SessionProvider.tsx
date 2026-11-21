@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, setSessionReplacedHandler } from "@/lib/api";
 
 export interface SessionView {
   account: { id: string; email: string; name?: string | null; passwordChangedAt?: string | null };
@@ -8,7 +8,7 @@ export interface SessionView {
   twoFactor: { enabled: boolean; required: boolean; enabledAt?: string | null };
 }
 
-type State = { status: "loading" | "anon" | "error"; out?: boolean } | { status: "ready"; session: SessionView };
+type State = { status: "loading" | "anon" | "error"; out?: boolean; replaced?: boolean } | { status: "ready"; session: SessionView };
 interface Ctx {
   state: State;
   refresh: () => Promise<void>;
@@ -25,8 +25,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       setState({ status: "ready", session: await api<SessionView>("/auth/session") });
     } catch (e) {
-      setState({ status: e instanceof ApiError && e.status === 401 ? "anon" : "error" });
+      setState(e instanceof ApiError && e.status === 401 ? { status: "anon", replaced: e.code === "SESSION_REPLACED" } : { status: "error" });
     }
+  }, []);
+  useEffect(() => {
+    setSessionReplacedHandler(() => setState({ status: "anon", replaced: true }));
+    return () => setSessionReplacedHandler(undefined);
   }, []);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial da sessão

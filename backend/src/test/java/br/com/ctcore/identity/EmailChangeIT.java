@@ -43,7 +43,7 @@ class EmailChangeIT extends AuthBase {
     void requestAndConfirm() throws Exception {
         UUID org = org();
         UUID ana = account("ana@x.com");
-        link(ana, org, "ADMINISTRATOR", "ACTIVE");
+        link(ana, org, "STUDENT", "ACTIVE");
         Cookie s = sessionOf("ana@x.com");
 
         assertThat(request(s, "novo@x.com")).isEqualTo(202);

@@ -22,6 +22,7 @@
     "sending": "Entrando...",
     "forgot": "Esqueci minha senha",
     "createPassword": "Criar nova senha",
+    "sessionReplaced": "Sua sessão foi encerrada porque esta conta entrou em outro aparelho.",
     "lockedNote": "A trava vale só para este e-mail. Quem já está dentro continua normalmente.",
     "errors": {
       "emailRequired": "Informe o seu e-mail.",

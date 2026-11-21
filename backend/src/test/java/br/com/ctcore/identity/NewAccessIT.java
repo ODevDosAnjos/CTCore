@@ -44,4 +44,17 @@ class NewAccessIT extends AuthBase {
         loginWith("ana@x.com", CHROME);
         assertThat(newAccessMails()).hasSize(1);
     }
+
+    @Test
+    @DisplayName("RN-ACE-22, RN-ACE-23: CA9: voltar ao aparelho A depois de A ser encerrada por B não envia novo aviso")
+    void returningAfterReplacedDoesNotNotifyAgain() throws Exception {
+        link(account("ana@x.com"), org(), "ADMINISTRATOR", "ACTIVE");
+        Cookie a = loginWith("ana@x.com", CHROME);
+        loginWith("ana@x.com", FIREFOX);
+        assertThat(newAccessMails()).hasSize(1);
+        assertThat(get("/api/v1/auth/session", a).andReturn().getResponse().getStatus()).isEqualTo(401);
+
+        loginWith("ana@x.com", CHROME);
+        assertThat(newAccessMails()).hasSize(1);
+    }
 }

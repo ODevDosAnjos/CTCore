@@ -108,6 +108,7 @@ export function LoginPage() {
               {t("auth.errors.locked", { time: formatTime(lockedUntil) })}
             </Banner>
           )}
+          {state.status === "anon" && state.replaced && <Banner tone="danger">{t("auth.sessionReplaced")}</Banner>}
           {notice && <Banner tone="danger">{notice}</Banner>}
           <Field label={t("auth.email")} error={errors.email}>
             {(c) => <Input {...c} type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />}

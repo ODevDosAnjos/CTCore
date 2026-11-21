@@ -4020,6 +4020,7 @@ components:
             - VALIDATION_ERROR
             - MALFORMED_REQUEST
             - UNAUTHENTICATED
+            - SESSION_REPLACED
             - FORBIDDEN
             - NOT_FOUND
             - METHOD_NOT_ALLOWED
@@ -7045,7 +7046,7 @@ components:
       description: Dados inválidos (VALIDATION_ERROR) ou requisição ilegível (MALFORMED_REQUEST).
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Unauthorized:
-      description: Sem sessão (UNAUTHENTICATED).
+      description: Sem sessão (UNAUTHENTICATED) ou sessão de gestão encerrada porque a conta entrou em outro aparelho (SESSION_REPLACED, RN-ACE-23).
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Forbidden:
       description: Sem permissão (FORBIDDEN).

@@ -99,8 +99,9 @@ class AuthController {
     }
 
     @PutMapping("/session/link")
-    SessionService.SessionView selectLink(@AuthenticationPrincipal AccountPrincipal principal, @Valid @RequestBody LinkRequest r) {
-        sessions.selectLink(require(principal).accountId(), principal.sessionId(), r.linkId());
+    SessionService.SessionView selectLink(@AuthenticationPrincipal AccountPrincipal principal, @Valid @RequestBody LinkRequest r,
+            HttpServletRequest request) {
+        sessions.selectLink(require(principal).accountId(), principal.sessionId(), r.linkId(), request.getRemoteAddr());
         return sessions.view(principal.accountId(), r.linkId());
     }
 
