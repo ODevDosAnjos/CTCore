@@ -32,6 +32,11 @@ describe("mapa de rotas (CA4)", () => {
     expect(activeItemOf(findRoute("/alunos/nova-matricula"))).toBe("students");
     expect(findRoute("/alunos/nova-matricula")?.trail).toBe("enrollmentWizard.trail");
     expect(activeItemOf(findRoute("/alunos/12"))).toBe("students");
+    expect(findRoute("/alunos/12")?.id).toBe("studentRecord");
+    expect(findRoute("/cobrancas/previa")?.id).toBe("chargePreview");
+    expect(findRoute("/cobrancas/c1")?.id).toBe("chargePanel");
+    expect(findRoute("/planos/lista")?.id).toBe("plansList");
+    expect(findRoute("/planos/p5")?.id).toBe("planPanel");
     expect(activeItemOf(findRoute("/cobrancas/previa"))).toBe("collections");
     expect(activeItemOf(findRoute("/configuracoes"))).toBe("");
     expect(activeItemOf(findRoute("/agenda/aulas/3/alunos/4"))).toBe("agenda");

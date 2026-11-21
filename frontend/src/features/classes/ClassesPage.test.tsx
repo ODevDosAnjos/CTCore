@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -11,6 +11,7 @@ import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { expectPillOptions, pickPill } from "@/test/pill";
+import { currentLocation, history, LocationProbe } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { TrainingClass } from "./useClasses";
 
@@ -60,9 +61,8 @@ const all = [
 
 let calls: URLSearchParams[];
 
-function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, units = [{ id: "u1", name: "Tijuca", shortName: "t" }]) {
+function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, units = [{ id: "u1", name: "Tijuca", shortName: "t" }], entry = "/turmas") {
   calls = [];
-  window.history.replaceState(null, "", "/turmas");
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
@@ -86,7 +86,8 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, 
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/turmas"]}>
+      <MemoryRouter initialEntries={[entry]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -98,6 +99,28 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, 
 const ready = () => screen.findByRole("heading", { name: "Turmas", level: 1 });
 
 describe("ClassesPage", () => {
+  it("#676 CA3, CA5, CA6: abrir e fechar o painel mantém o filtro, sem nova listagem; voltar fecha o painel e a lista continua", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", undefined, undefined, "/turmas?status=INACTIVE&pagina=1");
+    await screen.findByText(/^Unidade Tijuca/);
+    await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u1"));
+    const listed = calls.length;
+    await user.click(await screen.findByRole("link", { name: "Boxe Antigo" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(currentLocation()).toMatchObject({ pathname: "/turmas/c3", search: "?status=INACTIVE&pagina=1" });
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(currentLocation()).toMatchObject({ pathname: "/turmas", search: "?status=INACTIVE&pagina=1" });
+    expect(screen.getByText("Boxe Antigo")).toBeInTheDocument();
+    expect(calls).toHaveLength(listed);
+    await user.click(screen.getByRole("link", { name: "Boxe Antigo" }));
+    await screen.findByRole("dialog");
+    act(() => history(-1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByText("Boxe Antigo")).toBeInTheDocument();
+    expect(calls).toHaveLength(listed);
+  });
+
   it("CA1: subtítulo com a unidade e a contagem (carregando… antes), Nova turma com ícone, sem introdução e sem filtro de unidade", async () => {
     setup();
     expect(await screen.findByText(/carregando…/)).toBeInTheDocument();
@@ -169,8 +192,8 @@ describe("ClassesPage", () => {
     await pickPill(user, "Professor", "Rafael Duarte");
     await waitFor(() => expect(calls.at(-1)!.get("teacherId")).toBe("t1"));
     expect(calls.at(-1)!.get("status")).toBe("INACTIVE");
-    expect(window.location.search).toContain("status=INACTIVE");
-    expect(window.location.search).toContain("teacherId=t1");
+    expect(currentLocation().search).toContain("status=INACTIVE");
+    expect(currentLocation().search).toContain("teacherId=t1");
   });
 
   it("CA2: busca com placeholder Nome da turma; modalidades só ativas; modalidade, faixa e dia refazem a consulta", async () => {

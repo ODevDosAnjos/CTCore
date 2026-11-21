@@ -2,7 +2,9 @@ import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeft, Receipt, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router";
+import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router";
+import { useListTo } from "@/components/query/useListTo";
+import { useTabParam } from "@/components/ui/useTabParam";
 import { SidePanel } from "@/components/SidePanel";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { WhatsAppButton } from "@/components/whatsapp";
@@ -28,6 +30,8 @@ const TABS = ["summary", "enrollment", "financial", "graduations", "guardians", 
 type Tab = (typeof TABS)[number];
 // O Professor vê só o Resumo e os Responsáveis (RF-ALU-03, R26): matrícula, histórico e o que vier depois são da gestão.
 const TEACHER_TABS: readonly Tab[] = ["summary", "guardians"];
+// Nome da aba no endereço (`?aba=`, D5).
+const TAB_URL: Record<Tab, string> = { summary: "resumo", enrollment: "matricula", financial: "financeiro", graduations: "graduacoes", guardians: "responsaveis", history: "historico" };
 
 function Header({ record, status, overdue, since, onCharge }: { record: StudentRecord; status?: EnrollmentStatus; overdue?: boolean; since?: string | null; onCharge?: () => void }) {
   const { t } = useTranslation();
@@ -103,7 +107,6 @@ function Body({ id, onChanged }: { id: string; onChanged?: () => void }) {
   const { permissions, status: permStatus } = usePermissions();
   // R18: a ficha que chega com `?pedido=` abre na matrícula, onde a troca pedida abre preenchida.
   const asked = useSearchParams()[0].has("pedido");
-  const [tab, setTab] = useState<Tab>(asked ? "enrollment" : "summary");
   const [editing, setEditing] = useState(false);
   const [charging, setCharging] = useState(false);
   // Só a gestão vê o botão; a barreira é o servidor.
@@ -112,6 +115,10 @@ function Body({ id, onChanged }: { id: string; onChanged?: () => void }) {
   // D6: só quem tem Cobranças lê as cobranças do aluno; o Professor nem faz o pedido.
   const canCollect = !!permissions && permissions.COLLECTIONS !== "NONE";
   const charges = useStudentCharges(id, canEdit && canCollect);
+  const visible = canEdit ? (canCollect ? TABS : TABS.filter((x) => x !== "financial")) : TEACHER_TABS;
+  const [urlTab, setUrlTab] = useTabParam(visible.map((x) => TAB_URL[x]), TAB_URL[asked ? "enrollment" : "summary"]);
+  const tab = visible.find((x) => TAB_URL[x] === urlTab) ?? "summary";
+  const setTab = (x: Tab) => setUrlTab(TAB_URL[x]);
   let state: ReactNode = null;
   if (status === "loading" || permStatus === "loading") state = <LoadingState />;
   else if (status === "forbidden") state = <ForbiddenState />;
@@ -150,7 +157,7 @@ function Body({ id, onChanged }: { id: string; onChanged?: () => void }) {
         }}
       />
       {!canEdit && <Banner tone="info">{t("students.record.teacherView")}</Banner>}
-      <Tabs tab={tab} tabs={canEdit ? (canCollect ? TABS : TABS.filter((x) => x !== "financial")) : TEACHER_TABS} onChange={setTab} />
+      <Tabs tab={tab} tabs={visible} onChange={setTab} />
       <div role="tabpanel" id={`record-panel-${tab}`} aria-labelledby={`record-tab-${tab}`}>
         {tab === "summary" && <RecordSummary record={data} modalities={enrollment.data?.modalities} charges={charges.status === "ready" ? charges.data : undefined} canCollect={canEdit && canCollect} onEdit={canEdit ? () => setEditing(true) : undefined} />}
         {tab === "enrollment" && <RecordEnrollment studentId={id} studentName={data.name} canGrant={!!permissions && permissions.BENEFITS !== "NONE"} enrollment={enrollment} onChanged={() => { reload(); onChanged?.(); }} />}
@@ -171,4 +178,18 @@ export function StudentRecordPanel({ id, onClose, onChanged }: { id: string; onC
       <Body key={id} id={id} onChanged={onChanged} />
     </SidePanel>
   );
+}
+
+// O que a lista de alunos passa ao painel (rota-filha): recarregar a lista depois de mudar um aluno.
+export interface StudentsOutlet {
+  reload: () => void;
+}
+
+// RF-ALU-03: a ficha como rota-filha de /alunos; fechar volta à lista com os filtros.
+export function StudentRecordPage() {
+  const { id = "" } = useParams();
+  const navigate = useNavigate();
+  const list = useListTo("/alunos");
+  const ctx = useOutletContext<StudentsOutlet | null>();
+  return <StudentRecordPanel id={id} onClose={() => void navigate(list)} onChanged={ctx?.reload} />;
 }

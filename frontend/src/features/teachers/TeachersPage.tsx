@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import type { TFunction } from "i18next";
 import { RowCard } from "@/components/query/RowCard";
 import { QueryPage } from "@/components/query/QueryPage";
@@ -43,7 +43,7 @@ const belts = (t: TFunction, r: Teacher) => {
 const statusBadge = (t: TFunction, r: Teacher) =>
   r.status === "ACTIVE" && r.access === "PENDING" ? <StatusBadge status="PENDING" label={t("teachers.invited")} /> : <StatusBadge status={r.status} label={t(`teachers.statuses.${r.status}`)} />;
 
-const columns = (t: TFunction): Column<Teacher>[] => [
+const columns = (t: TFunction, search: string): Column<Teacher>[] => [
   {
     key: "name",
     label: t("teachers.columns.name"),
@@ -54,7 +54,7 @@ const columns = (t: TFunction): Column<Teacher>[] => [
         photoUrl={r.photoUrl}
         size="sm"
         title={
-          <Link to={`/professores/${r.id}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-bold">
+          <Link to={`/professores/${r.id}${search}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-bold">
             {r.name}
           </Link>
         }
@@ -80,7 +80,7 @@ const columns = (t: TFunction): Column<Teacher>[] => [
   { key: "status", label: t("teachers.columns.status"), render: (r) => statusBadge(t, r) },
 ];
 
-const card = (t: TFunction) => (r: Teacher) => (
+const card = (t: TFunction, search: string) => (r: Teacher) => (
   <RowCard
     lead={<PersonAvatar name={r.name} photoUrl={r.photoUrl} size="sm" />}
     title={r.name}
@@ -101,7 +101,7 @@ const card = (t: TFunction) => (r: Teacher) => (
     badge={statusBadge(t, r)}
     action={
       <Button asChild variant="secondary">
-        <Link to={`/professores/${r.id}`} aria-label={t("teachers.viewAria", { name: r.name })}>
+        <Link to={`/professores/${r.id}${search}`} aria-label={t("teachers.viewAria", { name: r.name })}>
           {t("query.viewRow")}
         </Link>
       </Button>
@@ -112,6 +112,7 @@ const card = (t: TFunction) => (r: Teacher) => (
 function Content() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [creating, setCreating] = useState(false);
   const { permissions } = usePermissions();
   const canWrite = !!permissions && permissions.TEACHERS !== "NONE";
@@ -135,12 +136,12 @@ function Content() {
       <QueryPage
         header={header}
         defaultFilters={{ status: "ACTIVE" }}
-        onRowClick={(r) => void navigate(`/professores/${r.id}`)}
+        onRowClick={(r) => void navigate({ pathname: `/professores/${r.id}`, search })}
         canvasStates
         searchPlaceholder={t("teachers.search")}
-        columns={columns(t)}
+        columns={columns(t, search)}
         cardsBelow="sm"
-        cards={card(t)}
+        cards={card(t, search)}
         fetchPage={fetchTeachers}
         rowKey={(r) => r.id}
         filterKeys={["modalityId", "unitId", "status"]}
@@ -151,12 +152,12 @@ function Content() {
   );
 }
 
-// RF-PRO-01 e RF-PRO-03: lista (`children`: a gaveta do painel, dentro do mesmo layout) com "Novo professor"; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
-export function TeachersPage({ children }: { children?: ReactNode }) {
+// RF-PRO-01 e RF-PRO-03: lista (o `<Outlet />` recebe a gaveta do painel, rota-filha) com "Novo professor"; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
+export function TeachersPage() {
   return (
     <>
       <Content />
-      {children}
+      <Outlet />
     </>
   );
 }

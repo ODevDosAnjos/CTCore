@@ -25,7 +25,7 @@ describe("moldura fixa na rota (CA9)", () => {
 // Telas da gestão (CA8 da #417): o título vem do PageHeader. Ficam de fora as telas de acesso, a pública, o portal (portalPages.test.ts) e as gavetas
 // sobre a lista (painel da turma, do professor e da aula, e a ficha do Professor, #470 e #472): quem tem o título é a lista.
 describe("telas da gestão (CA8)", () => {
-  const management = pages.filter((f) => !new RegExp("features/(auth|payments|portal)/|(Class|Teacher)PanelPage|LessonPanelPage|TeacherRecordPage").test(f.split(sep).join("/")));
+  const management = pages.filter((f) => !new RegExp("features/(auth|payments|portal)/|(Class|Teacher|Charge)PanelPage|LessonPanelPage|TeacherRecordPage").test(f.split(sep).join("/")));
   it("encontra as telas da gestão", () => {
     expect(management.length).toBeGreaterThanOrEqual(25);
   });

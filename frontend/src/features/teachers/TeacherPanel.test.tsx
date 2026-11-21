@@ -70,7 +70,7 @@ function setup(get: () => Response | Promise<Response> = () => HttpResponse.json
 
 const ready = () => screen.findByRole("heading", { name: "Ana Souza", level: 2 });
 
-describe("TeacherPanelPage (RF-PRO-02)", () => {
+describe("TeacherPanel (RF-PRO-02)", () => {
   it("CA9: mostra cabeçalho, apresentação, contato, graduação, unidades, vazios de turmas e aulas e a situação do acesso", async () => {
     setup();
     await ready();

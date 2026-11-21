@@ -1,6 +1,6 @@
 import { HttpResponse, http, type JsonBodyType } from "msw";
 import { setupWorker } from "msw/browser";
-import { handlers } from "./handlers";
+import { handlers, restoreMockLogin } from "./handlers";
 
 export const worker = setupWorker(...handlers);
 
@@ -17,6 +17,7 @@ declare global {
 
 // Gancho do e2e (só em dev com MSW, ver main.tsx): troca a resposta de um endpoint por teste, sem mexer nos handlers padrão.
 export function installE2eHook(w: typeof worker) {
+  restoreMockLogin();
   const override = ({ method, path, status, body }: Override) => w.use(http[method](`/api/v1${path}`, () => HttpResponse.json(body, { status })));
   window.__mswOverride = override;
   window.__mswReset = () => w.resetHandlers();

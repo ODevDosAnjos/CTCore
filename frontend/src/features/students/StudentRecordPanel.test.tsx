@@ -1,9 +1,9 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, useLocation } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { App } from "@/App";
-import { StudentRecordPanel } from "./StudentRecordPanel";
+import { StudentRecordPage } from "./StudentRecordPanel";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
 import { PermissionsFrame } from "@/test/PermissionsFrame";
@@ -90,7 +90,7 @@ function setup(path = "/alunos", opts: { record?: () => Response | Promise<Respo
       <MemoryRouter initialEntries={[path]}>
         <Where />
         <SessionProvider>
-          {opts.direct ? <PermissionsFrame><StudentRecordPanel id="s1" onClose={() => {}} /></PermissionsFrame> : <App />}
+          {opts.direct ? <Routes><Route path="/alunos/:id" element={<PermissionsFrame><StudentRecordPage /></PermissionsFrame>} /></Routes> : <App />}
         </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,
@@ -117,6 +117,14 @@ describe("ficha do aluno (RF-ALU-03)", () => {
   it("CA9: abrir /alunos/:id direto mostra o painel; id inexistente mostra o estado de não encontrado", async () => {
     setup("/alunos/s1");
     expect(await within(await panel()).findByText("Ana Souza")).toBeInTheDocument();
+  });
+
+  it("CA8: F5 mantém a aba (?aba=) e aba inválida vale o Resumo, sem erro", async () => {
+    setup("/alunos/s1?aba=responsaveis");
+    expect(await within(await panel()).findByRole("tab", { name: "Responsáveis" })).toHaveAttribute("aria-selected", "true");
+    cleanup();
+    setup("/alunos/s1?aba=nada");
+    expect(await within(await panel()).findByRole("tab", { name: "Resumo" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("CA9: aluno inexistente mostra Aluno não encontrado", async () => {

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
+import { useListTo } from "@/components/query/useListTo";
 import type { TFunction } from "i18next";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { useBelowSm } from "@/components/query/useBelowSm";
@@ -12,7 +13,6 @@ import { GraduationBelt } from "@/components/ui/graduation-belt";
 import { PersonRow } from "@/components/ui/person-row";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { formatDate, relativeDay } from "@/lib/format";
-import { ClassesPage } from "./ClassesPage";
 import { hourText, scheduleText } from "./classText";
 import { ClassFormDialog } from "./ClassFormDialog";
 import { DeactivateClassDialog } from "./DeactivateClassDialog";
@@ -56,16 +56,17 @@ function nextClassText(t: TFunction, next: NonNullable<ClassDetail["nextClass"]>
 // Alunos mostrados no painel; o restante vai por "Ver todos os alunos" (D5).
 const SHOWN = 10;
 
-// Gaveta da turma sobre a lista: fechar volta para /turmas.
+// Gaveta da turma sobre a lista (rota-filha de /turmas): fechar volta para /turmas com os filtros.
 function DrawerShell({ hidden, title, badge, subtitle, footer, children }: { hidden?: boolean; title?: string; badge?: ReactNode; subtitle?: ReactNode; footer?: ReactNode; children: ReactNode }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const list = useListTo("/turmas");
   if (hidden) return null;
   return (
     <Drawer
       scrim="canvas"
       open
-      onOpenChange={(open) => !open && void navigate("/turmas")}
+      onOpenChange={(open) => !open && void navigate(list)}
       title={title ?? t("classes.panel.eyebrow")}
       badge={badge}
       subtitle={subtitle}
@@ -245,10 +246,4 @@ function Content() {
 }
 
 // RF-TUR-02: painel da turma em gaveta sobre a lista; a barreira de dados é o servidor.
-export function ClassPanelPage() {
-  return (
-    <ClassesPage>
-      <Content />
-    </ClassesPage>
-  );
-}
+export const ClassPanel = Content;

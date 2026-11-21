@@ -5,7 +5,7 @@ import type { AppNotification, NotificationType } from "./useNotifications";
 
 // D5: a ação de cada notificação é o botão que leva à tela do objeto; sem tela própria do objeto, a lista da área.
 export function notificationTarget(n: Pick<AppNotification, "type" | "refType" | "refId">): string {
-  const student = n.refType === "student" && n.refId ? hrefOf("students", { id: n.refId }) : hrefOf("students");
+  const student = n.refType === "student" && n.refId ? hrefOf("studentRecord", { id: n.refId }) : hrefOf("students");
   const routes: Record<NotificationType, string> = {
     PAYMENT_RECEIVED: hrefOf("collections"),
     HIGH_BENEFIT: hrefOf("benefits"),

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -110,6 +110,16 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]);
   });
 
+
+  it("CA8: a aba ativa vem de ?aba= (F5 mantém); aba inválida abre Dados sem erro", async () => {
+    setup("COORDINATOR", { path: "/configuracoes/unidade?aba=payments" });
+    await screen.findByRole("heading", { name: "Unidade A", level: 1 });
+    expect(await screen.findByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+    cleanup();
+    setup("COORDINATOR", { path: "/configuracoes/unidade?aba=nada" });
+    await ready();
+    expect(screen.getByRole("tab", { name: /Dados/ })).toHaveAttribute("aria-selected", "true");
+  });
   it("CA2: o que foi digitado numa aba continua depois de trocar de aba e voltar, inclusive nos campos com máscara", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");

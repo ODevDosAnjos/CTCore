@@ -1,13 +1,14 @@
 import { useCallback, useState } from "react";
 import { CalendarClock, Plus, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { QueryPage, type Page, type Query } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { useQueryParams } from "@/components/query/useQueryParams";
+import { listSearch } from "@/components/query/useListTo";
 import { SupportLink } from "@/features/auth/SupportContact";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
@@ -15,9 +16,9 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import type { ChargeRow } from "./types";
 import { ChargeCard, ChargeStudent, MethodCell, ReferenceCell, StatusCell, useReference } from "./ChargeCards";
 import { ChargeFilters } from "./ChargeFilters";
-import { ChargePanel } from "./ChargePanel";
 import { ChargeRowMenu } from "./ChargeRowMenu";
 import { OneOffChargeDialog } from "./OneOffChargeDialog";
+import type { ChargesOutlet } from "./ChargePanelPage";
 import { periodLabel } from "./period";
 import { fetchCharges } from "./useCharges";
 import { PageHeader } from "@/components/ui/page-header";
@@ -26,8 +27,10 @@ const FILTER_KEYS = ["quick", "period", "status", "type", "modalityId", "classId
 
 function Content() {
   const { t } = useTranslation();
-  // O painel vive no endereço (?cobranca=); depois de cancelar ou renegociar a lista é recarregada.
-  const { get, set } = useQueryParams();
+  // O painel é a rota-filha /cobrancas/:id; depois de cancelar ou renegociar a lista é recarregada.
+  const { get } = useQueryParams();
+  const { search } = useLocation();
+  const navigate = useNavigate();
   const narrow = useBelowSm();
   const reference = useReference();
   const [version, setVersion] = useState(0);
@@ -40,8 +43,7 @@ function Content() {
   const unitName = scope.units.find((u) => u.id === scope.selected)?.name;
   const fetchPage = useCallback((q: Query) => fetchCharges(q, unitId), [unitId]);
   const reload = () => setVersion((v) => v + 1);
-  const open = (id: string) => set({ cobranca: id });
-  const id = get("cobranca");
+  const open = (id: string) => void navigate({ pathname: `/cobrancas/${id}`, search: listSearch(search) });
   const quick = get("quick");
   const create = (
     <Button className={narrow ? "min-h-11 w-full" : "min-h-11"} onClick={() => setCreating(true)}>
@@ -136,7 +138,7 @@ function Content() {
         footer={footer}
       />
       {canCreate && narrow && create}
-      {id && <ChargePanel id={id} onClose={() => set({ cobranca: "" })} onChanged={reload} />}
+      <Outlet context={{ reload } satisfies ChargesOutlet} />
       {creating && <OneOffChargeDialog onClose={() => setCreating(false)} onDone={reload} />}
     </div>
   );
@@ -144,5 +146,12 @@ function Content() {
 
 // RF-COB-01: lista de cobranças da gestão; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
 export function ChargesPage() {
-  return <Content />;
+  // Endereço antigo (RNF-27): `?cobranca=<id>` chega a `/cobrancas/<id>`, com os demais parâmetros.
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  const old = params.get("cobranca");
+  if (!old) return <Content />;
+  params.delete("cobranca");
+  const qs = params.toString();
+  return <Navigate replace to={{ pathname: `/cobrancas/${old}`, search: qs ? `?${qs}` : "" }} />;
 }

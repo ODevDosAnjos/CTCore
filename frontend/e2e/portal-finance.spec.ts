@@ -61,7 +61,7 @@ test.describe("financeiro do portal a 360 px", () => {
       await expect(history.getByRole("link", { name: /^Baixar recibo de/ }).first()).toHaveAttribute("href", /\/portal\/receipts\/RC-MOCK-\d{4}-\d\/pdf$/);
       const year = new Date().getFullYear();
       await history.getByRole("tab", { name: String(year - 1) }).click();
-      await expect(page).toHaveURL(new RegExp(`ano=${year - 1}`));
+      await expect(page).toHaveURL(new RegExp(`aba=${year - 1}`));
       await expect(history.getByText("Cancelada")).toBeVisible();
       expect(await noOverflow(page)).toBe(true);
       expect(await violations(page)).toEqual([]);

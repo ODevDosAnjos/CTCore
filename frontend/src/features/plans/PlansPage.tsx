@@ -1,7 +1,8 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { FileText, Gift, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { listSearch } from "@/components/query/useListTo";
 import { formatMoney } from "@/components/fields/masks";
 import { QueryPage, type Query } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
@@ -17,7 +18,7 @@ import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { DeactivatePlanDialog } from "./DeactivatePlanDialog";
 import { PlanFilters } from "./PlanFilters";
 import { PlanFormDialog } from "./PlanFormDialog";
-import { PlanInspectDrawer } from "./PlanInspectDrawer";
+import type { PlansOutlet } from "./PlanInspectDrawer";
 import { fetchPlans, usePlanOptions, usePlanSummary, type PlanRow } from "./usePlans";
 
 function SummaryCard({ icon, label, value, note, action }: { icon: ReactNode; label: string; value: number; note: string; action: ReactNode }) {
@@ -45,6 +46,8 @@ function SummaryCard({ icon, label, value, note, action }: { icon: ReactNode; la
 function Content() {
   const { t } = useTranslation();
   const narrow = useBelowSm();
+  const navigate = useNavigate();
+  const { search } = useLocation();
   const scope = useUnitScope();
   const { permissions } = usePermissions();
   const canManage = !!permissions && permissions.PLANS !== "NONE";
@@ -55,7 +58,6 @@ function Content() {
   const options = usePlanOptions(true);
   const crossUnit = options.options?.crossUnitTraining === "plan";
   const [editing, setEditing] = useState<PlanRow | "new" | null>(null);
-  const [inspecting, setInspecting] = useState<PlanRow | null>(null);
   const [deactivating, setDeactivating] = useState<PlanRow | null>(null);
   const [version, setVersion] = useState(0);
   const reload = () => {
@@ -63,7 +65,7 @@ function Content() {
     retry();
   };
   const fetchPage = useCallback((q: Query) => fetchPlans(q, unitId ?? undefined), [unitId]);
-  const open = (p: PlanRow) => (p.status === "INACTIVE" ? setInspecting(p) : setEditing(p));
+  const open = (p: PlanRow) => (p.status === "INACTIVE" ? void navigate({ pathname: `/planos/${p.id}`, search: listSearch(search) }) : setEditing(p));
   const frequency = (p: PlanRow) => (p.weeklyFrequency === null ? t("plans.table.free") : t("plans.table.perWeek", { count: p.weeklyFrequency }));
   const newButton = (kind: "card" | "header" | "full" = "header") =>
     canManage && (
@@ -233,7 +235,7 @@ function Content() {
         }}
       />
       <DeactivatePlanDialog plan={deactivating} onClose={() => setDeactivating(null)} onDone={reload} />
-      <PlanInspectDrawer plan={inspecting} showOtherUnits={crossUnit} onClose={() => setInspecting(null)} onDone={reload} />
+      <Outlet context={{ reload, showOtherUnits: crossUnit } satisfies PlansOutlet} />
     </div>
   );
 }

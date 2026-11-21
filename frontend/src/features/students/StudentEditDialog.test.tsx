@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { vi } from "vitest";
-import { MemoryRouter, useLocation } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { App } from "@/App";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
@@ -11,7 +11,7 @@ import { PermissionsFrame } from "@/test/PermissionsFrame";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { StudentRecordPanel } from "./StudentRecordPanel";
+import { StudentRecordPage } from "./StudentRecordPanel";
 import type { StudentDetail, StudentRecord, StudentRow } from "./types";
 
 const session = (role: string): SessionView => ({
@@ -234,9 +234,9 @@ describe("StudentEditDialog (RF-ALU-04, CA14, CA15)", () => {
     );
     render(
       <ThemeProvider>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/alunos/s1"]}>
           <SessionProvider>
-            <PermissionsFrame><StudentRecordPanel id="s1" onClose={() => undefined} /></PermissionsFrame>
+            <Routes><Route path="/alunos/:id" element={<PermissionsFrame><StudentRecordPage /></PermissionsFrame>} /></Routes>
           </SessionProvider>
         </MemoryRouter>
       </ThemeProvider>,
