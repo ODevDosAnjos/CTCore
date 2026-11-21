@@ -182,9 +182,15 @@ describe("PlansPage · tela (RF-PLA-01, RF-PLA-02)", () => {
   });
 
   it("CA14: sem permissão de gestão não há Novo plano nem Editar; Professor recebe sem permissão", async () => {
-    setup({ permissions: { PLANS: "NONE" }, summary: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
+    setup({ permissions: { PLANS: "READ" }, summary: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Novo plano" })).toBeNull();
+  });
+
+  it("CA14: com PLANS = NONE a rota mostra 'sem acesso' e não consulta o resumo (D1 da #675)", async () => {
+    setup({ permissions: { PLANS: "NONE" } });
+    await screen.findByText("Esta área não está disponível para o seu perfil");
+    expect(summaryCalls).toHaveLength(0);
   });
 
   it("CA14: Professor vê a tela de sem permissão e não consulta o resumo", async () => {

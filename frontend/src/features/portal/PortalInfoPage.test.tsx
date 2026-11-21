@@ -92,6 +92,7 @@ describe("PortalInfoPage (RF-POR-07)", () => {
       serve(info());
       setup();
       expect(await screen.findByRole("heading", { level: 1, name: "Eu" })).toBeInTheDocument();
+      await screen.findByRole("heading", { name: "Dados pessoais" }); // a tela só abre depois da moldura (RNF-43)
       const personal = card("Dados pessoais");
       expect(within(personal).queryByText("Nascimento")).not.toBeInTheDocument();
       expect(within(personal).getByText("Rua Fictícia, 1")).toBeInTheDocument();

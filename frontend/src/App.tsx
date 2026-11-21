@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router";
 import { LoginPage } from "@/features/auth/LoginPage";
@@ -10,7 +10,6 @@ import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import { RequireSession } from "@/features/auth/RequireSession";
 import { RequireTwoFactor, TWO_FACTOR_REQUIRED_PATH } from "@/features/auth/RequireTwoFactor";
 import { TwoFactorRequiredPage } from "@/features/auth/TwoFactorRequiredPage";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { OrganizationSettingsPage } from "@/features/organization/OrganizationSettingsPage";
 import { AgeRangesPage } from "@/features/age-ranges/AgeRangesPage";
 import { TermsPage } from "@/features/terms/TermsPage";
@@ -52,14 +51,15 @@ import { PortalAnnouncementsPage } from "@/features/portal/PortalAnnouncementsPa
 import { PortalCardPage } from "@/features/portal/PortalCardPage";
 import { PortalFinancePage } from "@/features/portal/PortalFinancePage";
 import { PortalHomePage } from "@/features/portal/PortalHomePage";
-import { PortalLayout } from "@/features/portal/PortalLayout";
 import { PortalInfoPage } from "@/features/portal/PortalInfoPage";
 import { RequireFullPortal } from "@/features/portal/RequireFullPortal";
 import { PortalTermPage } from "@/features/portal/PortalTermPage";
-import { RequirePortalTerm } from "@/features/portal/RequirePortalTerm";
 import { TeacherRecordPage } from "@/features/students/TeacherRecordPage";
 import { RequireArea } from "@/features/auth/RequireArea";
+import { NotFoundPage } from "@/features/auth/NotFoundPage";
+import { RoleShell } from "@/features/auth/RoleShell";
 import { useSession } from "@/features/auth/SessionProvider";
+import { routeById, routes, type AppRoute } from "@/routes";
 import { PageHeader } from "@/components/ui/page-header";
 
 function Welcome() {
@@ -72,27 +72,82 @@ function Welcome() {
   );
 }
 
-// Gestão (Coordenador, Administrador, Professor) ganha o menu pelas permissões do servidor; portal segue sem menu.
+// "/" serve os dois mundos: a moldura vem da rota-pai (RoleShell); aqui só muda o conteúdo pelo perfil.
 function Home() {
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role;
   if (role === "COORDINATOR" || role === "ADMINISTRATOR" || role === "TEACHER") {
     return (
-      <ManagementLayout>
+      <>
         <Welcome />
         <ScopeLine />
         {(role === "ADMINISTRATOR" || role === "TEACHER") && <BirthdaysCard />}
-      </ManagementLayout>
+      </>
     );
   }
   return (
-    <PortalLayout>
+    <>
       <PortalHomePage />
       <ModalityConfirmations />
-    </PortalLayout>
+    </>
   );
 }
+
+const P = (id: string) => routeById(id).path;
+
+// Telas da gestão por id do mapa de rotas (`routes.ts`): endereço, acesso, menu e trilha vêm de lá.
+const screens: Record<string, ReactNode> = {
+  students: <StudentsPage />,
+  enrollment: <EnrollmentWizardPage />,
+  requests: <PortalRequestsPage />,
+  teachers: <TeachersPage />,
+  teacherPanel: <TeacherPanelPage />,
+  agenda: <AgendaPage />,
+  lesson: <LessonPanelPage />,
+  teacherRecord: <TeacherRecordPage />,
+  classes: <ClassesPage />,
+  classPanel: <ClassPanelPage />,
+  noClassDays: <NoClassDaysPage />,
+  collections: <ChargesPage />,
+  chargePreview: <ChargePreviewPage />,
+  dailyReceipts: <DailyReceiptsPage />,
+  overdue: <OverduePage />,
+  paymentProofs: <PaymentProofsPage />,
+  plans: <PlansPage />,
+  benefits: <BenefitsPage />,
+  announcements: <AnnouncementsPage />,
+  newAnnouncement: <NewAnnouncementPage />,
+  settings: <SettingsIndexPage />,
+  organizationSettings: <OrganizationSettingsPage />,
+  units: <UnitsPage />,
+  newUnit: <NewUnitPage />,
+  unitSettings: <UnitSettingsPage />,
+  modalities: <ModalitiesPage />,
+  ageRanges: <AgeRangesPage />,
+  terms: <TermsPage />,
+  texts: <TextsPage />,
+  staffUsers: <UsersPage />,
+  permissionsTable: <PermissionsTablePage />,
+};
+
+// Uma <Route> por rota da gestão; a rota com `parent` entra dentro da mãe (que tem um <Outlet />). Cada uma passa pelo guarda do mapa (D1).
+function managementRoutes(parent?: string): ReactNode[] {
+  return routes
+    .filter((r) => r.area === "management" && r.parent === parent && (r.redirect || screens[r.id]))
+    .map((r: AppRoute) => {
+      const children = managementRoutes(r.id);
+      const element = r.redirect ? <Navigate to={r.redirect} replace /> : <RequireArea route={r}>{screens[r.id]}</RequireArea>;
+      return (
+        <Route key={r.id} path={r.path} element={element}>
+          {children}
+        </Route>
+      );
+    });
+}
+
+// Rota do portal: o mesmo guarda do mapa (o perfil da gestão não entra nela).
+const portal = (id: string, screen: ReactNode) => <RequireArea route={routeById(id)}>{screen}</RequireArea>;
 
 // Vitrine de desenvolvimento: sob import.meta.env.DEV o Vite elimina a rota e o módulo do build.
 const Vitrine = import.meta.env.DEV ? lazy(() => import("@/dev/Vitrine")) : null;
@@ -113,61 +168,21 @@ export function App() {
         <Route element={<RequireTwoFactor />}>
           <Route path={TWO_FACTOR_REQUIRED_PATH} element={<TwoFactorRequiredPage />} />
           <Route path="/portal/termo" element={<PortalTermPage />} />
-          <Route element={<RequirePortalTerm />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/conta" element={<AccountPage />} />
-            <Route path="/portal/pedidos" element={<PortalOwnRequestsPage />} />
-            <Route path="/portal/carteirinha" element={<PortalCardPage />} />
+          <Route element={<RoleShell />}>
+            <Route path={P("confirmEmail")} element={<ConfirmEmailPage />} />
+            <Route path={P("noAccess")} element={<AreaUnavailablePage />} />
+            {managementRoutes()}
+            <Route path={P("home")} element={<Home />} />
+            <Route path={P("account")} element={<AccountPage />} />
+            <Route path={P("portalRequests")} element={portal("portalRequests", <PortalOwnRequestsPage />)} />
+            <Route path={P("portalCard")} element={portal("portalCard", <PortalCardPage />)} />
             <Route element={<RequireFullPortal />}>
-              <Route path="/portal/agenda" element={<PortalAgendaPage />} />
-              <Route path="/portal/avisos" element={<PortalAnnouncementsPage />} />
+              <Route path={P("portalAgenda")} element={portal("portalAgenda", <PortalAgendaPage />)} />
+              <Route path={P("portalAnnouncements")} element={portal("portalAnnouncements", <PortalAnnouncementsPage />)} />
             </Route>
-            <Route path="/portal/financeiro" element={<PortalFinancePage />} />
-            <Route path="/portal/minhas-informacoes" element={<PortalInfoPage />} />
-          </Route>
-          <Route path="/confirmar-email/:code" element={<ConfirmEmailPage />} />
-          <Route path="/sem-acesso" element={<AreaUnavailablePage />} />
-          <Route element={<RequireArea roles={["COORDINATOR", "ADMINISTRATOR", "TEACHER"]} />}>
-            <Route element={<AgendaPage />}>
-              <Route path="/agenda" element={null} />
-              <Route path="/agenda/aulas/:id" element={<LessonPanelPage />} />
-              <Route element={<RequireArea roles={["TEACHER"]} />}>
-                <Route path="/agenda/aulas/:id/alunos/:studentId" element={<TeacherRecordPage />} />
-              </Route>
-            </Route>
-            <Route path="/comunicados" element={<AnnouncementsPage />} />
-            <Route path="/comunicados/novo" element={<NewAnnouncementPage />} />
-          </Route>
-          <Route element={<RequireArea roles={["COORDINATOR", "ADMINISTRATOR"]} />}>
-            <Route path="/dias-sem-aula" element={<NoClassDaysPage />} />
-            <Route path="/turmas" element={<ClassesPage />} />
-            <Route path="/turmas/:id" element={<ClassPanelPage />} />
-            <Route path="/planos" element={<PlansPage />} />
-            <Route path="/planos/lista" element={<Navigate to="/planos" replace />} />
-            <Route path="/beneficios" element={<BenefitsPage />} />
-            <Route path="/alunos/nova-matricula" element={<EnrollmentWizardPage />} />
-            <Route path="/alunos/:id?" element={<StudentsPage />} />
-            <Route path="/pedidos" element={<PortalRequestsPage />} />
-            <Route path="/cobrancas" element={<ChargesPage />} />
-            <Route path="/cobrancas/previa" element={<ChargePreviewPage />} />
-            <Route path="/cobrancas/recebimentos" element={<DailyReceiptsPage />} />
-            <Route path="/cobrancas/atrasados" element={<OverduePage />} />
-            <Route path="/cobrancas/conferencia" element={<PaymentProofsPage />} />
-            <Route path="/professores" element={<TeachersPage />} />
-            <Route path="/professores/:id" element={<TeacherPanelPage />} />
-            <Route path="/configuracoes" element={<SettingsIndexPage />} />
-            <Route path="/configuracoes/organizacao" element={<OrganizationSettingsPage />} />
-            <Route path="/configuracoes/unidade" element={<UnitSettingsPage />} />
-            <Route path="/configuracoes/modalidades" element={<ModalitiesPage />} />
-            <Route path="/configuracoes/faixas-etarias" element={<AgeRangesPage />} />
-            <Route path="/configuracoes/termos" element={<TermsPage />} />
-            <Route path="/configuracoes/textos" element={<TextsPage />} />
-            <Route path="/configuracoes/usuarios" element={<UsersPage />} />
-            <Route path="/configuracoes/usuarios/permissoes" element={<PermissionsTablePage />} />
-          </Route>
-          <Route element={<RequireArea roles={["COORDINATOR"]} />}>
-            <Route path="/configuracoes/unidades" element={<UnitsPage />} />
-            <Route path="/configuracoes/unidades/nova" element={<NewUnitPage />} />
+            <Route path={P("portalFinance")} element={portal("portalFinance", <PortalFinancePage />)} />
+            <Route path={P("portalInfo")} element={portal("portalInfo", <PortalInfoPage />)} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
       </Route>

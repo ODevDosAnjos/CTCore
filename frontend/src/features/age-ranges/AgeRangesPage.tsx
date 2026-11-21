@@ -9,7 +9,6 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { AgeRangeDialog } from "./AgeRangeDialog";
 import { useAgeRanges, type AgeRange } from "./useAgeRanges";
 import { PageHeader } from "@/components/ui/page-header";
@@ -133,9 +132,5 @@ function Content() {
 
 // RF-MOD-04: Coordenador altera; Administrador só consulta (canManage). A barreira de dados é o servidor.
 export function AgeRangesPage() {
-  return (
-    <ManagementLayout activeId="ageRanges">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

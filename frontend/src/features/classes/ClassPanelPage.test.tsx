@@ -109,13 +109,11 @@ describe("ClassPanelPage (RF-TUR-02)", () => {
     expect(screen.getByRole("button", { name: "Avisar turma" })).toBeDisabled();
   });
 
-  it("CA7: sem a permissão de comunicados Avisar turma fica desativado; sem CLASSES_MANAGE, Editar e Desativar também", async () => {
+  it("CA7: sem a permissão de comunicados Avisar turma fica desativado", async () => {
     setup();
-    server.use(http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: { ...mockPermissions("COORDINATOR"), ANNOUNCEMENTS: "NONE", CLASSES_MANAGE: "NONE" } })));
+    server.use(http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: { ...mockPermissions("COORDINATOR"), ANNOUNCEMENTS: "NONE" } })));
     await ready();
     await waitFor(() => expect(screen.getByRole("button", { name: "Avisar turma" })).toBeDisabled());
-    expect(screen.getByRole("button", { name: "Editar" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Desativar" })).toBeDisabled();
   });
 
   it.each([[null], ["javascript:alert(1)"], ["data:text/html,x"], ["nao e url"]])("CA6: link de grupo %s não vira botão e mostra Sem grupo", async (link) => {

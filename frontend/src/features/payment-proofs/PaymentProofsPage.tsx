@@ -7,7 +7,6 @@ import { Person } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SupportLink } from "@/features/auth/SupportContact";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatCurrency } from "@/lib/format";
 import { groupProofs, type ProofGroup } from "./groupProofs";
@@ -119,9 +118,5 @@ function Content() {
 
 // RF-COB-05: comprovantes de Pix na chave em conferência; a barreira de dados é o servidor (403 vira "sem permissão" na própria tela).
 export function PaymentProofsPage() {
-  return (
-    <ManagementLayout activeId="collections">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

@@ -8,7 +8,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { PortalGraduation } from "./PortalGraduation";
 import { PortalHeading } from "./PortalHeading";
-import { PortalLayout } from "./PortalLayout";
 import { DisclosureRow, LinkRow, MenuList, SoonRow } from "./PortalMenuRows";
 import { PortalPersonalData, PortalPhoto } from "./PortalPersonalData";
 import { PortalAccountCard, PortalPreferences, PortalRequestsSummary, PortalTermsAccepted } from "./PortalSettings";
@@ -93,7 +92,7 @@ export function PortalInfoPage() {
   const current = student ?? list?.selectedStudentId;
   const name = list?.students.find((s) => s.id === current)?.name ?? list?.personal.name;
   return (
-    <PortalLayout>
+    <>
       <PortalHeading className="mb-4" label={t("portalInfo.label")} title={narrow && !list?.reduced ? t("portalInfo.mobileTitle") : (name ?? t("portalInfo.title"))} />
       {list && list.students.length > 1 && (
         <div role="group" aria-label={t("portalInfo.selector")} className="mb-4 flex flex-wrap gap-2">
@@ -126,6 +125,6 @@ export function PortalInfoPage() {
       ) : (
         <ErrorState onRetry={reload} />
       )}
-    </PortalLayout>
+    </>
   );
 }

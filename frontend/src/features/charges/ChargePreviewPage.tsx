@@ -6,7 +6,6 @@ import { Select } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
 import { SupportLink } from "@/features/auth/SupportContact";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatCurrency } from "@/lib/format";
@@ -118,9 +117,5 @@ function Content() {
 
 // RF-COB-03: prévia da geração de mensalidades com ajustes antes de gerar (RN-COB-02); a barreira de dados e de ações é o servidor.
 export function ChargePreviewPage() {
-  return (
-    <ManagementLayout activeId="collections">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

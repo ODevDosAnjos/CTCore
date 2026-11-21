@@ -24,6 +24,16 @@ const groups: NavGroup[] = [
 ];
 
 describe("Sidebar", () => {
+  it("RNF-43: ao mudar o item ativo o grupo dele abre, sem fechar os que já estavam abertos", () => {
+    const { rerender } = render(<Sidebar groups={groups} activeId="students" />);
+    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "true");
+    rerender(<Sidebar groups={groups} activeId="plans" />);
+    expect(screen.getByRole("button", { name: "Financeiro" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "true");
+    rerender(<Sidebar groups={groups} activeId="" />);
+    expect(screen.getByRole("button", { name: "Financeiro" })).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("CA1: fundo do token, organização, área, grupos com aria-expanded e item ativo", async () => {
     const user = userEvent.setup();
     const { container } = render(<Sidebar groups={groups} activeId="students" org="Academia Leão" roleLabel="Coordenador" />);

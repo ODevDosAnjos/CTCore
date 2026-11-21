@@ -12,7 +12,6 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { PageHeader } from "@/components/ui/page-header";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { DeactivatePlanDialog } from "./DeactivatePlanDialog";
@@ -240,9 +239,5 @@ function Content() {
 }
 
 export function PlansPage() {
-  return (
-    <ManagementLayout activeId="plans">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

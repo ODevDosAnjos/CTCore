@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { SummaryBox } from "@/components/ui/summary-box";
 import { br, todayIso } from "@/features/agenda/agendaDates";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { ApiError } from "@/lib/api";
 import { AnnouncementPreviewPanel, type PreviewState } from "./AnnouncementPreviewPanel";
@@ -447,9 +446,5 @@ function Content() {
 
 // RF-COM-02: a barreira de dados é o servidor (403 vira "sem permissão" na própria tela).
 export function NewAnnouncementPage() {
-  return (
-    <ManagementLayout activeId="announcements">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

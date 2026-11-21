@@ -8,7 +8,6 @@ import { useBelowSm } from "@/components/query/useBelowSm";
 import { QueryPage } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
 import { useSession } from "@/features/auth/SessionProvider";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { formatDate } from "@/lib/format";
 import type { StudentRow } from "./types";
 import { NewEnrollmentLink } from "./NewEnrollmentLink";
@@ -179,8 +178,6 @@ export function StudentsPage() {
   const { state } = useSession();
   const accountId = state.status === "ready" ? state.session.account.id : "";
   return (
-    <ManagementLayout activeId="students">
-      <Content key={accountId} accountId={accountId} />
-    </ManagementLayout>
+    <Content key={accountId} accountId={accountId} />
   );
 }

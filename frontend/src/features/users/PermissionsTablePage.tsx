@@ -4,7 +4,6 @@ import { Link } from "react-router";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { MATRIX, PROFILES } from "./permissionMatrix";
 
 function Content() {
@@ -82,10 +81,5 @@ function Content() {
 
 // Tabela fixa e só de leitura (#27): quem não gere a equipe já não chega aqui (RequireArea) e o servidor segue como barreira.
 export function PermissionsTablePage() {
-  const { t } = useTranslation();
-  return (
-    <ManagementLayout activeId="staffUsers" trail={t("permissionsTable.title")}>
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

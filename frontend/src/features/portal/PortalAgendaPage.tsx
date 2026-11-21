@@ -10,7 +10,6 @@ import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/componen
 import { addDays, rangeLabel, weekDays } from "@/features/agenda/agendaDates";
 import { PortalAgendaDayList } from "./PortalAgendaDayList";
 import { PortalAgendaGrid } from "./PortalAgendaGrid";
-import { PortalLayout } from "./PortalLayout";
 import { PortalHeading } from "./PortalHeading";
 import { usePortalSchedule, type PortalScheduleData, type ScheduleScope } from "./usePortalSchedule";
 
@@ -65,7 +64,7 @@ export function PortalAgendaPage() {
   };
 
   return (
-    <PortalLayout>
+    <>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <PortalHeading label={t("portalAgenda.label")} title={t("portalAgenda.title")} />
         {shown && (
@@ -128,7 +127,7 @@ export function PortalAgendaPage() {
         <ErrorState onRetry={reload} />
       )}
       <p className="mt-4 text-sm text-muted-foreground">{t("portalAgenda.note")}</p>
-    </PortalLayout>
+    </>
   );
 }
 

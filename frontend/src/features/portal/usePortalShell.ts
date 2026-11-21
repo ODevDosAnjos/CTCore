@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 
 // Espelha PortalShell do OpenAPI (docs/openapi.yaml).
@@ -21,7 +21,8 @@ export const refreshPortalShell = () => window.dispatchEvent(new Event(REFRESH))
 type Loaded = { tick: number; data?: PortalShellData; forbidden?: boolean; failed?: boolean };
 
 // Marca, contador do sino e portal reduzido (RF-POR-01, RN-POR-08). Falha numa releitura mantém o último valor; a primeira leitura mostra o erro.
-export function usePortalShell() {
+// RNF-43: só a moldura do portal chama este (uma leitura e um relógio de 60 s); as telas e os guardas leem o contexto.
+export function useLoadPortalShell() {
   const [tick, setTick] = useState(0);
   const [done, setDone] = useState<Loaded>();
   const [last, setLast] = useState<PortalShellData>();
@@ -55,4 +56,15 @@ export function usePortalShell() {
   const data = current?.data ?? last;
   const status = data ? "ready" : !current ? "loading" : current.forbidden ? "forbidden" : "error";
   return { status, data, retry: useCallback(() => setTick((n) => n + 1), []) } as const;
+}
+
+export type PortalShellState = ReturnType<typeof useLoadPortalShell>;
+
+export const PortalShellContext = createContext<PortalShellState | null>(null);
+
+/** Lê a moldura do portal já carregada; só funciona dentro da `PortalShell` (ou do provedor de teste). */
+export function usePortalShell(): PortalShellState {
+  const value = useContext(PortalShellContext);
+  if (!value) throw new Error("usePortalShell fora da moldura do portal");
+  return value;
 }

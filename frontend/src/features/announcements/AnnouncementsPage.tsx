@@ -11,7 +11,6 @@ import { QueryPage } from "@/components/query/QueryPage";
 import { RowCard } from "@/components/query/RowCard";
 import type { Column } from "@/components/query/DataTable";
 import { useBelowMd } from "@/components/query/useBelowSm";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatDate, formatTime } from "@/lib/format";
 import { AnnouncementFilters } from "./AnnouncementFilters";
@@ -197,9 +196,5 @@ function Content() {
 
 // RF-COM-01: lista de comunicados da gestão; a barreira de dados é o servidor (403 vira "sem permissão" na lista).
 export function AnnouncementsPage() {
-  return (
-    <ManagementLayout activeId="announcements">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

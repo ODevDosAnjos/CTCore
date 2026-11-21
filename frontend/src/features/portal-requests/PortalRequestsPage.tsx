@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PersonAvatar, PersonRow } from "@/components/ui/person-row";
 import { PillFilter } from "@/components/ui/pill-filter";
 import { QuickFilters } from "@/components/ui/quick-filters";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { formatDate } from "@/lib/format";
 import { RefuseRequestDialog } from "./RefuseRequestDialog";
 import { requestDeadline, requestDetail } from "./RequestSummary";
@@ -190,9 +189,5 @@ function Content() {
 
 // RF-MAT-04: lista de pedidos do portal com Aprovar e Recusar; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
 export function PortalRequestsPage() {
-  return (
-    <ManagementLayout activeId="requests">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

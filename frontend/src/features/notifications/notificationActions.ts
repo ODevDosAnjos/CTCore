@@ -1,21 +1,22 @@
 import { AlertTriangle, Banknote, Cake, FileText, Gift, Lock, Mail, UserPlus, Users, type LucideIcon } from "lucide-react";
+import { hrefOf } from "@/routes";
 import type { Tone } from "@/components/ui/status-tone";
 import type { AppNotification, NotificationType } from "./useNotifications";
 
 // D5: a ação de cada notificação é o botão que leva à tela do objeto; sem tela própria do objeto, a lista da área.
 export function notificationTarget(n: Pick<AppNotification, "type" | "refType" | "refId">): string {
-  const student = n.refType === "student" && n.refId ? `/alunos/${n.refId}` : "/alunos";
+  const student = n.refType === "student" && n.refId ? hrefOf("students", { id: n.refId }) : hrefOf("students");
   const routes: Record<NotificationType, string> = {
-    PAYMENT_RECEIVED: "/cobrancas",
-    HIGH_BENEFIT: "/beneficios",
+    PAYMENT_RECEIVED: hrefOf("collections"),
+    HIGH_BENEFIT: hrefOf("benefits"),
     STUDENT_MAJORITY: student,
     EMAIL_PROBLEM: student,
-    INVITE_PENDING: "/configuracoes/usuarios",
-    CLOSURE_REQUEST: "/pedidos",
-    PORTAL_REQUEST: "/pedidos",
-    PAYMENT_PROOF: "/cobrancas/conferencia",
-    MP_DISCONNECTED: "/configuracoes/organizacao",
-    SUBSCRIPTION_OVERDUE: "/configuracoes/organizacao",
+    INVITE_PENDING: hrefOf("staffUsers"),
+    CLOSURE_REQUEST: hrefOf("requests"),
+    PORTAL_REQUEST: hrefOf("requests"),
+    PAYMENT_PROOF: hrefOf("paymentProofs"),
+    MP_DISCONNECTED: hrefOf("organizationSettings"),
+    SUBSCRIPTION_OVERDUE: hrefOf("organizationSettings"),
   };
   return routes[n.type];
 }

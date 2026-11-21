@@ -167,9 +167,10 @@ describe("BenefitsPage (RF-BEN-01)", () => {
     await waitFor(() => expect(calls.length).toBeGreaterThan(before));
   });
 
-  it("CA5: com BENEFITS = NONE a tela fica sem os botões", async () => {
+  it("CA5: com BENEFITS = NONE a rota mostra 'sem acesso' e não mostra os botões (D1 da #675)", async () => {
     setup({ permissions: { BENEFITS: "NONE" } });
-    await screen.findByText("Davi Nogueira");
+    expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+    expect(screen.queryByText("Davi Nogueira")).toBeNull();
     expect(screen.queryByRole("button", { name: "Conceder benefício" })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Encerrar o benefício de / })).toBeNull();
   });

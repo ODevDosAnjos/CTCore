@@ -11,7 +11,6 @@ import { Person } from "@/components/ui/avatar";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { scheduleText } from "./classText";
@@ -140,9 +139,9 @@ function Content() {
 // RF-TUR-01 e RF-TUR-03: lista de turmas com "Nova turma"; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
 export function ClassesPage({ children }: { children?: ReactNode }) {
   return (
-    <ManagementLayout activeId="classes">
+    <>
       <Content />
       {children}
-    </ManagementLayout>
+    </>
   );
 }

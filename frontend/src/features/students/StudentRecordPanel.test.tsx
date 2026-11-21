@@ -6,6 +6,7 @@ import { App } from "@/App";
 import { StudentRecordPanel } from "./StudentRecordPanel";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
+import { PermissionsFrame } from "@/test/PermissionsFrame";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
@@ -89,7 +90,7 @@ function setup(path = "/alunos", opts: { record?: () => Response | Promise<Respo
       <MemoryRouter initialEntries={[path]}>
         <Where />
         <SessionProvider>
-          {opts.direct ? <StudentRecordPanel id="s1" onClose={() => {}} /> : <App />}
+          {opts.direct ? <PermissionsFrame><StudentRecordPanel id="s1" onClose={() => {}} /></PermissionsFrame> : <App />}
         </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,

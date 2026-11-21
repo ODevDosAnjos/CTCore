@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -52,7 +52,8 @@ describe("AreaUnavailablePage", () => {
     await screen.findByRole("heading", { level: 1, name: TITLE });
     expect(await screen.findByRole("navigation", { name: "Menu principal" })).toBeInTheDocument();
     expect(screen.getByText(/^Valores e cobranças ficam com a gestão da unidade./)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Voltar ao Início" })).toHaveAttribute("href", "/");
+    // Sem item marcado (CA13 da #675) a barra do celular também traz o "Voltar ao Início"; o da tela é o do corpo.
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Voltar ao Início" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Ver minhas turmas" })).toHaveAttribute("href", "/turmas");
     unmount();
     setup(one);
@@ -69,7 +70,7 @@ describe("AreaUnavailablePage", () => {
   });
 
   it("CA5: Aluno vê o estado na casca do portal, sem o menu da gestão", async () => {
-    server.use(http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: null })));
+    server.use(http.get("/api/v1/portal/term", () => HttpResponse.json([])), http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: null })));
     setup({ account, links: [L("l3", "STUDENT")], activeLinkId: "l3", twoFactor: off });
     await screen.findByRole("heading", { name: TITLE });
     expect(screen.queryByRole("navigation", { name: "Menu principal" })).not.toBeInTheDocument();

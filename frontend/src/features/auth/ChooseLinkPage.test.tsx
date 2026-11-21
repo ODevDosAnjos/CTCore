@@ -29,21 +29,26 @@ const off = { enabled: false, required: false };
 let view: SessionView;
 let puts: unknown[];
 
+let permissionReads = 0;
+
 function setup(
   initial: Partial<SessionView> = {},
   put?: () => Response | Promise<Response>,
+  path = "/",
 ) {
+  permissionReads = 0;
   view = { account, links, activeLinkId: null, twoFactor: off, ...initial };
   puts = [];
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(view)),
-    http.get("/api/v1/permissions", () =>
-      HttpResponse.json({
+    http.get("/api/v1/permissions", () => {
+      permissionReads += 1;
+      return HttpResponse.json({
         permissions: mockPermissions(
           view.links.find((l) => l.id === view.activeLinkId)?.role,
         ),
-      }),
-    ),
+      });
+    }),
     http.put("/api/v1/auth/session/link", async ({ request }) => {
       const body = (await request.json()) as { linkId: string };
       puts.push(body);
@@ -54,7 +59,7 @@ function setup(
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/"]}>
+      <MemoryRouter initialEntries={[path]}>
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -149,6 +154,17 @@ describe("ChooseLink", () => {
     await waitFor(() =>
       expect(screen.queryByRole("heading", { name: TITLE })).not.toBeInTheDocument(),
     );
+  });
+
+  it("#675 CA8: trocar de vínculo em /turmas leva ao Início do vínculo novo, com menu e permissões lidos de novo", async () => {
+    const user = userEvent.setup();
+    setup({ activeLinkId: "l1" }, undefined, "/turmas");
+    const trigger = await screen.findByRole("button", { name: "Trocar organização ou área" });
+    await waitFor(() => expect(permissionReads).toBe(1));
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: /Beta Gestão · Professor/ }));
+    expect(await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeInTheDocument();
+    expect(permissionReads).toBe(2);
   });
 
   it("CA10: enquanto envia as opções ficam desabilitadas; erro 500 mantém a lista e Tentar de novo repete a escolha", async () => {

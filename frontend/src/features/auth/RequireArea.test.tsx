@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { ThemeProvider } from "@/theme/ThemeProvider";
+import type { AppRoute } from "@/routes";
 import { RequireArea } from "./RequireArea";
 import { RequireSession } from "./RequireSession";
 import { SessionProvider, type SessionView } from "./SessionProvider";
@@ -12,6 +13,8 @@ const L = (id: string, role: string) => ({ id, organizationId: "o", organization
 const account = { id: "a", email: "x@x.com", name: "X" };
 const off = { enabled: false, required: false };
 const TITLE = "Esta área não está disponível para o seu perfil";
+
+const route: AppRoute = { id: "x", path: "/financeiro", area: "management", roles: ["COORDINATOR", "ADMINISTRATOR"] };
 
 function Path() {
   return <span data-testid="path">{useLocation().pathname}</span>;
@@ -28,9 +31,7 @@ function setup(view: SessionView | Response) {
         <Path />
         <Routes>
           <Route element={<RequireSession />}>
-            <Route element={<RequireArea roles={["COORDINATOR", "ADMINISTRATOR"]} />}>
-              <Route path="/financeiro" element={<p>conteudo protegido</p>} />
-            </Route>
+            <Route path="/financeiro" element={<RequireArea route={route}><p>conteudo protegido</p></RequireArea>} />
           </Route>
         </Routes>
       </SessionProvider>

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Outlet, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ErrorState, LoadingState } from "@/components/states";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,17 +11,21 @@ import { useSession } from "@/features/auth/SessionProvider";
 import { BellButton } from "@/features/notifications/BellButton";
 import { UnitScopeProvider } from "@/features/units/UnitScopeProvider";
 import { UnitSwitcher } from "@/features/units/UnitSwitcher";
+import { activeItemOf, canAccess, findRoute } from "@/routes";
 import { buildMenu } from "./buildMenu";
 import { buildTabs } from "./buildTabs";
 import { usePendingRequests } from "./usePendingRequests";
-import { usePermissions } from "./usePermissions";
+import { PermissionsContext, useLoadPermissions } from "./usePermissions";
 
-// Layout da gestão com o menu montado pelas permissões do servidor (R7). O menu só esconde; a barreira é o servidor (D5).
-export function ManagementLayout({ activeId = "home", trail, children }: { activeId?: string; trail?: string; children: ReactNode }) {
+// Moldura da gestão (RNF-43): rota-pai montada uma vez, com o menu pelas permissões do servidor (R7); só a área central (`<Outlet />`) troca ao navegar.
+// O menu só esconde; a barreira é o servidor (D5). O item ativo e a trilha vêm do mapa de rotas.
+export function ManagementShell() {
   const { t } = useTranslation();
   const { state } = useSession();
   const side = useLogout();
-  const { status, permissions, retry } = usePermissions();
+  const perms = useLoadPermissions();
+  const { status, permissions, retry } = perms;
+  const { pathname } = useLocation();
   const groups = permissions ? buildMenu(permissions, t) : [];
   const pending = usePendingRequests(groups.some((g) => g.items.some((i) => i.id === "requests")));
   if (!permissions) {
@@ -36,25 +40,31 @@ export function ManagementLayout({ activeId = "home", trail, children }: { activ
   const roleLabel = link && ["ADMINISTRATOR", "COORDINATOR", "TEACHER"].includes(link.role) ? t(`layout.roles.${link.role}`) : undefined;
   const account = state.status === "ready" ? state.session.account : undefined;
   const accountName = account?.name || account?.email || "";
+  const route = findRoute(pathname);
+  // Sem acesso à rota, nenhum item fica marcado (CA13).
+  const allowed = !!route && canAccess(route, link?.role, permissions);
   return (
-    <UnitScopeProvider>
-      <AppLayout
-        groups={groups}
-        activeId={activeId}
-        org={link?.organizationName}
-        roleLabel={roleLabel}
-        badges={{ requests: pending }}
-        trail={trail}
-        tabs={buildTabs(permissions, link?.role, t)}
-        onLogout={side.logout}
-        unit={(variant) => <UnitSwitcher variant={variant} />}
-        bell={<BellButton />}
-        userMenu={<UserMenu name={accountName} roleLabel={roleLabel} onLogout={side.logout} />}
-        headerExtra={<ChooseLinkTrigger />}
-      >
-        {children}
-      </AppLayout>
-      {side.failed && <LogoutError onRetry={side.logout} />}
-    </UnitScopeProvider>
+    <PermissionsContext.Provider value={perms}>
+      <UnitScopeProvider>
+        <AppLayout
+          groups={groups}
+          activeId={allowed ? activeItemOf(route) : ""}
+          mobileActiveId={allowed ? undefined : "home"}
+          org={link?.organizationName}
+          roleLabel={roleLabel}
+          badges={{ requests: pending }}
+          trail={allowed && route?.trail ? t(route.trail) : undefined}
+          tabs={buildTabs(permissions, link?.role, t)}
+          onLogout={side.logout}
+          unit={(variant) => <UnitSwitcher variant={variant} />}
+          bell={<BellButton />}
+          userMenu={<UserMenu name={accountName} roleLabel={roleLabel} onLogout={side.logout} />}
+          headerExtra={<ChooseLinkTrigger />}
+        >
+          <Outlet />
+        </AppLayout>
+        {side.failed && <LogoutError onRetry={side.logout} />}
+      </UnitScopeProvider>
+    </PermissionsContext.Provider>
   );
 }

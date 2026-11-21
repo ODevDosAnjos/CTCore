@@ -7,7 +7,6 @@ import { Select } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { SupportLink } from "@/features/auth/SupportContact";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatCurrency } from "@/lib/format";
 import { todayIso } from "./ChangeDueDialog";
@@ -172,9 +171,5 @@ function Content() {
 
 // RF-COB-08: recebimentos do dia da unidade, sem caixa (RN-COB-12); a barreira de dados é o servidor.
 export function DailyReceiptsPage() {
-  return (
-    <ManagementLayout activeId="collections">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

@@ -11,7 +11,6 @@ import { Select } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { br, brShort, toIso, weekday } from "@/features/agenda/agendaDates";
 import { useSession } from "@/features/auth/SessionProvider";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 import { NoClassDayDialog } from "./NoClassDayDialog";
 import { UndoNoClassDayDialog } from "./UndoNoClassDayDialog";
@@ -302,9 +301,5 @@ function Content() {
 
 // RF-AGE-05: a barreira de dados é o servidor (403 vira "sem permissão" na própria tela).
 export function NoClassDaysPage() {
-  return (
-    <ManagementLayout activeId="noClassDays">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

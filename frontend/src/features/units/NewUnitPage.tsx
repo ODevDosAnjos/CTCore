@@ -12,7 +12,6 @@ import { ComingSoon } from "@/components/ui/coming-soon";
 import { Field, Input } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { WindowSteps } from "@/components/ui/window-steps";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ApiError, api } from "@/lib/api";
 import { SwitchRow } from "./SwitchRow";
 import { Text } from "./Text";
@@ -328,8 +327,6 @@ export function NewUnitPage() {
       });
   }
   return (
-    <ManagementLayout activeId="units">
-      <Content>{forbidden ? <ForbiddenState /> : done ? <Created done={done} /> : <Wizard onDone={finished} onForbidden={() => setForbidden(true)} />}</Content>
-    </ManagementLayout>
+    <Content>{forbidden ? <ForbiddenState /> : done ? <Created done={done} /> : <Wizard onDone={finished} onForbidden={() => setForbidden(true)} />}</Content>
   );
 }

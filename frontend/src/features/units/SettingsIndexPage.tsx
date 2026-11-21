@@ -8,7 +8,6 @@ import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
 import { useSession } from "@/features/auth/SessionProvider";
 import { buildMenu } from "@/features/permissions/buildMenu";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { usePermissions } from "@/features/permissions/usePermissions";
 
 // Ordem e itens do canvas (GMConfig, D10); Assinatura e Unidades ficam só no menu lateral do Coordenador.
@@ -61,9 +60,5 @@ function Content() {
 
 // R8 (GMConfig): a lista de configurações que o perfil pode abrir; a permissão de cada rota continua no servidor.
 export function SettingsIndexPage() {
-  return (
-    <ManagementLayout activeId="settings">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

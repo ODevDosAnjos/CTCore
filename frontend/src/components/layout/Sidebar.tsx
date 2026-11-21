@@ -38,6 +38,13 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
     menu ? "min-h-12 text-base" : "min-h-11",
   );
   const [open, setOpen] = useState<Set<string>>(() => new Set(groups.filter((g) => g.items.some((i) => i.id === activeId)).map((g) => g.id)));
+  // O menu é montado uma vez (RNF-43): ao mudar o item ativo, o grupo dele abre sem fechar os outros.
+  const [seen, setSeen] = useState(activeId);
+  if (seen !== activeId) {
+    setSeen(activeId);
+    const group = groups.find((g) => g.items.some((i) => i.id === activeId));
+    if (group && !open.has(group.id)) setOpen(new Set(open).add(group.id));
+  }
   const flip = (id: string) =>
     setOpen((o) => {
       const n = new Set(o);

@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { App } from "@/App";
 import { SessionProvider } from "@/features/auth/SessionProvider";
+import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
@@ -348,10 +349,11 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
 
   it("CA28: sem COLLECTIONS completo a etapa 5 mostra a mensagem e nenhum botão de pagamento", async () => {
     const user = userEvent.setup();
+    // As permissões são lidas uma vez pela moldura (RNF-43): a troca vale antes de abrir a tela.
+    server.use(http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: { ...mockPermissions("COORDINATOR"), COLLECTIONS: "NONE" } })));
     await toBilling(user);
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     await screen.findByRole("heading", { name: "Termo de matrícula" });
-    server.use(http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: { COLLECTIONS: "NONE" } })));
     await user.click(screen.getByRole("button", { name: "Concluir matrícula" }));
     expect(await screen.findByText(/não tem permissão para registrar pagamentos/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Registrar pagamento" })).toBeNull();

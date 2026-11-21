@@ -11,7 +11,7 @@ describe("páginas do portal (CA7, CA10)", () => {
     expect(readFileSync(join(__dirname, f), "utf8")).not.toMatch(/<h1/);
   });
 
-  it.each(["OrgMark.tsx", "PortalTabs.tsx", "PortalFooter.tsx", "PortalLayout.tsx"])("%s não usa cor fixa", (f) => {
+  it.each(["OrgMark.tsx", "PortalTabs.tsx", "PortalFooter.tsx", "PortalShell.tsx"])("%s não usa cor fixa", (f) => {
     expect(readFileSync(join(__dirname, f), "utf8").match(FIXAS)).toBeNull();
   });
 });

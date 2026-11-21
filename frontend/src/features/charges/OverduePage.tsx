@@ -9,7 +9,6 @@ import { QueryPage, type Page, type Query } from "@/components/query/QueryPage";
 import type { Column } from "@/components/query/DataTable";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { SupportLink } from "@/features/auth/SupportContact";
-import { ManagementLayout } from "@/features/permissions/ManagementLayout";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatCurrency } from "@/lib/format";
 import { BlockCell, LastReminder, LateCell, OverdueCard, RowActions, Select, Student, Whatsapp, useOverdueReference, useReminderMessage } from "./OverdueRows";
@@ -167,9 +166,5 @@ function Content() {
 
 // RF-COB-06: cobranças em atraso da gestão, com envio de lembrete em lote; a barreira de dados é o servidor (403 vira "sem permissão" na lista).
 export function OverduePage() {
-  return (
-    <ManagementLayout activeId="collections">
-      <Content />
-    </ManagementLayout>
-  );
+  return <Content />;
 }

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ApiError, api } from "@/lib/api";
-import { AccountFrame } from "./AccountFrame";
 import { useReloadSession } from "./useAccount";
 
 // RN-ACE-15 (D8): o link só vale para quem está logado na conta dona; sem sessão, o RequireSession leva ao login e volta.
@@ -38,7 +37,7 @@ export function ConfirmEmailPage() {
   }
 
   return (
-    <AccountFrame>
+    <>
       <div className="mx-auto max-w-md space-y-4">
         <PageHeader title={t("account.confirm.title")} />
         {phase === "failed" ? (
@@ -66,6 +65,6 @@ export function ConfirmEmailPage() {
           </Link>
         </p>
       </div>
-    </AccountFrame>
+    </>
   );
 }
