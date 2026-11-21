@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // RNF-43: link interno é `Link` do roteador; `<a href="/...">` e window.location para rota interna recarregam a página.
-const proibido = /href=(?:"\/(?!\/)|\{\s*["'`]\/)|window\.location\.(?:assign|replace)\(|window\.location\.href\s*=[^=]/;
+const proibido = /href=(?:"\/(?!\/)|\{\s*["'`]\/)|window\.(?:history|location)\b/;
 
 function arquivos(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -22,6 +22,8 @@ describe("RNF-43: sem link interno que recarrega a página", () => {
 
   it("CA6: o padrão reprova <a href=\"/x\">", () => {
     expect(proibido.test('<a href="/x">x</a>')).toBe(true);
+    expect(proibido.test("window.history.replaceState(null, '', u)")).toBe(true);
+    expect(proibido.test("const q = window.location.search")).toBe(true);
     expect(proibido.test('<a href="#conteudo">x</a>')).toBe(false);
     expect(proibido.test('<a href="https://x.test">x</a>')).toBe(false);
   });

@@ -1,5 +1,7 @@
 # 88 — RF-POR-01 · Portal: barra e navegação
 
+> Nota (#677): a navegação deste item (barra, rotas e abas do portal) foi substituída pela #675 (moldura fixa e mapa único de rotas) e pela #676 (estado da tela no endereço). Não serve de modelo para telas novas; vale o padrão em `docs/design/README.md` ("Rotas e telas").
+
 Origem: issue #88 (Sprint 10 · Portal do aluno); `docs/especificacao/14-portal-do-aluno.md` (RF-POR-01, RN-POR-01, RN-POR-08), `12-inativacao.md` (RN-INA-08, RN-INA-09). Branch: `item/88-portal-barra-navegacao`. Parte do que a #85 e a #86 deixaram: `PortalStudents`, `PortalTerms.requireAccepted`, `RequirePortalTerm`, `AccountFrame` e o cabeçalho solto da `Home` do portal. Os canvas `PortalNav`, `PortalReduzido`, `PortalMTopo` e `PortalMTabs` não são lidos pelo agente (D8).
 
 ## 1. Objetivo

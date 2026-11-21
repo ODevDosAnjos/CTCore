@@ -110,3 +110,17 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 3. O canvas mostra o visual; a regra vem da especificação e da issue. Se os dois divergirem, vale a especificação, e a diferença fica registrada no arquivo do item.
 4. Peça que o canvas usa e ainda não existe vira componente novo na pasta `components`, no mesmo PR, e entra na tabela acima.
 5. Texto de tela continua nos arquivos de tradução.
+
+## Rotas e telas
+
+Padrão da #675 e da #676 (RNF-43, RNF-27, RNF-56). Toda tela nova nasce nele; três testes do `npm test` reprovam o que fugir (`shell.test.ts`, `noInternalAnchors.test.ts`, `routePattern.test.ts`).
+
+1. **Moldura na rota-pai.** Menu, barra e abas do celular são montados uma vez pela rota-pai (`ManagementShell` na gestão, `PortalShell` no portal, escolhidas pelo `RoleShell`); a tela só devolve o conteúdo da área central e nunca importa a moldura. Só as telas de acesso usam o `AuthShell`.
+2. **Mapa único de rotas.** Todo endereço de tela com moldura é uma linha de `frontend/src/routes.ts` (`id`, `path`, área, permissão, item do menu); o `App.tsx`, o menu, a trilha, as abas do celular e os destinos das notificações saem dele, com `P("<id>")` e `hrefOf`. Endereço que mudou leva ao novo por `redirect`. Só as telas de acesso e públicas ficam fora do mapa.
+3. **Painel de registro é rota-filha.** O painel da turma, do professor, do aluno, da cobrança, da aula e semelhantes tem endereço próprio (`/alunos/:id`), renderizado pelo `<Outlet />` da lista (`parent` no mapa). Abrir e fechar não recria nem recarrega a lista; voltar fecha o painel e F5 o reabre. Janelas de ação (editar, desativar, novo) continuam estado interno.
+4. **Aba no endereço.** A aba ativa fica em `?aba=<id>` (gestão e portal); aba inválida ou ausente vale a primeira; F5 e o link mantêm a aba.
+5. **Consulta no endereço, pelo roteador.** Filtros, busca, página, ordem e tamanho ficam na query string e sobrevivem a abrir e fechar painel, voltar, avançar e F5, lidos e gravados com `useQueryParams`. Nunca `window.history` nem `window.location`, e nunca `<a href="/...">`: link interno é `Link`. CPF e telefone não vão para o endereço.
+6. **Carregamento só na área central.** Trocar de rota troca só o conteúdo; o menu e a barra não piscam nem somem. O carregamento (`LoadingState`) fica dentro da tela, não na moldura.
+7. **Endereço inexistente e troca de vínculo.** Endereço fora do mapa mostra "página não encontrada" dentro da moldura, com botão para o Início; sem sessão, a tela de acesso. Trocar de vínculo leva ao Início do vínculo novo.
+
+Item que cria ou muda tela ou rota registra no arquivo do item "segue o padrão de rotas e telas": os três testes verdes e um e2e da tela abrindo dentro da moldura.
