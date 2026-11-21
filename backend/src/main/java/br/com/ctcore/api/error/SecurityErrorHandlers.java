@@ -24,7 +24,8 @@ public class SecurityErrorHandlers implements AuthenticationEntryPoint, AccessDe
 
     @Override
     public void commence(HttpServletRequest req, HttpServletResponse res, AuthenticationException e) throws IOException {
-        write(req, res, ErrorCode.UNAUTHENTICATED);
+        write(req, res, req.getAttribute(br.com.ctcore.identity.SessionService.REPLACED_ATTRIBUTE) != null
+                ? ErrorCode.SESSION_REPLACED : ErrorCode.UNAUTHENTICATED);
     }
 
     @Override

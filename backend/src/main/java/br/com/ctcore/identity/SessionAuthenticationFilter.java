@@ -25,7 +25,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         Cookie cookie = WebUtils.getCookie(request, SessionCookie.NAME);
         if (cookie != null && !cookie.getValue().isBlank()) {
-            sessions.authenticate(cookie.getValue()).ifPresent(principal -> {
+            sessions.authenticate(cookie.getValue(), request).ifPresent(principal -> {
                 var context = SecurityContextHolder.createEmptyContext();
                 context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null,
                         principal.role() == null ? AuthorityUtils.NO_AUTHORITIES

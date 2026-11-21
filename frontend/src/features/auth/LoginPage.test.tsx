@@ -196,6 +196,19 @@ describe("LoginPage", () => {
     expect(screen.getByTestId("where")).toHaveTextContent("/entrar?next=%2F");
   });
 
+  it("RN-ACE-23: CA6: sessão encerrada por outro aparelho vai a /entrar sem next, com o aviso, também ao recarregar", async () => {
+    server.use(http.get(URL_SESSION, () => err(401, "SESSION_REPLACED")));
+    open("/");
+    expect(await screen.findByText("Sua sessão foi encerrada porque esta conta entrou em outro aparelho.")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/entrar$/);
+  });
+
+  it("sessão vencida ou apagada por outro motivo não mostra o aviso de outro aparelho", async () => {
+    open("/");
+    await screen.findByLabelText("Senha");
+    expect(screen.queryByText(/entrou em outro aparelho/)).toBeNull();
+  });
+
   it("falha ao verificar a sessão mostra erro e Tentar de novo recarrega", async () => {
     const user = userEvent.setup();
     server.use(http.get(URL_SESSION, () => err(500, "INTERNAL_ERROR")));

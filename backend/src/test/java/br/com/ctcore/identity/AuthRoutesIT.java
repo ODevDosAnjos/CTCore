@@ -258,7 +258,7 @@ class AuthRoutesIT extends AuthBase {
     void changePassword() throws Exception {
         UUID org = org();
         UUID ana = account("ana@x.com");
-        link(ana, org, "ADMINISTRATOR", "ACTIVE");
+        link(ana, org, "STUDENT", "ACTIVE");
         Cookie a = sessionOf("ana@x.com"), b = sessionOf("ana@x.com");
 
         assertThat(shape(post("/api/v1/auth/password", Map.of("currentPassword", "Errada123", "newPassword", "Novasenha1"), a).andReturn()))

@@ -77,7 +77,7 @@ class AuthIsolationIT extends AuthBase {
     @DisplayName("RN-ACE-20: CA16: sessão encerrada de uma conta não alcança a outra; a troca de senha de A não toca a sessão de B")
     void passwordChangeDoesNotTouchOthers() throws Exception {
         UUID orgA = org(), orgB = org();
-        link(account("a@x.com"), orgA, "ADMINISTRATOR", "ACTIVE");
+        link(account("a@x.com"), orgA, "STUDENT", "ACTIVE");
         link(account("b@x.com"), orgB, "ADMINISTRATOR", "ACTIVE");
         Cookie a = sessionOf("a@x.com"), a2 = sessionOf("a@x.com"), b = sessionOf("b@x.com");
 
