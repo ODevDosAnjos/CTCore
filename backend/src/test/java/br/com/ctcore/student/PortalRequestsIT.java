@@ -194,6 +194,13 @@ class PortalRequestsIT extends PortalRequestBase {
         assertThat(row.get("classes")).hasSize(1);
         assertThat(row.get("classes").get(0).get("id").asText()).isEqualTo(m.otherClass().toString());
         assertThat(row.get("plans").get(0).get("id").asText()).isEqualTo(m.otherPlan().toString());
+        // #500: a janela mostra dias, horário e professor titular (só o nome, RN-POR-06); o plano diz se cabe no aluno.
+        var klass = row.get("classes").get(0);
+        assertThat(klass.get("schedule").isArray()).isTrue();
+        assertThat(klass.get("teacher").asText()).isNotBlank();
+        assertThat(klass.fieldNames()).toIterable().containsExactlyInAnyOrder("id", "name", "schedule", "teacher");
+        assertThat(row.get("plans").get(0).get("available").asBoolean()).isTrue();
+        assertThat(row.get("plans").get(0).get("unavailableReason").isNull()).isTrue();
         assertThat(row.get("closureRequestedAt").isNull()).isFalse();
         assertThat(options.get("offers").findValuesAsText("modalityId")).contains(newModality.toString()).doesNotContain(m.modality().toString());
 

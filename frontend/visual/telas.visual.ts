@@ -9,7 +9,7 @@ async function assentar(page: Page, perfil?: string) {
   if (perfil) await expect(page.getByRole("status").filter({ hasText: /Carregando/ })).toHaveCount(0); // esqueletos de carregamento
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false, pedidosCanvas?: Caso["pedidosCanvas"]) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -539,6 +539,63 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         });
       });
     }
+    if (pedidosCanvas) {
+      // #500: Pedidos do canvas (Bruno Carvalho, Academia Leão, Tijuca): Jiu-Jitsu e Muay Thai, os três pedidos da lista e o contato da unidade no aprovado
+      await page.waitForFunction("window.__mswOverride");
+      await page.evaluate(async (variante) => {
+        const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
+        const aluno = "00000000-0000-0000-0000-000000000701";
+        const id = (n: number) => `00000000-0000-0000-0000-00000000f5${n.toString().padStart(2, "0")}`;
+        const shell = (await (await fetch("/api/v1/portal/shell")).json()) as { organization: object; [k: string]: unknown };
+        override({
+          method: "get",
+          path: "/portal/shell",
+          status: 200,
+          body: { ...shell, organization: { ...shell.organization, name: "Academia Leão" }, unit: { name: "Tijuca", address: "Rua Conde de Bonfim, 600", whatsapp: "(21) 97000-1200" } },
+        });
+        override({ method: "get", path: "/portal/students", status: 200, body: [{ id: aluno, name: "Bruno Carvalho", photoUrl: null, self: true }] });
+        const dia = (turno: string, ...weekdays: number[]) => weekdays.map((weekday) => ({ weekday, startsAt: turno, endsAt: "08:00" }));
+        const jiu = {
+          modalityRowId: id(1), modalityId: "00000000-0000-0000-0000-000000000103", modality: "Jiu-Jitsu", unitId: "00000000-0000-0000-0000-000000000021", unit: "Tijuca",
+          currentClass: { id: id(11), name: "Adulto · Noite" }, currentPlan: { id: id(21), name: "Adulto 3x" }, closureRequestedAt: null,
+          classes: [{ id: id(12), name: "Adulto · Manhã", schedule: dia("07:00", 2, 4, 5), teacher: "Thiago Moreira" }],
+          plans: [
+            { id: id(22), name: "Adulto livre", valueCents: 22000, available: true, unavailableReason: null },
+            { id: id(23), name: "Kids 2x", valueCents: 15000, available: false, unavailableReason: "AGE" },
+          ],
+        };
+        const muay = {
+          modalityRowId: id(2), modalityId: "00000000-0000-0000-0000-00000000010b", modality: "Muay Thai", unitId: "00000000-0000-0000-0000-000000000021", unit: "Tijuca",
+          currentClass: { id: id(13), name: "Adulto · Noite" }, currentPlan: { id: id(24), name: "Adulto 2x" },
+          closureRequestedAt: variante === "bloqueado" ? "2026-10-28T15:00:00Z" : null, classes: [], plans: [],
+        };
+        const oferta = (unitId: string, unit: string) => ({ unitId, unit, modalityId: muay.modalityId, modality: "Muay Thai" });
+        const nova = variante === "modalidade";
+        override({
+          method: "get",
+          path: `/portal/students/${aluno}/request-options`,
+          status: 200,
+          body: {
+            modalities: ({ turma: [jiu], plano: [jiu], modalidade: [jiu], bloqueado: [muay] } as Record<string, object[]>)[variante] ?? [jiu, muay],
+            offers: nova ? [oferta("00000000-0000-0000-0000-000000000021", "Tijuca"), oferta("00000000-0000-0000-0000-000000000022", "Barra")] : [{ unitId: "00000000-0000-0000-0000-000000000021", unit: "Tijuca", modalityId: "00000000-0000-0000-0000-000000000108", modality: "Boxe" }],
+          },
+        });
+        const pedido = (n: number, over: object) => ({
+          id: id(40 + n), studentId: aluno, studentName: "Bruno Carvalho", unitId: "00000000-0000-0000-0000-000000000021", unit: "Tijuca", targetClassId: null, targetClass: null, targetPlanId: null, targetPlan: null,
+          targetModalityId: null, targetUnitId: null, targetUnit: null, reason: null, note: null, response: null, decidedAt: null, currentClass: null, currentPlan: null, ...over,
+        });
+        override({
+          method: "get",
+          path: `/portal/students/${aluno}/requests`,
+          status: 200,
+          body: [
+            pedido(1, { kind: "CLASS_CHANGE", status: "OPEN", modalityRowId: id(1), modality: "Jiu-Jitsu", currentClass: "Adulto · Noite", targetClass: "Adulto · Manhã", createdAt: "2026-10-05T15:00:00Z", expiresAt: "2026-11-25" }),
+            pedido(2, { kind: "PLAN_CHANGE", status: "REFUSED", modalityRowId: id(2), modality: "Muay Thai", currentPlan: "Adulto 2x", targetPlan: "Livre", response: "O plano livre não existe para Muay Thai.", createdAt: "2026-08-12T15:00:00Z", decidedAt: "2026-08-13T15:00:00Z", expiresAt: "2026-09-11" }),
+            pedido(3, { kind: "NEW_MODALITY", status: "APPROVED", modality: "Muay Thai", targetUnit: "Tijuca", createdAt: "2025-02-05T15:00:00Z", decidedAt: "2025-02-06T15:00:00Z", expiresAt: "2025-03-07" }),
+          ],
+        });
+      }, pedidosCanvas);
+    }
     if (falha) {
       // #476: a rota responde com erro (o MSW vive na página); o e-mail do perfil segue logado
       await page.waitForFunction("window.__mswOverride");
@@ -614,7 +671,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas, caso.pedidosCanvas);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }

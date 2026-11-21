@@ -114,7 +114,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/2", "2/2"]
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
     env:
@@ -138,11 +142,11 @@ jobs:
           img=$(sed -nE 's/^ *image: mcr\.microsoft\.com\/playwright:v([0-9.]+)-.*/\1/p' "$GITHUB_WORKSPACE/.github/workflows/ci.yml" | head -n1)
           [ "$lock" = "$img" ] || { echo "::error::@playwright/test $lock no package-lock.json difere da imagem $img em ci.yml"; exit 1; }
       # referências geradas só nesta imagem (frontend/README.md, "Teste visual")
-      - run: npm run test:visual
+      - run: npm run test:visual -- --shard=${{ matrix.shard }}
       - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
-          name: visual-diff
+          name: visual-diff-${{ strategy.job-index }}
           path: frontend/test-results
           if-no-files-found: ignore
       # comparação sistema x canvas (#435): só relatório; para exigir, acrescente --exige (npm run visual:canvas -- --exige)
@@ -152,7 +156,7 @@ jobs:
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: canvas-resultado
+          name: canvas-resultado-${{ strategy.job-index }}
           path: docs/design/prints/lado-a-lado
           if-no-files-found: ignore
 

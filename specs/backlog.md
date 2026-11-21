@@ -210,7 +210,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 644 | Seed com dados realistas e contas fáceis e seed para homologação | issue #644 | Sprint 10.5 | — | agente | feito |
 | 499 | Carteirinha no visual do canvas | issue #499 | Sprint 10.5 | #455, #452, #450 | agente | feito |
 | 671 | Seed de homologação: recriar o stg automaticamente e dados com cara real (Rio, nome.sobrenome) | issue #671 | Sprint 10.5 | #644 | agente | feito |
-| 500 | Pedidos do portal e pedido indisponível no visual do canvas | issue #500 | Sprint 10.5 | #458, #459, #460, #461, #450 | agente | a fazer |
+| 500 | Pedidos do portal e pedido indisponível no visual do canvas | issue #500 | Sprint 10.5 | #458, #459, #460, #461, #450 | agente | feito |
 | 501 | Portal reduzido (aluno sem modalidade ativa) no visual do canvas | issue #501 | Sprint 10.5 | #455, #497, #498, #499 | agente | a fazer |
 | 675 | RNF-43 · Moldura fixa na rota: menu e barra montados uma vez, mapa único de rotas e página não encontrada | issue #675 | Sprint 10.5 | #643 | agente | a fazer |
 | 676 | RNF-27/43 · Estado da tela no endereço: painéis como rota-filha, filtros preservados e abas no endereço | issue #676 | Sprint 10.5 | #675 | agente | a fazer |

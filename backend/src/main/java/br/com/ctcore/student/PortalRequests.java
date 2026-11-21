@@ -55,10 +55,17 @@ public class PortalRequests {
 
     public record Choice(UUID id, String name) {}
 
-    public record PlanChoice(UUID id, String name, long valueCents) {}
+    /** Dia da semana (1 a 7) e horário "HH:mm" da turma. */
+    public record Slot(int weekday, String startsAt, String endsAt) {}
+
+    /** Turma que o aluno pode pedir: dias, horário e o nome do professor titular, nunca o contato (RN-POR-06). */
+    public record ClassChoice(UUID id, String name, List<Slot> schedule, String teacher) {}
+
+    /** ponytail: o plano ainda não guarda faixa etária (RN-PLA-07), então {@code available} é sempre verdadeiro; ligar à faixa quando o cadastro a tiver. */
+    public record PlanChoice(UUID id, String name, long valueCents, boolean available, String unavailableReason) {}
 
     public record ModalityOption(UUID modalityRowId, UUID modalityId, String modality, UUID unitId, String unit, Choice currentClass, Choice currentPlan,
-            Instant closureRequestedAt, List<Choice> classes, List<PlanChoice> plans) {}
+            Instant closureRequestedAt, List<ClassChoice> classes, List<PlanChoice> plans) {}
 
     public record Offer(UUID unitId, String unit, UUID modalityId, String modality) {}
 
@@ -143,12 +150,14 @@ public class PortalRequests {
                 UUID unit = (UUID) r[3], modality = (UUID) r[1];
                 Choice klass = (Choice) r[5], plan = (Choice) r[6];
                 OffsetDateTime closure = (OffsetDateTime) r[7];
-                List<Choice> classes = jdbc.sql("select id, name from training_class where organization_id = :org and unit_id = :u and modality_id = :m and status = 'ACTIVE' "
-                        + "and id <> :cur order by name, id").param("org", org).param("u", unit).param("m", modality).param("cur", klass.id())
-                        .query((rs, n) -> new Choice(rs.getObject(1, UUID.class), rs.getString(2))).list();
+                List<ClassChoice> classes = jdbc.sql("select c.id, c.name, t.name from training_class c join teacher t on t.organization_id = c.organization_id and t.id = c.head_teacher_id "
+                        + "where c.organization_id = :org and c.unit_id = :u and c.modality_id = :m and c.status = 'ACTIVE' and c.id <> :cur order by c.name, c.id")
+                        .param("org", org).param("u", unit).param("m", modality).param("cur", klass.id())
+                        .query((rs, n) -> new Object[] {rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)}).list().stream()
+                        .map(c -> new ClassChoice((UUID) c[0], (String) c[1], slots(org, (UUID) c[0]), (String) c[2])).toList();
                 List<PlanChoice> plans = jdbc.sql("select id, name, value_cents from plan where organization_id = :org and unit_id = :u and modality_id = :m and status = 'ACTIVE' "
                         + "and id <> :cur order by name, id").param("org", org).param("u", unit).param("m", modality).param("cur", plan.id())
-                        .query((rs, n) -> new PlanChoice(rs.getObject(1, UUID.class), rs.getString(2), rs.getLong(3))).list();
+                        .query((rs, n) -> new PlanChoice(rs.getObject(1, UUID.class), rs.getString(2), rs.getLong(3), true, null)).list();
                 modalities.add(new ModalityOption((UUID) r[0], modality, (String) r[2], unit, (String) r[4], klass, plan, closure == null ? null : closure.toInstant(), classes, plans));
             }
             List<Offer> offers = jdbc.sql("select u.id, u.name, md.id, md.name from unit u join unit_modality um on um.organization_id = u.organization_id and um.unit_id = u.id and um.offered "
@@ -160,6 +169,11 @@ public class PortalRequests {
                     .query((rs, n) -> new Offer(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, UUID.class), rs.getString(4))).list();
             return new Options(modalities, offers);
         });
+    }
+
+    private List<Slot> slots(UUID org, UUID classId) {
+        return jdbc.sql("select weekday, to_char(starts_at, 'HH24:MI'), to_char(ends_at, 'HH24:MI') from training_class_schedule where organization_id = :org and class_id = :c order by weekday")
+                .param("org", org).param("c", classId).query((rs, n) -> new Slot(rs.getInt(1), rs.getString(2), rs.getString(3))).list();
     }
 
     /** Cria o pedido (201). Pedido igual ainda aberto: 409 {@code REQUEST_ALREADY_OPEN}, sem gravar. */

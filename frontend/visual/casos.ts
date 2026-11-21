@@ -35,6 +35,7 @@ export type Caso = {
   avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
   financeiroCanvas?: boolean; // #497: antes de abrir a tela, o Financeiro do canvas (Bruno Carvalho: 3 abertas, histórico de 2026 e chave Pix CNPJ da Tijuca)
   informacoesCanvas?: boolean; // #498: antes de abrir a tela, Minhas informações e Minha conta do canvas (Bruno Carvalho: dados, Jiu-Jitsu e Muay Thai com plano, termos e duas sessões)
+  pedidosCanvas?: "lista" | "turma" | "plano" | "modalidade" | "encerrar" | "bloqueado"; // #500: antes de abrir a tela, Bruno Carvalho com Jiu-Jitsu e Muay Thai (Tijuca), os três pedidos do canvas e a unidade Tijuca da Academia Leão; o variante decide o que a janela mostra (bloqueado: encerramento aberto no Muay Thai; modalidade: só o Jiu-Jitsu e a oferta do Muay Thai)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
   passos?: Passo[];
   aguardar?: string; // seletor do conteúdo final da janela aberta pelos passos (ex.: o QR); o print só sai com ele presente
@@ -85,7 +86,13 @@ export const casos: Caso[] = [
   { nome: "portal-informacoes", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalInfo", canvasCelular: "PortalMInfo", informacoesCanvas: true },
   { nome: "portal-carteirinha", rota: "/portal/carteirinha", perfil: aluno, canvas: "PortalCarteirinha", canvasCelular: "PortalMCarteirinhaOk" },
   { nome: "portal-carteirinha-filhos", rota: "/portal/carteirinha", perfil: familia, canvas: "PortalCarteirinhaFilhos" },
-  { nome: "portal-pedidos", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidos", canvasCelular: "PortalMPedidos" },
+  { nome: "portal-pedidos", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidos", canvasCelular: "PortalMPedidos", pedidosCanvas: "lista" },
+  // #500: janelas dos pedidos
+  { nome: "portal-pedido-turma", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoTurma", canvasCelular: "PortalMPedidoTurma", pedidosCanvas: "turma", passos: [{ clicar: "Pedir: Trocar de turma" }, { escolher: ["Nova turma principal *", "Adulto · Manhã"] }, { preencher: ["Mensagem para a academia (opcional)", "Mudei de horário no trabalho."] }], limiteCanvas: { valor: 0.55, motivo: "medido a 49,8% a 390 px: o canvas mostra a janela como gaveta que sobe da base, com alça e botão largo, e o sistema a mostra ocupando a tela (D8 do item #500); a #674 trata a gaveta e remove este limite" } },
+  { nome: "portal-pedido-plano", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoPlano", pedidosCanvas: "plano", passos: [{ clicar: "Pedir: Trocar de plano" }] },
+  { nome: "portal-pedido-modalidade", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoModalidade", pedidosCanvas: "modalidade", passos: [{ clicar: "Pedir: Nova modalidade" }, { escolher: ["Unidade *", "Tijuca"] }, { escolher: ["Modalidade *", "Muay Thai"] }, { preencher: ["Mensagem para a academia (opcional)", "Queria começar no horário da noite."] }] },
+  { nome: "portal-pedido-encerrar", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalEncerrar", canvasCelular: "PortalMEncerrar", pedidosCanvas: "encerrar", passos: [{ clicar: "Pedir: Solicitar encerramento" }, { escolher: ["Modalidade *", "Muay Thai"] }, { escolher: ["Motivo *", "Horário"] }, { preencher: ["Quer contar mais? (opcional)", "Mudei de emprego e não consigo mais às 19h."] }], limiteCanvas: { valor: 0.5, motivo: "medido a 45,2% a 390 px: o canvas mostra a janela como gaveta que sobe da base, com alça e botão largo, e o sistema a mostra ocupando a tela (D8 do item #500); a #674 trata a gaveta e remove este limite" } },
+  { nome: "portal-pedido-bloqueado", rota: "/portal/pedidos", perfil: aluno, canvas: "PortalPedidoBloqueado", pedidosCanvas: "bloqueado", passos: [{ clicar: "Pedir: Trocar de turma" }] },
   { nome: "alunos", rota: "/alunos", perfil: ana, canvas: "Alunos" },
   { nome: "alunos-filtros", rota: "/alunos", perfil: ana, canvas: "GMAlunosFiltros", passos: [{ clicar: "Filtros", seExistir: true }] }, // #457: folha de filtros do celular (no 1440 os filtros ficam na linha)
   { nome: "professores", rota: "/professores", perfil: ana, canvas: "Professores" },
@@ -255,7 +262,7 @@ export const semCaso: Record<string, string[]> = {
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
     "InicioCoordenador", "AguardandoAprovacao", "SuporteAcesso",
-    "PortalMPedidoTurma", "PortalMEncerrar", "PortalMExcluir",
+    "PortalMExcluir",
   ],
   // tela de funcionalidade ainda sem rota em App.tsx (sprint futura)
   "tela de funcionalidade ainda sem rota em App.tsx (sprint futura)": [
@@ -277,7 +284,6 @@ export const semCaso: Record<string, string[]> = {
     "ExportarRelatorios",
     "AssinaturaCancelar", "AuditoriaPainel", "ImportarGraduacoes", "ImportarPagamentos",
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir",
-    "PortalEncerrar", "PortalPedidoTurma", "PortalPedidoModalidade", "PortalPedidoPlano", "PortalPedidoBloqueado",
     "PortalEstados", "PortalMCarteirinha", "PortalMEstados",
   ],
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
