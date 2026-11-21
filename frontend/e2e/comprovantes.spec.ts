@@ -51,6 +51,11 @@ async function chooseLink(page: Page, name: RegExp) {
   await expect(modal).toBeHidden();
 }
 
+// Janela da modalidade nova (#493) cobre a página.
+async function dismissNewModality(page: Page) {
+  await page.getByRole("dialog", { name: "Nova modalidade" }).getByRole("button", { name: "Depois" }).click({ timeout: 3000 }).catch(() => {});
+}
+
 // RF-COB-05 (#87): o aluno envia o comprovante (feito pela API, a janela do portal entra com a #92); a gestão recusa um e confirma outro.
 test.describe("comprovantes em conferência a 360 px", () => {
   test.use({ viewport: { width: 360, height: 740 } });
@@ -77,7 +82,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
       await page.getByLabel("Li e aceito o termo de matrícula").check();
       await page.getByRole("button", { name: "Aceitar e continuar" }).click();
       await expect(page).not.toHaveURL(/\/portal\/termo$/);
-      await page.getByRole("dialog", { name: "Nova modalidade" }).getByRole("button", { name: "Depois" }).click({ timeout: 3000 }).catch(() => {}); // janela da modalidade nova (#493) cobre a página
+      await dismissNewModality(page);
       await call(page, "POST", `/portal/charges/${chargeId}/proof`, undefined, {}, true);
 
       // Gestão: a cobrança está em conferência e o sino avisa.
@@ -98,6 +103,7 @@ test.describe("comprovantes em conferência a 360 px", () => {
 
       // O aluno envia outro; a gestão confirma com o recibo.
       await chooseLink(page, /Academia Alfa Portal · Aluno/);
+      await dismissNewModality(page); // a troca de vínculo (#675) leva ao Início, onde a janela volta
       await call(page, "POST", `/portal/charges/${chargeId}/proof`, undefined, {}, true);
       await chooseLink(page, /Academia Alfa Gestão · Administrador/);
       await open(page, "/cobrancas/conferencia");

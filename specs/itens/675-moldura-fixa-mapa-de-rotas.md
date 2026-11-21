@@ -161,3 +161,40 @@ Achados:
 - Regressão (construção): `npx vitest run` 272 arquivos, 2792 testes, todos passaram; `npm run test:cov` no limite; `npm run lint` sem erro. `npm run typecheck` acusa só erros antigos de `e2e/` (`getAttribute`/`scrollWidth` em `SVGElement`, em `e2e/alunos`, `navegacao-sem-recarregar` e `no-class-days`), arquivos que este item não toca; já existiam na linha de base, não entram neste PR. Instável visto na verificação: `RecordEnrollment.test.tsx` CA7 (troca de turma), passou em 3 de 3 execuções isoladas.
 - Visual do CI: suíte inteira sem `--update-snapshots` passou (639) depois das correções de harness e da regeração das referências `pagina-nao-encontrada-390-{claro,escuro}`; as de 1440 não mudaram.
 - Limitações: a comparação lado a lado com o canvas não foi refeita nesta fase (D7 registrada na verificação); a #676 e a #677 seguem como próximas da sequência.
+
+- **Falha no CI do PR #682 (head e1d0237f9205d7d3054e56fea75e20f860057ac0), para `construir --corrigir`:** (1) job `frontend`, passo `npm run typecheck`: 6 erros TS2339 (`scrollWidth`, `clientWidth` e `getAttribute` não existem em `SVGElement | HTMLElement`) em `e2e/alunos.spec.ts` (117, 131), `e2e/navegacao-sem-recarregar.spec.ts` (19) e `e2e/no-class-days.spec.ts` (26). Em `origin/dev` o typecheck dá 0 erros (conferido em worktree limpo) e sem `e2e/moldura-fixa.spec.ts` os 6 erros continuam: a causa está em outra mudança do item, não é erro antigo como a Construção registrou. (2) job `e2e`: falharam `comprovantes.spec.ts:59` (360 px, claro e escuro, timeout de 60 s) e `recuperar-senha.spec.ts:4`, que podem ser regressão da moldura fixa; confirmar rodando de novo isolados. `backend` e `visual` (1/2 e 2/2) passaram. O check `Vercel` também falhou no deploy, provavelmente pelo mesmo typecheck do build.
+
+### Correção da entrega
+
+- Typecheck do CI (6 erros TS2339 em `e2e/`) — causa: `visual/casos.test.ts` importava `../src/routes`, o que trazia os tipos de DOM de `src` ao projeto `tsconfig.node.json` (sem DOM), e o `Locator.evaluate` passou a tipar `SVGElement | HTMLElement` como tipos reais; os erros não eram antigos. Correção: o teste lê `src/routes.ts` como texto (como já fazia com `App.tsx`) — arquivos: `frontend/visual/casos.test.ts` — prova: `npm run typecheck` → 0 erros; `npx vitest run visual/casos.test.ts` → 164 passaram
+- E2E `comprovantes.spec.ts:59` (360 px, claro e escuro) — causa: a troca de vínculo agora leva ao Início (D2) e a janela "Nova modalidade" (#493) volta a abrir no portal, cobrindo o botão "Trocar organização ou área" (`aria-modal`). Correção: `dismissNewModality` depois da segunda entrada no portal — arquivos: `frontend/e2e/comprovantes.spec.ts` — prova: `npx playwright test e2e/comprovantes.spec.ts e2e/recuperar-senha.spec.ts` → 3 passaram
+- E2E `recuperar-senha.spec.ts:4` — não reproduzido: passou isolado 2 de 2; registrado como instável (carga do runner).
+Regressão: `npm run lint` sem erro; `npm run typecheck` 0 erros; `npm run e2e` → 109 passaram.
+Correção da nota da Construção: os erros de `typecheck` em `e2e/` não eram antigos, vinham deste item e agora estão resolvidos.
+Visual do CI: sem mudança visual nesta correção; não rodou de novo.
+Não é do item: nada.
+
+### Rodada 2 — OK — 2026-11-21, estado da pasta de trabalho depois de e1d0237 (correção da entrega: `visual/casos.test.ts`, `e2e/comprovantes.spec.ts`)
+
+| Critério | Status | Evidência |
+|---|---|---|
+| Falha CI 1 (typecheck, 6 erros TS2339) | PASSOU | `npm run typecheck` → 0 erros; `npx vitest run visual/casos.test.ts` → 164 passaram |
+| Falha CI 2 (`comprovantes.spec.ts:59`, claro e escuro) | PASSOU | `npx playwright test e2e/comprovantes.spec.ts e2e/recuperar-senha.spec.ts e2e/moldura-fixa.spec.ts` → 11 passaram |
+| `recuperar-senha.spec.ts:4` | PASSOU | passou na execução acima (instável por carga, sem relação com o diff) |
+| CA1 a CA13 | mantido da rodada 1 | a mudança toca só um teste visual (lê o mapa como texto) e um helper de e2e; sem mudança de produto |
+
+Comandos: `npm run lint` sem erro; `npm run typecheck` 0 erros; vitest do caso e e2e acima. Não rodei `test:cov` nem o visual de novo (sem mudança visual nem de código de produto; vale o CI do PR).
+Instáveis: `recuperar-senha.spec.ts:4` falhou uma vez no CI e passou aqui.
+Achados: nenhum obrigatório.
+
+### Rodada 3 — OK — 2026-11-21, estado ebea48ce81af7b13faad3180df7bb3be4050527c
+
+| Critério | Status | Evidência |
+|---|---|---|
+| Falha CI 1 (typecheck) | PASSOU | `npm run typecheck` → 0 erros; `npx vitest run visual/casos.test.ts` → 164 passaram |
+| Falha CI 2 (`comprovantes.spec.ts`, `recuperar-senha.spec.ts`) | PASSOU | `npx playwright test e2e/comprovantes.spec.ts e2e/recuperar-senha.spec.ts e2e/moldura-fixa.spec.ts` → 11 passaram |
+| CA1 a CA13 | mantido da rodada 1 | a correção toca só um teste visual e um helper de e2e |
+
+Comandos: `npm run lint` sem erro; demais acima. Não rodei `test:cov` nem o visual (sem mudança de código de produto; vale o CI do PR).
+Achados:
+- sugestão, código, `frontend/visual/casos.test.ts` — a regex `"(\/[^"]*)"` sobre `src/routes.ts` aceita qualquer string que comece com `/` (não só `path`), podendo afrouxar a checagem de que o caso visual aponta rota existente.
