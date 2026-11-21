@@ -29,8 +29,8 @@ function setup(path = "/", over: { role?: string; shell?: () => Response | Promi
     http.get("/api/v1/portal/term", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
     http.get("/api/v1/portal/modality-confirmations", () => HttpResponse.json([])),
-    http.get("/api/v1/portal/home", () => HttpResponse.json(emptyHome)),
-    http.get("/api/v1/portal/finance", () => HttpResponse.json(emptyFinance)),
+    http.get("/api/v1/portal/home", () => HttpResponse.json({ ...emptyHome, reduced: over.data?.reduced ?? false })),
+    http.get("/api/v1/portal/finance", () => HttpResponse.json({ ...emptyFinance, reduced: over.data?.reduced ?? false })),
     http.get("/api/v1/auth/sessions", () => HttpResponse.json([])), // sem isto /conta recebia 401 e relia a sessão sem parar
     http.get("/api/v1/portal/shell", over.shell ?? (() => HttpResponse.json(over.data ?? shell()))),
   );
@@ -104,10 +104,17 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     expect(screen.getByRole("contentinfo")).toHaveTextContent("Academia Alfa · Unidade Centro · Rua Fictícia, 10 · WhatsApp (21) 90000-0000feito com ctcore");
   });
 
-  it("CA8: no reduzido as abas de baixo também escondem Agenda e Avisos", async () => {
+  it("CA1: no reduzido as abas de baixo são só Financeiro e Eu, o logo e `/` levam ao Financeiro", async () => {
     setup("/", { data: shell({ reduced: true, unreadAnnouncements: 0 }) });
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
+    expect(within(screen.getByRole("navigation", { name: "Portal, abas" })).getAllByRole("link").map((a) => a.textContent)).toEqual(["Financeiro", "Eu"]);
+    expect(screen.getByRole("link", { name: "Academia Alfa" })).toHaveAttribute("href", "/portal/financeiro");
+  });
+
+  it("CA6: o rodapé do reduzido mostra a unidade de cadastro", async () => {
+    setup("/portal/financeiro", { data: shell({ reduced: true, unit: { name: "Unidade Centro", address: "Rua Fictícia, 10", whatsapp: "(21) 90000-0000", email: null } }) });
     await ready();
-    expect(within(screen.getByRole("navigation", { name: "Portal, abas" })).getAllByRole("link").map((a) => a.textContent)).toEqual(["Início", "Financeiro", "Eu"]);
+    expect(screen.getByRole("contentinfo")).toHaveTextContent("Academia Alfa · Unidade Centro · Rua Fictícia, 10 · WhatsApp (21) 90000-0000feito com ctcore");
   });
 
   it("CA11: \"Ir para o conteúdo\" leva o foco ao main", async () => {
@@ -132,17 +139,20 @@ describe("PortalLayout: barra e navegação do portal (RF-POR-01)", () => {
     expect(bell()).toHaveTextContent("");
   });
 
-  it("CA7, CA9: portal reduzido esconde Agenda, Avisos e o sino, mostra o aviso e leva /portal/agenda ao Início", async () => {
+  it("CA1, CA2: portal reduzido esconde Início, Agenda, Avisos e o sino, mostra o aviso e leva /portal/agenda ao Financeiro", async () => {
     setup("/portal/agenda", { data: shell({ reduced: true, unreadAnnouncements: 0 }) });
     await screen.findByRole("heading", { name: /^Olá/, level: 1 });
-    expect(tabs().map(label)).toEqual(["Início", "Financeiro", "Minhas informações"]);
+    expect(tabs().map(label)).toEqual(["Financeiro", "Minhas informações"]);
+    expect(current()).toEqual(["Financeiro"]);
     expect(bell()).toBeUndefined();
+    expect(screen.getByRole("link", { name: /Minha conta/ })).toHaveTextContent("Aluno · Inativo");
     expect(screen.getByText(/Seu acesso está reduzido/)).toBeInTheDocument();
   });
 
-  it("CA9: no reduzido /portal/avisos também volta ao Início", async () => {
+  it("CA1: no reduzido /portal/avisos também volta ao Financeiro", async () => {
     setup("/portal/avisos", { data: shell({ reduced: true, unreadAnnouncements: 0 }) });
     await screen.findByRole("heading", { name: /^Olá/, level: 1 });
+    expect(current()).toEqual(["Financeiro"]);
   });
 
   it("CA8: portal completo abre Agenda e Avisos", async () => {

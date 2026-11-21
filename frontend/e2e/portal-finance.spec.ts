@@ -78,13 +78,16 @@ test.describe("financeiro do portal a 360 px", () => {
 
   test("@critical portal reduzido abre o Financeiro com a cobrança em atraso e o histórico", async ({ page }) => {
     await login(page, "reduzido@exemplo.com");
-    await page.getByRole("link", { name: "Financeiro", exact: true }).click();
-    const open = page.getByRole("region", { name: "Em aberto" });
-    await expect(open.getByText("Vencida", { exact: true })).toBeVisible();
-    await expect(open.getByRole("checkbox", { name: /^Selecionar / })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Histórico" })).toBeVisible();
+    await expect(page).toHaveURL(/\/portal\/financeiro$/);
+    await expect(page.getByRole("heading", { name: /^Olá/, level: 1 })).toBeVisible();
+    await expect(page.getByText("Vencida", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Pagar / })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Fale com a academia" })).toBeVisible();
+    await expect(page.getByRole("region", { name: /^(Histórico e recibos|Recibos)$/ })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Débito automático" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Agenda", exact: true })).toHaveCount(0);
     expect(await noOverflow(page)).toBe(true);
+    expect(await violations(page)).toEqual([]);
   });
 });
 

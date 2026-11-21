@@ -127,7 +127,7 @@ class PortalShellIT extends PortalTermBase {
     }
 
     @Test
-    @DisplayName("CA13: unit traz nome, endereço e WhatsApp da unidade da modalidade ativa; campos nulos ficam nulos; reduzido e sem matrícula, unit nulo; nada de outra organização")
+    @DisplayName("CA13: unit traz nome, endereço e WhatsApp da unidade da modalidade ativa; campos nulos ficam nulos; reduzido, a unidade de cadastro com e-mail; sem matrícula, unit nulo; nada de outra organização")
     void unit() throws Exception {
         Tenant t = tenant(), other = tenant();
         adminJdbc().update("update unit set address = 'Rua Fictícia, 10', whatsapp = '+55 11 90000-0000' where id = ?", t.unitId());
@@ -146,7 +146,14 @@ class PortalShellIT extends PortalTermBase {
 
         UUID former = account("ex@portal.example");
         enroll(t, student(t, "Ex Aluno", "1990-01-01", former), "ENDED");
-        assertThat(body(get(portal(t, former, Role.STUDENT), "/shell")).get("unit").isNull()).isTrue();
+        var reducedUnit = body(get(portal(t, former, Role.STUDENT), "/shell")).get("unit");
+        assertThat(reducedUnit.get("name").asText()).isEqualTo(adminJdbc().queryForObject("select name from unit where id = ?", String.class, t.unitId()));
+        assertThat(reducedUnit.get("email").isNull()).isTrue();
+        adminJdbc().update("update unit set whatsapp = '+55 11 92222-2222', email = 'contato@unidade.example' where id = ?", t.unitId());
+        reducedUnit = body(get(portal(t, former, Role.STUDENT), "/shell")).get("unit");
+        assertThat(reducedUnit.get("whatsapp").asText()).isEqualTo("+55 11 92222-2222");
+        assertThat(reducedUnit.get("email").asText()).isEqualTo("contato@unidade.example");
+        assertThat(body(get(portal(t, acc, Role.STUDENT), "/shell")).get("unit").get("email").asText()).isEqualTo("contato@unidade.example");
         UUID fresh = account("novo@portal.example");
         student(t, "Sem Matrícula", "1990-01-01", fresh);
         assertThat(body(get(portal(t, fresh, Role.STUDENT), "/shell")).get("unit").isNull()).isTrue();

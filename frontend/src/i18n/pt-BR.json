@@ -4215,6 +4215,20 @@
     "you": "Você",
     "family": "Toda a família",
     "familyTotal": "{{value}} em aberto",
+    "reduced": {
+      "label": "Unidade {{unit}}",
+      "greeting": "Olá, {{name}}",
+      "note": "Agenda, avisos e graduação ficam ocultos enquanto o acesso estiver reduzido. A carteirinha continua visível, com o selo \"Inativo\".",
+      "noteShort": "Agenda, avisos e graduação ficam ocultos. A carteirinha mostra o selo \"Inativo\"."
+    },
+    "contact": {
+      "title": "Fale com a academia",
+      "text": "Quer combinar o pagamento ou voltar a treinar? A equipe da {{unit}} responde pelo WhatsApp.",
+      "textShort": "A equipe da {{unit}} responde pelo WhatsApp.",
+      "whatsapp": "WhatsApp da unidade",
+      "whatsappLabel": "WhatsApp",
+      "emailLabel": "E-mail"
+    },
     "open": {
       "title": "Em aberto",
       "subtitle": "vencidas primeiro",
@@ -4239,8 +4253,11 @@
     },
     "history": {
       "title": "Histórico",
+      "reducedTitle": "Histórico e recibos",
+      "reducedTitleShort": "Recibos",
+      "paidOnShort": "pago em {{date}}",
       "year": "Ano",
-      "columns": { "reference": "Referência", "due": "Vencimento", "amount": "Valor pago", "paidAt": "Pago em", "method": "Meio", "situation": "Situação", "receipt": "Recibo" },
+      "columns": { "reference": "Referência", "due": "Vencimento", "amountShort": "Valor", "amount": "Valor pago", "paidAt": "Pago em", "method": "Meio", "situation": "Situação", "receipt": "Recibo" },
       "emptyTitle": "Nenhum histórico neste ano",
       "emptyText": "As cobranças pagas ou encerradas aparecem aqui.",
       "receiptItem": "Baixar recibo de {{what}}",
@@ -4420,6 +4437,7 @@
         "OVERDUE": "Vencida",
         "DUE_TODAY": "Vence hoje",
         "DUE_SOON": "Vencendo",
+        "PENDING": "A vencer",
         "IN_REVIEW": "Em conferência"
       }
     },

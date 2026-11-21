@@ -97,11 +97,11 @@ for (const viewport of [{ width: 360, height: 740 }, { width: 1024, height: 768 
       });
     }
 
-    test("@critical portal reduzido não tem a aba Avisos e /portal/avisos leva ao Início", async ({ page }) => {
+    test("@critical portal reduzido não tem a aba Avisos e /portal/avisos leva ao Financeiro", async ({ page }) => {
       await login(page, "reduzido@exemplo.com");
       await expect(page.getByRole("link", { name: /^Avisos/ })).toHaveCount(0);
       await goTo(page, "/portal/avisos");
-      await expect(page).not.toHaveURL(/avisos/);
+      await expect(page).toHaveURL(/\/portal\/financeiro$/);
     });
   });
 }

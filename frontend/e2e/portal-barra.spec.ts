@@ -45,17 +45,17 @@ test.describe("barra do portal a 360 px", () => {
     });
   }
 
-  test("@critical portal reduzido: sem Agenda, Avisos e sino, e o endereço de Avisos leva ao Início", async ({ page }) => {
+  test("@critical portal reduzido: sem Agenda, Avisos e sino, e o endereço de Avisos leva ao Financeiro", async ({ page }) => {
     await login(page, "reduzido@exemplo.com");
     await expect(page.getByRole("heading", { name: /^Olá/, level: 1 })).toBeVisible();
     const nav = page.getByRole("navigation", { name: "Portal" });
-    await expect(nav.getByRole("link")).toHaveText(["Início", "Financeiro", "Eu"]);
+    await expect(nav.getByRole("link")).toHaveText(["Financeiro", "Eu"]);
     await expect(page.getByText(/Seu acesso está reduzido/)).toBeVisible();
     await expect(page.getByRole("link", { name: /^Avisos/ })).toHaveCount(0);
 
     await page.evaluate(`history.pushState({}, "", "/portal/avisos"); dispatchEvent(new PopStateEvent("popstate"))`);
     await expect(page.getByRole("heading", { name: /^Olá/, level: 1 })).toBeVisible();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/portal\/financeiro$/);
     expect(await violations(page)).toEqual([]);
   });
 });

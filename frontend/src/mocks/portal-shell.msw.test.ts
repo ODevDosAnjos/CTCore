@@ -13,7 +13,7 @@ describe("moldura do portal x OpenAPI (#88)", () => {
     expect(Object.keys(openapi.paths["/portal/shell"].get.responses)).toEqual(expect.arrayContaining(["200", "401", "403"]));
     const schema = openapi.components.schemas.PortalShell;
     expect(schema.required).toEqual(["organization", "reduced", "unreadAnnouncements", "unit"]);
-    expect(Object.keys(schema.properties.unit.properties)).toEqual(["name", "address", "whatsapp"]);
+    expect(Object.keys(schema.properties.unit.properties)).toEqual(["name", "address", "whatsapp", "email"]);
     expect(Object.keys(schema.properties.organization.properties)).toEqual(["name", "color", "logoUrl"]);
   });
 
@@ -32,7 +32,7 @@ describe("moldura do portal x OpenAPI (#88)", () => {
 
   it("conta reduzida: reduced verdadeiro e contador 0", async () => {
     await login("reduzido@exemplo.com");
-    expect(await (await send("GET", "/portal/shell")).json()).toMatchObject({ reduced: true, unreadAnnouncements: 0, unit: null, organization: { name: "Academia Alfa", logoUrl: null } });
+    expect(await (await send("GET", "/portal/shell")).json()).toMatchObject({ reduced: true, unreadAnnouncements: 0, unit: { name: "Unidade Centro", email: "contato@unidade.example" }, organization: { name: "Academia Alfa", logoUrl: null } });
     expect((await send("GET", "/portal/term")).status).toBe(200);
     expect(await (await send("GET", "/portal/term")).json()).toEqual([]);
   });
@@ -41,6 +41,6 @@ describe("moldura do portal x OpenAPI (#88)", () => {
     await login("termo@exemplo.com");
     const pending = await (await send("GET", "/portal/term")).json();
     await send("POST", `/portal/students/${pending[0].id}/term-acceptance`, { version: pending[0].term.version });
-    expect(await (await send("GET", "/portal/shell")).json()).toMatchObject({ reduced: false, unreadAnnouncements: 3, unit: { name: "Unidade Centro", whatsapp: "(21) 90000-0000" } });
+    expect(await (await send("GET", "/portal/shell")).json()).toMatchObject({ reduced: false, unreadAnnouncements: 3, unit: { name: "Unidade Centro", whatsapp: "(21) 90000-0000", email: "contato@unidade.example" } });
   });
 });

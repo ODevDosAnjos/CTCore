@@ -48,10 +48,10 @@ describe("PortalTabs (CA2)", () => {
     expect(screen.getByRole("link", { name: "Avisos" })).toHaveTextContent(/^Avisos$/);
   });
 
-  it("só a aba atual tem aria-current e o reduzido esconde Agenda e Avisos", () => {
+  it("só a aba atual tem aria-current e o reduzido esconde Início, Agenda e Avisos", () => {
     const { rerender } = render(tabs(0));
     expect(screen.getAllByRole("link").filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent)).toEqual(["Financeiro"]);
     rerender(tabs(0, true));
-    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual(["Início", "Financeiro", "Minhas informações"]);
+    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual(["Financeiro", "Minhas informações"]);
   });
 });

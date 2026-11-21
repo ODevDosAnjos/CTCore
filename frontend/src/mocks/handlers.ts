@@ -66,6 +66,7 @@ const accounts: Record<string, ReturnType<typeof withTwoFactor>> = {
   // Aluno cujas modalidades acabaram (#88): o portal abre reduzido (sem Agenda nem Avisos), sem termo pendente.
   "reduzido@exemplo.com": {
     ...withTwoFactor("reduzido@exemplo.com", false, false),
+    account: { ...session.account, email: "reduzido@exemplo.com", name: "Gabriel Rocha" }, // canvas PortalReduzido: "Olá, Gabriel"
     links: [{ id: "00000000-0000-0000-0000-000000000015", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000015",
   },
@@ -4899,7 +4900,7 @@ export const routes: Route[] = [
       if (denied) return denied;
       if (portalMine().some((s) => termPending(s.id))) return error(403, "TERM_PENDING", "Aceite o termo para continuar.");
       const reduced = current.account.email === REDUCED_ACCOUNT;
-      return HttpResponse.json({ organization: { name: organization.name, color: organization.color, logoUrl: organization.logoUrl }, reduced, unreadAnnouncements: reduced ? 0 : bellCount(), unit: reduced ? null : { name: "Unidade Centro", address: "Rua Fictícia, 100, Centro, Rio de Janeiro", whatsapp: "(21) 90000-0000" } });
+      return HttpResponse.json({ organization: { name: organization.name, color: organization.color, logoUrl: organization.logoUrl }, reduced, unreadAnnouncements: reduced ? 0 : bellCount(), unit: { name: "Unidade Centro", address: "Rua Fictícia, 100, Centro, Rio de Janeiro", whatsapp: "(21) 90000-0000", email: "contato@unidade.example" } });
     },
   },
   {

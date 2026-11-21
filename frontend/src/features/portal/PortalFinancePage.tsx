@@ -7,6 +7,11 @@ import { formatCurrency } from "@/lib/format";
 import { PortalAutoDebitCard } from "./PortalAutoDebitCard";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/features/auth/SessionProvider";
+import { useBelowSm } from "@/components/query/useBelowSm";
+import { PortalContactCard } from "./PortalContactCard";
+import { usePortalShell } from "./usePortalShell";
+import { PortalChargeCard } from "./PortalChargeCard";
 import { PortalChargeHistory } from "./PortalChargeHistory";
 import { PortalHeading } from "./PortalHeading";
 import { PortalReceiptsCard } from "./PortalReceiptsCard";
@@ -24,10 +29,16 @@ export function PortalFinancePage() {
   const family = params.get("visao") === "familia";
   const year = params.get("ano");
   const { status, data, reload } = usePortalFinance(student, family ? FAMILY : "STUDENT", year);
+  const shell = usePortalShell();
+  const { state } = useSession();
+  const narrow = useBelowSm();
+  const firstName = (state.status === "ready" ? state.session.account.name : null)?.trim().split(" ")[0];
   // Os controles ficam na tela enquanto a leitura nova carrega.
   const [last, setLast] = useState<PortalFinanceData>();
   if (data && data !== last) setLast(data);
   const shown = data ?? last;
+  // RN-POR-08: sem modalidade ativa o Financeiro é a tela inicial, com o contato da unidade e sem débito automático nem recibos por e-mail.
+  const reduced = shown?.reduced ?? false;
 
   const change = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
@@ -43,8 +54,8 @@ export function PortalFinancePage() {
     <PortalLayout>
       <PortalHeading
         className="mb-4"
-        label={t("portalFinance.label")}
-        title={t("portalShell.tabs.finance")}
+        label={reduced ? (shell.data?.unit ? t("portalFinance.reduced.label", { unit: shell.data.unit.name }) : undefined) : t("portalFinance.label")}
+        title={reduced ? t("portalFinance.reduced.greeting", { name: firstName ?? "" }) : t("portalShell.tabs.finance")}
         subtitle={shown && family ? t("portalFinance.familyTotal", { value: formatCurrency(shown.familyOpenCents) }) : undefined}
       />
       {shown && shown.students.length > 1 && (
@@ -75,12 +86,29 @@ export function PortalFinancePage() {
         <ForbiddenState variant="card" title={t("portalFinance.states.forbiddenTitle")} text={t("portalFinance.states.forbiddenText")} action={<Button asChild variant="outline"><Link to="/">{t("portalFinance.states.backHome")}</Link></Button>} />
       ) : status === "ready" && data ? (
         <div className="flex flex-col gap-4">
-          <PortalOpenCharges items={data.open} showStudent={family} onChanged={reload} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <PortalAutoDebitCard />
-            <PortalReceiptsCard />
-          </div>
-          {!family && <PortalChargeHistory items={data.history} year={data.year} years={data.years} onYear={(y) => change({ ano: String(y) })} />}
+          {reduced ? (
+            <div className="grid items-start gap-4 md:grid-cols-2">
+              <PortalChargeCard items={data.open} nextDueOn={null} onChanged={reload} />
+              <PortalContactCard unit={shell.data?.unit} />
+            </div>
+          ) : (
+            <PortalOpenCharges items={data.open} showStudent={family} onChanged={reload} />
+          )}
+          {!reduced && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <PortalAutoDebitCard />
+              <PortalReceiptsCard />
+            </div>
+          )}
+          {!family && <PortalChargeHistory reduced={reduced} items={data.history} year={data.year} years={data.years} onYear={(y) => change({ ano: String(y) })} />}
+          {reduced && (
+            <div className="flex flex-col items-start gap-1">
+              <p className="text-sm text-muted-foreground">{t(narrow ? "portalFinance.reduced.noteShort" : "portalFinance.reduced.note")}</p>
+              <Link to={`/portal/carteirinha${data.selectedStudentId ? `?aluno=${data.selectedStudentId}` : ""}`} className="inline-flex min-h-11 items-center text-sm underline">
+                {t("portalCard.link")}
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <ErrorState variant="card" title={t("portalFinance.states.errorTitle")} onRetry={reload} />

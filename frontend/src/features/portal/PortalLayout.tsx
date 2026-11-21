@@ -47,7 +47,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
       </a>
       <header className="bg-sidebar text-sidebar-foreground">
         <div className="mx-auto flex h-14 w-full max-w-280 items-center gap-4 px-4 md:h-16">
-          <Link to="/" className="flex min-h-11 min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link to={reduced ? "/portal/financeiro" : "/"} className="flex min-h-11 min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <OrgMark name={orgName} logoUrl={data?.organization.logoUrl} />
             <span className="truncate font-heading text-lg font-semibold uppercase tracking-wide">{orgName}</span>
           </Link>

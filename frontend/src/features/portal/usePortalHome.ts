@@ -12,7 +12,7 @@ export interface HomeStudent {
   self: boolean;
   openCents: number;
 }
-export type HomeSituation = "OVERDUE" | "DUE_TODAY" | "DUE_SOON" | "IN_REVIEW";
+export type HomeSituation = "OVERDUE" | "DUE_TODAY" | "DUE_SOON" | "PENDING" | "IN_REVIEW";
 export interface HomeCharge {
   id: string;
   studentId: string;

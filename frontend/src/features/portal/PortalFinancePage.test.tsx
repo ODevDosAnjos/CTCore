@@ -82,12 +82,13 @@ function Where() {
   const { pathname, search } = useLocation();
   return <span data-testid="where">{pathname + search}</span>;
 }
-function setup(path = "/portal/financeiro") {
+const unit = { name: "Tijuca", address: "Rua Fictícia, 600", whatsapp: "(21) 97000-1200", email: "tijuca@exemplo.example" };
+function setup(path = "/portal/financeiro", shell: Record<string, unknown> = {}) {
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session)),
     http.get("/api/v1/portal/term", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
-    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0 })),
+    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, ...shell })),
   );
   return render(
     <ThemeProvider>
@@ -306,11 +307,86 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     expect(screen.getByRole("link", { name: "Voltar ao Início" })).toHaveAttribute("href", "/");
   });
 
-  it("CA7: portal reduzido mostra o Financeiro", async () => {
-    serve(finance({ reduced: true }));
-    setup();
-    expect(await screen.findByRole("heading", { name: "Financeiro", level: 1 })).toBeInTheDocument();
-    expect(await screen.findByRole("region", { name: "Em aberto" })).toBeInTheDocument();
+  const reducedHistory = [
+    { id: "h1", referenceLabel: "Muay Thai · jul/2026", dueOn: "2026-07-10", amountCents: 16560, status: "PAID" as const, paidAt: "2026-07-15T15:00:00Z", method: "PIX_KEY" as const, receipt: { number: 7, code: "RC-7" } },
+    { id: "h2", referenceLabel: "Muay Thai · jun/2026", dueOn: "2026-06-10", amountCents: 16000, status: "CANCELED" as const, paidAt: null, method: null, receipt: null },
+  ];
+
+  it("CA3, CA4: reduzido abre com Olá, a unidade, a cobrança, o contato, o histórico só de pagos e a nota; sem débito automático nem recibos por e-mail", async () => {
+    serve(finance({ reduced: true, history: reducedHistory }));
+    setup("/portal/financeiro", { reduced: true, unit });
+    expect(await screen.findByRole("heading", { name: "Olá, Ana", level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByText("Unidade Tijuca").length).toBeGreaterThan(0);
+    expect(await screen.findByRole("button", { name: /^Pagar / })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Em aberto" })).not.toBeInTheDocument();
+    const contact = within(await screen.findByRole("region", { name: "Fale com a academia" }));
+    expect(contact.getByText(/A equipe da Tijuca responde pelo WhatsApp/)).toBeInTheDocument();
+    expect(contact.getByRole("link", { name: "WhatsApp da unidade" })).toHaveAttribute("href", "https://wa.me/5521970001200");
+    expect(contact.getByText("(21) 97000-1200 · tijuca@exemplo.example")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Débito automático" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Recibos por e-mail" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Agenda, avisos e graduação ficam ocultos enquanto o acesso estiver reduzido/)).toBeInTheDocument();
+    const history = within(screen.getByRole("region", { name: "Histórico e recibos" }));
+    expect(history.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Referência", "Pago em", "Valor", "Recibo"]);
+    expect(history.getAllByRole("row").slice(1)).toHaveLength(1);
+    expect(history.getByRole("link", { name: "Baixar recibo de Muay Thai · jul/2026" })).toHaveAttribute("href", expect.stringContaining("RC-7"));
+    expect(history.queryByText("Muay Thai · jun/2026")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver carteirinha" })).toHaveAttribute("href", "/portal/carteirinha?aluno=s1");
+  });
+
+  it("CA4: reduzido sem WhatsApp não tem botão; sem unidade não há cartão; no celular só o texto curto, o botão e a nota curta", async () => {
+    serve(finance({ reduced: true, history: reducedHistory }));
+    const { unmount } = setup("/portal/financeiro", { reduced: true, unit: { ...unit, whatsapp: null } });
+    const contact = within(await screen.findByRole("region", { name: "Fale com a academia" }));
+    expect(contact.queryByRole("link")).not.toBeInTheDocument();
+    expect(contact.getByText("tijuca@exemplo.example")).toBeInTheDocument();
+    unmount();
+
+    const gone = setup("/portal/financeiro", { reduced: true, unit: null });
+    await screen.findByRole("button", { name: /^Pagar / });
+    expect(screen.queryByRole("region", { name: "Fale com a academia" })).not.toBeInTheDocument();
+    gone.unmount();
+
+    setDeviceNarrow(true);
+    setup("/portal/financeiro", { reduced: true, unit });
+    const narrow = within(await screen.findByRole("region", { name: "Fale com a academia" }));
+    expect(narrow.getByText("A equipe da Tijuca responde pelo WhatsApp.")).toBeInTheDocument();
+    expect(narrow.getByRole("link", { name: "WhatsApp da unidade" })).toBeInTheDocument();
+    expect(narrow.queryByText(/tijuca@exemplo/)).not.toBeInTheDocument();
+    expect(screen.getByText(/A carteirinha mostra o selo/)).toBeInTheDocument();
+    const recibos = within(screen.getByRole("region", { name: "Recibos" }));
+    expect(recibos.getByText("pago em 15/07")).toBeInTheDocument();
+    expect(recibos.queryByText("Muay Thai · jun/2026")).not.toBeInTheDocument();
+  });
+
+  it("CA5: reduzido sem pagamento no ano mostra o vazio", async () => {
+    serve(finance({ reduced: true, history: [reducedHistory[1]] }));
+    setup("/portal/financeiro", { reduced: true, unit });
+    expect(await screen.findByText("Nenhum histórico neste ano")).toBeInTheDocument();
+  });
+
+  it("CA7: reduzido, falha do Financeiro mostra Tentar de novo, 403 mostra sem permissão e o axe passa nos dois temas", async () => {
+    let calls = 0;
+    serve(() => (++calls === 1 ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(finance({ reduced: true, history: reducedHistory }))));
+    const user = userEvent.setup();
+    const { unmount } = setup("/portal/financeiro", { reduced: true, unit });
+    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    await screen.findByRole("region", { name: "Fale com a academia" });
+    unmount();
+
+    serve(() => new HttpResponse(null, { status: 403 }));
+    const denied = setup("/portal/financeiro", { reduced: true, unit });
+    expect(await screen.findByText("Esta área não está disponível para você")).toBeInTheDocument();
+    denied.unmount();
+
+    for (const dark of [false, true]) {
+      setDevicePrefersDark(dark);
+      serve(finance({ reduced: true, history: reducedHistory }));
+      const view = setup("/portal/financeiro", { reduced: true, unit });
+      await screen.findByRole("region", { name: "Fale com a academia" });
+      await waitFor(async () => expect(await axeViolations(view.container)).toEqual([]));
+      view.unmount();
+    }
   });
 
   it("CA11: o axe não acusa violação nos dois temas", async () => {

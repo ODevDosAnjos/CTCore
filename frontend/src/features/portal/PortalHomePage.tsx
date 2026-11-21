@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/Card";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
@@ -18,7 +18,7 @@ const ALL = "all";
 const today = () => new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: DEFAULT_TZ });
 const key = (modality: string, unit: string) => `${modality}|${unit}`;
 
-// RF-POR-02: Início do portal. Cobrança, próximas aulas, avisos e faixa, nesta ordem; o portal reduzido só tem a cobrança (RN-INA-08).
+// RF-POR-02: Início do portal. Cobrança, próximas aulas, avisos e faixa, nesta ordem; o portal reduzido não tem Início e vai ao Financeiro (RN-POR-08).
 export function PortalHomePage() {
   const { t } = useTranslation();
   const { state } = useSession();
@@ -37,6 +37,8 @@ export function PortalHomePage() {
     setFilter(ALL);
     setFamilyView(false);
   };
+
+  if (data?.reduced) return <Navigate to="/portal/financeiro" replace />;
 
   return (
     <>
@@ -92,17 +94,9 @@ function Sections({ data, studentId, filter, onFilter, reload }: { data: PortalH
         </div>
       )}
       <PortalChargeCard items={data.charges.items.filter((c) => fits(c.modality?.id, c.unit.id))} nextDueOn={data.charges.nextDueOn} onChanged={reload} />
-      {data.reduced ? (
-        <Link to={`/portal/carteirinha${studentId ? `?aluno=${studentId}` : ""}`} className="inline-flex min-h-11 items-center underline">
-          {t("portalCard.link")}
-        </Link>
-      ) : (
-        <>
-          <PortalNextLessons items={data.lessons.filter((l) => fits(l.modality.id, l.unit.id))} />
-          <PortalNoticesCard data={data.announcements} />
-          <PortalBelts items={data.belts.filter((b) => active === ALL || b.modality.id === active.split("|")[0])} studentId={studentId} />
-        </>
-      )}
+      <PortalNextLessons items={data.lessons.filter((l) => fits(l.modality.id, l.unit.id))} />
+      <PortalNoticesCard data={data.announcements} />
+      <PortalBelts items={data.belts.filter((b) => active === ALL || b.modality.id === active.split("|")[0])} studentId={studentId} />
     </div>
   );
 }
