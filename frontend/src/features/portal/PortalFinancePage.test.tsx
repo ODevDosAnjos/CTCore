@@ -271,7 +271,7 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     expect(seen.at(-1)).toBe("studentId=s2");
   });
 
-  it("CA9: trocar o ano refaz o histórico e muda ?ano=", async () => {
+  it("CA9: trocar o ano refaz o histórico e muda ?aba=", async () => {
     serve(({ request }) => {
       const year = Number(new URL(request.url).searchParams.get("year") ?? 2026);
       return HttpResponse.json(finance({ year, history: year === 2025 ? [] : finance().history }));
@@ -280,7 +280,7 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     setup();
     await screen.findByText("Pix pela chave");
     await user.click(screen.getByRole("tab", { name: "2025" }));
-    expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?ano=2025");
+    expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?aba=2025");
     expect(await screen.findByText("Nenhum histórico neste ano")).toBeInTheDocument();
   });
 

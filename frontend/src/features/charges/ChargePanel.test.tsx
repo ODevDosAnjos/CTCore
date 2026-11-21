@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -9,6 +9,7 @@ import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { gate } from "@/test/gate";
 import { setDevicePrefersDark } from "@/test/device";
+import { currentLocation, history, LocationProbe } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { ChargeDetail, ChargeRow } from "./types";
 
@@ -37,11 +38,10 @@ const paidDetail = detail({
 let posts: { url: string; body: unknown }[];
 let listCalls: number;
 
-function setup(opts: { role?: string; detail?: () => Response | Promise<Response>; post?: (url: string) => Response | Promise<Response> } = {}) {
+function setup(opts: { entry?: string; role?: string; detail?: () => Response | Promise<Response>; post?: (url: string) => Response | Promise<Response> } = {}) {
   posts = [];
   listCalls = 0;
   const role = opts.role ?? "COORDINATOR";
-  window.history.replaceState(null, "", "/cobrancas");
   const mutate = async ({ request }: { request: Request }) => {
     const url = new URL(request.url).pathname;
     posts.push({ url, body: await request.json() });
@@ -65,7 +65,8 @@ function setup(opts: { role?: string; detail?: () => Response | Promise<Response
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/cobrancas"]}>
+      <MemoryRouter initialEntries={[opts.entry ?? "/cobrancas"]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -80,10 +81,33 @@ async function openPanel(user = userEvent.setup()) {
 }
 
 describe("ChargePanel (RF-COB-02)", () => {
+  it("#676 CA3, CA5: abrir e fechar mantém o filtro, sem nova listagem; voltar fecha o painel e a lista continua", async () => {
+    const user = userEvent.setup();
+    setup({ entry: "/cobrancas?quick=OVERDUE" });
+    await screen.findAllByRole("button", { name: /Abrir cobrança de Ana Souza/ });
+    const before = listCalls;
+    await openPanel(user);
+    expect(currentLocation()).toMatchObject({ pathname: "/cobrancas/c1", search: "?quick=OVERDUE" });
+    await user.click(await screen.findByRole("button", { name: "Fechar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(currentLocation()).toMatchObject({ pathname: "/cobrancas", search: "?quick=OVERDUE" });
+    await openPanel(user);
+    act(() => history(-1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getAllByRole("button", { name: /Abrir cobrança de Ana Souza/ })[0]).toBeInTheDocument();
+    expect(listCalls).toBe(before);
+  });
+
+  it("#676 CA6: o endereço antigo ?cobranca= chega a /cobrancas/<id>, mantendo os demais parâmetros", async () => {
+    setup({ entry: "/cobrancas?cobranca=c1&status=OVERDUE" });
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(currentLocation()).toMatchObject({ pathname: "/cobrancas/c1", search: "?status=OVERDUE" });
+  });
+
   it("CA15: abre pela lista, vai para o endereço e mostra os blocos, Cancelar e Renegociar e as três ações desabilitadas com o motivo", async () => {
     setup();
     const panel = await openPanel();
-    expect(window.location.search).toBe("?cobranca=c1");
+    expect(currentLocation().pathname).toBe("/cobrancas/c1");
     expect(await within(panel).findByText("Plano Mensal")).toBeInTheDocument();
     expect(within(panel).getByText("R$ 150,00")).toBeInTheDocument();
     expect(within(panel).getByText("− R$ 30,00")).toBeInTheDocument();
@@ -178,7 +202,7 @@ describe("ChargePanel (RF-COB-02)", () => {
     setup();
     const panel = await openPanel(user);
     await user.click(within(panel).getByRole("button", { name: "Fechar" }));
-    await waitFor(() => expect(window.location.search).toBe(""));
+    await waitFor(() => expect(currentLocation().search).toBe(""));
   });
 
   it("CA16: Cancelar só confirma com motivo, envia o motivo sem espaços, fecha e recarrega a lista e o painel", async () => {
@@ -340,7 +364,7 @@ describe("ChargePanel (RF-COB-02)", () => {
     }
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(window.location.search).toBe("");
+    expect(currentLocation().search).toBe("");
   });
 
   it("CA28: Enviar lembrete confirma, chama a rota com a cobrança, mostra o resultado e recarrega o painel com o histórico", async () => {

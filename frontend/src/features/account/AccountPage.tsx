@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PortalHeading } from "@/features/portal/PortalHeading";
 import { MenuList, SoonRow } from "@/features/portal/PortalMenuRows";
 import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/components/ui/useTabParam";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { isManagement } from "@/routes";
@@ -96,9 +97,11 @@ function ManagementAccount() {
   const sessions = useAccountSessions();
   const profile = useManagementProfile();
   const narrow = useBelowMd();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
+  const [tab, setTab] = useTabParam(TABS);
   const raw = params.get("aba");
-  const aba = (TABS as readonly string[]).includes(raw ?? "") ? raw! : undefined;
+  // Abaixo de 768 px sem `aba` válida a tela é a lista de atalhos.
+  const aba = (TABS as readonly string[]).includes(raw ?? "") ? tab : undefined;
   return (
     <div className="space-y-4">
       {narrow && aba && (
@@ -113,8 +116,8 @@ function ManagementAccount() {
       ) : (
         <Tabs
           label={t("account.tabs.label")}
-          value={aba ?? "acesso"}
-          onValueChange={(id) => setParams({ aba: id })}
+          value={tab}
+          onValueChange={setTab}
           className="max-md:[&>[role=tablist]]:hidden"
           tabs={[
             { id: "acesso", label: t("account.tabs.access"), content: <AccessCard onPasswordChanged={sessions.reload} /> },

@@ -1,8 +1,23 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render as rtlRender, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { Link, MemoryRouter } from "react-router";
+import { currentLocation, history, LocationProbe, visit } from "@/test/location";
 import { setDeviceNarrow } from "@/test/device";
 import { QueryPage, type Page, type Query } from "./QueryPage";
+
+// O estado da consulta vive no roteador (RNF-27): `go` escolhe o endereço inicial e `currentLocation` dá o `search` atual.
+let url = "/";
+const go = (u: string) => {
+  url = u;
+};
+const render = (ui: React.ReactElement) =>
+  rtlRender(
+    <MemoryRouter initialEntries={[url]}>
+      <LocationProbe />
+      {ui}
+    </MemoryRouter>,
+  );
 
 type Row = { id: string; nome: string };
 const columns = [
@@ -11,20 +26,20 @@ const columns = [
 const all: Row[] = Array.from({ length: 45 }, (_, i) => ({ id: String(i), nome: `Aluno ${i}` }));
 
 function setup(fetchPage: (q: Query) => Promise<Page<Row>>, url = "/") {
-  window.history.replaceState(null, "", url);
+  go(url);
   return render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} />);
 }
 const pager = (q: Query) => Promise.resolve({ rows: all.slice((q.pagina - 1) * q.tamanho, q.pagina * q.tamanho), total: 45 });
 
 describe("QueryPage", () => {
   it("CA6: com searchPlaceholder usa o SearchBox e grava q; sem ele a caixa de sempre", async () => {
-    window.history.replaceState(null, "", "/");
+    go("/");
     const { unmount } = render(<QueryPage columns={columns} fetchPage={pager} rowKey={(r) => r.id} searchPlaceholder="Nome" />);
     await screen.findByText("Aluno 0");
     const box = screen.getByRole("searchbox", { name: "Buscar" });
     expect(box).toHaveAttribute("placeholder", "Nome");
     await userEvent.type(box, "a");
-    await waitFor(() => expect(window.location.search).toBe("?q=a"));
+    await waitFor(() => expect(currentLocation().search).toBe("?q=a"));
     unmount();
     setup(pager);
     expect(screen.getByRole("searchbox", { name: "Buscar" })).not.toHaveAttribute("placeholder");
@@ -41,7 +56,7 @@ describe("QueryPage", () => {
     expect(screen.getByRole("searchbox", { name: "Buscar" })).toHaveValue("ana");
 
     await userEvent.type(screen.getByRole("searchbox", { name: "Buscar" }), "x");
-    await waitFor(() => expect(window.location.search).toBe("?q=anax&ordem=nome"));
+    await waitFor(() => expect(currentLocation().search).toBe("?q=anax&ordem=nome"));
     expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ q: "anax", pagina: 1 }));
   });
 
@@ -51,7 +66,7 @@ describe("QueryPage", () => {
     expect(screen.getByRole("button", { name: "Página anterior" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Próxima página" }));
     expect(await screen.findByText("Página 2 de 2")).toBeInTheDocument();
-    expect(window.location.search).toBe("?pagina=2");
+    expect(currentLocation().search).toBe("?pagina=2");
     expect(screen.getByRole("button", { name: "Próxima página" })).toBeDisabled();
   });
 
@@ -74,12 +89,12 @@ describe("QueryPage", () => {
     setup(fetchPage, "/?pagina=2");
     await screen.findByText("Aluno 25");
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Itens por página" }), "50");
-    expect(window.location.search).toBe("?tamanho=50");
+    expect(currentLocation().search).toBe("?tamanho=50");
     expect(await screen.findByText("Página 1 de 1")).toBeInTheDocument();
     expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ pagina: 1, tamanho: 50 }));
 
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Itens por página" }), "25");
-    expect(window.location.search).toBe("");
+    expect(currentLocation().search).toBe("");
   });
 
   it("RNF-02: mostra o total com separador de milhar e no singular", async () => {
@@ -92,9 +107,9 @@ describe("QueryPage", () => {
   it("ordenação vai para o endereço", async () => {
     setup(pager);
     await userEvent.click(await screen.findByRole("button", { name: "Ordenar por Nome" }));
-    expect(window.location.search).toBe("?ordem=nome");
+    expect(currentLocation().search).toBe("?ordem=nome");
     await userEvent.click(await screen.findByRole("button", { name: "Ordenar por Nome" }));
-    expect(window.location.search).toBe("?ordem=-nome");
+    expect(currentLocation().search).toBe("?ordem=-nome");
   });
 
   it("CA6: parâmetros inválidos usam os padrões; página fora do intervalo volta para a 1", async () => {
@@ -103,9 +118,9 @@ describe("QueryPage", () => {
     expect(await screen.findByText("Aluno 0")).toBeInTheDocument();
     expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ pagina: 1, ordem: "" }));
 
-    window.history.replaceState(null, "", "/");
+    go("/");
     setup(fetchPage, "/?pagina=99");
-    await waitFor(() => expect(window.location.search).toBe(""));
+    await waitFor(() => expect(currentLocation().search).toBe(""));
     expect((await screen.findAllByText("Aluno 0")).length).toBeGreaterThan(0);
   });
 
@@ -113,7 +128,7 @@ describe("QueryPage", () => {
     setup(() => Promise.resolve({ rows: [], total: 0 }), "/?q=zzz");
     expect(await screen.findByText("Nenhum resultado")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
-    expect(window.location.search).toBe("");
+    expect(currentLocation().search).toBe("");
     expect(await screen.findByText("Nada por aqui ainda")).toBeInTheDocument();
   });
 
@@ -128,12 +143,31 @@ describe("QueryPage", () => {
   });
 });
 
+describe("QueryPage no roteador (#676)", () => {
+  it("CA4: um Link para a mesma lista com outro filtro atualiza a lista e o voltar desfaz", async () => {
+    const fetchPage = vi.fn(pager);
+    go("/alunos");
+    render(
+      <>
+        <Link to="/alunos?classId=t1">Ver todos</Link>
+        <QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} filterKeys={["classId"]} />
+      </>,
+    );
+    await screen.findByText("Aluno 0");
+    await userEvent.click(screen.getByRole("link", { name: "Ver todos" }));
+    await waitFor(() => expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ filtros: { classId: "t1" } })));
+    expect(currentLocation().search).toBe("?classId=t1");
+    act(() => void history(-1));
+    await waitFor(() => expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ filtros: {} })));
+  });
+});
+
 describe("QueryPage com canvasPagination (CA4, CA5)", () => {
   const rows131 = Array.from({ length: 131 }, (_, i) => ({ id: String(i), nome: `Aluno ${i}` }));
   const big = (q: Query) => Promise.resolve({ rows: rows131.slice((q.pagina - 1) * q.tamanho, q.pagina * q.tamanho), total: 131 });
 
   it("mostra o intervalo, navega e volta à página 1 ao trocar o tamanho", async () => {
-    window.history.replaceState(null, "", "/");
+    go("/");
     render(<QueryPage columns={columns} fetchPage={big} rowKey={(r) => r.id} canvasPagination />);
     expect(await screen.findByText("1–25 de 131")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Página anterior" })).toBeDisabled();
@@ -142,8 +176,7 @@ describe("QueryPage com canvasPagination (CA4, CA5)", () => {
     await userEvent.selectOptions(screen.getByRole("combobox"), "50");
     expect(await screen.findByText("1–50 de 131")).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByRole("combobox"), "25");
-    window.history.replaceState(null, "", "/?pagina=6");
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    act(() => void visit("/?pagina=6"));
     expect(await screen.findByText("126–131 de 131")).toBeInTheDocument();
   });
 
@@ -157,7 +190,7 @@ describe("QueryPage com canvasPagination (CA4, CA5)", () => {
 describe("QueryPage · cardsBelow", () => {
   const cards = (r: Row) => <span>Cartão {r.nome}</span>;
   const renderSm = (below?: "sm") => {
-    window.history.replaceState(null, "", "/");
+    go("/");
     render(<QueryPage columns={columns} fetchPage={pager} rowKey={(r) => r.id} cards={cards} cardsBelow={below} />);
   };
   afterEach(() => setDeviceNarrow(false));
@@ -186,7 +219,7 @@ describe("QueryPage · cardsBelow", () => {
 
 describe("QueryPage com canvasStates (#464)", () => {
   const withStates = (fetchPage: (q: Query) => Promise<Page<Row>>, url = "/") => {
-    window.history.replaceState(null, "", url);
+    go(url);
     return render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} canvasStates searchPlaceholder="Buscar" />);
   };
 
@@ -200,7 +233,7 @@ describe("QueryPage com canvasStates (#464)", () => {
   });
 
   it("#476: o cartão de erro leva título, texto e a ação extra da tela", async () => {
-    window.history.replaceState(null, "", "/");
+    go("/");
     render(
       <QueryPage
         columns={columns}
@@ -228,7 +261,7 @@ describe("QueryPage com canvasStates (#464)", () => {
   });
 
   it("#465: carregando mostra o cabeçalho das colunas e 8 linhas de esqueleto; header recebe os totais", async () => {
-    window.history.replaceState(null, "", "/");
+    go("/");
     const header = vi.fn(({ total }: { total?: number }) => <p>{total === undefined ? "carregando…" : `total ${total}`}</p>);
     let done: (p: Page<Row>) => void = () => {};
     render(<QueryPage columns={columns} fetchPage={() => new Promise<Page<Row>>((r) => (done = r))} rowKey={(r) => r.id} canvasStates header={header} />);
@@ -242,7 +275,7 @@ describe("QueryPage com canvasStates (#464)", () => {
 
   it("#465: abaixo de 640 px com cartões, o carregando tem 6 cartões de esqueleto", () => {
     setDeviceNarrow(true);
-    window.history.replaceState(null, "", "/");
+    go("/");
     render(<QueryPage columns={columns} fetchPage={() => new Promise<Page<Row>>(() => {})} rowKey={(r) => r.id} canvasStates cardsBelow="sm" cards={(r) => r.nome} />);
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(document.querySelectorAll("li[aria-hidden]")).toHaveLength(6);
@@ -251,13 +284,13 @@ describe("QueryPage com canvasStates (#464)", () => {
 
   it("#470: defaultFilters vale sem o parâmetro no endereço, o valor do endereço vence e o padrão não conta como filtro", async () => {
     const fetchPage = vi.fn((): Promise<Page<Row>> => Promise.resolve({ rows: [], total: 0 }));
-    window.history.replaceState(null, "", "/");
+    go("/");
     const { unmount } = render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} filterKeys={["status"]} defaultFilters={{ status: "ACTIVE" }} filters={({ get }) => <p>status {get("status")}</p>} />);
     expect(await screen.findByText("Nada por aqui ainda")).toBeInTheDocument();
     expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ filtros: { status: "ACTIVE" } }));
     expect(screen.getByText("status ACTIVE")).toBeInTheDocument();
     unmount();
-    window.history.replaceState(null, "", "/?status=ALL");
+    go("/?status=ALL");
     render(<QueryPage columns={columns} fetchPage={fetchPage} rowKey={(r) => r.id} filterKeys={["status"]} defaultFilters={{ status: "ACTIVE" }} />);
     await waitFor(() => expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ filtros: { status: "ALL" } })));
     expect(await screen.findByText("Nenhum resultado")).toBeInTheDocument();
@@ -265,7 +298,7 @@ describe("QueryPage com canvasStates (#464)", () => {
 
   it("#470: onRowClick abre a linha, menos quando o clique é num link ou botão", async () => {
     const onRowClick = vi.fn();
-    window.history.replaceState(null, "", "/");
+    go("/");
     render(<QueryPage columns={[{ key: "nome", label: "Nome", render: (r: Row) => <><span>{r.nome}</span><a href="#x">ver {r.id}</a></> }]} fetchPage={() => Promise.resolve({ rows: all.slice(0, 1), total: 1 })} rowKey={(r) => r.id} onRowClick={onRowClick} />);
     await userEvent.click(await screen.findByText("ver 0"));
     expect(onRowClick).not.toHaveBeenCalled();

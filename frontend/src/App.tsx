@@ -24,7 +24,9 @@ import { BirthdaysCard } from "@/features/students/BirthdaysCard";
 import { EnrollmentWizardPage } from "@/features/students/enrollment-wizard/EnrollmentWizardPage";
 import { PortalRequestsPage } from "@/features/portal-requests/PortalRequestsPage";
 import { StudentsPage } from "@/features/students/StudentsPage";
+import { StudentRecordPage } from "@/features/students/StudentRecordPanel";
 import { ChargesPage } from "@/features/charges/ChargesPage";
+import { ChargePanelPage } from "@/features/charges/ChargePanelPage";
 import { ChargePreviewPage } from "@/features/charges/ChargePreviewPage";
 import { DailyReceiptsPage } from "@/features/charges/DailyReceiptsPage";
 import { OverduePage } from "@/features/charges/OverduePage";
@@ -32,10 +34,11 @@ import { PaymentProofsPage } from "@/features/payment-proofs/PaymentProofsPage";
 import { AnnouncementsPage } from "@/features/announcements/AnnouncementsPage";
 import { NewAnnouncementPage } from "@/features/announcements/NewAnnouncementPage";
 import { TeachersPage } from "@/features/teachers/TeachersPage";
-import { TeacherPanelPage } from "@/features/teachers/TeacherPanelPage";
+import { TeacherPanel } from "@/features/teachers/TeacherPanel";
 import { ClassesPage } from "@/features/classes/ClassesPage";
-import { ClassPanelPage } from "@/features/classes/ClassPanelPage";
+import { ClassPanel } from "@/features/classes/ClassPanel";
 import { PlansPage } from "@/features/plans/PlansPage";
+import { PlanPanelPage } from "@/features/plans/PlanInspectDrawer";
 import { BenefitsPage } from "@/features/benefits/BenefitsPage";
 import { AgendaPage } from "@/features/agenda/AgendaPage";
 import { LessonPanelPage } from "@/features/agenda/LessonPanelPage";
@@ -99,22 +102,25 @@ const P = (id: string) => routeById(id).path;
 // Telas da gestão por id do mapa de rotas (`routes.ts`): endereço, acesso, menu e trilha vêm de lá.
 const screens: Record<string, ReactNode> = {
   students: <StudentsPage />,
+  studentRecord: <StudentRecordPage />,
   enrollment: <EnrollmentWizardPage />,
   requests: <PortalRequestsPage />,
   teachers: <TeachersPage />,
-  teacherPanel: <TeacherPanelPage />,
+  teacherPanel: <TeacherPanel />,
   agenda: <AgendaPage />,
   lesson: <LessonPanelPage />,
   teacherRecord: <TeacherRecordPage />,
   classes: <ClassesPage />,
-  classPanel: <ClassPanelPage />,
+  classPanel: <ClassPanel />,
   noClassDays: <NoClassDaysPage />,
   collections: <ChargesPage />,
+  chargePanel: <ChargePanelPage />,
   chargePreview: <ChargePreviewPage />,
   dailyReceipts: <DailyReceiptsPage />,
   overdue: <OverduePage />,
   paymentProofs: <PaymentProofsPage />,
   plans: <PlansPage />,
+  planPanel: <PlanPanelPage />,
   benefits: <BenefitsPage />,
   announcements: <AnnouncementsPage />,
   newAnnouncement: <NewAnnouncementPage />,

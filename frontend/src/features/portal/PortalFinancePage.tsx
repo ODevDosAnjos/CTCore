@@ -20,13 +20,13 @@ import { usePortalFinance, type PortalFinanceData } from "./usePortalFinance";
 
 const FAMILY = "FAMILY";
 
-// RF-POR-05: Financeiro do aluno em `?aluno=`, `?visao=familia` e `?ano=` (padrão: primeiro cartão, só ele, ano de hoje). Abre também no portal reduzido (RN-POR-08).
+// RF-POR-05: Financeiro do aluno em `?aluno=`, `?visao=familia` e `?aba=` (o ano, D5) (padrão: primeiro cartão, só ele, ano de hoje). Abre também no portal reduzido (RN-POR-08).
 export function PortalFinancePage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const student = params.get("aluno");
   const family = params.get("visao") === "familia";
-  const year = params.get("ano");
+  const year = params.get("aba");
   const { status, data, reload } = usePortalFinance(student, family ? FAMILY : "STUDENT", year);
   const shell = usePortalShell();
   const { state } = useSession();
@@ -47,7 +47,7 @@ export function PortalFinancePage() {
     }
     setParams(next, { replace: true });
   };
-  const choose = (value: string) => (value === FAMILY ? change({ visao: "familia", ano: null }) : change({ aluno: value, visao: null, ano: null }));
+  const choose = (value: string) => (value === FAMILY ? change({ visao: "familia", aba: null }) : change({ aluno: value, visao: null, aba: null }));
 
   return (
     <>
@@ -99,7 +99,7 @@ export function PortalFinancePage() {
               <PortalReceiptsCard />
             </div>
           )}
-          {!family && <PortalChargeHistory reduced={reduced} items={data.history} year={data.year} years={data.years} onYear={(y) => change({ ano: String(y) })} />}
+          {!family && <PortalChargeHistory reduced={reduced} items={data.history} year={data.year} years={data.years} onYear={(y) => change({ aba: String(y) })} />}
           {reduced && (
             <div className="flex flex-col items-start gap-1">
               <p className="text-sm text-muted-foreground">{t(narrow ? "portalFinance.reduced.noteShort" : "portalFinance.reduced.note")}</p>

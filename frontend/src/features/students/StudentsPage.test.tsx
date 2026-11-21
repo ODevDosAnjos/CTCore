@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectPillOptions, pickPill } from "@/test/pill";
 import { http, HttpResponse } from "msw";
@@ -9,6 +9,7 @@ import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
+import { currentLocation, history, LocationProbe } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { StudentRow } from "./types";
 
@@ -42,7 +43,6 @@ let calls: URLSearchParams[];
 
 function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, accountId = "a", url = "/alunos") {
   calls = [];
-  window.history.replaceState(null, "", url);
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role, accountId))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
@@ -63,6 +63,7 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, 
   return render(
     <ThemeProvider>
       <MemoryRouter initialEntries={[url]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -75,6 +76,25 @@ const ready = () => screen.findByRole("heading", { name: "Alunos", level: 1 });
 
 describe("StudentsPage", () => {
   beforeEach(() => localStorage.clear());
+
+  it("#676 CA2, CA3, CA5: abrir e fechar a ficha mantém filtro e página, sem nova listagem; voltar fecha a ficha", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", undefined, "a", "/alunos?status=ACTIVE&pagina=2");
+    const link = await screen.findByRole("link", { name: "Abrir a ficha de Ana Souza" });
+    const listed = calls.length;
+    expect(link).toHaveAttribute("href", "/alunos/s1?status=ACTIVE&pagina=2");
+    await user.click(link);
+    expect(await screen.findByRole("dialog", { name: "Ficha do aluno" })).toBeInTheDocument();
+    expect(currentLocation()).toMatchObject({ pathname: "/alunos/s1", search: "?status=ACTIVE&pagina=2" });
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(currentLocation()).toMatchObject({ pathname: "/alunos", search: "?status=ACTIVE&pagina=2" });
+    await user.click(screen.getByRole("link", { name: "Abrir a ficha de Ana Souza" }));
+    await screen.findByRole("dialog", { name: "Ficha do aluno" });
+    act(() => history(-1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(calls).toHaveLength(listed);
+  });
 
   it("CA9: lista nome, unidade, idade, faixa e data; iniciais sem foto; traço sem faixa; pede a página 25 por nome", async () => {
     setup();

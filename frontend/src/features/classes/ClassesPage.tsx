@@ -1,7 +1,7 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import type { TFunction } from "i18next";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { RowCard } from "@/components/query/RowCard";
@@ -38,13 +38,13 @@ const teacherCell = (t: TFunction, r: TrainingClass) => (
   <Person name={r.head.name} size="sm" secondary={r.assistants.length > 0 ? t("classes.assistants", { names: r.assistants.map((a) => a.name).join(", ") }) : undefined} />
 );
 
-const columns = (t: TFunction): Column<TrainingClass>[] => [
+const columns = (t: TFunction, search: string): Column<TrainingClass>[] => [
   {
     key: "name",
     label: t("classes.columns.name"),
     sortable: true,
     render: (r) => (
-      <Link to={`/turmas/${r.id}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-bold">
+      <Link to={`/turmas/${r.id}${search}`} className="inline-flex min-h-11 min-w-0 items-center break-words font-bold">
         {r.name}
       </Link>
     ),
@@ -57,7 +57,7 @@ const columns = (t: TFunction): Column<TrainingClass>[] => [
   { key: "status", label: t("classes.columns.status"), render: (r) => <StatusBadge status={r.status} label={t(`classes.statuses.${r.status}`)} /> },
 ];
 
-const card = (t: TFunction) => (r: TrainingClass) => (
+const card = (t: TFunction, search: string) => (r: TrainingClass) => (
   <RowCard
     title={r.name}
     meta={
@@ -70,7 +70,7 @@ const card = (t: TFunction) => (r: TrainingClass) => (
     badge={r.status === "INACTIVE" ? <StatusBadge status={r.status} label={t(`classes.statuses.${r.status}`)} /> : undefined}
     action={
       <Button asChild variant="secondary">
-        <Link to={`/turmas/${r.id}`} aria-label={t("classes.viewAria", { name: r.name })}>
+        <Link to={`/turmas/${r.id}${search}`} aria-label={t("classes.viewAria", { name: r.name })}>
           {t("query.viewRow")}
         </Link>
       </Button>
@@ -81,6 +81,7 @@ const card = (t: TFunction) => (r: TrainingClass) => (
 function Content() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const narrow = useBelowSm();
   const [creating, setCreating] = useState(false);
   const { permissions } = usePermissions();
@@ -115,12 +116,12 @@ function Content() {
         searchPlaceholder={t("classes.search")}
         canvasPagination
         canvasStates
-        columns={columns(t)}
+        columns={columns(t, search)}
         cardsBelow="sm"
-        cards={card(t)}
+        cards={card(t, search)}
         fetchPage={fetchPage}
         rowKey={(r) => r.id}
-        onRowClick={(r) => void navigate(`/turmas/${r.id}`)}
+        onRowClick={(r) => void navigate({ pathname: `/turmas/${r.id}`, search })}
         rowClassName={(r) => (r.status === "INACTIVE" ? "opacity-60" : undefined)}
         filterKeys={["modalityId", "teacherId", "ageRangeId", "weekday", "status"]}
         filters={(p) => <ClassFilters {...p} />}
@@ -137,11 +138,11 @@ function Content() {
 }
 
 // RF-TUR-01 e RF-TUR-03: lista de turmas com "Nova turma"; a barreira de dados é o servidor (403 vira "sem permissão" na própria lista).
-export function ClassesPage({ children }: { children?: ReactNode }) {
+export function ClassesPage() {
   return (
     <>
       <Content />
-      {children}
+      <Outlet />
     </>
   );
 }

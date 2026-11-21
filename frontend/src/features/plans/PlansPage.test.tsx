@@ -235,6 +235,17 @@ describe("PlansPage · tela (RF-PLA-01, RF-PLA-02)", () => {
     await waitFor(() => expect(listCalls.length).toBeGreaterThan(before));
   });
 
+  it("#676 CA5: o plano desativado abre em /planos/<id> sobre a lista; F5 reabre; fechar volta a /planos", async () => {
+    const user = userEvent.setup();
+    setup({ path: "/planos/p5" });
+    const drawer = within(await screen.findByRole("dialog", { name: "Adulto 2x (antigo)" }));
+    expect(await drawer.findByText("Desativado em 01/08/2026 por Carla Mendes")).toBeInTheDocument();
+    await waitFor(() => expect(listCalls.length).toBeGreaterThan(0));
+    await user.click(drawer.getByRole("button", { name: "Fechar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByTestId("where")).toHaveTextContent("/planos");
+  });
+
   it("CA12: reativar com homônimo ativo (409) mostra o conflito e a gaveta continua aberta", async () => {
     const user = userEvent.setup();
     setup({ activate: () => HttpResponse.json({ code: "CONFLICT" }, { status: 409 }) });

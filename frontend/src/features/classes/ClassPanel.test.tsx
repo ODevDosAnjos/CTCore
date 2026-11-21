@@ -67,7 +67,7 @@ const ready = () => screen.findByRole("heading", { name: "Jiu-Jitsu Adulto" });
 // As permissões chegam depois do painel.
 const enabled = () => waitFor(() => expect(screen.getByRole("button", { name: "Desativar" })).toBeEnabled());
 
-describe("ClassPanelPage (RF-TUR-02)", () => {
+describe("ClassPanel (RF-TUR-02)", () => {
   it("CA6: a gaveta mostra selos, cabeçalho de três partes, professores, capacidade, grupo encurtado e vazios", async () => {
     setup();
     await ready();

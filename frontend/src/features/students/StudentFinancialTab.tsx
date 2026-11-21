@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Receipt } from "lucide-react";
 import { DataTable, type Column } from "@/components/query/DataTable";
@@ -26,7 +27,16 @@ export function StudentFinancialTab({ charges, onChanged, onCharge }: { charges:
   const k = "students.record.financial.";
   const reference = useReference();
   const narrow = useBelowSm();
-  const [open, setOpen] = useState<string>();
+  // D4 (RNF-27): a cobrança aberta na ficha tem endereço (?cobranca=); voltar fecha só a cobrança.
+  const [params, setParams] = useSearchParams();
+  const open = params.get("cobranca") ?? undefined;
+  const setOpen = (id?: string) =>
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set("cobranca", id);
+      else next.delete("cobranca");
+      return next;
+    });
   const [paying, setPaying] = useState<ChargeRow>();
   const [paid, setPaid] = useState(false);
   if (charges.status === "loading" || charges.status === "idle") return <LoadingState />;

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChoiceCards } from "@/components/ui/choice-cards";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/components/ui/useTabParam";
 import { Textarea } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
 import { useTerms, type TermsKind, type TermsVersion } from "./useTerms";
@@ -159,14 +160,14 @@ function TermEditor({ kind }: { kind: TermsKind }) {
 
 function Content() {
   const { t } = useTranslation();
-  const [kind, setKind] = useState<TermsKind>("ENROLLMENT");
+  const [kind, setKind] = useTabParam<TermsKind>(KINDS);
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={t("terms.title")} subtitle={t("terms.subtitle")} />
       <Tabs
         label={t("terms.tabs")}
         value={kind}
-        onValueChange={(id) => setKind(id as TermsKind)}
+        onValueChange={setKind}
         tabs={KINDS.map((k) => ({ id: k, label: t(`terms.kinds.${k}`), content: <TermEditor key={k} kind={k} /> }))}
       />
     </div>

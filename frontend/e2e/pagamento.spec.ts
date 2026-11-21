@@ -38,7 +38,7 @@ test("@critical Registrar pagamento no balcão", async ({ page }) => {
   })) as { charges: { id: string }[] };
 
   await page.setViewportSize({ width: 360, height: 740 });
-  await open(page, `/cobrancas?cobranca=${done.charges[0].id}`);
+  await open(page, `/cobrancas/${done.charges[0].id}`);
   const panel = page.getByRole("dialog").first();
   await panel.getByRole("button", { name: "Registrar pagamento" }).click();
   const dialog = page.getByRole("dialog", { name: "Registrar pagamento" });

@@ -8,6 +8,7 @@ import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
+import { currentLocation, LocationProbe } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { AnnouncementItem } from "./types";
 
@@ -45,7 +46,6 @@ let used = 0;
 function setup(list?: (p: URLSearchParams) => Response | Promise<Response>, path = "/comunicados", remove?: () => Response, withUnit = false) {
   calls = [];
   deletes = [];
-  window.history.replaceState(null, "", path);
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session("COORDINATOR"))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions("COORDINATOR") })),
@@ -67,6 +67,7 @@ function setup(list?: (p: URLSearchParams) => Response | Promise<Response>, path
   return render(
     <ThemeProvider>
       <MemoryRouter initialEntries={[path]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -196,8 +197,8 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     await user.type(screen.getByLabelText("Até"), "2026-10-31");
     await waitFor(() => expect(calls.at(-1)!.get("from")).toBe("2026-10-01"));
     await waitFor(() => expect(calls.at(-1)!.get("to")).toBe("2026-10-31"));
-    expect(window.location.search).toContain("type=GENERAL");
-    expect(window.location.search).toContain("classId=k1");
+    expect(currentLocation().search).toContain("type=GENERAL");
+    expect(currentLocation().search).toContain("classId=k1");
   });
 
   it("CA11: confirmar o cancelamento chama o DELETE e recarrega a lista", async () => {
@@ -271,7 +272,7 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     expect(await screen.findByText("Nenhum comunicado com estes filtros")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
     await screen.findAllByText("Aula de sexta cancelada");
-    expect(window.location.search).not.toContain("type=");
+    expect(currentLocation().search).not.toContain("type=");
   });
 
   it("CA12: erro com tentar de novo e 403 do servidor mostra sem permissão", async () => {

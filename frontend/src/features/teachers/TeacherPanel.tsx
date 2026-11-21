@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
+import { useListTo } from "@/components/query/useListTo";
 import type { TFunction } from "i18next";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
@@ -16,7 +17,6 @@ import { formatDateTime } from "@/lib/format";
 import { DeactivateTeacherDialog } from "./DeactivateTeacherDialog";
 import { GrantAccessDialog } from "./GrantAccessDialog";
 import { TeacherFormDialog } from "./TeacherFormDialog";
-import { TeachersPage } from "./TeachersPage";
 import { resendTeacherInvite, useTeacher, type TeacherDetail } from "./useTeachers";
 
 // Bloco plano do canvas: título em negrito e conteúdo, sem cartão.
@@ -52,8 +52,9 @@ function schedule(t: TFunction, slots: { weekday: number; startsAt: string }[]) 
 function DrawerShell({ title, lead, subtitle, footer, children }: { title?: string; lead?: ReactNode; subtitle?: ReactNode; footer?: ReactNode; children: ReactNode }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const list = useListTo("/professores");
   return (
-    <Drawer scrim="canvas" open onOpenChange={(open) => !open && void navigate("/professores")} title={title ?? t("teachers.panel.eyebrow")} lead={lead} subtitle={subtitle} footer={footer}>
+    <Drawer scrim="canvas" open onOpenChange={(open) => !open && void navigate(list)} title={title ?? t("teachers.panel.eyebrow")} lead={lead} subtitle={subtitle} footer={footer}>
       {children}
     </Drawer>
   );
@@ -242,6 +243,7 @@ function Content() {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const api = useTeacher(id);
+  const list = useListTo("/professores");
   if (api.status === "loading") {
     return (
       <DrawerShell>
@@ -263,7 +265,7 @@ function Content() {
           title={t("teachers.panel.notFoundTitle")}
           text={t("teachers.panel.notFoundText")}
           action={
-            <Link to="/professores" className="inline-flex min-h-11 items-center underline">
+            <Link to={list} className="inline-flex min-h-11 items-center underline">
               {t("teachers.panel.back")}
             </Link>
           }
@@ -282,10 +284,4 @@ function Content() {
 }
 
 // RF-PRO-02: painel em gaveta sobre a lista, com dar acesso e reenviar convite; a barreira de dados é o servidor.
-export function TeacherPanelPage() {
-  return (
-    <TeachersPage>
-      <Content />
-    </TeachersPage>
-  );
-}
+export const TeacherPanel = Content;

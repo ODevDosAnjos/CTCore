@@ -1,7 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
+import { currentLocation, history, LocationProbe } from "@/test/location";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import type { ChargeRow } from "@/features/charges/types";
 import { mockPermissions } from "@/mocks/permissions";
@@ -10,7 +11,7 @@ import { PermissionsFrame } from "@/test/PermissionsFrame";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { StudentRecordPanel } from "./StudentRecordPanel";
+import { StudentRecordPage } from "./StudentRecordPanel";
 import type { StudentRecord } from "./types";
 
 const session = (role: string): SessionView => ({
@@ -55,9 +56,10 @@ function setup(opts: { role?: string; charges?: () => Response | Promise<Respons
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={["/alunos/s1"]}>
+        <LocationProbe />
         <SessionProvider>
-          <PermissionsFrame><StudentRecordPanel id="s1" onClose={() => {}} /></PermissionsFrame>
+          <Routes><Route path="/alunos/:id" element={<PermissionsFrame><StudentRecordPage /></PermissionsFrame>} /></Routes>
         </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,
@@ -109,6 +111,10 @@ describe("aba Financeiro da ficha (RF-COB-02, R14)", () => {
     await user.click(await within(dialog).findByRole("button", { name: /Abrir: Jiu-Jitsu · 03\/2026/ }));
     const panelCharge = await screen.findByRole("dialog", { name: /Jiu-Jitsu · 03\/2026/i });
     expect(within(panelCharge).queryByRole("link", { name: "Ver aluno" })).toBeNull();
+    expect(currentLocation().search).toBe("?aba=financeiro&cobranca=c1");
+    act(() => history(-1));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /Jiu-Jitsu · 03\/2026/i })).toBeNull());
+    expect(currentLocation().search).toBe("?aba=financeiro");
   });
 
   it("CA9: Paga com atraso aparece com selo próprio", async () => {

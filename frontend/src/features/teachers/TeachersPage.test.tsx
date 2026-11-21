@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectPillOptions, pickPill } from "@/test/pill";
 import { http, HttpResponse } from "msw";
@@ -9,6 +9,7 @@ import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
+import { currentLocation, history, LocationProbe } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { Teacher } from "./useTeachers";
 
@@ -37,9 +38,8 @@ const all = [
 
 let calls: URLSearchParams[];
 
-function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>) {
+function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>, entry = "/professores") {
   calls = [];
-  window.history.replaceState(null, "", "/professores");
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
@@ -62,7 +62,8 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>) 
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/professores"]}>
+      <MemoryRouter initialEntries={[entry]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -74,6 +75,25 @@ function setup(role = "COORDINATOR", list?: () => Response | Promise<Response>) 
 const ready = () => screen.findByRole("heading", { name: "Professores", level: 1 });
 
 describe("TeachersPage", () => {
+  it("#676 CA3, CA5: abrir e fechar o painel mantém o filtro, sem nova listagem; voltar fecha o painel e a lista continua", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", undefined, "/professores?status=INACTIVE");
+    const link = await screen.findByRole("link", { name: "João Pereira" });
+    const listed = calls.length;
+    await user.click(link);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(currentLocation()).toMatchObject({ pathname: "/professores/t2", search: "?status=INACTIVE" });
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(currentLocation()).toMatchObject({ pathname: "/professores", search: "?status=INACTIVE" });
+    await user.click(screen.getByRole("link", { name: "João Pereira" }));
+    await screen.findByRole("dialog");
+    act(() => history(-1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByRole("link", { name: "João Pereira" })).toBeInTheDocument();
+    expect(calls).toHaveLength(listed);
+  });
+
   it("CA8: lista nome, modalidades, faixa, unidades, turmas e situação; iniciais sem foto", async () => {
     const user = userEvent.setup();
     setup();
@@ -110,7 +130,7 @@ describe("TeachersPage", () => {
     await pickPill(user, "Situação", "Todos");
     expect(await screen.findByText("João Pereira")).toBeInTheDocument();
     expect(calls.at(-1)!.has("status")).toBe(false);
-    expect(window.location.search).toContain("status=ALL");
+    expect(currentLocation().search).toContain("status=ALL");
   });
 
   it("CA2: nome em negrito sem sublinhado; selo Convite enviado quando o acesso está pendente; a linha inteira abre o painel", async () => {

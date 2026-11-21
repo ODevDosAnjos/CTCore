@@ -8,6 +8,7 @@ import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
+import { currentLocation, LocationProbe } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { AnnouncementDraft, AnnouncementTargets } from "./types";
 
@@ -29,10 +30,9 @@ const templates = {
 const failure = (status: number, code: string) => HttpResponse.json({ code, message: "m", fields: [], traceId: "t" }, { status });
 
 let creates: AnnouncementDraft[];
-type Options = { role?: string; targets?: AnnouncementTargets; orgUsed?: number; targetsResponse?: () => Response; create?: () => Response };
-function setup({ role = "COORDINATOR", targets = coordinator, orgUsed = 1, targetsResponse, create }: Options = {}) {
+type Options = { role?: string; targets?: AnnouncementTargets; orgUsed?: number; targetsResponse?: () => Response; create?: () => Response; entry?: string };
+function setup({ role = "COORDINATOR", targets = coordinator, orgUsed = 1, targetsResponse, create, entry = "/comunicados?novo=organizacao" }: Options = {}) {
   creates = [];
-  window.history.replaceState(null, "", "/comunicados?novo=organizacao");
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role as never) })),
@@ -49,7 +49,8 @@ function setup({ role = "COORDINATOR", targets = coordinator, orgUsed = 1, targe
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/comunicados?novo=organizacao"]}>
+      <MemoryRouter initialEntries={[entry]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -61,6 +62,15 @@ const ready = () => screen.findByRole("radio", { name: /Organização inteira/ }
 const SUMMARY = "Vai para 286 pessoas nas duas unidades, 271 por e-mail.";
 
 describe("OrganizationAnnouncementDialog (R17, CA15)", () => {
+  it("#676 CA10: fechar a janela mantém os filtros da lista e só tira o novo", async () => {
+    const user = userEvent.setup();
+    setup({ entry: "/comunicados?type=GENERAL&novo=organizacao" });
+    await ready();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(currentLocation()).toMatchObject({ pathname: "/comunicados", search: "?type=GENERAL" });
+  });
+
   it("o Coordenador vê os quatro rádios, o Resumo e o limite próprio, e envia para a organização", async () => {
     const user = userEvent.setup();
     setup();

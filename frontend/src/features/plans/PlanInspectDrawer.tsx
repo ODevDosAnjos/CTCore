@@ -1,5 +1,7 @@
 import { Lock } from "lucide-react";
 import { useState } from "react";
+import { useNavigate, useOutletContext, useParams } from "react-router";
+import { useListTo } from "@/components/query/useListTo";
 import { useTranslation } from "react-i18next";
 import { formatMoney } from "@/components/fields/masks";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
@@ -14,59 +16,34 @@ import {
   activatePlan,
   usePlanDetail,
   type PlanDetail,
-  type PlanRow,
+
 } from "./usePlans";
 
 // RN-PLA-06: consulta do plano desativado (só leitura) com quem desativou e o histórico de valor; "Reativar plano" é a única ação.
 export function PlanInspectDrawer({
-  plan,
+  id,
   showOtherUnits,
   onClose,
   onDone,
 }: {
-  plan: PlanRow | null;
-  showOtherUnits: boolean;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  if (!plan) return null;
-  return (
-    <Body
-      key={plan.id}
-      plan={plan}
-      showOtherUnits={showOtherUnits}
-      onClose={onClose}
-      onDone={onDone}
-    />
-  );
-}
-
-function Body({
-  plan,
-  showOtherUnits,
-  onClose,
-  onDone,
-}: {
-  plan: PlanRow;
+  id: string;
   showOtherUnits: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const loaded = usePlanDetail(plan.id);
+  const loaded = usePlanDetail(id);
+  const plan = loaded.detail;
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const k = "plans.inspect.";
-  const frequency =
-    plan.weeklyFrequency === null
-      ? t("plans.table.free")
-      : t("plans.table.perWeek", { count: plan.weeklyFrequency });
+  const frequency = !plan ? "" : plan.weeklyFrequency === null ? t("plans.table.free") : t("plans.table.perWeek", { count: plan.weeklyFrequency });
 
   async function reactivate() {
     setError(undefined);
     setBusy(true);
     try {
-      await activatePlan(plan.id);
+      await activatePlan(id);
     } catch (e) {
       setBusy(false);
       setError(
@@ -87,17 +64,19 @@ function Body({
     <Drawer
       open
       onOpenChange={(o) => !o && !busy && onClose()}
-      title={plan.name}
-      eyebrow={<ModalityDot name={plan.modality.name} />}
+      title={plan?.name ?? t(`${k}title`)}
+      eyebrow={plan && <ModalityDot name={plan.modality.name} />}
       badge={<StatusBadge status="INACTIVE" label={t(`${k}badge`)} />}
       subtitle={
-        <p className="text-sm text-muted-foreground">
-          {t(`${k}subtitle`, {
-            unit: plan.unit.name,
-            value: formatMoney(plan.valueCents),
-            frequency,
-          })}
-        </p>
+        plan && (
+          <p className="text-sm text-muted-foreground">
+            {t(`${k}subtitle`, {
+              unit: plan.unit.name,
+              value: formatMoney(plan.valueCents),
+              frequency,
+            })}
+          </p>
+        )
       }
       footer={
         <Button
@@ -213,4 +192,19 @@ function Detail({
       <p className="text-xs text-muted-foreground">{t(`${k}note`)}</p>
     </>
   );
+}
+
+// O que a lista de planos passa ao painel (rota-filha): recarregar a lista e a política de outras unidades.
+export interface PlansOutlet {
+  reload: () => void;
+  showOtherUnits: boolean;
+}
+
+// RN-PLA-06: a consulta do plano desativado como rota-filha de /planos; fechar volta à lista com os filtros.
+export function PlanPanelPage() {
+  const { id = "" } = useParams();
+  const navigate = useNavigate();
+  const list = useListTo("/planos");
+  const ctx = useOutletContext<PlansOutlet | null>();
+  return <PlanInspectDrawer id={id} showOtherUnits={ctx?.showOtherUnits ?? false} onClose={() => void navigate(list)} onDone={ctx?.reload ?? (() => undefined)} />;
 }

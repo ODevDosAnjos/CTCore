@@ -1603,6 +1603,7 @@
       }
     },
     "inspect": {
+      "title": "Plano",
       "badge": "Desativado",
       "subtitle": "{{unit}} · {{value}} · {{frequency}}",
       "notice": "Plano desativado: só consulta. Reative para editar ou voltar a oferecer.",

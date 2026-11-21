@@ -182,7 +182,28 @@ export const setScenarios = (on: boolean, opts: { termoFamilia?: boolean } = {})
   familyTermPending = !!opts.termoFamilia;
   resetMockSession();
 };
+// F5 no navegador (e2e e `npm run dev`): o servidor simulado vive na aba, então o login sobrevive ao reload pelo sessionStorage.
+const SESSION_KEY = "ctcore.msw.login";
+const rememberLogin = (email?: string) => {
+  try {
+    if (email) sessionStorage.setItem(SESSION_KEY, email);
+    else sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* sem armazenamento: o reload volta ao login */
+  }
+};
+export const restoreMockLogin = () => {
+  try {
+    const email = sessionStorage.getItem(SESSION_KEY);
+    if (!email) return;
+    loggedIn = true;
+    current = accounts[email] ?? session;
+  } catch {
+    /* sem armazenamento */
+  }
+};
 export const resetMockSession = () => {
+  rememberLogin();
   loggedIn = false;
   current = session;
   ticketAccount = null;
@@ -2028,6 +2049,7 @@ export const routes: Route[] = [
       }
       loggedIn = true;
       current = account ?? (email === many.account.email ? { ...many } : session);
+      if (email !== many.account.email) rememberLogin(email);
       return HttpResponse.json(current);
     },
   },
@@ -2050,6 +2072,7 @@ export const routes: Route[] = [
     path: "/auth/logout",
     resolver: () => {
       loggedIn = false;
+      rememberLogin();
       return new HttpResponse(null, { status: 204 });
     },
   },

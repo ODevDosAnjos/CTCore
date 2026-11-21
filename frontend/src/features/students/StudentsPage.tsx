@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, Columns3 } from "lucide-react";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import type { TFunction } from "i18next";
 import { RowCard } from "@/components/query/RowCard";
 import { useBelowSm } from "@/components/query/useBelowSm";
@@ -12,9 +12,9 @@ import { formatDate } from "@/lib/format";
 import type { StudentRow } from "./types";
 import { NewEnrollmentLink } from "./NewEnrollmentLink";
 import { StudentFilters } from "./StudentFilters";
-import { StudentRecordPanel } from "./StudentRecordPanel";
 import { OPTIONAL_COLUMNS, useStudentColumns, type OptionalColumn } from "./useStudentColumns";
 import { fetchStudents } from "./useStudents";
+import type { StudentsOutlet } from "./StudentRecordPanel";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { PersonAvatar, PersonRow } from "@/components/ui/person-row";
 import { StatusBadge } from "@/components/ui/badge";
@@ -103,9 +103,7 @@ const studentCard = (t: TFunction, search: string) => (r: StudentRow) => (
 function Content({ accountId }: { accountId: string }) {
   const { t } = useTranslation();
   const { visible, toggle } = useStudentColumns(accountId);
-  const { id } = useParams();
   const { search } = useLocation();
-  const navigate = useNavigate();
   const [version, setVersion] = useState(0);
   const narrow = useBelowSm();
   const scope = useUnitScope();
@@ -168,7 +166,7 @@ function Content({ accountId }: { accountId: string }) {
         filterKeys={["unitId", "ageRangeId", "seal", "modalityId", "classId", "levelId", "status", "financial"]}
         filters={(p) => <StudentFilters {...p} columnsMenu={columnsMenu} trailing={<NewEnrollmentLink className="ml-auto" />} />}
       />
-      {id && <StudentRecordPanel id={id} onClose={() => navigate(`/alunos${search}`)} onChanged={() => setVersion((v) => v + 1)} />}
+      <Outlet context={{ reload: () => setVersion((v) => v + 1) } satisfies StudentsOutlet} />
     </div>
   );
 }

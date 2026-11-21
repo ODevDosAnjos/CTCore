@@ -9,6 +9,7 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/components/ui/useTabParam";
 import { ApiError } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useEditConflict } from "@/lib/useEditConflict";
@@ -37,7 +38,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
   const [nonce, setNonce] = useState(0); // "Descartar" e "Recarregar" remontam os campos, que guardam o valor inicial por conta própria
   const [base, setBase] = useState(() => toDraft(detail));
   const [d, setD] = useState(base);
-  const [tab, setTab] = useState<TabId>("data");
+  const [tab, setTab] = useTabParam<TabId>(TABS);
   const [focusError, setFocusError] = useState(0);
   const wantsFocus = useRef(false); // Enter com erro: o foco vai ao primeiro campo inválido quando a aba abrir
   const [busy, setBusy] = useState(false);
@@ -67,7 +68,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
 
   // Depois de abrir a aba com o erro, o foco vai ao primeiro campo inválido dela.
   useEffect(() => {
-    if (!wantsFocus.current) return;
+    if (!wantsFocus.current || tab !== "data") return; // a troca de aba é navegação: o foco espera a aba Dados abrir
     wantsFocus.current = false;
     form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [focusError, tab]);
@@ -182,7 +183,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
           if (!blocked && dirty && !busy) void submit();
         }}
       >
-        <Tabs label={t("unitSettings.tabsLabel")} tabs={tabs} value={tab} onValueChange={(id) => setTab(id as TabId)} />
+        <Tabs label={t("unitSettings.tabsLabel")} tabs={tabs} value={tab} onValueChange={setTab} />
         <div className="sticky bottom-14 z-20 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t bg-background px-4 py-3 md:bottom-0">
           {notice && (
             <p role={notice.ok ? "status" : "alert"} className={notice.ok ? "mr-auto text-sm text-ok-foreground" : "mr-auto text-sm text-danger-foreground"}>

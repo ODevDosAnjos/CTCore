@@ -38,7 +38,7 @@ function setup(opts: { get?: () => Response; activate?: () => Response; showOthe
       return opts.activate ? opts.activate() : HttpResponse.json({ ...plan, status: "ACTIVE" });
     }),
   );
-  render(<PlanInspectDrawer plan={plan} showOtherUnits={opts.showOtherUnits ?? true} onClose={onClose} onDone={onDone} />);
+  render(<PlanInspectDrawer id="p5" showOtherUnits={opts.showOtherUnits ?? true} onClose={onClose} onDone={onDone} />);
   return { activated, onClose, onDone };
 }
 
