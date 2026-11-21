@@ -96,6 +96,7 @@ Teste é parte do item, não uma etapa depois dele: um item só entra em `dev` c
 - Toda ação que altera dado grava na auditoria.
 - As telas têm os quatro estados, funcionam a partir de 360 px e passam no axe nos dois temas.
 - Textos nos arquivos de tradução, nunca escritos no código.
+- Item que cria ou muda tela ou rota segue o padrão de rotas e telas (`docs/design/README.md`, RNF-56): os testes `shell.test.ts`, `noInternalAnchors.test.ts` e `routePattern.test.ts` verdes e um e2e da tela abrindo dentro da moldura, registrado no arquivo do item.
 - Recurso novo nasce desligado por organização, quando a sprint diz que é um recurso liberado aos poucos.
 - Notas de versão atualizadas quando a mudança é visível para as academias.
 

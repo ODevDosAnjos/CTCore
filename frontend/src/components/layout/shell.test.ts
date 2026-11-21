@@ -11,14 +11,35 @@ const walk = (dir: string): string[] =>
 const pages = walk("src/features").filter((f) => /Page\.tsx$/.test(f));
 const read = (f: string) => readFileSync(f, "utf8");
 
-// RNF-43 (#675): a moldura é a rota-pai (ManagementShell/PortalShell); nenhuma tela a monta.
-describe("moldura fixa na rota (CA9)", () => {
+// RNF-56 (#677): a moldura é a rota-pai (ManagementShell/PortalShell/RoleShell); nenhuma tela a monta. O AuthShell só vale nas telas de acesso (D2).
+const FRAME = "ManagementLayout|ManagementShell|PortalLayout|PortalShell";
+const PARENTS = /features\/(permissions\/ManagementShell|portal\/PortalShell|auth\/RoleShell)\.tsx$/;
+export function violaMoldura(caminho: string, texto: string): boolean {
+  const f = caminho.split(sep).join("/");
+  if (PARENTS.test(f)) return false;
+  const names = f.includes("features/auth/") ? FRAME : `${FRAME}|AuthShell`;
+  return new RegExp(`^\\s*import\\s.*\\b(?:${names})\\b|<(?:${names})\\b`, "m").test(texto);
+}
+
+const screens = walk("src/features").filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f));
+
+describe("moldura fixa na rota (CA9, RNF-56)", () => {
   it("encontra as páginas", () => {
     expect(pages.length).toBeGreaterThanOrEqual(45);
   });
 
-  it.each(pages)("%s não importa nem monta a moldura", (f) => {
-    expect(read(f)).not.toMatch(/ManagementLayout|PortalLayout/);
+  it.each(screens)("%s não importa nem monta a moldura", (f) => {
+    expect(violaMoldura(f, read(f))).toBe(false);
+  });
+
+  it("CA3: reprova tela que importa a moldura", () => {
+    expect(violaMoldura("src/features/x/FooPage.tsx", 'import { ManagementLayout } from "@/a";')).toBe(true);
+    expect(violaMoldura("src/features/x/FooPage.tsx", "return <PortalShell><x /></PortalShell>;")).toBe(true);
+    expect(violaMoldura("src/features/x/FooPage.tsx", 'import { AuthShell } from "@/components/layout/AuthShell";')).toBe(true);
+    expect(violaMoldura("src/features/auth/LoginPage.tsx", 'import { AuthShell } from "@/components/layout/AuthShell";')).toBe(false);
+    expect(violaMoldura("src/features/auth/LoginPage.tsx", 'import { PortalShell } from "@/a";')).toBe(true);
+    expect(violaMoldura("src/features/permissions/ManagementShell.tsx", 'import { ManagementLayout } from "@/a";')).toBe(false);
+    expect(violaMoldura("src/features/x/FooPage.tsx", 'import type { PortalShellData } from "./usePortalShell";')).toBe(false);
   });
 });
 
