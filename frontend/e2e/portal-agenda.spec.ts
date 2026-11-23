@@ -31,6 +31,7 @@ test.describe("agenda do portal a 360 px", () => {
 
   for (const scheme of ["light", "dark"] as const) {
     test(`@critical responsável vê a aula alterada, a cancelada, o dia sem aula, troca de semana, de escopo e de aluno, e passa no axe (${scheme})`, async ({ page }) => {
+      await page.clock.install({ time: new Date("2026-11-24T12:00:00") });
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       await page.getByRole("link", { name: "Agenda", exact: true }).click();
@@ -79,6 +80,7 @@ test.describe("agenda do portal a 1024 px", () => {
 
   for (const scheme of ["light", "dark"] as const) {
     test(`@critical grade da semana com 7 colunas e dia sem aula, sem rolagem horizontal, no axe (${scheme})`, async ({ page }) => {
+      await page.clock.install({ time: new Date("2026-11-24T12:00:00") });
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "familia@exemplo.com");
       await page.getByRole("link", { name: "Agenda", exact: true }).click();

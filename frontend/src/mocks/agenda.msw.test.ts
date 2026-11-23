@@ -12,21 +12,30 @@ const login = async (email: string, linkId?: string) => {
 const week = () => `from=${mondayOf(todayIso())}&to=${addDays(mondayOf(todayIso()), 6)}`;
 const get = (query: string) => fetch(`/api/v1/agenda?${query}`);
 
+// #688: data fixa (terça, mesma semana do dia sem aula do mock, 27/11/2026); só Date, para não parar o MSW.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-24T15:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
+
 describe("agenda x OpenAPI (RF-AGE-01, CA17)", () => {
   it("sem sessão 401; contrato declara 200, 400, 401, 403 e 404", async () => {
     expect((await get(week())).status).toBe(401);
     expect(Object.keys(openapi.paths["/agenda"].get.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "404"]));
   });
 
-  it("Coordenador: envelope e aula no formato do contrato, dia sem aula hoje e aulas de hoje canceladas", async () => {
+  it("Coordenador: envelope e aula no formato do contrato, dia sem aula fixo (27/11) e as aulas dele canceladas", async () => {
     await login("ana@exemplo.com");
     const data = await (await get(week())).json();
     expect(Object.keys(data).sort()).toEqual([...openapi.components.schemas.Agenda.required].sort());
     expect(data.lessons.length).toBeGreaterThan(0);
     expect(Object.keys(data.lessons[0]).sort()).toEqual([...openapi.components.schemas.AgendaLesson.required].sort());
     expect(Object.keys(data.noClassDays[0]).sort()).toEqual([...openapi.components.schemas.NoClassDay.required].sort());
-    expect(data.noClassDays[0].startsOn).toBe(todayIso());
-    expect(data.lessons.filter((l: { date: string; status: string }) => l.date === todayIso()).every((l: { status: string }) => l.status === "CANCELLED")).toBe(true);
+    expect(data.noClassDays[0].startsOn).toBe("2026-11-27");
+    const holiday = data.lessons.filter((l: { date: string }) => l.date === "2026-11-27");
+    expect(holiday.every((l: { status: string }) => l.status === "CANCELLED")).toBe(true);
+    expect(data.lessons.filter((l: { date: string; status: string }) => l.date === todayIso() && l.status === "CANCELLED")).toEqual([]); // hoje não é dia sem aula
     const dates = data.lessons.map((l: { date: string; startsAt: string }) => l.date + l.startsAt);
     expect(dates).toEqual([...dates].sort());
     expect(JSON.stringify(data)).not.toMatch(/espera|presen|frequ/i);

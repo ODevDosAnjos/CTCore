@@ -15,7 +15,7 @@ async function sairDaMoldura(page: Page) {
   await expect(page.locator("[data-vitrine]").first()).toBeVisible();
 }
 
-async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false, pedidosCanvas?: Caso["pedidosCanvas"], reduzidoCanvas = false) {
+async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] = [], matricula = false, aguardar?: string, oferta = false, dias = false, titularInativo = false, falha?: { path: string; status: number }, planosCanvas = false, beneficios?: "lista" | "davi" | "marina", organizacaoCanvas = false, unidadeCanvas?: "conectada" | "desconectada", unidadesCanvas?: "lista" | "unica", modalidadesCanvas?: "lista" | "administrador" | "desativar" | "recusa", faixasCanvas = false, usuariosCanvas = false, termosCanvas = false, textosCanvas = false, comunicadosCanvas?: Caso["comunicadosCanvas"], inicioCanvas?: Caso["inicioCanvas"], termoCanvas?: Caso["termoCanvas"], agendaCanvas = false, avisosCanvas = false, financeiroCanvas = false, informacoesCanvas = false, pedidosCanvas?: Caso["pedidosCanvas"], reduzidoCanvas = false, feriadoHoje = false) {
   if (perfil) {
     await page.goto("/entrar");
     await page.getByLabel("E-mail").fill(perfil);
@@ -669,6 +669,16 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         for (const date of ["2027-01-01", "2027-03-26", "2027-04-21", "2027-05-01", "2027-09-07", "2027-10-12"]) await call("POST", "/no-class-days/ignored-holidays", { unitId: lista.unit.id, date });
       });
     }
+    if (feriadoHoje) {
+      // #688: o mock não trata mais "hoje" como dia sem aula; o caso lança o feriado de hoje (AGORA) na unidade Centro e volta ao perfil do caso
+      await page.evaluate(async (email) => {
+        const call = (url: string, body: unknown) => fetch(`/api/v1${url}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        await call("/auth/login", { email: "ana@exemplo.com", password: "segredo123" });
+        const r = await call("/no-class-days", { unitIds: ["00000000-0000-0000-0000-000000000021"], startsOn: "2026-10-29", endsOn: "2026-10-29", reason: "Feriado sintético", classIds: [], notice: { mode: "NONE" } });
+        if (!r.ok) throw new Error(`feriado do caso: ${r.status} ${await r.text()}`);
+        await call("/auth/login", { email, password: "segredo123" });
+      }, perfil);
+    }
     if (matricula) {
       // o MSW vive na página: a Coordenação matricula o aluno fictício na turma 601, liga a ficha do Professor e o login volta ao perfil do caso
       await page.evaluate(async (email) => {
@@ -726,7 +736,7 @@ for (const caso of casos) {
         await page.setViewportSize({ width: l.width, height: l.height });
         await page.emulateMedia({ colorScheme: t.colorScheme, reducedMotion: "reduce" });
         await page.clock.setFixedTime(AGORA);
-        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas, caso.pedidosCanvas, caso.reduzidoCanvas);
+        await abrir(page, caso.rota, caso.perfil, caso.passos, caso.matricula, caso.aguardar, caso.oferta, caso.dias, caso.titularInativo, caso.falha, caso.planosCanvas, caso.beneficios, caso.organizacaoCanvas, caso.unidadeCanvas, caso.unidadesCanvas, caso.modalidadesCanvas, caso.faixasCanvas, caso.usuariosCanvas, caso.termosCanvas, caso.textosCanvas, caso.comunicadosCanvas, caso.inicioCanvas, caso.termoCanvas, caso.agendaCanvas, caso.avisosCanvas, caso.financeiroCanvas, caso.informacoesCanvas, caso.pedidosCanvas, caso.reduzidoCanvas, caso.feriadoHoje);
         await expect(page).toHaveScreenshot(`${caso.nome}-${l.nome}-${t.nome}.png`, { fullPage: caso.fullPage });
       });
     }
