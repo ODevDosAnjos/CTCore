@@ -49,6 +49,6 @@ test("@critical Coordenador confirma um feriado sugerido e a Agenda mostra Sem a
   await open(page, "/agenda");
   await expect(page.getByRole("heading", { name: "Agenda", level: 1 })).toBeVisible();
   for (let i = 0; i < weeks; i++) await page.getByRole("button", { name: "Próxima semana" }).click();
-  await expect(page.getByText("Sem aula").first()).toBeVisible();
   await expect(page.getByText("Cancelada").first()).toBeVisible();
+  await expect(page.getByText("Sem aula").first()).toBeVisible();
 });

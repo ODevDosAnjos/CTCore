@@ -23,6 +23,7 @@ test.describe("início do portal a 360 px", () => {
 
   for (const scheme of ["light", "dark"] as const) {
     test(`@critical aluno vê as quatro seções na ordem, filtra por modalidade e unidade e passa no axe (${scheme})`, async ({ page }) => {
+      await page.clock.install({ time: new Date("2026-11-24T12:00:00") });
       await page.emulateMedia({ colorScheme: scheme });
       await login(page, "termo@exemplo.com");
       await page.getByLabel("Li e aceito o termo de matrícula").check();

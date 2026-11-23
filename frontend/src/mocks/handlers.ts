@@ -707,7 +707,7 @@ const classDetail = (c: MockClass) => ({
   lastChange: c.lastChange ?? null,
 });
 // Quem chama: 401 sem sessão, 403 sem CLASSES_MANAGE, 404 fora do alcance (Administrador) ou inexistente.
-// RF-AGE-01: a aula de uma turma numa data (o id junta turma, data e início). Hoje é dia sem aula; a de quarta do Jiu-Jitsu é substituição.
+// RF-AGE-01: a aula de uma turma numa data (o id junta turma, data e início). 27/11/2026 é dia sem aula; a de quarta do Jiu-Jitsu é substituição.
 // RF-AGE-03: o que a edição e o cancelamento mudaram, por id de aula (as aulas do mock nascem das turmas e não têm linha própria).
 type LessonEdit = { date?: string; startsAt?: string; endsAt?: string; teacherId?: string; substitute?: boolean; cancelCode?: string; cancelText?: string | null };
 const lessonEdits = new Map<string, LessonEdit>();
@@ -719,6 +719,8 @@ type MockDay = { id: string; unitId: string; startsOn: string; endsOn: string; r
 // RF-AGE-05 (#474): feriados que a unidade ignorou ("Ignorar" não tem desfazer na tela).
 let mockIgnoredHolidays: { unitId: string; date: string }[] = [];
 let mockNoClassDays: MockDay[] = [];
+// RF-AGE-01 (#688): o dia sem aula do cenário é uma data fixa (sexta, sem Jiu-Jitsu Adulto), não "hoje": o mock não decide a agenda pelo relógio.
+const SYNTHETIC_HOLIDAY = "2026-11-27";
 const coveringDay = (unitId: string, date: string, classId: string | null, today: string) =>
   mockNoClassDays.find((d) => d.unitId === unitId && date >= today && date >= d.startsOn && date <= d.endsOn && (d.classIds.length === 0 || (classId !== null && d.classIds.includes(classId))));
 const todayLocal = () => {
@@ -769,7 +771,7 @@ const mockLesson = (c: MockClass, unit: { id: string; name: string }, date: stri
   const substitute = c.id.endsWith("601") && wd === 3;
   const teacher = substitute ? { id: TEACHER_JOAO, name: mockTeachers.find((x) => x.id === TEACHER_JOAO)!.name } : row.head;
   const day = coveringDay(unit.id, date, c.id, today);
-  const cancelled = date === today || !!day;
+  const cancelled = date === SYNTHETIC_HOLIDAY || !!day;
   const future = date > today;
   return {
     id: `${c.id}-${date}-${startsAt}`,
@@ -3265,7 +3267,7 @@ export const routes: Route[] = [
   },
   {
     // RF-AGE-01: Coordenador (todas as unidades), Administrador e Professor (a unidade dele); portal 403. As aulas saem das turmas ativas pelos
-    // horários semanais, como a tarefa diária do servidor; hoje é dia sem aula (as aulas de hoje nascem canceladas) e a de quarta do Jiu-Jitsu é substituição.
+    // horários semanais, como a tarefa diária do servidor; 27/11/2026 é dia sem aula (as aulas dessa data nascem canceladas) e a de quarta do Jiu-Jitsu é substituição.
     method: "get",
     path: "/agenda",
     resolver: ({ request }) => {
@@ -3311,7 +3313,7 @@ export const routes: Route[] = [
         lessons.push(lesson);
       }
       const noClassDays = [
-        ...(today >= from && today <= to ? [{ startsOn: today, endsOn: today, reason: "Feriado sintético" }] : []),
+        ...(from <= SYNTHETIC_HOLIDAY && SYNTHETIC_HOLIDAY <= to ? [{ startsOn: SYNTHETIC_HOLIDAY, endsOn: SYNTHETIC_HOLIDAY, reason: "Feriado sintético" }] : []),
         ...mockNoClassDays.filter((d) => d.unitId === unit.id && d.classIds.length === 0 && d.startsOn <= to && d.endsOn >= from).map((d) => ({ startsOn: d.startsOn, endsOn: d.endsOn, reason: d.reason })),
       ];
       return HttpResponse.json({
