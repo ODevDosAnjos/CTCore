@@ -6,6 +6,7 @@ async function open(page: Page, path: string) {
 
 // RF-COM-02: o Coordenador cancela uma aula, abre "Avisar turma", envia agora e vê o comunicado Enviado na lista.
 test("@critical Cancelamento de aula com aviso à turma", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-11-24T12:00:00") }); // #692: relógio fixo, o cenário não depende do dia real
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill("ana@exemplo.com");
   await page.getByLabel("Senha").fill("segredo123");

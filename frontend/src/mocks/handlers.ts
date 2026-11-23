@@ -719,14 +719,17 @@ type MockDay = { id: string; unitId: string; startsOn: string; endsOn: string; r
 // RF-AGE-05 (#474): feriados que a unidade ignorou ("Ignorar" não tem desfazer na tela).
 let mockIgnoredHolidays: { unitId: string; date: string }[] = [];
 let mockNoClassDays: MockDay[] = [];
-// RF-AGE-01 (#688): o dia sem aula do cenário é uma data fixa (sexta, sem Jiu-Jitsu Adulto), não "hoje": o mock não decide a agenda pelo relógio.
-const SYNTHETIC_HOLIDAY = "2026-11-27";
+// RF-AGE-01 (#688, #692): o dia sem aula do cenário é a sexta (sem Jiu-Jitsu Adulto) da semana, de segunda a domingo, do relógio do mock; com o relógio em 24/11/2026 é 27/11.
+const fmtLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const syntheticHoliday = () => {
+  const [y, m, d] = todayLocal().split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(d + 5 - (dt.getDay() || 7));
+  return fmtLocal(dt);
+};
 const coveringDay = (unitId: string, date: string, classId: string | null, today: string) =>
   mockNoClassDays.find((d) => d.unitId === unitId && date >= today && date >= d.startsOn && date <= d.endsOn && (d.classIds.length === 0 || (classId !== null && d.classIds.includes(classId))));
-const todayLocal = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-};
+const todayLocal = () => fmtLocal(new Date());
 const adhocLesson = (a: MockAdhoc, today: string) => {
   const unit = units.find((u) => u.id === a.unitId)!;
   const teacher = mockTeachers.find((t) => t.id === a.teacherId)!;
@@ -771,7 +774,7 @@ const mockLesson = (c: MockClass, unit: { id: string; name: string }, date: stri
   const substitute = c.id.endsWith("601") && wd === 3;
   const teacher = substitute ? { id: TEACHER_JOAO, name: mockTeachers.find((x) => x.id === TEACHER_JOAO)!.name } : row.head;
   const day = coveringDay(unit.id, date, c.id, today);
-  const cancelled = date === SYNTHETIC_HOLIDAY || !!day;
+  const cancelled = date === syntheticHoliday() || !!day;
   const future = date > today;
   return {
     id: `${c.id}-${date}-${startsAt}`,
@@ -3312,8 +3315,9 @@ export const routes: Route[] = [
         if (role === "TEACHER" && !teachesLesson(null, lesson.teacher.id)) continue;
         lessons.push(lesson);
       }
+      const holiday = syntheticHoliday();
       const noClassDays = [
-        ...(from <= SYNTHETIC_HOLIDAY && SYNTHETIC_HOLIDAY <= to ? [{ startsOn: SYNTHETIC_HOLIDAY, endsOn: SYNTHETIC_HOLIDAY, reason: "Feriado sintético" }] : []),
+        ...(from <= holiday && holiday <= to ? [{ startsOn: holiday, endsOn: holiday, reason: "Feriado sintético" }] : []),
         ...mockNoClassDays.filter((d) => d.unitId === unit.id && d.classIds.length === 0 && d.startsOn <= to && d.endsOn >= from).map((d) => ({ startsOn: d.startsOn, endsOn: d.endsOn, reason: d.reason })),
       ];
       return HttpResponse.json({

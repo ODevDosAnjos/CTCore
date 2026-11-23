@@ -41,6 +41,19 @@ describe("agenda x OpenAPI (RF-AGE-01, CA17)", () => {
     expect(JSON.stringify(data)).not.toMatch(/espera|presen|frequ/i);
   });
 
+  it.each([
+    ["2026-12-02T15:00:00Z", "2026-11-30", "2026-12-06", "2026-12-04"], // CA3: quarta
+    ["2026-11-29T15:00:00Z", "2026-11-23", "2026-11-29", "2026-11-27"], // CA4: domingo
+  ])("dia sem aula acompanha o relógio (%s)", async (now, from, to, friday) => {
+    vi.setSystemTime(new Date(now));
+    await login("ana@exemplo.com");
+    const data = await (await get(`from=${from}&to=${to}`)).json();
+    expect(data.noClassDays[0].startsOn).toBe(friday);
+    const lessons = data.lessons.filter((l: { date: string }) => l.date === friday);
+    expect(lessons.every((l: { status: string }) => l.status === "CANCELLED")).toBe(true);
+    if (friday === "2026-12-04") expect((await (await get("from=2026-11-23&to=2026-11-29")).json()).noClassDays).toEqual([]);
+  });
+
   it("filtros por professor e modalidade combinam; id desconhecido devolve lista vazia", async () => {
     await login("ana@exemplo.com");
     const all = await (await get(week())).json();

@@ -11,6 +11,7 @@ const parse = (br: string) => {
 
 // RF-AGE-05: o Coordenador confirma um feriado sugerido (de segunda a quinta, onde há aula no simulado) e a Agenda mostra "Sem aula" e as aulas canceladas.
 test("@critical Coordenador confirma um feriado sugerido e a Agenda mostra Sem aula", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-10-26T12:00:00") }); // #692: relógio fixo (segunda 26/10); o primeiro feriado de segunda a quinta é 02/11, na semana seguinte
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill("ana@exemplo.com");
   await page.getByLabel("Senha").fill("segredo123");
@@ -41,7 +42,7 @@ test("@critical Coordenador confirma um feriado sugerido e a Agenda mostra Sem a
 
   // A Agenda: vai até a semana do feriado.
   const date = parse(label.slice(-10));
-  const today = new Date();
+  const today = new Date("2026-10-26T12:00:00");
   today.setHours(12, 0, 0, 0);
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
