@@ -46,3 +46,27 @@ test("@critical configurações da organização: Coordenador edita e Administra
   await expect(page.getByRole("button", { name: "Salvar alterações" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Enviar logo" })).toHaveCount(0);
 });
+
+// RF-ORG-06 / RN-ORG-06: a janela abre dentro da moldura; o escolhido que administra uma unidade sozinho exige marcá-la (aviso e 409),
+// cada unidade marcada soma a vaga e, com a unidade marcada, a transferência conclui e a tela segue na sessão.
+test("@critical transferir coordenação: unidade marcada com custo, aviso do Administrador único e sucesso na moldura", async ({ page }) => {
+  await loginAs(page, "ana@exemplo.com");
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/configuracoes/organizacao");
+  await page.getByRole("button", { name: "Transferir coordenação" }).click();
+  const dialog = page.getByRole("dialog", { name: "Transferir coordenação" });
+  await dialog.getByLabel("Novo Coordenador").selectOption({ label: "Bruno · Administrador · Unidade Centro" });
+  await expect(dialog.getByText(/administra esta unidade sozinho/)).toBeVisible();
+  await expect(dialog.getByText("Nenhuma unidade marcada: sem custo adicional.")).toBeVisible();
+  await dialog.getByLabel("Digite TRANSFERIR").fill("TRANSFERIR");
+  await dialog.getByLabel("Sua senha").fill("segredo123");
+  await dialog.getByRole("button", { name: "Transferir coordenação" }).click();
+  await expect(dialog.getByText(/Estas unidades ficariam sem Administrador: Unidade Centro/)).toBeVisible();
+
+  await dialog.getByRole("checkbox", { name: "Unidade Centro" }).check();
+  await expect(dialog.getByText(/Custo adicional: R\$\s50,00\/mês/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Transferir coordenação" }).click();
+  await expect(page.getByText("Coordenação transferida.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Organização", level: 1 })).toBeVisible();
+  await expect(page.getByRole("navigation").first()).toBeVisible();
+});

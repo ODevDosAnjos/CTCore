@@ -218,7 +218,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 608 | RN-ACE-23 · Sessão única de gestão por conta | issue #608 | Sprint 10.5 | — | agente | feito |
 | 688 | Teste e2e da Agenda falha às segundas-feiras: mock trata hoje como dia sem aula; usar relógio fixo | issue #688 | Sprint 10.5 | — | agente | feito |
 | 690 | Suspeita de instabilidade: SeedLoginIT e limpeza de banco dos ITs com chave estrangeira | issue #690 | Sprint 10.5 | #688 | agente | a fazer |
-| 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | a fazer |
+| 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | feito |
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | a fazer |
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | a fazer |
 | 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | a fazer |

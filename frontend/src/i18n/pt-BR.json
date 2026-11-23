@@ -23,6 +23,7 @@
     "forgot": "Esqueci minha senha",
     "createPassword": "Criar nova senha",
     "sessionReplaced": "Sua sessão foi encerrada porque esta conta entrou em outro aparelho.",
+    "coordinationTransferred": "Coordenação transferida. Você não tem mais acesso à gestão desta organização.",
     "lockedNote": "A trava vale só para este e-mail. Quem já está dentro continua normalmente.",
     "errors": {
       "emailRequired": "Informe o seu e-mail.",
@@ -337,7 +338,14 @@
     "transfer": {
       "title": "Transferir coordenação",
       "open": "Transferir coordenação",
-      "intro": "Só existe um Coordenador por organização. Depois da transferência, você vira Administrador de todas as unidades.",
+      "intro": "Só existe um Coordenador por organização. Depois da transferência, você perde o acesso à gestão, a menos que marque abaixo as unidades em que continua como Administrador.",
+      "keepLegend": "Unidades em que você continua como Administrador",
+      "keepHint": "+{{price}}/mês por unidade",
+      "noCost": "Nenhuma unidade marcada: sem custo adicional.",
+      "total": "Custo adicional: {{total}}/mês",
+      "aloneWarning": "{{name}} administra esta unidade sozinho(a). Marque-a para ela não ficar sem Administrador.",
+      "keepInvalid": "Escolha só unidades ativas da organização, sem repetir.",
+      "lastAdmin": "Estas unidades ficariam sem Administrador: {{units}}. Marque-as e tente de novo.",
       "newCoordinator": "Novo Coordenador",
       "choose": "Escolha um Administrador",
       "noneActive": "Nenhum Administrador ativo",
@@ -347,7 +355,8 @@
       "summary": {
         "mail": "{{name}} recebe um e-mail para confirmar e precisa ativar a verificação em duas etapas no próximo acesso.",
         "assets": "Assinatura, faturas e \"Liberar acesso de suporte\" passam para {{name}}.",
-        "stay": "Você continua com acesso como Administrador.",
+        "stay": "Você continua como Administrador só em: {{units}}.",
+        "lose": "Você perde o acesso à gestão desta organização e a sessão é encerrada.",
         "generic": "o novo Coordenador"
       },
       "confirmBefore": "Para confirmar, digite ",
