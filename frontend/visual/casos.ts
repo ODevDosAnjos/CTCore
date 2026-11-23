@@ -35,6 +35,7 @@ export type Caso = {
   avisosCanvas?: boolean; // #496: antes de abrir a tela, os 6 avisos do canvas e o aviso aberto "Aula de quinta cancelada"
   financeiroCanvas?: boolean; // #497: antes de abrir a tela, o Financeiro do canvas (Bruno Carvalho: 3 abertas, histórico de 2026 e chave Pix CNPJ da Tijuca)
   informacoesCanvas?: boolean; // #498: antes de abrir a tela, Minhas informações e Minha conta do canvas (Bruno Carvalho: dados, Jiu-Jitsu e Muay Thai com plano, termos e duas sessões)
+  feriadoHoje?: boolean; // #688: antes de abrir a tela, hoje (29/10, o relógio do teste) é um dia sem aula "Feriado sintético" na unidade Centro
   reduzidoCanvas?: boolean; // #501: antes de abrir a tela, o Financeiro reduzido do canvas (Gabriel Rocha, Academia Leão, Tijuca: Muay Thai ago/2026 vencida e o recibo de jul/2026)
   pedidosCanvas?: "lista" | "turma" | "plano" | "modalidade" | "encerrar" | "bloqueado"; // #500: antes de abrir a tela, Bruno Carvalho com Jiu-Jitsu e Muay Thai (Tijuca), os três pedidos do canvas e a unidade Tijuca da Academia Leão; o variante decide o que a janela mostra (bloqueado: encerramento aberto no Muay Thai; modalidade: só o Jiu-Jitsu e a oferta do Muay Thai)
   falha?: { path: string; status: number }; // #476: antes de abrir a tela, o MSW responde com este status nesta rota (estado de erro)
@@ -62,7 +63,7 @@ export const casos: Caso[] = [
   // Moldura da gestão (#417): menu, barra de cima, abas e menu de celular por perfil
   { nome: "moldura-coordenacao", rota: "/alunos", perfil: ana, canvas: "Sidebar" },
   { nome: "moldura-administrador", rota: "/alunos", perfil: admin, canvas: "Topbar" },
-  { nome: "moldura-professor", rota: "/agenda", perfil: prof, canvas: "GMMenu" },
+  { nome: "moldura-professor", rota: "/agenda", perfil: prof, canvas: "GMMenu", feriadoHoje: true },
   // #454: no celular o menu em tela cheia e a folha de unidade; a 1440 px o mesmo passo abre o menu da conta e a lista de unidade (o canvas é de 360 px, sem comparação automática)
   { nome: "moldura-celular-menu", rota: "/alunos", perfil: ana, canvas: "GMMenu", passos: [{ clicar: "Menu" }] },
   { nome: "moldura-celular-unidade", rota: "/alunos", perfil: ana, canvas: "GMUnidade", passos: [{ clicar: "Unidade ativa" }] },
@@ -198,7 +199,7 @@ export const casos: Caso[] = [
   { nome: "aula-editar", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AulaEditar", passos: [{ clicar: "Editar" }], limiteCanvas: { valor: 0.58, motivo: "medido a 53,9%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
   { nome: "aula-editar-seguintes", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-11-02-19:00", perfil: ana, canvas: "AulaEditarSeguintes", passos: [{ clicar: "Editar" }, { clicar: "Esta e as seguintes", papel: "radio" }], limiteCanvas: { valor: 0.58, motivo: "medido a 53,6%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
   { nome: "aula-corrigir", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000601-2026-10-28-19:00", perfil: ana, canvas: "AulaCorrigir", passos: [{ clicar: "Corrigir professor" }], limiteCanvas: { valor: 0.68, motivo: "medido a 63,3%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
-  { nome: "aula-avisar-turma", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000602-2026-10-29-18:00", perfil: ana, canvas: "AulaAvisarTurma", passos: [{ clicar: "Avisar turma" }], limiteCanvas: { valor: 0.56, motivo: "medido a 51,8%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
+  { nome: "aula-avisar-turma", rota: "/agenda/aulas/00000000-0000-0000-0000-000000000602-2026-10-29-18:00", perfil: ana, canvas: "AulaAvisarTurma", feriadoHoje: true, passos: [{ clicar: "Avisar turma" }], limiteCanvas: { valor: 0.56, motivo: "medido a 51,8%: fundo: a janela abre a partir do painel, então a gaveta da aula fica atrás (o canvas mostra só a agenda) e a agenda tem outras aulas (dados do MSW); a #560 trata a tela e remove esta exceção" } },
   { nome: "dia-sem-aula-novo", rota: "/dias-sem-aula", perfil: ana, canvas: "DiaSemAulaNovo", dias: true, passos: [{ clicar: "Novo dia sem aula" }, { preencher: ["De *", "2026-12-24"] }, { preencher: ["Até (opcional)", "2027-01-03"] }, { preencher: ["Motivo *", "Recesso de fim de ano"] }] },
   // Planos, alunos, matrícula, benefícios e termos (#421). Janelas abrem pelos passos.
   // Sem caso: trocar turma/plano, transferir, encerrar e passos da matrícula (id gerado ou fluxo longo no MSW); GM* são as mesmas telas a 390 px (D1).

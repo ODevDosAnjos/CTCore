@@ -115,3 +115,30 @@ Achados:
 - Decisões: D2 (data fixa em vez de "hoje") e D3 (um teste por dia com relógio do navegador), registradas na seção 6. Dono decidiu corrigir a causa e usar relógio fixo (comentário na issue #688).
 - Limitações: `CA1` (reprodução antes da correção) e `CA6` (lista de dependência de data na issue) ficaram `NÃO CONFERIDO` na verificação; a reprodução foi registrada na construção. `no-class-days.spec.ts` continua dependente da data real (não falha hoje; listado na issue). A data fixa 27/11/2026 envelhece: fora dessa semana o mock deixa de mostrar "Sem aula" e os testes que dependem dele precisam fixar o relógio.
 - Regressão: `npm test` e `npm run lint`/`typecheck` rodados na construção; a base não avançou desde a verificação, então a regressão completa não foi refeita.
+- Verificações do PR #691 (SHA 99418b0, run 45234458815), `--ci 1`: `visual (1/2)` e `visual (2/2)` falharam; `ci-gate` falhou por causa delas. Demais jobs passaram (e2e, frontend, image-frontend, security, changes, Vercel). Falhas do teste visual (`visual/telas.visual.ts`, linha 730, `toHaveScreenshot`):
+  - `moldura-professor 390 claro`: 32925 pixels diferentes (0,11).
+  - `moldura-professor 390 escuro`: 33238 pixels diferentes (0,11).
+  - `aula-avisar-turma 1440 claro`: 29554 pixels (0,03).
+  - `aula-avisar-turma 1440 escuro`: 20261 pixels (0,02).
+  - `aula-avisar-turma 390 claro`: 3122 pixels (0,01).
+  - `aula-avisar-turma 390 escuro`: 3288 pixels (0,01).
+  Os casos não estão entre os regenerados pela rodada 2 (só agenda, agenda-painel, agenda-painel-professor, aula-cancelar). Causa provável, não confirmada: a mudança em `frontend/src/mocks/handlers.ts` (`mockLesson` e `noClassDays`) altera dados que essas telas exibem. Falta rodar `npm run test:visual:docker -- -g "moldura-professor|aula-avisar-turma"` sem `--update-snapshots`, ver as imagens em `frontend/visual/test-results` e decidir se é mudança esperada (regerar só se for) ou regressão do item.
+
+### Correção da entrega
+- `visual` do PR #691 (moldura-professor 390 e aula-avisar-turma, 6 falhas) — causa confirmada: os casos dependiam de "hoje" (29/10, `AGORA`) nascer como "Feriado sintético" no mock (agenda mostrava "sem aula" e a aula de Judô Infantil nascia Cancelada, como no canvas `AulaAvisarTurma`); a mudança do item tirou isso. Reproduzido localmente (`npm run test:visual:docker -- -g "moldura-professor|aula-avisar-turma"` → 6 falharam; atual mostrava "Nenhuma aula neste período" e aula "Concluída"). Era regressão do item, não mudança visual pedida: as referências não foram regeradas. Correção: campo `feriadoHoje` no caso (`frontend/visual/casos.ts`) e passo em `abrir` (`frontend/visual/telas.visual.ts`) que lança, pela API do MSW como a Coordenação, o dia sem aula "Feriado sintético" em 29/10 na unidade Centro e volta ao perfil do caso; ligado em `moldura-professor` e `aula-avisar-turma`. Os 8 casos voltam a bater com as referências existentes.
+- prova: `npm run test:visual:docker -- -g "moldura-professor|aula-avisar-turma"` (sem `--update-snapshots`) → 8 passaram; `npm run typecheck` e `npm run lint` limpos.
+Visual local (container, sem `--update-snapshots`): moldura-professor → passou; aula-avisar-turma → passou. O CI do PR #691 ainda não rodou sobre esta correção: o segundo commit da branch leva a correção e o CI roda de novo sobre o SHA novo.
+Não rodei a suíte visual inteira (só no CI); os outros casos não falharam no CI do PR.
+
+### Rodada 3 — OK — 2026-11-23, estado ba7f8a78de4e5ab6e75ed5330535dfbf2c894aaa
+
+Só mudou desde a rodada 2 o teste visual (`frontend/visual/casos.ts`, `telas.visual.ts`: campo `feriadoHoje` em `moldura-professor` e `aula-avisar-turma`); mock e e2e mantidos.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 | NÃO CONFERIDO (mantido da rodada 1) | reprodução só vem do relato da Construção |
+| CA2 a CA5 | PASSOU (mantidos da rodada 2) | código do mock e dos testes não mudou |
+| CA6 | NÃO CONFERIDO (mantido) | lista na issue não conferida aqui |
+
+Comandos: `npm run test:visual:docker -- -g "moldura-professor|aula-avisar-turma|agenda|aula-cancelar"` (sem `--update-snapshots`) → 32 passaram (as 6 falhas do CI voltam a bater com as referências commitadas, que não foram regeradas); `npm run typecheck` e `npm run lint` limpos.
+Achados: nenhum obrigatório. A correção usa a API do MSW para lançar o feriado de hoje no caso, sem alterar o mock do produto.
