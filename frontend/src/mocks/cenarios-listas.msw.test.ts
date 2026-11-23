@@ -22,7 +22,7 @@ describe("cenário da agenda e das listas (#449)", () => {
     expect(lessons.some((l) => l.status === "CANCELLED" && l.date !== day(0) && l.cancelReasonCode === "TEACHER_UNAVAILABLE")).toBe(true);
     expect(lessons.some((l) => l.substitute)).toBe(true);
     expect(lessons.some((l) => l.class === null)).toBe(true);
-    expect(agenda.noClassDays).toHaveLength(1);
+    expect((await get("/agenda?from=2026-11-23&to=2026-11-29")).noClassDays).toEqual([{ startsOn: "2026-11-27", endsOn: "2026-11-27", reason: "Feriado sintético" }]); // #688: data fixa, não hoje
   });
 
   it("CA17: 6 professores (ativo, convite enviado, inativo)", async () => {

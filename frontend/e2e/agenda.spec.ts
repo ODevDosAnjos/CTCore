@@ -5,7 +5,9 @@ async function open(page: Page, path: string) {
 }
 
 // RF-AGE-01: o Coordenador abre Operação › Agenda, vê a grade da semana com aula e "Sem aula", troca de semana e volta por "Hoje".
-test("@critical Coordenador abre a Agenda", async ({ page }) => {
+// #688: o mock lê o relógio do navegador; segunda, terça e quarta provam que a agenda não depende do dia da semana.
+for (const dia of ["2026-11-23", "2026-11-24", "2026-11-25"]) test(`@critical Coordenador abre a Agenda (${dia})`, async ({ page }) => {
+  await page.clock.install({ time: new Date(`${dia}T12:00:00`) });
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill("ana@exemplo.com");
   await page.getByLabel("Senha").fill("segredo123");
