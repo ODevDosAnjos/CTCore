@@ -396,8 +396,12 @@ paths:
         Exige `X-Reauth-Token` da ação `TRANSFER_COORDINATION` (uso único; sem token válido, 403 REAUTH_REQUIRED) e a confirmação digitada
         `TRANSFERIR` (sem diferenciar maiúsculas, sem espaços nas pontas). O novo Coordenador é indicado pelo e-mail e precisa ser Administrador
         ativo da mesma organização; qualquer outro e-mail responde 400 VALIDATION_ERROR no campo `email`, sem revelar contas de outras organizações.
-        Na troca, o antigo vira Administrador de todas as unidades e o novo perde os vínculos de unidade (tudo ou nada); vale na hora, sem novo
-        login. O novo Coordenador recebe e-mail de confirmação. Grava `organization.coordination_transferred`.
+        Sem `keepUnitIds`, o antigo Coordenador fica sem acesso de gestão: o vínculo termina e as sessões abertas nele saem na hora, inclusive a de
+        quem transfere (a de portal fica). Com `keepUnitIds` (unidades ativas da organização, sem repetição), ele segue como Administrador só nelas,
+        uma vaga paga por unidade (RN-ORG-06, RN-ASS-21); unidade inativa, alheia, inexistente ou repetida responde 400 VALIDATION_ERROR em
+        `keepUnitIds`. Se o novo Coordenador era o único Administrador de uma unidade ativa não marcada, responde 409 `LAST_UNIT_ADMINISTRATOR`
+        (campo `unitIds`) e nada muda. O novo perde os vínculos de unidade (tudo ou nada); vale na hora. O novo Coordenador recebe e-mail de
+        confirmação. Grava `organization.coordination_transferred` com `keptUnitIds` e `seats`.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
         - { name: X-Reauth-Token, in: header, required: true, schema: { type: string } }
@@ -411,9 +415,22 @@ paths:
               properties:
                 email: { type: string }
                 confirmation: { type: string, example: TRANSFERIR }
+                keepUnitIds: { type: array, items: { type: string, format: uuid }, description: Unidades em que o antigo Coordenador segue como Administrador. Omitido vale vazio. }
       responses:
         '204': { description: Coordenação transferida. }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /organization/admin-seat-price:
+    get:
+      summary: Valor mensal da vaga de Administrador, em centavos (RN-ASS-21). Só o Coordenador.
+      description: Lido da configuração `ctcore.billing.admin-seat-cents` (padrão 5000). Administrador, Professor e portal recebem 403.
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Valor da vaga.
+          content: { application/json: { schema: { type: object, required: [adminSeatCents], properties: { adminSeatCents: { type: integer, example: 5000 } } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
   /units:

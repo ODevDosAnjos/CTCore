@@ -2363,14 +2363,16 @@ export const routes: Route[] = [
     },
   },
   {
-    // RF-ORG-06: só o Coordenador; "admin@alfa.test" é o único Administrador elegível. Com sucesso, o vínculo ativo vira Administrador.
+    // RF-ORG-06 / RN-ORG-06: só o Coordenador; "admin@alfa.test" é o único Administrador elegível. Sem keepUnitIds o antigo Coordenador sai da
+    // gestão e a sessão acaba; com unidades marcadas (ativas, sem repetição) o vínculo ativo vira Administrador. 409 se o escolhido era o único
+    // Administrador de uma unidade ativa não marcada (RN-ORG-07).
     method: "post",
     path: "/organization/coordination-transfer",
     resolver: async ({ request }) => {
       const denied = organizationAccess(true);
       if (denied) return denied;
       if (!request.headers.get("X-Reauth-Token")) return error(403, "REAUTH_REQUIRED", "Confirme sua senha para continuar.");
-      const { email, confirmation } = (await request.json()) as { email?: string; confirmation?: string };
+      const { email, confirmation, keepUnitIds = [] } = (await request.json()) as { email?: string; confirmation?: string; keepUnitIds?: string[] };
       if ((confirmation ?? "").trim().toUpperCase() !== "TRANSFERIR") {
         return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "confirmation", message: "digite TRANSFERIR" }]);
       }
@@ -2378,12 +2380,29 @@ export const routes: Route[] = [
       if (target !== TRANSFER_TARGET && !staff.some((x) => x.role === "ADMINISTRATOR" && x.status === "ACTIVE" && x.email === target)) {
         return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "email", message: "informe um Administrador ativo da organização" }]);
       }
-      current = {
-        ...current,
-        links: current.links.map((l) => (l.id === current.activeLinkId ? { ...l, role: "ADMINISTRATOR" as const } : l)),
-      };
+      if (new Set(keepUnitIds).size !== keepUnitIds.length || keepUnitIds.some((id) => !units.some((u) => u.id === id && u.active))) {
+        return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "keepUnitIds", message: "informe unidades ativas da organização" }]);
+      }
+      const chosen = staff.find((x) => x.email === target);
+      const left = chosen ? orphans(chosen, chosen.unitIds).filter((id) => !keepUnitIds.includes(id)) : [];
+      if (left.length > 0) return lastAdministrator(left);
+      if (keepUnitIds.length === 0) {
+        loggedIn = false;
+        rememberLogin();
+      } else {
+        current = {
+          ...current,
+          links: current.links.map((l) => (l.id === current.activeLinkId ? { ...l, role: "ADMINISTRATOR" as const, unitIds: keepUnitIds as never[] } : l)),
+        };
+      }
       return new HttpResponse(null, { status: 204 });
     },
+  },
+  {
+    // RN-ASS-21 (D3): valor da vaga de Administrador; só o Coordenador.
+    method: "get",
+    path: "/organization/admin-seat-price",
+    resolver: () => organizationAccess(true) ?? HttpResponse.json({ adminSeatCents: 5000 }),
   },
   {
     method: "get",

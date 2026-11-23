@@ -8,6 +8,7 @@ const login = async (email: string, linkId?: string) => {
   await fetch("/api/v1/auth/login", { method: "POST", headers: json, body: JSON.stringify({ email, password: "segredo123" }) });
   if (linkId) await fetch("/api/v1/auth/session/link", { method: "PUT", headers: json, body: JSON.stringify({ linkId }) });
 };
+const CENTRO = "00000000-0000-0000-0000-000000000021";
 const get = () => fetch("/api/v1/organization");
 // Sem versão explícita lê a atual (RNF-15); null omite o If-Match.
 const patch = async (body: unknown, ifMatch?: string | null) => {
@@ -164,11 +165,42 @@ describe("transferência da coordenação x OpenAPI (RF-ORG-06, CA16)", () => {
       expect(res.status).toBe(400);
       expect((await res.json()).fields.map((f: { field: string }) => f.field)).toContain(field);
     }
-    const done = await transfer(ok, "t");
+    const done = await transfer({ ...ok, keepUnitIds: [CENTRO] }, "t");
     expect(done.status).toBe(204);
-    for (const status of [204, 400, 401, 403]) expect(declared).toContain(String(status));
+    for (const status of [204, 400, 401, 403, 409]) expect(declared).toContain(String(status));
     expect((await transfer(ok, "t")).status).toBe(403);
     expect((await (await fetch("/api/v1/auth/session")).json()).links[0].role).toBe("ADMINISTRATOR");
+  });
+
+  it("keepUnitIds: unidade inexistente ou repetida 400; Administrador único da unidade não marcada 409; sem unidades a sessão acaba", async () => {
+    await login("ana@exemplo.com");
+    for (const keepUnitIds of [["x"], [CENTRO, CENTRO]]) {
+      const res = await transfer({ ...ok, keepUnitIds }, "t");
+      expect(res.status).toBe(400);
+      expect((await res.json()).fields.map((f: { field: string }) => f.field)).toContain("keepUnitIds");
+    }
+    const bruno = { email: "bruno@alfa.test", confirmation: "TRANSFERIR" };
+    const refused = await transfer(bruno, "t");
+    expect(refused.status).toBe(409);
+    expect((await refused.json()).code).toBe("LAST_UNIT_ADMINISTRATOR");
+    expect((await transfer({ ...bruno, keepUnitIds: [CENTRO] }, "t")).status).toBe(204);
+  });
+
+  it("sem unidades marcadas a transferência encerra a sessão (401 na seguinte)", async () => {
+    await login("ana@exemplo.com");
+    expect((await transfer(ok, "t")).status).toBe(204);
+    expect((await fetch("/api/v1/auth/session")).status).toBe(401);
+  });
+
+  it("valor da vaga: só o Coordenador (200 com 5000); Administrador 403; sem sessão 401", async () => {
+    const price = () => fetch("/api/v1/organization/admin-seat-price");
+    expect((await price()).status).toBe(401);
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
+    expect((await price()).status).toBe(403);
+    await login("ana@exemplo.com");
+    const res = await price();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ adminSeatCents: 5000 });
   });
 });
 

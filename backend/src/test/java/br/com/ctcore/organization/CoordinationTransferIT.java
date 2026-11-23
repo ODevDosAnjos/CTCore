@@ -21,96 +21,17 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /** RF-ORG-06: transferência da coordenação pela rota, com o banco real. */
-class CoordinationTransferIT extends OrganizationBase {
-    @Autowired TwoFactorService twoFactor;
-
-    /** Conta com vínculo ativo, sessão real e um token de reautenticação de TRANSFER_COORDINATION. */
-    private class Member {
-        final UUID account = UUID.randomUUID();
-        final UUID session = UUID.randomUUID();
-        final UUID link = UUID.randomUUID();
-        final String email = account + "@synthetic.example";
-        final String sessionToken = "session-" + account;
-        final String reauth = "reauth-" + account;
-        final Role role;
-        final Tenant tenant;
-
-        Member(Tenant tenant, Role role, String linkStatus) {
-            this.tenant = tenant;
-            this.role = role;
-            adminJdbc().update("insert into account (id, email, name, status) values (?, ?, 'Synthetic', 'ACTIVE')", account, email);
-            adminJdbc().update("insert into account_link (id, account_id, organization_id, role, status) values (?, ?, ?, ?, ?)",
-                    link, account, tenant.orgId(), role.name(), linkStatus);
-            adminJdbc().update("insert into account_session (id, account_id, token_hash, active_link_id, expires_at) "
-                    + "values (?, ?, ?, ?, now() + interval '1 hour')", session, account, Codes.hash(sessionToken), link);
-            token("TRANSFER_COORDINATION", reauth);
-            if (role == Role.COORDINATOR) twoFactor();
-        }
-
-        void twoFactor() {
-            adminJdbc().update("insert into account_two_factor (account_id, secret_encrypted, enabled_at) values (?, 'x', now())", account);
-        }
-
-        void token(String action, String value) {
-            adminJdbc().update("insert into reauth_token (account_id, session_id, action, token_hash, expires_at) "
-                    + "values (?, ?, ?, ?, now() + interval '5 minutes')", account, session, action, Codes.hash(value));
-        }
-
-        AccountPrincipal principal() {
-            return new AccountPrincipal(account, session, link, tenant.orgId(), role, Set.of(tenant.unitId()));
-        }
-
-        String role() {
-            return adminJdbc().queryForObject("select role from account_link where id = ?", String.class, link);
-        }
-
-        List<UUID> units() {
-            return adminJdbc().queryForList("select unit_id from account_link_unit where link_id = ?", UUID.class, link);
-        }
-    }
-
-    private static MockHttpServletRequestBuilder transfer(String email, String confirmation, String token) {
-        var request = MockMvcRequestBuilders.post("/api/v1/organization/coordination-transfer").contentType("application/json")
-                .content("{\"email\":\"" + email + "\",\"confirmation\":\"" + confirmation + "\"}");
-        return token == null ? request : request.header("X-Reauth-Token", token);
-    }
-
-    private MockHttpServletResponse send(Member from, String email, String confirmation, String token) throws Exception {
-        return call(transfer(email, confirmation, token), from.principal()).getResponse();
-    }
-
-    private int emails(String to) {
-        return adminJdbc().queryForObject("select count(*) from email_message where template = 'COORDINATION_TRANSFERRED' and to_email = ?",
-                Integer.class, to);
-    }
-
-    private int audits(Tenant t) {
-        return audit(t).size();
-    }
-
-    private List<java.util.Map<String, Object>> audit(Tenant t) {
-        return adminJdbc().queryForList("select actor_profile, before_data::text as b, after_data::text as a from audit_log "
-                + "where organization_id = ? and action = 'organization.coordination_transferred'", t.orgId());
-    }
-
-    /** Nada mudou: perfis, e-mail e auditoria. */
-    private void untouched(Member coordinator, Member admin) {
-        assertThat(coordinator.role()).isEqualTo("COORDINATOR");
-        assertThat(admin.role()).isEqualTo("ADMINISTRATOR");
-        assertThat(emails(admin.email)).isZero();
-        assertThat(audits(coordinator.tenant)).isZero();
-    }
-
+class CoordinationTransferIT extends CoordinationTransferBase {
     @Test
-    @DisplayName("RN-ORG-06 / CA1 / CA6 / CA8 / CA11: troca os perfis, dá todas as unidades ao antigo, tira as do novo, envia o e-mail e audita sem segredo")
+    @DisplayName("RN-ORG-06 / CA3 / CA9: troca os perfis, dá ao antigo só as unidades marcadas, tira as do novo, envia o e-mail e audita sem segredo")
     void transfers() throws Exception {
         var t = tenant();
-        adminJdbc().update("insert into unit (organization_id, name, short_name) values (?, 'Outra', ?)", t.orgId(), "outra-" + t.orgId());
+        UUID outra = adminJdbc().queryForObject("insert into unit (organization_id, name, short_name) values (?, 'Outra', ?) returning id", UUID.class, t.orgId(), "outra-" + t.orgId());
         var a = new Member(t, Role.COORDINATOR, "ACTIVE");
         var b = new Member(t, Role.ADMINISTRATOR, "ACTIVE");
         adminJdbc().update("insert into account_link_unit (link_id, organization_id, unit_id) values (?, ?, ?)", b.link, t.orgId(), t.unitId());
 
-        var response = send(a, "  " + b.email.toUpperCase() + " ", "  transferir ", a.reauth);
+        var response = send(a, "  " + b.email.toUpperCase() + " ", "  transferir ", a.reauth, t.unitId(), outra);
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(204);
         assertThat(a.role()).isEqualTo("ADMINISTRATOR");
@@ -153,7 +74,7 @@ class CoordinationTransferIT extends OrganizationBase {
             assertThat(response.getContentAsString()).contains("REAUTH_REQUIRED");
         }
         untouched(a, b);
-        assertThat(send(a, b.email, "TRANSFERIR", a.reauth).getStatus()).isEqualTo(204);
+        assertThat(send(a, b.email, "TRANSFERIR", a.reauth, t.unitId()).getStatus()).isEqualTo(204);
         // o antigo Coordenador agora é Administrador: o mesmo token usado não serve nem a ele nem ao novo
         assertThat(send(b, a.email, "TRANSFERIR", a.reauth).getStatus()).isEqualTo(403);
         assertThat(b.role()).isEqualTo("COORDINATOR");
@@ -209,7 +130,7 @@ class CoordinationTransferIT extends OrganizationBase {
         adminJdbc().execute("create trigger atomic_probe before insert on account_link_unit for each row when (new.organization_id = '" + t.orgId()
                 + "') execute function atomic_probe_fail()");
         try {
-            assertThat(send(a, b.email, "TRANSFERIR", a.reauth).getStatus()).isGreaterThanOrEqualTo(500);
+            assertThat(send(a, b.email, "TRANSFERIR", a.reauth, t.unitId()).getStatus()).isGreaterThanOrEqualTo(500);
         } finally {
             adminJdbc().execute("drop trigger atomic_probe on account_link_unit");
             adminJdbc().execute("drop function atomic_probe_fail()");
@@ -218,10 +139,10 @@ class CoordinationTransferIT extends OrganizationBase {
     }
 
     @Test
-    @DisplayName("RN-ORG-06 / RN-ORG-07: Coordenador que se nomeou Administrador transfere a coordenação sem erro e fica com um só vínculo ativo, de Administrador, com todas as unidades")
+    @DisplayName("RN-ORG-06 / RN-ORG-07: Coordenador que se nomeou Administrador transfere a coordenação sem erro e fica com um só vínculo ativo, de Administrador, com as unidades marcadas")
     void selfAppointedCoordinatorTransfers() throws Exception {
         var t = tenant();
-        adminJdbc().update("insert into unit (organization_id, name, short_name) values (?, 'Outra', ?)", t.orgId(), "outra-" + t.orgId());
+        UUID outra = adminJdbc().queryForObject("insert into unit (organization_id, name, short_name) values (?, 'Outra', ?) returning id", UUID.class, t.orgId(), "outra-" + t.orgId());
         var a = new Member(t, Role.COORDINATOR, "ACTIVE");
         var b = new Member(t, Role.ADMINISTRATOR, "ACTIVE");
         adminJdbc().update("insert into account_link_unit (link_id, organization_id, unit_id) values (?, ?, ?)", b.link, t.orgId(), t.unitId());
@@ -229,7 +150,7 @@ class CoordinationTransferIT extends OrganizationBase {
                 .content("{\"unitIds\":[\"" + t.unitId() + "\"]}"), a.principal()).getResponse();
         assertThat(appointment.getStatus()).as(appointment.getContentAsString()).isEqualTo(200);
 
-        var response = send(a, b.email, "TRANSFERIR", a.reauth);
+        var response = send(a, b.email, "TRANSFERIR", a.reauth, t.unitId(), outra);
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(204);
         assertThat(roles(a.account)).containsExactlyInAnyOrder("ADMINISTRATOR:ACTIVE", "COORDINATOR:ENDED");
@@ -251,7 +172,7 @@ class CoordinationTransferIT extends OrganizationBase {
         adminJdbc().update("insert into account_link_unit (link_id, organization_id, unit_id) values (?, ?, ?)", b.link, t.orgId(), t.unitId());
         adminJdbc().update("insert into account_link (account_id, organization_id, role, status) values (?, ?, 'COORDINATOR', 'ENDED')", b.account, t.orgId());
 
-        var response = send(a, b.email, "TRANSFERIR", a.reauth);
+        var response = send(a, b.email, "TRANSFERIR", a.reauth, t.unitId());
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(204);
         assertThat(roles(b.account)).containsExactlyInAnyOrder("COORDINATOR:ACTIVE", "ADMINISTRATOR:ENDED");
@@ -283,7 +204,7 @@ class CoordinationTransferIT extends OrganizationBase {
         var a = new Member(t, Role.COORDINATOR, "ACTIVE");
         var b = new Member(t, Role.ADMINISTRATOR, "ACTIVE");
         assertThat(twoFactor.setupRequired(b.account)).isFalse();
-        assertThat(send(a, b.email, "TRANSFERIR", a.reauth).getStatus()).isEqualTo(204);
+        assertThat(send(a, b.email, "TRANSFERIR", a.reauth, t.unitId()).getStatus()).isEqualTo(204);
 
         assertThat(twoFactor.setupRequired(b.account)).isTrue();
         assertThat(withSession(get(), b).getStatus()).isEqualTo(403);

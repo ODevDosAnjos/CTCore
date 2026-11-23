@@ -44,6 +44,13 @@ const USERS = [
   staff({ linkId: "l-diego", name: "Diego Souza", email: "diego@alfa.test", role: "TEACHER", units: [{ id: "u1", name: "Tijuca" }] }),
 ];
 
+const UNITS = [
+  { id: "u1", name: "Tijuca", active: true },
+  { id: "u2", name: "Barra", active: true },
+  { id: "u3", name: "Antiga", active: false },
+];
+const noCost = "Nenhuma unidade marcada: sem custo adicional.";
+
 let role: string;
 let reauths: unknown[];
 let transfers: { token: string | null; body: unknown }[];
@@ -59,6 +66,8 @@ function setup({ users = USERS as unknown[], twoFactor = true, reauth, transfer,
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: false, units: [] })),
     http.get("/api/v1/organization", () => HttpResponse.json(view)),
     http.get("/api/v1/users", usersHandler ?? (() => HttpResponse.json(users))),
+    http.get("/api/v1/units", () => HttpResponse.json(UNITS)),
+    http.get("/api/v1/organization/admin-seat-price", () => HttpResponse.json({ adminSeatCents: 5000 })),
     http.post("/api/v1/auth/reauth", async ({ request }) => {
       reauths.push(await request.json());
       return reauth ? reauth() : HttpResponse.json({ reauthToken: "tok", expiresAt: "2030-01-01T00:00:00Z" });
@@ -89,8 +98,10 @@ const open = async (user: User) => {
   return dialog;
 };
 const submitButton = (dialog: HTMLElement) => within(dialog).getByRole("button", { name: "Transferir coordenação" });
-const fill = async (user: User, dialog: HTMLElement, { word = "transferir", password = "segredo123", code = "123456", pick = true } = {}) => {
+const done = "Coordenação transferida. Você não tem mais acesso à gestão desta organização.";
+const fill = async (user: User, dialog: HTMLElement, { word = "transferir", password = "segredo123", code = "123456", pick = true, keep = [] as string[] } = {}) => {
   if (pick) await user.selectOptions(within(dialog).getByLabelText("Novo Coordenador"), "l-carla");
+  for (const name of keep) await user.click(within(dialog).getByRole("checkbox", { name }));
   await user.type(within(dialog).getByLabelText("Digite TRANSFERIR"), word);
   await user.type(within(dialog).getByLabelText("Sua senha"), password);
   const field = within(dialog).queryByLabelText("Código de duas etapas");
@@ -102,7 +113,7 @@ describe("TransferCoordinationDialog (RF-ORG-06, R9, R10)", () => {
     const user = userEvent.setup();
     setup();
     const dialog = await open(user);
-    expect(within(dialog).getByText("Só existe um Coordenador por organização. Depois da transferência, você vira Administrador de todas as unidades.")).toBeInTheDocument();
+    expect(within(dialog).getByText(/você perde o acesso à gestão, a menos que marque abaixo as unidades/)).toBeInTheDocument();
     const options = within(dialog).getAllByRole("option").map((o) => o.textContent);
     expect(options).toEqual(["Escolha um Administrador", "Carla Mendes · Administrador · Tijuca e Barra"]);
     expect(within(dialog).getByText("Resumo")).toBeInTheDocument();
@@ -112,7 +123,59 @@ describe("TransferCoordinationDialog (RF-ORG-06, R9, R10)", () => {
     const items = within(dialog).getAllByRole("listitem").map((li) => li.textContent);
     expect(items[0]).toContain("Carla recebe um e-mail para confirmar");
     expect(items[1]).toContain("passam para Carla");
-    expect(items[2]).toContain("Você continua com acesso como Administrador");
+    expect(items[2]).toContain("Você perde o acesso à gestão desta organização");
+  });
+
+  it("CA12 / CA13: lista só as unidades ativas, todas desmarcadas; o total acompanha as marcações e o resumo diz onde o acesso continua", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await open(user);
+    const boxes = within(dialog).getAllByRole("checkbox");
+    expect(boxes.map((b) => b.closest("label")?.textContent)).toEqual(["Tijuca", "Barra"]);
+    expect(boxes.every((b) => !(b as HTMLInputElement).checked)).toBe(true);
+    expect(within(dialog).getByText(/\+R\$\s50,00\/mês por unidade/)).toBeInTheDocument();
+    expect(within(dialog).getByText(noCost)).toBeInTheDocument();
+    await user.click(boxes[0]);
+    expect(within(dialog).getByText(/Custo adicional: R\$\s50,00\/mês/)).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("listitem")[2].textContent).toContain("só em: Tijuca");
+    await user.click(boxes[1]);
+    expect(within(dialog).getByText(/Custo adicional: R\$\s100,00\/mês/)).toBeInTheDocument();
+    await user.click(boxes[1]);
+    expect(within(dialog).getByText(/Custo adicional: R\$\s50,00\/mês/)).toBeInTheDocument();
+    await user.click(boxes[0]);
+    expect(within(dialog).getByText(noCost)).toBeInTheDocument();
+  });
+
+  it("CA14: a unidade que o escolhido administra sozinho aparece com aviso até ser marcada", async () => {
+    const user = userEvent.setup();
+    setup({ users: [CARLA, staff({ linkId: "l-edu", name: "Edu", email: "edu@alfa.test", units: [{ id: "u2", name: "Barra" }] })] });
+    const dialog = await open(user);
+    expect(within(dialog).queryByText(/administra esta unidade sozinho/)).not.toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText("Novo Coordenador"), "l-carla");
+    expect(within(dialog).getAllByText(/Carla administra esta unidade sozinho\(a\)/)).toHaveLength(1);
+    await user.click(within(dialog).getByRole("checkbox", { name: "Tijuca" }));
+    expect(within(dialog).queryByText(/administra esta unidade sozinho/)).not.toBeInTheDocument();
+  });
+
+  it("CA14: 409 do servidor cita as unidades que ficariam sem Administrador", async () => {
+    const user = userEvent.setup();
+    setup({ transfer: () => HttpResponse.json({ code: "LAST_UNIT_ADMINISTRATOR", message: "x", fields: [{ field: "unitIds", message: "u1,u2" }] }, { status: 409 }) });
+    const dialog = await open(user);
+    await fill(user, dialog);
+    await user.click(submitButton(dialog));
+    expect(await within(dialog).findByText("Estas unidades ficariam sem Administrador: Tijuca e Barra. Marque-as e tente de novo.")).toBeInTheDocument();
+  });
+
+  it("CA15: com unidades marcadas manda keepUnitIds, a janela fecha com aviso e a tela segue na sessão", async () => {
+    const user = userEvent.setup();
+    setup();
+    const dialog = await open(user);
+    await fill(user, dialog, { keep: ["Tijuca", "Barra"] });
+    await user.click(submitButton(dialog));
+    expect(await screen.findByText("Coordenação transferida.")).toBeInTheDocument();
+    expect(transfers).toEqual([{ token: "tok", body: { email: "carla@alfa.test", confirmation: "transferir", keepUnitIds: ["u1", "u2"] } }]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Organização", level: 1 })).toBeInTheDocument();
   });
 
   it("CA9: sem Administrador ativo o seletor mostra Nenhum Administrador ativo e o botão não habilita", async () => {
@@ -152,19 +215,19 @@ describe("TransferCoordinationDialog (RF-ORG-06, R9, R10)", () => {
     expect(within(dialog).queryByLabelText("Código de duas etapas")).not.toBeInTheDocument();
     await fill(user, dialog);
     await user.click(submitButton(dialog));
-    expect(await screen.findByText("Coordenação transferida.")).toBeInTheDocument();
+    expect(await screen.findByText(done)).toBeInTheDocument();
     expect(reauths).toEqual([{ action: "TRANSFER_COORDINATION", password: "segredo123" }]);
   });
 
-  it("CA11: confirma com reautenticação e transferência no mesmo clique; sucesso fecha, recarrega a sessão e avisa", async () => {
+  it("CA15: confirma com reautenticação e transferência no mesmo clique; sem unidades a sessão acaba e o login avisa", async () => {
     const user = userEvent.setup();
     setup();
     const dialog = await open(user);
     await fill(user, dialog);
     await user.click(submitButton(dialog));
-    expect(await screen.findByText("Coordenação transferida.")).toBeInTheDocument();
+    expect(await screen.findByText(done)).toBeInTheDocument();
     expect(reauths).toEqual([{ action: "TRANSFER_COORDINATION", password: "segredo123", code: "123456" }]);
-    expect(transfers).toEqual([{ token: "tok", body: { email: "carla@alfa.test", confirmation: "transferir" } }]);
+    expect(transfers).toEqual([{ token: "tok", body: { email: "carla@alfa.test", confirmation: "transferir", keepUnitIds: [] } }]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Transferir coordenação" })).not.toBeInTheDocument();
   });
