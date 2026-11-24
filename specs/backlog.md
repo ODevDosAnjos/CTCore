@@ -219,7 +219,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 688 | Teste e2e da Agenda falha às segundas-feiras: mock trata hoje como dia sem aula; usar relógio fixo | issue #688 | Sprint 10.5 | — | agente | feito |
 | 692 | Dia sem aula do mock fixo em 27/11: calcular do relógio e fixar o relógio em no-class-days e comunicados (antes de 30/11) | issue #692 | Sprint 10.5 | #688 | agente | feito |
 | 693 | Migrar testes antigos que dependem de "hoje" para relógio fixo | issue #693 | Sprint 10.5 | #692 | agente | feito |
-| 690 | Suspeita de instabilidade: SeedLoginIT e limpeza de banco dos ITs com chave estrangeira | issue #690 | Sprint 10.5 | #688 | agente | a fazer |
+| 690 | Suspeita de instabilidade: SeedLoginIT e limpeza de banco dos ITs com chave estrangeira | issue #690 | Sprint 10.5 | #688 | agente | feito |
 | 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | feito |
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | a fazer |
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | a fazer |

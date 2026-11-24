@@ -33,32 +33,15 @@ public class SeedDataIT extends PostgresIT {
         cleanAll(jdbc);
     }
 
-    /** Apaga tudo o que o seed cria, na ordem das chaves estrangeiras (também usada pelo SeedLoginIT). */
+    /** Apaga tudo o que o seed cria: truncate em cascata das raízes (também usada pelo SeedLoginIT e pelos ITs de cobrança). */
     public static void cleanAll(JdbcTemplate jdbc) {
-        // audit_log is append-only and shares the container with AuditServiceIT: test cleanup only.
-        jdbc.execute("alter table audit_log disable trigger user");
-        jdbc.update("delete from audit_log");
-        jdbc.execute("alter table audit_log enable trigger user");
-        for (String table : new String[]{"notification", "notification_preference", "announcement_read", "announcement", "payment_proof", "receipt", "receipt_counter", "payment", "charge_reminder", "charge", "modality_confirmation", "term_acceptance", "terms_version", "portal_request", "student_graduation", "enrollment_start", "benefit", "enrollment_modality_class", "enrollment_modality", "enrollment", "plan", "student_guardian", "guardian", "student", "lesson", "no_class_day", "training_class_assistant", "training_class_schedule", "training_class", "teacher_modality", "teacher_unit", "teacher", "age_range", "unit_modality", "graduation_level", "modality_request", "organization_modality", "email_message", "account_device", "login_attempt", "account_session", "password_reset", "account_invite",
-                "account_link_unit", "account_link", "account"}) {
-            jdbc.update("delete from " + table);
-        }
-        jdbc.update("delete from organization_feature");
-        jdbc.update("delete from unit_short_name_history");
-        jdbc.update("delete from unit_settings");
-        jdbc.update("delete from unit");
-        jdbc.update("delete from organization_settings");
-        jdbc.update("delete from organization_limits");
-        jdbc.update("delete from organization");
+        truncateCascade(jdbc, "organization", "account", "organization_feature"); // organization_feature não tem FK (SeedDataIT.order grava org inexistente)
     }
 
     // Os professores do seed referenciam contas: sem apagar, os testes seguintes não conseguem limpar account.
     @org.junit.jupiter.api.AfterEach
     void cleanTeachers() {
-        for (String table : new String[]{"notification", "notification_preference", "announcement_read", "announcement", "payment_proof", "receipt", "receipt_counter", "payment", "charge_reminder", "charge", "modality_confirmation", "term_acceptance", "terms_version", "portal_request", "student_graduation", "enrollment_start", "benefit", "enrollment_modality_class", "enrollment_modality", "enrollment", "plan", "student_guardian", "guardian", "student", "lesson", "no_class_day", "training_class_assistant", "training_class_schedule", "training_class", "teacher_modality", "teacher_unit", "teacher",
-                "email_message", "account_device", "login_attempt", "account_session", "password_reset", "account_invite", "account_link_unit", "account_link", "account"}) {
-            jdbc.update("delete from " + table);
-        }
+        truncateCascade(jdbc, "account");
     }
 
     /** Aplica os .sql do diretório em ordem do nome, como o seed.sh. */
@@ -96,6 +79,20 @@ public class SeedDataIT extends PostgresIT {
             try (var scope = Scopes.open((UUID) r.get("organization_id"), null)) {
                 assertThat(flags.isEnabled((UUID) r.get("organization_id"), key)).as(key).isEqualTo(r.get("enabled"));
             }
+        }
+    }
+
+    @Test
+    @DisplayName("#690 CA4: cleanAll com charge_reminder ligado a charge termina sem erro de chave estrangeira e deixa tudo vazio")
+    void cleanAllWithChargeReminder() throws IOException {
+        apply(jdbc, SEED_DIR);
+        jdbc.update("insert into charge_reminder (id, organization_id, charge_id, kind, channel, status, created_at) "
+                + "select gen_random_uuid(), organization_id, id, 'MANUAL', 'EMAIL', 'SENT', now() from charge limit 1");
+        assertThat(jdbc.queryForObject("select count(*) from charge_reminder", Integer.class)).isEqualTo(1);
+        jdbc.update("insert into audit_log (organization_id, actor_type, action, entity_type, entity_id, occurred_at) select id, 'SYSTEM', 'x', 'organization', id::text, now() from organization limit 1");
+        cleanAll(jdbc);
+        for (String table : new String[]{"charge_reminder", "charge", "account", "organization", "audit_log"}) {
+            assertThat(jdbc.queryForObject("select count(*) from " + table, Integer.class)).as(table).isZero();
         }
     }
 

@@ -34,6 +34,19 @@ public abstract class PostgresIT {
         registry.add("spring.flyway.password", POSTGRES::getPassword);
     }
 
+    /**
+     * Limpeza por {@code truncate ... cascade}: leva junto toda tabela que referencie as raízes, sem depender de ordem.
+     * O cascade chega a {@code audit_log}, que é append-only (gatilho de truncate): desligado só durante a limpeza.
+     */
+    public static void truncateCascade(org.springframework.jdbc.core.JdbcTemplate jdbc, String... tables) {
+        jdbc.execute("alter table audit_log disable trigger user");
+        try {
+            jdbc.execute("truncate table " + String.join(", ", tables) + " cascade");
+        } finally {
+            jdbc.execute("alter table audit_log enable trigger user");
+        }
+    }
+
     /** Gestor com conta (duas etapas ligadas), vínculo ativo e unidades reais, para os testes que dependem de quem recebe notificação (#84). */
     public static br.com.ctcore.identity.AccountPrincipal linked(java.util.UUID orgId, br.com.ctcore.identity.Role role, String emailPrefix, java.util.UUID... units) {
         java.util.UUID account = java.util.UUID.randomUUID(), link = java.util.UUID.randomUUID();
