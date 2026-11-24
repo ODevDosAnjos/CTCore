@@ -218,7 +218,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 608 | RN-ACE-23 · Sessão única de gestão por conta | issue #608 | Sprint 10.5 | — | agente | feito |
 | 688 | Teste e2e da Agenda falha às segundas-feiras: mock trata hoje como dia sem aula; usar relógio fixo | issue #688 | Sprint 10.5 | — | agente | feito |
 | 692 | Dia sem aula do mock fixo em 27/11: calcular do relógio e fixar o relógio em no-class-days e comunicados (antes de 30/11) | issue #692 | Sprint 10.5 | #688 | agente | feito |
-| 693 | Migrar testes antigos que dependem de "hoje" para relógio fixo | issue #693 | Sprint 10.5 | #692 | agente | a fazer |
+| 693 | Migrar testes antigos que dependem de "hoje" para relógio fixo | issue #693 | Sprint 10.5 | #692 | agente | feito |
 | 690 | Suspeita de instabilidade: SeedLoginIT e limpeza de banco dos ITs com chave estrangeira | issue #690 | Sprint 10.5 | #688 | agente | a fazer |
 | 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | feito |
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | a fazer |
@@ -367,6 +367,10 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 527 | Técnica · Conta do dono no AGENTS.md: ODevDosAnjos | issue #527 | Sprint 10.5 | — | agente | feito |
 | 528 | Técnica · Teste visual em paralelo no CI | issue #528 | Sprint 10.5 | — | agente | feito |
 | 530 | Técnica · Teste visual instável em conta-duas-etapas (1440) | issue #530 | Sprint 10.5 | — | agente | feito |
+| 699 | Técnica · Decisão: relógio do banco vs Clock da aplicação (antes das #696 a #698; decisão do dono) | issue #699 | Sprint 10.5 | — | agente | a fazer |
+| 696 | Técnica · Migrar ITs de organization e terms para Clock fixo (medição da #693) | issue #696 | Sprint 10.5 | #699 | agente | a fazer |
+| 697 | Técnica · Migrar ITs de student (portal) para Clock fixo (medição da #693) | issue #697 | Sprint 10.5 | #699 | agente | a fazer |
+| 698 | Técnica · Migrar ITs de billing, plan, notification, mail, agenda, communication e storage para Clock fixo (medição da #693) | issue #698 | Sprint 10.5 | #699 | agente | a fazer |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 
