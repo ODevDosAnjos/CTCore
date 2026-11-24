@@ -371,6 +371,8 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 696 | Técnica · Migrar ITs de organization e terms para Clock fixo (medição da #693) | issue #696 | Sprint 10.5 | #699 | agente | a fazer |
 | 697 | Técnica · Migrar ITs de student (portal) para Clock fixo (medição da #693) | issue #697 | Sprint 10.5 | #699 | agente | a fazer |
 | 698 | Técnica · Migrar ITs de billing, plan, notification, mail, agenda, communication e storage para Clock fixo (medição da #693) | issue #698 | Sprint 10.5 | #699 | agente | a fazer |
+| 706 | Técnica · Teste TextModelsIT.audit instável: medir e estabilizar | issue #706 | sem marco | — | agente | a fazer |
+| 707 | Técnica · Teste visual instável em configuracoes-unidade-professor (1440 escuro): medir e estabilizar | issue #707 | sem marco | — | agente | a fazer |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 
