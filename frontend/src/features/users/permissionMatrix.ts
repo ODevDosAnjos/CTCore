@@ -26,7 +26,7 @@ export const MATRIX: MatrixRow[] = [
   row("announcements", ["ANNOUNCEMENTS"], ["FULL/ALL", "FULL/UNITS", "FULL/CLASSES#0"]),
   row("trial", ["TRIAL_CLASSES"], ["FULL/ALL", "FULL/UNITS", "READ/CLASSES#3"]),
   row("teachers", ["TEACHERS"]),
-  row("staffUsers", ["STAFF_USERS"]),
+  row("staffUsers", ["STAFF_USERS"], ["FULL/ALL", "NONE", "NONE"]),
   row("unitSettings", ["UNIT_SETTINGS"]),
   row("orgSettings", ["ORGANIZATION_SETTINGS"], ["FULL/ALL", "READ/ALL", "NONE"]),
   row("units", ["UNITS"], ["FULL/ALL", "NONE", "NONE"]),

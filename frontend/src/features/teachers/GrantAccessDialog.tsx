@@ -28,7 +28,7 @@ function Body({ teacher, choices, onClose, onDone }: { teacher: TeacherDetail; c
 
   async function submit() {
     setForm(undefined);
-    if (unitIds.length === 0) return setError(t("users.invite.unitsRequired"));
+    if (unitIds.length === 0) return setError(t("administrators.invite.unitsRequired"));
     setError(undefined);
     setBusy(true);
     try {

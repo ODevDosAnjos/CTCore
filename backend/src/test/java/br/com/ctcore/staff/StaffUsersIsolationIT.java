@@ -30,28 +30,28 @@ class StaffUsersIsolationIT extends StaffBase {
     }
 
     @Test
-    @DisplayName("CA17: Administrador mexendo em Administrador e Coordenador mexendo em Professor recebem 404 em cada rota, e nada muda")
+    @DisplayName("CA17 (#611): Administrador recebe 403 em cada rota e Coordenador mexendo em Professor recebe 404, e nada muda")
     void otherProfiles() throws Exception {
         var t = tenant();
         var coordinator = coordinator(t);
         var admin = member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId());
         var otherAdmin = member(t, Role.ADMINISTRATOR, "Outro", "PENDING", t.unitId());
         var teacher = member(t, Role.TEACHER, "Prof", "PENDING", t.unitId());
-        for (var request : routes(otherAdmin.link(), t.unitId())) assertThat(call(request, admin).getStatus()).isEqualTo(404);
+        for (var request : routes(otherAdmin.link(), t.unitId())) assertThat(call(request, admin).getStatus()).isEqualTo(403);
         for (var request : routes(teacher.link(), t.unitId())) assertThat(call(request, coordinator).getStatus()).isEqualTo(404);
         assertThat(status(otherAdmin.link())).isEqualTo("PENDING");
         assertThat(status(teacher.link())).isEqualTo("PENDING");
     }
 
     @Test
-    @DisplayName("CA3: sem sessão, 401; Professor, Aluno e Responsável, 403 em todas as rotas")
+    @DisplayName("CA3: sem sessão, 401; Administrador, Professor, Aluno e Responsável, 403 em todas as rotas")
     void anonymousAndOtherProfiles() throws Exception {
         var t = tenant();
         var target = member(t, Role.ADMINISTRATOR, "Alvo", "PENDING", t.unitId());
         var all = new MockHttpServletRequestBuilder[] {list(""), invite(inviteBody("a@synthetic.example", "A", t.unitId())),
                 resend(target.link()), units(target.link(), t.unitId()), deactivate(target.link()), appoint(t.unitId())};
         for (var request : all) assertThat(call(request, null).getStatus()).isEqualTo(401);
-        for (Role role : new Role[] {Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) {
+        for (Role role : new Role[] {Role.ADMINISTRATOR, Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) {
             var who = member(t, role, "X " + role, "ACTIVE", t.unitId());
             for (var request : new MockHttpServletRequestBuilder[] {list(""), invite(inviteBody("a@synthetic.example", "A", t.unitId())),
                     resend(target.link()), units(target.link(), t.unitId()), deactivate(target.link()), appoint(t.unitId())}) {

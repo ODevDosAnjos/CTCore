@@ -33,25 +33,25 @@ class StaffUsersInviteIT extends StaffBase {
     }
 
     @Test
-    @DisplayName("CA6: o Administrador só convida Professor em unidade dele; role do corpo é ignorado; unidade de outra organização é 400 para o Coordenador")
-    void reachAndImplicitRole() throws Exception {
+    @DisplayName("CA6 / CA1 (#611): o Administrador não convida (403, nada criado); role do corpo é ignorado; unidade de outra organização é 400 para o Coordenador")
+    void administratorIsDeniedAndRoleIsImplicit() throws Exception {
         var t = tenant();
-        var other = addUnit(t, "Outra", true);
         var admin = member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId());
         var email = "prof-" + UUID.randomUUID() + "@synthetic.example";
-        assertThat(call(invite(inviteBody(email, "Prof", other)), admin).getStatus()).isEqualTo(403);
+        assertThat(call(invite(inviteBody(email, "Prof", t.unitId())), admin).getStatus()).isEqualTo(403);
         assertThat(links(t, email)).isZero();
-        var withRole = "{\"role\":\"COORDINATOR\",\"email\":\"" + email + "\",\"name\":\"Prof\",\"unitIds\":[\"" + t.unitId() + "\"]}";
-        var response = call(invite(withRole), admin);
-        assertThat(response.getStatus()).isEqualTo(201);
-        assertThat(body(response).path("role").asText()).isEqualTo("TEACHER");
         var coordinator = coordinator(t);
+        var withRole = "{\"role\":\"TEACHER\",\"email\":\"" + email + "\",\"name\":\"Prof\",\"unitIds\":[\"" + t.unitId() + "\"]}";
+        var response = call(invite(withRole), coordinator);
+        assertThat(response.getStatus()).isEqualTo(201);
+        assertThat(body(response).path("role").asText()).isEqualTo("ADMINISTRATOR");
         var foreign = tenant();
         assertThat(call(invite(inviteBody("x-" + email, "Prof", foreign.unitId())), coordinator).getStatus()).isEqualTo(400);
         assertThat(call(invite(inviteBody("not-an-email", "Prof", t.unitId())), coordinator).getStatus()).isEqualTo(400);
         assertThat(call(invite(inviteBody("y-" + email, " ", t.unitId())), coordinator).getStatus()).isEqualTo(400);
         assertThat(call(invite("{\"email\":\"z-" + email + "\",\"name\":\"Prof\",\"unitIds\":[]}"), coordinator).getStatus()).isEqualTo(400);
     }
+
 
     @Test
     @DisplayName("CA7: e-mail de outra organização cria só o vínculo; mesmo perfil já ligado é 409 ALREADY_LINKED; conta desativada é 403")

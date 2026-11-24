@@ -131,7 +131,7 @@ function Form({ options, teacher, footer, onClose, onSaved }: { options: Teacher
     if (!email.trim()) found.email = t("teachers.form.emailRequired");
     else if (!EMAIL.test(email.trim())) found.email = t("teachers.form.emailInvalid");
     if (!phone) found.phone = t("teachers.form.phoneRequired");
-    if (unitIds.length === 0) found.units = t("users.invite.unitsRequired");
+    if (unitIds.length === 0) found.units = t("administrators.invite.unitsRequired");
     if (consent && !declared) found.declared = t("teachers.form.declaredRequired");
     if (options.modalities.some((o) => o.graduationEnabled && picked[o.id] && !picked[o.id].levelId)) found.modalities = t("teachers.form.levelRequired");
     return found;

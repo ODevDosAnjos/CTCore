@@ -82,21 +82,19 @@ class StaffUsersDeactivateIT extends StaffBase {
     }
 
     @Test
-    @DisplayName("CA16: o Administrador não desativa Professor com unidade fora do alcance (403); o de unidade só dele sim; a si mesmo é 409; o Coordenador é 403")
-    void administratorScope() throws Exception {
+    @DisplayName("CA16 / CA1 (#611): o Administrador recebe 403 ao desativar; o Coordenador não desativa a si mesmo (409) nem o vínculo de Professor (404)")
+    void administratorIsDenied() throws Exception {
         var t = tenant();
-        var b = addUnit(t, "B", true);
         var admin = member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId());
-        var two = member(t, Role.TEACHER, "Dupla", "ACTIVE", t.unitId(), b);
-        var solo = member(t, Role.TEACHER, "Solo", "ACTIVE", t.unitId());
-        assertThat(call(deactivate(two.link()), admin).getStatus()).isEqualTo(403);
-        assertThat(status(two.link())).isEqualTo("ACTIVE");
-        assertThat(call(deactivate(solo.link()), admin).getStatus()).isEqualTo(204);
-        assertThat(status(solo.link())).isEqualTo("ENDED");
-        assertThat(call(deactivate(admin.link()), admin).getStatus()).isEqualTo(409);
+        var other = member(t, Role.ADMINISTRATOR, "Outro", "ACTIVE", t.unitId());
+        var teacher = member(t, Role.TEACHER, "Solo", "ACTIVE", t.unitId());
+        assertThat(call(deactivate(other.link()), admin).getStatus()).isEqualTo(403);
+        assertThat(call(deactivate(teacher.link()), admin).getStatus()).isEqualTo(403);
+        assertThat(status(other.link())).isEqualTo("ACTIVE");
+        assertThat(status(teacher.link())).isEqualTo("ACTIVE");
         var coordinator = coordinator(t);
-        assertThat(call(deactivate(coordinator.link()), admin).getStatus()).isEqualTo(403);
         assertThat(call(deactivate(coordinator.link()), coordinator).getStatus()).isEqualTo(409);
+        assertThat(call(deactivate(teacher.link()), coordinator).getStatus()).isEqualTo(404);
         assertThat(status(coordinator.link())).isEqualTo("ACTIVE");
     }
 }

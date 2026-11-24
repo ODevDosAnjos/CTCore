@@ -40,13 +40,15 @@ describe("mapa de rotas (CA4)", () => {
     expect(activeItemOf(findRoute("/cobrancas/previa"))).toBe("collections");
     expect(activeItemOf(findRoute("/configuracoes"))).toBe("");
     expect(activeItemOf(findRoute("/agenda/aulas/3/alunos/4"))).toBe("agenda");
-    expect(findRoute("/configuracoes/usuarios/permissoes")?.trail).toBe("permissionsTable.title");
+    expect(findRoute("/configuracoes/unidade/permissoes")?.trail).toBe("permissionsTable.title");
     expect(findRoute("/nao-existe")).toBeUndefined();
     expect(hrefOf("students")).toBe("/alunos");
   });
 
   it("CA6: endereço que mudou tem redirecionamento no mapa", () => {
     expect(routeById("plansList").redirect).toBe("/planos");
+    expect(routeById("staffUsers").redirect).toBe("/administradores");
+    expect(routeById("permissionsTableOld").redirect).toBe("/configuracoes/unidade/permissoes");
   });
 
   it("item 'Em breve' e item fora do menu não têm tela", () => {
@@ -60,7 +62,7 @@ const ALL = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"];
 const GESTAO = ["COORDINATOR", "ADMINISTRATOR"];
 const legacy: Record<string, string[]> = {
   agenda: ALL, lesson: ALL, teacherRecord: ["TEACHER"], announcements: ALL, newAnnouncement: ALL,
-  units: ["COORDINATOR"], newUnit: ["COORDINATOR"],
+  units: ["COORDINATOR"], newUnit: ["COORDINATOR"], administrators: ["COORDINATOR"],
 };
 
 describe("equivalência do acesso por permissão com a lista de perfis de hoje (CA5, D1)", () => {

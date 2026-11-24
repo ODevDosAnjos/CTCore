@@ -27,7 +27,7 @@ describe("buildMenu", () => {
     expect(buildMenu(mockPermissions(undefined), t, allAvailable)).toEqual([]);
   });
 
-  it("CA12 / CA19 / CA16 (#29), CA21 (#31) e #37, #46, #49 e #53: com o catálogo real, o Coordenador vê Unidade, Organização, Usuários e Unidades, o Administrador Unidade, Organização e Usuários e o Professor Início e Agenda", () => {
+  it("CA12 / CA19 / CA16 (#29), CA21 (#31) e #37, #46, #49 e #53: com o catálogo real, o Coordenador vê Administradores, Unidade, Organização e Unidades, o Administrador Unidade e Organização e o Professor Início e Agenda", () => {
     const home = { id: "home", label: "menu.groups.home", items: [{ id: "home", label: "menu.items.home", href: "/" }] };
     const it_ = (id: string, href: string, extra: object = {}) => ({ id, label: `menu.items.${id}`, href, ...extra });
     const grp = (id: string, items: object[]) => ({ id, label: `menu.groups.${id}`, items });
@@ -37,16 +37,18 @@ describe("buildMenu", () => {
     expect(bare(buildMenu(mockPermissions("TEACHER"), t))).toEqual([home, grp("operation", [agenda]), communication, reports]);
     const operation = grp("operation", [agenda, it_("classes", "/turmas"), it_("noClassDays", "/dias-sem-aula")]);
     const people = grp("people", [it_("students", "/alunos"), it_("requests", "/pedidos"), it_("teachers", "/professores")]);
+    const administrators = it_("administrators", "/administradores");
     const finance = grp("finance", [it_("collections", "/cobrancas"), it_("plans", "/planos"), it_("benefits", "/beneficios")]);
     const soon = [it_("subscription", "/configuracoes/assinatura", { disabled: true }), it_("audit", "/configuracoes/auditoria", { disabled: true }), it_("import", "/configuracoes/importar", { disabled: true })];
     const common = [
       it_("unitSettings", "/configuracoes/unidade"), it_("modalities", "/configuracoes/modalidades"), it_("ageRanges", "/configuracoes/faixas-etarias"),
-      it_("terms", "/configuracoes/termos"), it_("texts", "/configuracoes/textos"), it_("staffUsers", "/configuracoes/usuarios"),
+      it_("terms", "/configuracoes/termos"), it_("texts", "/configuracoes/textos"),
     ];
     const org = it_("organizationSettings", "/configuracoes/organizacao");
     const units = it_("units", "/configuracoes/unidades");
     const rest = [home, people, operation, finance, communication, reports];
-    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...rest, grp("settings", [org, units, ...common, ...soon])]);
+    const coordinatorRest = [home, grp("people", [...people.items, administrators]), operation, finance, communication, reports];
+    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...coordinatorRest, grp("settings", [org, units, ...common, ...soon])]);
     expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([...rest, grp("settings", [org, ...common, ...soon])]);
   });
 

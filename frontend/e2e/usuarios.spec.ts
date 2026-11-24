@@ -8,8 +8,8 @@ test("@critical Coordenador convida um Administrador e desativa outro", async ({
   await page.getByLabel("Senha").fill("segredo123");
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await page.evaluate(`history.pushState({}, "", "/configuracoes/usuarios"); dispatchEvent(new PopStateEvent("popstate"))`);
-  await expect(page.getByRole("heading", { name: "Usuários", level: 1, exact: true })).toBeVisible();
+  await page.evaluate(`history.pushState({}, "", "/administradores"); dispatchEvent(new PopStateEvent("popstate"))`);
+  await expect(page.getByRole("heading", { name: "Administradores", level: 1, exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Convidar" }).click();
   const invite = page.getByRole("dialog");
@@ -25,6 +25,6 @@ test("@critical Coordenador convida um Administrador e desativa outro", async ({
   await dialog.getByRole("button", { name: "Desativar" }).click();
   await expect(dialog.getByText("Estas unidades ficariam sem Administrador ativo:")).toBeVisible();
   await dialog.getByRole("button", { name: "Nomear a mim mesmo" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Usuário desativado." })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Administrador desativado." })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Bruno" })).toHaveCount(0);
 });

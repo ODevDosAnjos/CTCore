@@ -44,7 +44,7 @@ describe("SettingsIndexPage (R8, GMConfig)", () => {
     setup("COORDINATOR");
     const items = await list();
     expect(items.getAllByRole("link").map((a) => a.textContent)).toEqual([
-      "Organização", "Unidade", "Modalidades", "Faixas etárias", "Usuários", "Termos", "Textos", "Auditoria", "Importar e exportar",
+      "Organização", "Unidade", "Modalidades", "Faixas etárias", "Termos", "Textos", "Auditoria", "Importar e exportar",
     ]);
     expect(items.getByRole("link", { name: "Unidade" })).toHaveAttribute("href", "/configuracoes/unidade");
     expect(items.getByRole("link", { name: "Textos" })).toHaveAttribute("href", "/configuracoes/textos");

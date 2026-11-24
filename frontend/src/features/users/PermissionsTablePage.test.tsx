@@ -1,5 +1,4 @@
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { App } from "@/App";
@@ -17,7 +16,7 @@ const session = (role: string): SessionView => ({
   twoFactor: { enabled: false, required: false },
 });
 
-function setup(role = "COORDINATOR") {
+function setup(role = "COORDINATOR", path = "/configuracoes/unidade/permissoes") {
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
@@ -26,7 +25,7 @@ function setup(role = "COORDINATOR") {
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/usuarios/permissoes"]}>
+      <MemoryRouter initialEntries={[path]}>
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -50,12 +49,18 @@ describe("PermissionsTablePage", () => {
     expect(within(linha).getByText("● várias unidades")).toBeInTheDocument();
   });
 
-  it("CA8: Voltar aos usuários leva à lista", async () => {
-    const u = userEvent.setup();
+  it("CA11 (#611): a linha Administradores é ● — — e Voltar à unidade aponta para Configurações › Unidade", async () => {
     setup();
     await ready();
-    await u.click(screen.getByRole("link", { name: "Voltar aos usuários" }));
-    expect(await screen.findByRole("heading", { name: "Usuários", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar à unidade" })).toHaveAttribute("href", "/configuracoes/unidade");
+    const linha = within(screen.getByRole("table")).getByRole("row", { name: /Administradores/ });
+    expect(within(linha).getAllByRole("cell").map((c) => c.textContent)).toEqual(["●", "—", "—"]);
+  });
+
+  it("CA10 (#611): o endereço antigo leva à nova tabela", async () => {
+    setup("COORDINATOR", "/configuracoes/usuarios/permissoes");
+    await ready();
+    expect(screen.getByRole("link", { name: "Voltar à unidade" })).toBeInTheDocument();
   });
 
   it("CA10: a 360 px cada linha vira um bloco, sem tabela", async () => {

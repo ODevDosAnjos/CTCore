@@ -28,13 +28,16 @@ const user = (over: Partial<StaffUser> = {}): StaffUser => ({
   lastAccessAt: null,
   status: "ACTIVE",
   canManage: true,
+  seats: 1,
   ...over,
 });
 
 let rows: StaffUser[];
 let calls: { method: string; path: string; body?: unknown }[];
 let lastAdmin: boolean;
+let price = 5000;
 
+let path = "/administradores";
 function setup(role = "COORDINATOR", read: () => Response | Promise<Response> = () => HttpResponse.json(rows)) {
   calls = [];
   const note = async (request: Request, path: string) => {
@@ -45,6 +48,7 @@ function setup(role = "COORDINATOR", read: () => Response | Promise<Response> = 
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: role === "COORDINATOR", units: [CENTRO, NORTE].map((u) => ({ ...u, shortName: u.id })) })),
     http.get("/api/v1/users", read),
+    http.get("/api/v1/organization/admin-seat-price", () => HttpResponse.json({ adminSeatCents: price })),
     http.post("/api/v1/users/coordinator-appointment", async ({ request }) => {
       await note(request, "appointment");
       lastAdmin = false;
@@ -76,7 +80,7 @@ function setup(role = "COORDINATOR", read: () => Response | Promise<Response> = 
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/usuarios"]}>
+      <MemoryRouter initialEntries={[path]}>
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -85,81 +89,65 @@ function setup(role = "COORDINATOR", read: () => Response | Promise<Response> = 
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Usuários", level: 1 });
+const ready = () => screen.findByRole("heading", { name: "Administradores", level: 1 });
 const card = (name: string) => screen.getAllByRole("row").find((r) => r.querySelector("td p")?.textContent === name)!;
 
 beforeEach(() => {
+  price = 5000;
+  path = "/administradores";
   lastAdmin = false;
-  rows = [user(), user({ linkId: "k2", name: "Carla", email: "carla@alfa.test", status: "PENDING" }), user({ linkId: "k3", name: "Diego", role: "TEACHER", canManage: false, lastAccessAt: "2026-10-16T08:00:00Z" })];
+  rows = [user(), user({ linkId: "k2", name: "Carla", email: "carla@alfa.test", status: "PENDING", seats: 0 }), user({ linkId: "k3", name: "Diego", seats: 0, canManage: false, lastAccessAt: "2026-10-16T08:00:00Z" })];
 });
 
-describe("UsersPage", () => {
-  it("CA1: título, subtítulo, Tabela de permissões, Convidar e os três cartões de perfil", async () => {
+describe("AdministratorsPage", () => {
+  it("CA5: custo por linha e total no cabeçalho: 2 unidades, convite pendente e Coordenador nomeado", async () => {
+    rows = [
+      user({ linkId: "a", name: "Ana", units: [CENTRO, NORTE], seats: 2 }),
+      user({ linkId: "b", name: "Bia", status: "PENDING", seats: 0, units: [CENTRO, NORTE] }),
+      user({ linkId: "c", name: "Cris", seats: 0 }),
+    ];
     setup();
     await ready();
-    expect(screen.getByText("Equipe da gestão · 3 perfis fixos, sem edição de perfis")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Tabela de permissões" })).toHaveAttribute("href", "/configuracoes/usuarios/permissoes");
-    expect(screen.getByRole("button", { name: "Convidar" })).toBeInTheDocument();
-    expect(screen.getByText("Vê e faz tudo, em todas as unidades. Duas etapas obrigatória.")).toBeInTheDocument();
-    expect(screen.getByText("Tudo nas suas unidades. O Coordenador convida Administradores.")).toBeInTheDocument();
-    expect(screen.getByText("Só as suas turmas, nunca vê valores. 4 permissões ligáveis por unidade.")).toBeInTheDocument();
-    expect(screen.getByText("1 por organização")).toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Pessoa", "Unidades", "Último acesso", "Situação", "Custo", "Ações"]);
+    expect(within(card("Ana")).getByText("R$ 100,00/mês")).toBeInTheDocument();
+    expect(within(card("Bia")).getByText("Sem custo até aceitar o convite")).toBeInTheDocument();
+    expect(within(card("Cris")).getByText("Não ocupa vaga")).toBeInTheDocument();
+    expect(screen.getByText(/Vagas ativas: R\$ 100,00\/mês/)).toBeInTheDocument();
+    expect(screen.queryByText("Tabela de permissões")).toBeNull();
   });
 
-  it("CA1: o Administrador também vê os cartões de perfil", async () => {
-    setup("ADMINISTRATOR");
-    await ready();
-    expect(screen.getByText("Vê e faz tudo, em todas as unidades. Duas etapas obrigatória.")).toBeInTheDocument();
-  });
-
-  it("CA2: busca e filtros de Perfil, Unidade e Situação se combinam; sem resultado mostra Limpar filtros", async () => {
+  it("CA9: os filtros vêm do endereço e mudar um filtro muda o endereço; Limpar filtros limpa", async () => {
     const u = userEvent.setup();
+    path = "/administradores?q=ana&unidade=u2&situacao=ACTIVE";
     rows = [
       user({ linkId: "a", name: "Ana", email: "ana@alfa.test", units: [CENTRO, NORTE] }),
-      user({ linkId: "b", name: "Bruno", email: "bruno@alfa.test", units: [CENTRO] }),
-      user({ linkId: "c", name: "Carla", email: "carla@alfa.test", role: "TEACHER", units: [NORTE] }),
-      user({ linkId: "d", name: "Diego", email: "diego@alfa.test", role: "TEACHER", units: [CENTRO] }),
-      user({ linkId: "e", name: "Paula", email: "paula@alfa.test", role: "TEACHER", units: [NORTE], status: "PENDING" }),
+      user({ linkId: "b", name: "Ana Pendente", email: "anap@alfa.test", units: [NORTE], status: "PENDING", seats: 0 }),
+      user({ linkId: "c", name: "Bruno", email: "bruno@alfa.test", units: [CENTRO] }),
     ];
     setup();
     await ready();
     const names = () => screen.getAllByRole("row").slice(1).map((r) => r.querySelector("td p")?.textContent);
-    expect(names()).toEqual(["Ana", "Bruno", "Carla", "Diego", "Paula"]);
-    await u.type(screen.getByRole("searchbox", { name: "Nome ou e-mail" }), "CARLA");
-    expect(names()).toEqual(["Carla"]);
-    await u.clear(screen.getByRole("searchbox"));
-    await u.click(screen.getByRole("button", { name: /^Perfil/ }));
-    await u.click(screen.getByRole("option", { name: "Professor" }));
-    expect(names()).toEqual(["Carla", "Diego", "Paula"]);
-    await u.click(screen.getByRole("button", { name: "Unidade Todas" }));
-    await u.click(screen.getByRole("option", { name: "Unidade Norte" }));
-    expect(names()).toEqual(["Carla", "Paula"]);
+    expect(names()).toEqual(["Ana"]);
+    expect(screen.getByRole("searchbox", { name: "Nome ou e-mail" })).toHaveValue("ana");
     await u.click(screen.getByRole("button", { name: /^Situação/ }));
     await u.click(screen.getByRole("option", { name: "Convite enviado" }));
-    expect(names()).toEqual(["Paula"]);
-    await u.click(screen.getByRole("button", { name: /^Situação/ }));
-    await u.click(screen.getByRole("option", { name: "Ativos" }));
-    expect(names()).toEqual(["Carla"]);
+    expect(names()).toEqual(["Ana Pendente"]);
     await u.type(screen.getByRole("searchbox"), "zzz");
-    expect(screen.getByRole("heading", { name: "Nenhum usuário encontrado" })).toBeInTheDocument();
-    await u.click(screen.getByRole("button", { name: "Limpar filtros" }));
-    expect(names()).toHaveLength(5);
+    await u.click(await screen.findByRole("button", { name: "Limpar filtros" }));
+    expect(names()).toEqual(["Ana", "Ana Pendente", "Bruno"]);
+    expect(screen.getByRole("searchbox")).toHaveValue("");
   });
 
-  it("CA3 e CA4: lista perfil, unidades ligadas por e, último acesso e situação; ações em texto só onde cabem; pendente tem Reenviar convite", async () => {
+  it("CA3 e CA4: lista unidades, último acesso e situação; ações onde cabem; pendente tem Reenviar convite", async () => {
     setup();
     await ready();
     const bruno = card("Bruno");
     expect(within(bruno).getByText("bruno@alfa.test")).toBeInTheDocument();
-    expect(within(bruno).getByText("Administrador")).toBeInTheDocument();
     expect(within(bruno).getByText("Unidade Centro")).toBeInTheDocument();
-    expect(within(bruno).getByText("—")).toBeInTheDocument();
-    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Pessoa", "Perfil", "Unidades", "Último acesso", "Situação", "Ações"]);
     expect(within(bruno).getByText("Ativo")).toBeInTheDocument();
     expect(within(bruno).queryByRole("button", { name: /Reenviar convite/ })).toBeNull();
     expect(within(bruno).getByRole("button", { name: /Alterar unidades/ })).toBeInTheDocument();
     const carla = card("Carla");
-    expect(within(carla).queryByRole("button", { name: /Alterar unidades/ })).toBeNull();
     expect(within(carla).getByText("Convite enviado")).toBeInTheDocument();
     expect(within(carla).getByRole("button", { name: /Reenviar convite/ })).toBeInTheDocument();
     expect(within(card("Diego")).queryByRole("button", { name: /Alterar unidades|Desativar/ })).toBeNull();
@@ -171,7 +159,7 @@ describe("UsersPage", () => {
     const { unmount } = setup("COORDINATOR", () => (++n === 1 ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json([])));
     expect(screen.getByRole("status")).toHaveTextContent("Carregando");
     await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
-    expect(await screen.findByRole("heading", { name: "Nenhum usuário" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Nenhum administrador" })).toBeInTheDocument();
     unmount();
     setup("COORDINATOR", () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }));
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
@@ -263,21 +251,8 @@ describe("UsersPage", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(calls.map((c) => c.path)).toEqual(["deactivate", "appointment", "deactivate"]);
     expect(calls[1].body).toEqual({ unitIds: ["u1"] });
-    expect(screen.getByRole("status")).toHaveTextContent("Usuário desativado.");
+    expect(screen.getByRole("status")).toHaveTextContent("Administrador desativado.");
     await waitFor(() => expect(screen.queryByText("Bruno")).toBeNull());
-  });
-
-  it("CA21: o Administrador vê só a explicação, sem Nomear a mim mesmo", async () => {
-    const u = userEvent.setup();
-    lastAdmin = true;
-    rows = [user({ linkId: "k9", name: "Paulo", role: "TEACHER" })];
-    setup("ADMINISTRATOR");
-    await ready();
-    await u.click(within(card("Paulo")).getByRole("button", { name: /Desativar/ }));
-    const dialog = await screen.findByRole("dialog");
-    await u.click(within(dialog).getByRole("button", { name: "Desativar" }));
-    expect(await within(dialog).findByText(/Peça ao Coordenador/)).toBeInTheDocument();
-    expect(within(dialog).queryByRole("button", { name: "Nomear a mim mesmo" })).toBeNull();
   });
 
   it("CA5: a 360 px a lista vira cartões, sem tabela, com as ações em texto e Convidar no topo", async () => {
@@ -293,37 +268,60 @@ describe("UsersPage", () => {
     expect(screen.getByRole("button", { name: "Convidar" })).toBeInTheDocument();
   });
 
-  it("CA6 e CA7: a janela do Coordenador marca Administrador e desabilita Professor, com o aviso de 7 dias e o rodapé", async () => {
+  it("CA6: a janela Convidar mostra o valor por unidade e o aumento das unidades marcadas; o valor vem do servidor", async () => {
     const u = userEvent.setup();
+    price = 7000;
     setup();
     await ready();
     await u.click(screen.getByRole("button", { name: "Convidar" }));
-    const dialog = await screen.findByRole("dialog", { name: "Convidar para a equipe" });
-    expect(within(dialog).getByLabelText(/^Nome \*/)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText(/^E-mail \*/)).toBeInTheDocument();
-    expect(within(dialog).getByRole("radio", { name: /Administrador/ })).toBeChecked();
-    expect(within(dialog).getByRole("radio", { name: /Professor/ })).toBeDisabled();
-    expect(within(dialog).getByRole("checkbox", { name: "Unidade Centro" })).not.toBeChecked();
-    expect(within(dialog).getByText("O convite vale 7 dias. Se não for aceito, você recebe uma notificação para reenviar.")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Enviar convite" })).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Convidar Administrador" });
+    expect(within(dialog).getByText("+R$ 70,00/mês por unidade")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Sua próxima fatura sobe/)).toBeNull();
+    await u.click(within(dialog).getByRole("checkbox", { name: "Unidade Centro" }));
+    await u.click(within(dialog).getByRole("checkbox", { name: "Unidade Norte" }));
+    expect(within(dialog).getByText("Sua próxima fatura sobe R$ 140,00/mês")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("radio")).toBeNull();
+    expect(within(dialog).getByText(/O convite vale 7 dias/)).toBeInTheDocument();
   });
 
-  it("CA7: na janela do Administrador o Professor vem marcado e o Administrador desabilitado", async () => {
+  it("CA7: Alterar unidades de vínculo ativo mostra o aumento da unidade incluída e o aviso de sem devolução; pendente não mostra aumento", async () => {
     const u = userEvent.setup();
-    setup("ADMINISTRATOR");
+    setup();
     await ready();
-    await u.click(screen.getByRole("button", { name: "Convidar" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("radio", { name: /Professor/ })).toBeChecked();
-    expect(within(dialog).getByRole("radio", { name: /Administrador/ })).toBeDisabled();
+    await u.click(within(card("Bruno")).getByRole("button", { name: /Alterar unidades/ }));
+    let dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByText(/pelas unidades incluídas/)).toBeNull();
+    await u.click(within(dialog).getByRole("checkbox", { name: "Unidade Norte" }));
+    await u.click(within(dialog).getByRole("checkbox", { name: "Unidade Centro" }));
+    expect(within(dialog).getByText("+R$ 50,00/mês pelas unidades incluídas")).toBeInTheDocument();
+    expect(within(dialog).getByText(/não gera devolução no ciclo/)).toBeInTheDocument();
+    await u.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    await u.click(within(card("Carla")).getByRole("button", { name: /Alterar unidades/ }));
+    dialog = await screen.findByRole("dialog");
+    await u.click(within(dialog).getByRole("checkbox", { name: "Unidade Norte" }));
+    expect(within(dialog).queryByText(/pelas unidades incluídas/)).toBeNull();
+  });
+
+  it("CA8: Desativar de vínculo ativo diz que encerra o vínculo, não a conta, e que não há devolução; pendente cancela o convite", async () => {
+    const u = userEvent.setup();
+    setup();
+    await ready();
+    await u.click(within(card("Bruno")).getByRole("button", { name: /Desativar/ }));
+    let dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Encerra o vínculo da pessoa com esta organização; a conta dela/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/não gera devolução no ciclo/)).toBeInTheDocument();
+    await u.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    await u.click(within(card("Carla")).getByRole("button", { name: /Desativar/ }));
+    dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Cancela o convite/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/devolução/)).toBeNull();
   });
 
   it("CA11: lista vazia mostra o estado vazio com Convidar", async () => {
     const u = userEvent.setup();
     rows = [];
     setup();
-    expect(await screen.findByRole("heading", { name: "Nenhum usuário" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Nenhum administrador" })).toBeInTheDocument();
     await u.click(screen.getByRole("button", { name: "Convidar" }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });

@@ -36,8 +36,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 /**
- * RF-ACE-06: the management staff of the organization. The Coordinator manages Administrators, the Administrator manages
- * Teachers of his units (D2). Profile, organization and reach always come from the session (RNF-05); writes that count or
+ * RF-ACE-06: the Administrators of the organization, managed only by the Coordinator (#611; the Teachers access is #610).
+ * Profile and organization always come from the session (RNF-05); writes that count or
  * remove Administrators hold the organization row so two of them cannot leave a unit without one (RN-ORG-07).
  */
 @Service
@@ -45,7 +45,7 @@ public class StaffUsers {
     public record UnitRef(UUID id, String name) {}
 
     public record Row(UUID linkId, String name, String email, String role, List<UnitRef> units, OffsetDateTime lastAccessAt,
-            String status, boolean canManage) {}
+            String status, boolean canManage, int seats) {}
 
     private record Found(Row row, UUID accountId, Set<UUID> unitIds, Role role) {}
 
@@ -70,13 +70,11 @@ public class StaffUsers {
         this.audit = audit;
     }
 
-    /** STAFF_USERS on the server (RF-ACE-06); returns the profile the caller manages. */
-    private Role manager(AccountPrincipal who) {
-        Role managed = who.role() == null ? null : StaffRules.managedRole(who.role());
-        if (managed == null || permissions.effective(who).get(Permission.STAFF_USERS) == Access.NONE) {
+    /** STAFF_USERS on the server (RF-ACE-06): only the Coordinator (#611). */
+    private void manager(AccountPrincipal who) {
+        if (who.role() != Role.COORDINATOR || permissions.effective(who).get(Permission.STAFF_USERS) == Access.NONE) {
             throw new AccessDeniedException("Permission denied");
         }
-        return managed;
     }
 
     private static ApiStatusException notFound() {
@@ -103,7 +101,7 @@ public class StaffUsers {
     private record Head(UUID id, UUID account, String name, String email, String status, OffsetDateTime lastAccess) {}
 
     private List<Found> load(AccountPrincipal who, UUID only, List<String> statuses) {
-        Role role = StaffRules.managedRole(who.role());
+        Role role = Role.ADMINISTRATOR;
         var query = jdbc.sql("select l.id, a.id as account_id, a.name, a.email, l.status, a.last_access_at from account_link l "
                 + "join account a on a.id = l.account_id where l.organization_id = :org and l.role = :role and l.status in (:st)"
                 + (only == null ? "" : " and l.id = :id") + " order by lower(a.name), l.id")
@@ -123,9 +121,9 @@ public class StaffUsers {
         for (Head h : heads) {
             List<UnitRef> refs = units.getOrDefault(h.id(), List.of());
             Set<UUID> ids = new LinkedHashSet<>(refs.stream().map(UnitRef::id).toList());
-            if (!StaffRules.reaches(who.role(), who.units(), role, ids)) continue;
-            boolean manage = StaffRules.canManage(who.role(), who.units(), role, ids);
-            found.add(new Found(new Row(h.id(), h.name(), h.email(), role.name(), refs, h.lastAccess(), h.status(), manage), h.account(), ids, role));
+            // RN-ASS-21: only an active link takes seats, one per unit; the Coordinator never does, not even when he names himself.
+            int seats = h.status().equals("ACTIVE") && !h.account().equals(who.accountId()) ? ids.size() : 0;
+            found.add(new Found(new Row(h.id(), h.name(), h.email(), role.name(), refs, h.lastAccess(), h.status(), true, seats), h.account(), ids, role));
         }
         return found;
     }
@@ -140,11 +138,10 @@ public class StaffUsers {
     // ---- inviting
 
     public Row invite(AccountPrincipal who, String email, String name, List<UUID> unitIds) {
-        Role target = manager(who);
+        manager(who);
         if (email == null || !EMAIL.matcher(email.strip()).matches()) throw new ApiValidationException("email", "informe um e-mail válido");
         if (name == null || name.isBlank()) throw new ApiValidationException("name", "informe o nome");
         Set<UUID> units = units(unitIds);
-        if (who.role() == Role.ADMINISTRATOR && !who.units().containsAll(units)) throw new AccessDeniedException("Unit out of reach");
         return transactions.execute(() -> {
             lock(who);
             requireActiveUnits(who, units);
@@ -157,10 +154,10 @@ public class StaffUsers {
             }
             int linked = jdbc.sql("select count(*) from account_link l join account a on a.id = l.account_id where l.organization_id = :org "
                     + "and l.role = :role and l.status in ('PENDING', 'ACTIVE') and lower(btrim(a.email)) = lower(btrim(:e))")
-                    .param("org", who.organizationId()).param("role", target.name()).param("e", email).query(Integer.class).single();
+                    .param("org", who.organizationId()).param("role", Role.ADMINISTRATOR.name()).param("e", email).query(Integer.class).single();
             if (linked > 0) throw new IdentityException(Code.ALREADY_LINKED, null);
             var issued = invites.invite(new Inviter(who.accountId(), who.role(), who.units()), who.organizationId(), email, name.strip(),
-                    target, units, null);
+                    Role.ADMINISTRATOR, units, null);
             return find(who, issued.linkId(), ALL).row();
         });
     }
@@ -181,8 +178,7 @@ public class StaffUsers {
     public void resend(AccountPrincipal who, UUID linkId) {
         manager(who);
         transactions.execute(() -> {
-            Found f = find(who, linkId, List.of("PENDING"));
-            if (!f.row().canManage()) throw notFound();
+            find(who, linkId, List.of("PENDING"));
             return null;
         });
         invites.resend(new Inviter(who.accountId(), who.role(), who.units()), who.organizationId(), linkId);
@@ -193,15 +189,13 @@ public class StaffUsers {
     public Row changeUnits(AccountPrincipal who, UUID linkId, List<UUID> unitIds, String ip) {
         manager(who);
         Set<UUID> desired = units(unitIds);
-        if (who.role() == Role.ADMINISTRATOR && !who.units().containsAll(desired)) throw new AccessDeniedException("Unit out of reach");
         return transactions.execute(() -> {
             lock(who);
             Found f = find(who, linkId, OPEN);
             requireActiveUnits(who, desired);
-            Set<UUID> result = StaffRules.mergeUnits(who.role(), who.units(), f.unitIds(), desired);
-            if (result.isEmpty()) throw new ApiValidationException("unitIds", "o vínculo não pode ficar sem unidade; para sair, desative");
+            Set<UUID> result = desired;
             Set<UUID> removed = StaffRules.removed(f.unitIds(), result);
-            if (f.role() == Role.ADMINISTRATOR && f.row().status().equals("ACTIVE")) requireOtherAdministrators(who, linkId, removed);
+            if (f.row().status().equals("ACTIVE")) requireOtherAdministrators(who, linkId, removed);
             if (!removed.isEmpty()) {
                 jdbc.sql("delete from account_link_unit where link_id = :l and unit_id in (:u)").param("l", linkId).param("u", removed).update();
             }
@@ -251,12 +245,11 @@ public class StaffUsers {
             if (target.getKey().equals(who.accountId())) throw new ApiStatusException(ErrorCode.CONFLICT);
             if (target.getValue().equals(Role.COORDINATOR.name())) throw new AccessDeniedException("The coordinator cannot be deactivated here");
             Found f = find(who, linkId, OPEN);
-            if (!f.row().canManage()) throw new AccessDeniedException("Units out of reach");
             if (f.row().status().equals("PENDING")) {
                 invites.cancel(new Inviter(who.accountId(), who.role(), who.units()), who.organizationId(), linkId);
                 return null;
             }
-            if (f.role() == Role.ADMINISTRATOR) requireOtherAdministrators(who, linkId, f.unitIds());
+            requireOtherAdministrators(who, linkId, f.unitIds());
             return links.endInScope(actor(who), who.organizationId(), linkId);
         });
         if (ended != null) links.sessionsAfter(actor(who), ended);

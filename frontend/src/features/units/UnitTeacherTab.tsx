@@ -1,6 +1,8 @@
 import { Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { Card } from "@/components/Card";
+import { hrefOf } from "@/routes";
 import { SwitchRow } from "./SwitchRow";
 import type { Draft, SetDraft } from "./unitDraft";
 import { TEACHER_KEYS } from "./useUnitSettings";
@@ -27,6 +29,9 @@ export function UnitTeacherTab({ d, set, unitName }: { d: Draft; set: SetDraft; 
         <Lock aria-hidden className="mt-0.5 size-4 shrink-0" />
         <p>{t("unitSettings.teacherLock")}</p>
       </div>
+      <Link className="w-fit text-sm font-medium underline underline-offset-2" to={hrefOf("permissionsTable")}>
+        {t("unitSettings.permissionsLink")}
+      </Link>
     </div>
   );
 }

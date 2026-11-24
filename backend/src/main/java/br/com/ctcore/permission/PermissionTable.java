@@ -41,7 +41,7 @@ public final class PermissionTable {
         row(ANNOUNCEMENTS, ALL_FULL, UNIT_FULL, CLASS_FULL);
         row(TRIAL_CLASSES, ALL_FULL, UNIT_FULL, CLASS_READ);
         row(TEACHERS, ALL_FULL, UNIT_FULL, Grant.NONE);
-        row(STAFF_USERS, ALL_FULL, UNIT_FULL, Grant.NONE);
+        row(STAFF_USERS, ALL_FULL, Grant.NONE, Grant.NONE);
         row(UNIT_SETTINGS, ALL_FULL, UNIT_FULL, Grant.NONE);
         row(ORGANIZATION_SETTINGS, ALL_FULL, ALL_READ, Grant.NONE);
         row(UNITS, ALL_FULL, Grant.NONE, Grant.NONE);

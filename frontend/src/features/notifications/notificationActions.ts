@@ -11,7 +11,7 @@ export function notificationTarget(n: Pick<AppNotification, "type" | "refType" |
     HIGH_BENEFIT: hrefOf("benefits"),
     STUDENT_MAJORITY: student,
     EMAIL_PROBLEM: student,
-    INVITE_PENDING: hrefOf("staffUsers"),
+    INVITE_PENDING: hrefOf("administrators"),
     CLOSURE_REQUEST: hrefOf("requests"),
     PORTAL_REQUEST: hrefOf("requests"),
     PAYMENT_PROOF: hrefOf("paymentProofs"),
