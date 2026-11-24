@@ -1980,6 +1980,55 @@ paths:
         '409':
           description: Recusa (inativo, acesso já existente, conta ligada, limite).
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    delete:
+      summary: Remove o acesso ao sistema do professor, sem inativar o cadastro (RN-PRO-02). Coordenador e Administrador.
+      description: |
+        Só com `access` igual a `ACTIVE` ou `PENDING` (convite pendente é cancelado); `NONE` e `ENDED`: 409. O cadastro, as turmas e a agenda
+        ficam e a conta continua ligada. O Coordenador tira o acesso de todas as unidades do vínculo; o Administrador, só das unidades dele, e o
+        acesso nas demais continua (`access` segue `ACTIVE`). Sem unidade restante, o vínculo de Professor termina e as sessões de gestão da
+        pessoa saem na hora quando não há outro vínculo de gestão (RN-ACE-20); vínculo de aluno ou responsável continua. Administrador sem
+        unidade em comum com o professor: 404; vínculo sem nenhuma unidade no alcance dele: 409. Grava `teacher.access_removed` (unidades
+        removidas e mantidas), sem dado de sessão nem token.
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Painel; `access` é `ENDED`, ou `ACTIVE` quando sobra unidade com acesso.
+          content: { application/json: { schema: { $ref: '#/components/schemas/TeacherDetail' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Sem acesso a remover, ou nenhuma unidade do vínculo no alcance de quem chama.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /teachers/{id}/access-removal:
+    get:
+      summary: Resumo da remoção do acesso do professor (RN-PRO-02). Coordenador e Administrador.
+      description: |
+        Não altera nada. `removed` são as unidades que perdem o acesso, `kept` as que ficam e `endsAccess` diz se o acesso acaba. Mesmas
+        recusas de `DELETE /teachers/{id}/access`.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Resumo.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [removed, kept, endsAccess]
+                properties:
+                  removed: { $ref: '#/components/schemas/TeacherRow/properties/units' }
+                  kept: { $ref: '#/components/schemas/TeacherRow/properties/units' }
+                  endsAccess: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Sem acesso a remover, ou nenhuma unidade do vínculo no alcance de quem chama.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /teachers/{id}/access/resend:
     post:
       summary: Reenvia o convite pendente do professor (RN-PRO-02). Coordenador e Administrador.

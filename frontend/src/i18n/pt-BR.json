@@ -1053,6 +1053,23 @@
           "generic": "Não foi possível inativar o professor. Tente de novo."
         }
       },
+      "removeAccess": {
+        "button": "Remover acesso",
+        "title": "Remover o acesso de {{name}}",
+        "summary": "O professor deixa de entrar no sistema. O cadastro não é inativado.",
+        "keeps": "O cadastro, as turmas e a agenda continuam como estão.",
+        "sessions": "As sessões abertas dele saem agora; depois, ele só volta com um novo convite.",
+        "losing": "Perde o acesso em: {{units}}.",
+        "stillHas": "Continua com acesso em: {{units}}.",
+        "confirm": "Remover acesso",
+        "done": "Acesso removido. O cadastro continua ativo.",
+        "errors": {
+          "FORBIDDEN": "Você não tem permissão para remover este acesso. Nada foi alterado.",
+          "CONFLICT": "Este professor não tem acesso a remover. Nada foi alterado.",
+          "NOT_FOUND": "Professor não encontrado. Nada foi alterado.",
+          "generic": "Não foi possível remover o acesso. Nada foi alterado. Tente de novo."
+        }
+      },
       "resend": "Reenviar convite",
       "resendDone": "Convite reenviado.",
       "resendError": "Não foi possível reenviar o convite. Tente de novo mais tarde.",

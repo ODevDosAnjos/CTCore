@@ -16,6 +16,7 @@ import { usePermissions } from "@/features/permissions/usePermissions";
 import { formatDateTime } from "@/lib/format";
 import { DeactivateTeacherDialog } from "./DeactivateTeacherDialog";
 import { GrantAccessDialog } from "./GrantAccessDialog";
+import { RemoveTeacherAccessDialog } from "./RemoveTeacherAccessDialog";
 import { TeacherFormDialog } from "./TeacherFormDialog";
 import { resendTeacherInvite, useTeacher, type TeacherDetail } from "./useTeachers";
 
@@ -64,6 +65,7 @@ function Panel({ teacher, onRefresh }: { teacher: TeacherDetail; onRefresh: () =
   const { t } = useTranslation();
   const [granting, setGranting] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [editing, setEditing] = useState(false);
   const { permissions } = usePermissions();
   const canWrite = !!permissions && permissions.TEACHERS !== "NONE";
@@ -102,6 +104,11 @@ function Panel({ teacher, onRefresh }: { teacher: TeacherDetail; onRefresh: () =
       {teacher.access === "PENDING" && (
         <Button variant="secondary" className="min-h-11" disabled={!canWrite} onClick={() => void resend()}>
           {t("teachers.panel.resend")}
+        </Button>
+      )}
+      {(teacher.access === "ACTIVE" || teacher.access === "PENDING") && (
+        <Button variant="secondary" className="min-h-11" disabled={!canWrite} onClick={() => setRemoving(true)}>
+          {t("teachers.panel.removeAccess.button")}
         </Button>
       )}
       <WhatsAppButton phone={teacher.phone ?? undefined} />
@@ -223,6 +230,14 @@ function Panel({ teacher, onRefresh }: { teacher: TeacherDetail; onRefresh: () =
           onClose={() => setDeactivating(false)}
           onDone={() => {
             setNotice(t("teachers.panel.deactivateDialog.done"));
+            void onRefresh();
+          }}
+        />
+        <RemoveTeacherAccessDialog
+          teacher={removing ? teacher : null}
+          onClose={() => setRemoving(false)}
+          onDone={() => {
+            setNotice(t("teachers.panel.removeAccess.done"));
             void onRefresh();
           }}
         />

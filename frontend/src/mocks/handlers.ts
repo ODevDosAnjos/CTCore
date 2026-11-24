@@ -222,6 +222,7 @@ export const resetMockSession = () => {
   mockIgnoredHolidays = [];
   teacherContacts = initialTeacherContacts();
   teacherResends = 0;
+  teacherRemoved = {};
   mockStudents = initialStudents();
   guardianResends = 0;
   mockEnrollments = {};
@@ -644,6 +645,15 @@ const teacherFor = (id: string) => {
 };
 // D3: o Coordenador inativa qualquer um; o Administrador só quem não tem unidade fora do alcance dele.
 const teacherInReach = (t: MockTeacher) => activeRole() === "COORDINATOR" || t.units.every((u) => u.id === ADMIN_UNIT);
+// Unidades já tiradas do vínculo de Professor por remoção parcial (Administrador); o vínculo tem as unidades do cadastro menos estas.
+let teacherRemoved: Record<string, string[]> = {};
+const teacherRemovalPlan = (t: MockTeacher) => {
+  if (t.access !== "ACTIVE" && t.access !== "PENDING") return error(409, "CONFLICT", "Os dados entram em conflito com algo que já existe.");
+  const linked = t.units.filter((u) => !(teacherRemoved[t.id] ?? []).includes(u.id));
+  const removed = linked.filter((u) => activeRole() === "COORDINATOR" || u.id === ADMIN_UNIT);
+  if (removed.length === 0) return error(409, "CONFLICT", "Os dados entram em conflito com algo que já existe.");
+  return { removed, kept: linked.filter((u) => !removed.includes(u)) };
+};
 const teacherKey = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 // Turmas (RF-TUR-01), fixas: a faixa etária é resolvida pelo nome na hora, porque as faixas do mock têm id novo a cada carga.
 const TEACHER_ANA = "00000000-0000-0000-0000-000000000501";
@@ -3666,6 +3676,7 @@ export const routes: Route[] = [
       if (found.status === "INACTIVE" || found.access === "PENDING" || found.access === "ACTIVE") return error(409, "CONFLICT", "Os dados entram em conflito com algo que já existe.");
       if ((asked.length ? asked : mine).length === 0) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "unitIds", message: "escolha ao menos uma unidade" }]);
       found.access = "PENDING";
+      delete teacherRemoved[found.id];
       return HttpResponse.json(teacherDetail(found));
     },
   },
@@ -3680,6 +3691,31 @@ export const routes: Route[] = [
       if (teacherResends >= 3) return error(429, "TOO_MANY_REQUESTS", "Muitas tentativas.");
       teacherResends += 1;
       return new HttpResponse(null, { status: 204 });
+    },
+  },
+  {
+    // RN-PRO-02: resumo da remoção do acesso. O Coordenador tira todas as unidades do vínculo; o Administrador só a dele.
+    method: "get",
+    path: "/teachers/{id}/access-removal",
+    resolver: ({ params }) => {
+      const found = teacherFor(params.id as string);
+      if (found instanceof HttpResponse) return found;
+      const plan = teacherRemovalPlan(found);
+      return plan instanceof HttpResponse ? plan : HttpResponse.json({ removed: plan.removed, kept: plan.kept, endsAccess: plan.kept.length === 0 });
+    },
+  },
+  {
+    // RN-PRO-02: remove o acesso sem inativar o cadastro; sobrando unidade de outro Administrador, o acesso segue ACTIVE.
+    method: "delete",
+    path: "/teachers/{id}/access",
+    resolver: ({ params }) => {
+      const found = teacherFor(params.id as string);
+      if (found instanceof HttpResponse) return found;
+      const plan = teacherRemovalPlan(found);
+      if (plan instanceof HttpResponse) return plan;
+      if (plan.kept.length === 0) found.access = "ENDED";
+      teacherRemoved[found.id] = [...(teacherRemoved[found.id] ?? []), ...plan.removed.map((u) => u.id)];
+      return HttpResponse.json(teacherDetail(found));
     },
   },
   {

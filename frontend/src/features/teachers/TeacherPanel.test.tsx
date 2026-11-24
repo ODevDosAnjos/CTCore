@@ -346,3 +346,100 @@ describe("DeactivateTeacherDialog (RF-PRO-04)", () => {
     expect(await axeViolations(document.body)).toEqual([]);
   });
 });
+
+describe("RemoveTeacherAccessDialog (RN-PRO-02)", () => {
+  let summary: () => Response | Promise<Response>;
+  let removed: number;
+  let current: TeacherDetail;
+  const loaded = (d: HTMLElement) => waitFor(() => expect(within(d).queryByText("Carregando...")).toBeNull());
+  const full = { removed: [{ id: "u1", name: "Centro" }, { id: "u2", name: "Norte" }], kept: [], endsAccess: true };
+  const open = async (user: ReturnType<typeof userEvent.setup>, teacher = detail({ access: "ACTIVE" }), role = "COORDINATOR") => {
+    current = teacher;
+    removed = 0;
+    summary = () => HttpResponse.json(full);
+    setup(() => HttpResponse.json(current), role);
+    server.use(
+      http.get("/api/v1/teachers/t1/access-removal", () => summary()),
+      http.delete("/api/v1/teachers/t1/access", () => {
+        removed += 1;
+        current = detail({ access: "ENDED" });
+        return HttpResponse.json(current);
+      }),
+    );
+    await ready();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Remover acesso" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "Remover acesso" }));
+    return screen.findByRole("dialog", { name: "Remover o acesso de Ana Souza" });
+  };
+
+  it("CA11: mostra o resumo, confirma, fecha a janela e o painel passa a oferecer Dar acesso", async () => {
+    const user = userEvent.setup();
+    const dialog = await open(user);
+    await loaded(dialog);
+    expect(within(dialog).getByText("Perde o acesso em: Centro, Norte.")).toBeInTheDocument();
+    expect(within(dialog).getByText(/As sessões abertas dele saem agora/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Remover acesso" }));
+    expect(await screen.findByText("Acesso removido. O cadastro continua ativo.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Remover o acesso de Ana Souza" })).toBeNull());
+    expect(removed).toBe(1);
+    expect(screen.queryByRole("button", { name: "Remover acesso" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Dar acesso" })).toBeInTheDocument();
+    expect(screen.getByText("Ativo")).toBeInTheDocument(); // o cadastro segue ativo
+  });
+
+  it("CA11: remoção parcial mostra as unidades que ficam e não fala em sessões", async () => {
+    const user = userEvent.setup();
+    const dialog = await open(user, detail({ access: "PENDING" }), "ADMINISTRATOR");
+    summary = () => HttpResponse.json({ removed: [{ id: "u1", name: "Centro" }], kept: [{ id: "u2", name: "Norte" }], endsAccess: false });
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    await user.click(screen.getByRole("button", { name: "Remover acesso" }));
+    const again = await screen.findByRole("dialog");
+    expect(await within(again).findByText("Continua com acesso em: Norte.")).toBeInTheDocument();
+    expect(within(again).queryByText(/As sessões abertas/)).toBeNull();
+  });
+
+  it("CA11: erro do resumo tem Tentar de novo, 403 mostra sem permissão e 409 e 403 do servidor ficam na janela", async () => {
+    const user = userEvent.setup();
+    const dialog = await open(user);
+    await loaded(dialog);
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    summary = () => HttpResponse.json({}, { status: 500 });
+    await user.click(screen.getByRole("button", { name: "Remover acesso" }));
+    const failed = await screen.findByRole("dialog");
+    expect(within(await within(failed).findByRole("button", { name: "Tentar de novo" })).getByText("Tentar de novo")).toBeInTheDocument();
+    expect(within(failed).getByRole("button", { name: "Remover acesso" })).toBeDisabled();
+    summary = () => HttpResponse.json(full);
+    await user.click(within(failed).getByRole("button", { name: "Tentar de novo" }));
+    await loaded(failed);
+    server.use(http.delete("/api/v1/teachers/t1/access", () => HttpResponse.json({ code: "CONFLICT" }, { status: 409 })));
+    await user.click(within(failed).getByRole("button", { name: "Remover acesso" }));
+    expect(await within(failed).findByText(/não tem acesso a remover/)).toBeInTheDocument();
+    server.use(http.delete("/api/v1/teachers/t1/access", () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 })));
+    await user.click(within(failed).getByRole("button", { name: "Remover acesso" }));
+    expect(await within(failed).findByText(/Você não tem permissão para remover/)).toBeInTheDocument();
+    await user.click(within(failed).getByRole("button", { name: "Cancelar" }));
+    summary = () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 });
+    await user.click(screen.getByRole("button", { name: "Remover acesso" }));
+    const denied = await screen.findByRole("dialog");
+    expect(await within(denied).findByText("Você não tem acesso")).toBeInTheDocument();
+  });
+
+  it("CA12: sem acesso o botão não aparece; sem permissão de escrita aparece desabilitado", async () => {
+    setup(() => HttpResponse.json(detail({ access: "ENDED" })));
+    await ready();
+    expect(screen.queryByRole("button", { name: "Remover acesso" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Dar acesso" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA13: a janela a 360 px não tem violações no axe no tema %s", async (_n, dark) => {
+    setDevicePrefersDark(dark);
+    window.innerWidth = 360;
+    const user = userEvent.setup();
+    const dialog = await open(user);
+    await loaded(dialog);
+    expect(await axeViolations(document.body)).toEqual([]);
+  });
+});

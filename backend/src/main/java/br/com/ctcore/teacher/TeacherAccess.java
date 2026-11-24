@@ -11,6 +11,7 @@ import br.com.ctcore.identity.IdentityException;
 import br.com.ctcore.identity.IdentityException.Code;
 import br.com.ctcore.identity.InviteRules.Inviter;
 import br.com.ctcore.identity.InviteService;
+import br.com.ctcore.identity.LinkService;
 import br.com.ctcore.identity.Role;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.organization.Organizations;
@@ -36,9 +37,11 @@ public class TeacherAccess {
     private final Teachers teachers;
     private final InviteService invites;
     private final AuditService audit;
+    private final LinkService links;
 
     public TeacherAccess(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Teachers teachers, InviteService invites,
-            AuditService audit) {
+            AuditService audit, LinkService links) {
+        this.links = links;
         this.jdbc = jdbc;
         this.transactions = transactions;
         this.teachers = teachers;
@@ -112,6 +115,69 @@ public class TeacherAccess {
         }
         if (units.isEmpty()) throw new ApiValidationException("unitIds", "escolha ao menos uma unidade");
         return units;
+    }
+
+    /** RF-PRO-02: o que a remoção do acesso faz; {@code endsAccess} quando não sobra unidade com acesso. */
+    public record Removal(List<Teachers.UnitRef> removed, List<Teachers.UnitRef> kept, boolean endsAccess) {}
+
+    private record Plan(UUID link, boolean pending, Set<UUID> removed, Set<UUID> kept) {
+        boolean ends() {
+            return kept.isEmpty();
+        }
+    }
+
+    /** Coordenador tira o acesso de todas as unidades do vínculo; o Administrador só das dele (RN-PRO-02). Dentro da transação. */
+    private Plan plan(AccountPrincipal who, Teachers.Basic t) {
+        if (t.accountId() == null || !(t.access().equals("ACTIVE") || t.access().equals("PENDING"))) throw new ApiStatusException(ErrorCode.CONFLICT);
+        UUID link = jdbc.sql("select id from account_link where organization_id = :org and account_id = :a and role = 'TEACHER'")
+                .param("org", who.organizationId()).param("a", t.accountId()).query(UUID.class).single();
+        Set<UUID> removed = new LinkedHashSet<>(jdbc.sql("select unit_id from account_link_unit where link_id = :l").param("l", link).query(UUID.class).list());
+        Set<UUID> kept = new LinkedHashSet<>();
+        if (who.role() == Role.ADMINISTRATOR) {
+            Set<UUID> reach = who.units() == null ? Set.of() : who.units();
+            kept.addAll(removed);
+            kept.removeAll(reach);
+            removed.removeAll(kept);
+            if (removed.isEmpty()) throw new ApiStatusException(ErrorCode.CONFLICT);
+        }
+        return new Plan(link, t.access().equals("PENDING"), removed, kept);
+    }
+
+    private List<Teachers.UnitRef> refs(Set<UUID> ids) {
+        if (ids.isEmpty()) return List.of();
+        return jdbc.sql("select id, name from unit where id in (:ids) order by name, id").param("ids", ids)
+                .query((rs, n) -> new Teachers.UnitRef(rs.getObject(1, UUID.class), rs.getString(2))).list();
+    }
+
+    public Removal removalPreview(AccountPrincipal who, UUID id) {
+        teachers.requireAccess(who);
+        return transactions.execute(() -> {
+            Plan p = plan(who, teachers.find(who, id));
+            return new Removal(refs(p.removed()), refs(p.kept()), p.ends());
+        });
+    }
+
+    /** RF-PRO-02: tira o acesso sem inativar o cadastro; encerrando o vínculo, as sessões de gestão saem (RN-ACE-20). */
+    public Teachers.Detail remove(AccountPrincipal who, UUID id, String ip) {
+        teachers.requireAccess(who);
+        record Result(Teachers.Detail detail, LinkService.Before ended) {}
+        // O fim das sessões audita em outras organizações e por isso roda depois do commit desta.
+        Result r = transactions.execute(() -> {
+            jdbc.sql("select id from organization where id = :org for update").param("org", who.organizationId()).query(UUID.class).single();
+            Plan p = plan(who, teachers.find(who, id));
+            LinkService.Before ended = null;
+            if (p.ends()) {
+                if (p.pending()) invites.cancelTeacher(inviter(who), who.organizationId(), p.link());
+                else ended = links.endInScope(actor(who), who.organizationId(), p.link());
+            } else {
+                jdbc.sql("delete from account_link_unit where link_id = :l and unit_id in (:u)").param("l", p.link()).param("u", p.removed()).update();
+            }
+            audit.record(new AuditEntry(actor(who), "teacher.access_removed", "teacher", id.toString(), null, null,
+                    Map.of("removedUnitIds", sorted(p.removed()), "keptUnitIds", sorted(p.kept()), "accessEnded", p.ends()), null, ip));
+            return new Result(teachers.detail(who, id), ended);
+        });
+        if (r.ended() != null) links.sessionsAfter(actor(who), r.ended());
+        return r.detail();
     }
 
     public void resend(AccountPrincipal who, UUID id, String ip) {
