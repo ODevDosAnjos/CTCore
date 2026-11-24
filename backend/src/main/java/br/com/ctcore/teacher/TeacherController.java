@@ -97,6 +97,16 @@ class TeacherController {
         access.resend(who, id, request.getRemoteAddr());
     }
 
+    @GetMapping("/{id}/access-removal")
+    TeacherAccess.Removal accessRemoval(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id) {
+        return access.removalPreview(who, id);
+    }
+
+    @DeleteMapping("/{id}/access")
+    Teachers.Detail removeAccess(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, HttpServletRequest request) {
+        return access.remove(who, id, request.getRemoteAddr());
+    }
+
     @GetMapping("/{id}/deactivation")
     TeacherDeactivation.Preview deactivationPreview(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id) {
         return deactivation.preview(who, id);

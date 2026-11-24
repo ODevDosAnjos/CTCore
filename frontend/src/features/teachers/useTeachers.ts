@@ -151,3 +151,12 @@ export interface DeactivationPreview {
 }
 export const fetchDeactivationPreview = (id: string) => api<DeactivationPreview>(`/teachers/${id}/deactivation`);
 export const deactivateTeacher = (id: string, body: { reason: string; replacements?: { classId: string; teacherId: string }[] }) => api<TeacherDetail>(`/teachers/${id}/deactivate`, { method: "POST", body });
+
+// Espelha o resumo de GET /teachers/{id}/access-removal (RN-PRO-02): unidades que perdem o acesso, as que ficam e se o acesso acaba.
+export interface AccessRemoval {
+  removed: { id: string; name: string }[];
+  kept: { id: string; name: string }[];
+  endsAccess: boolean;
+}
+export const fetchAccessRemoval = (id: string) => api<AccessRemoval>(`/teachers/${id}/access-removal`);
+export const removeTeacherAccess = (id: string) => api<TeacherDetail>(`/teachers/${id}/access`, { method: "DELETE" });

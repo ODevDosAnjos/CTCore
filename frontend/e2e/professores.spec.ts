@@ -117,3 +117,24 @@ test("Inativar professor a 360 px sem rolagem lateral", async ({ page }) => {
   expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(360);
   expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
 });
+
+// RN-PRO-02: o Coordenador abre o painel de um professor com acesso ativo, remove o acesso e o painel volta a oferecer "Dar acesso"; o cadastro segue ativo.
+test("@critical Coordenador remove o acesso de um professor", async ({ page }) => {
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, "/professores");
+  await page.getByRole("link", { name: "Ana Souza" }).click(); // pelo roteador, dentro da moldura
+  await expect(page.getByRole("heading", { name: "Ana Souza", level: 2 })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Menu principal", includeHidden: true })).toBeAttached(); // a gaveta abre dentro da moldura
+
+  await page.getByRole("button", { name: "Remover acesso" }).click();
+  const dialog = page.getByRole("dialog", { name: "Remover o acesso de Ana Souza" });
+  await expect(dialog.getByText(/Perde o acesso em:/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Remover acesso" }).click();
+  await expect(page.getByText("Acesso removido. O cadastro continua ativo.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dar acesso" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remover acesso" })).toHaveCount(0);
+});

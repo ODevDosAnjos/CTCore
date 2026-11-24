@@ -233,3 +233,42 @@ describe("inativar professor x OpenAPI (RF-PRO-04, CA10)", () => {
     expect((await fetch(`/api/v1/teachers/${JOAO}/deactivation`)).status).toBe(403);
   });
 });
+
+describe("remover acesso do professor x OpenAPI (RN-PRO-02, CA14)", () => {
+  const del = (id: string) => fetch(`/api/v1/teachers/${id}/access`, { method: "DELETE" });
+  const summary = async (id: string) => (await fetch(`/api/v1/teachers/${id}/access-removal`)).json();
+
+  it("o contrato declara as duas rotas; sem acesso 409; Coordenador tira tudo, o resumo não altera e dar acesso volta a PENDING", async () => {
+    expect(Object.keys(openapi.paths["/teachers/{id}/access"].delete.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "404", "409"]));
+    expect(Object.keys(openapi.paths["/teachers/{id}/access-removal"].get.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "404", "409"]));
+    expect((await del(ANA)).status).toBe(401);
+    await login("ana@exemplo.com");
+    expect((await del(JOAO)).status).toBe(409);
+    expect((await fetch(`/api/v1/teachers/${JOAO}/access-removal`)).status).toBe(409);
+    const before = await summary(ANA);
+    expect(Object.keys(before).sort()).toEqual(["endsAccess", "kept", "removed"]);
+    expect(before).toMatchObject({ removed: [{ id: CENTRO }], kept: [], endsAccess: true });
+    expect((await (await fetch(`/api/v1/teachers/${ANA}`)).json()).access).toBe("ACTIVE");
+    const done = await del(ANA);
+    expect(done.status).toBe(200);
+    expect(await done.json()).toMatchObject({ status: "ACTIVE", access: "ENDED" });
+    expect((await del(ANA)).status).toBe(409);
+    expect((await post(`${ANA}/access`)).status).toBe(200);
+    expect((await del("00000000-0000-0000-0000-0000000009ff")).status).toBe(404);
+  });
+
+  it("Administrador tira só a unidade dele e o acesso das outras continua; Professor 403", async () => {
+    await login("ana@exemplo.com");
+    await post(`${JOAO}/access`);
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
+    const plan = await summary(JOAO);
+    expect(plan).toMatchObject({ removed: [{ id: CENTRO }], endsAccess: false });
+    expect(plan.kept).toHaveLength(1);
+    expect(await (await del(JOAO)).json()).toMatchObject({ access: "PENDING" });
+    expect((await del(JOAO)).status).toBe(409);
+    await login("ana@exemplo.com");
+    expect(await summary(JOAO)).toMatchObject({ removed: [{}], kept: [], endsAccess: true });
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000013");
+    expect((await del(JOAO)).status).toBe(403);
+  });
+});
