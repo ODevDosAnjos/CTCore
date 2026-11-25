@@ -152,7 +152,8 @@ describe("ManagementShell", () => {
       await screen.findByRole("heading", { name: "Bem-vindo ao ctcore" });
       expect(menu()).toBe(nav);
       expect(document.querySelector("header")).toBe(top);
-      expect(within(nav).getByRole("link", { name: "Pedidos", hidden: true })).toBeInTheDocument();
+      // #624 (acordeão): ao ir ao Início o grupo Pessoas fecha; o menu é o mesmo, não remontado
+      expect(within(nav).getByRole("button", { name: "Pessoas", hidden: true })).toHaveAttribute("aria-expanded", "false");
       expect(reads).toBe(1);
     });
 

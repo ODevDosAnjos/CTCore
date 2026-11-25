@@ -39,6 +39,8 @@ Ficam como variáveis no `frontend/src/index.css` (`:root` e `.dark`), com os no
 | Texto de link e destaque | `#B23C24` | `#F08A70` |
 | Botão principal | fundo `#1B1B1F`, texto `#FFFFFF` | fundo `#ECE9E2`, texto `#1D1D21` |
 | Menu lateral | fundo `#17171A`, texto `#D8D4CB`, item ativo `#2B2B30` | igual |
+| Barra de rolagem (`--scrollbar-thumb`) | `#B8B2A5` | `#55555C` |
+| Barra de rolagem do menu (`--sidebar-scrollbar`) | `#4A4A52` | igual |
 
 Cores de situação (fundo / texto), usadas em etiquetas e avisos:
 
@@ -55,7 +57,7 @@ O mapa completo de situação para tom fica num só lugar no código (ex.: `stat
 
 **Tipografia.** Títulos (h1 das páginas, títulos de janelas, números grandes): **Barlow Condensed** 600, caixa alta, `letter-spacing: 0.02em`. Página 38 px, janela 28 px (com `size`; sem `size`, 20 px), número de destaque 34 px. Texto: **IBM Plex Sans** 400/500/600, base 14 px, secundário 13 px, legendas 12 px. As fontes entram pelo pacote npm (`@fontsource`), não por link externo, para funcionar no app instalável e sem internet.
 
-**Forma.** Cantos: cartão 12 px, campo e botão 8 px, janela 16 px, etiqueta 999 px. Altura: campo e botão 40 px, botão pequeno 32 px, botão grande 48 px, etiqueta 22 px. Sombra só em janela, painel lateral e menu suspenso. Espaçamento da página: 28 px no topo e 32 px nas laterais; 16 px no celular. Ícones: `lucide-react`, traço 2, 16 a 20 px.
+**Forma.** Cantos: cartão 12 px, campo e botão 8 px, janela 16 px, etiqueta 999 px. Altura: campo e botão 40 px, botão pequeno 32 px, botão grande 48 px, etiqueta 22 px. Sombra só em janela, painel lateral e menu suspenso. Barra de rolagem: fina, sem setas, nos tokens acima, visível só com o ponteiro sobre o elemento que rola (`scrollbar-width: thin` e `scrollbar-color` em `index.css`); onde não há o que rolar não há barra. Espaçamento da página: 28 px no topo e 32 px nas laterais; 16 px no celular. Ícones: `lucide-react`, traço 2, 16 a 20 px.
 
 ## Componentes
 
@@ -95,7 +97,7 @@ Cada peça do canvas tem um componente em `frontend/src/components`. Tela nova u
 | Selo de situação | `Badge`, `StatusBadge` | tom pelo mapa único de situações |
 | Etapas do assistente | `Stepper` | |
 | Estados | `StateCard`, `LoadingState`, `EmptyState`, `ErrorState`, `ForbiddenState`, `BlockedState`, `LinkExpiredState` | `components/states`. `StateCard`: cartão (borda, canto e fundo dos tokens) com ícone sem círculo, título em caixa alta, texto, corpo livre e ações. Os quatro primeiros ganham o visual do canvas com `variant="card"` (opt-in; sem a prop, o visual antigo, até cada tela migrar; `QueryPage` usa `canvasStates`; nele o carregando vira `TableSkeleton` de `DataTable` (cabeçalho das colunas e 8 linhas) ou 6 cartões no celular, e a prop `header` põe o cabeçalho da tela acima da busca com os totais da lista): carregando com barras, vazio com ação sugerida, erro com "Tentar de novo" (`secondary` opcional) e sem permissão com cadeado e ação opcional. `BlockedState`: ícone de proibido, texto, corpo livre (ex.: `BlockerChecklist`) e ações ("Entendi"). `LinkExpiredState`: texto da validade, corpo livre (e-mail já preenchido) e ações ("Enviar um link novo", "Voltar para o login") |
-| Menu lateral, barra de cima, cabeçalho da página | `AppLayout`, `PageHeader` | menu lateral (248 px, 72 recolhido; grupos com ícone e seta `>`; itens de sprint futura desabilitados "Em breve") e barra de cima (trilha, unidade, busca, sino, tema, ajuda, divisória e conta, numa linha) são partes do `AppLayout`; celular: barra com marca, título, unidade, lupa e sino, abas embaixo e menu em tela cheia com seletor de unidade, tema, Minha conta e Sair |
+| Menu lateral, barra de cima, cabeçalho da página | `AppLayout`, `PageHeader` | menu lateral (248 px, 72 recolhido; ícone só em Início e nos grupos, seta `>` no grupo; subitens só com texto, recuados e com linha fina à esquerda; um grupo aberto por vez; recolhido, só os ícones dos grupos e, ao clicar num grupo, um painel flutuante ao lado com os subitens (Esc, clique fora e navegar fecham); itens de sprint futura desabilitados "Em breve") e barra de cima (trilha, unidade, busca, sino, tema, ajuda, divisória e conta, numa linha) são partes do `AppLayout`; celular: barra com marca, título, unidade, lupa e sino, abas embaixo e menu em tela cheia com seletor de unidade, tema, Minha conta e Sair |
 | Marca da gestão | `BrandMark` | logo (quadrado arredondado com a inicial, cor `brand`) e nome da organização em fonte de título maiúscula; `compact` mostra só o logo |
 | Menu da conta | `UserMenu` | avatar, nome, perfil e seta; abre com "Minha conta" e "Sair da conta"; Esc e clique fora fecham |
 | Seletor de unidade | `UnitMenu` | prédio, nome e seta; uma unidade é só rótulo; no desktop abre lista, no celular a folha de baixo com cartões; "Todas as unidades" traz "Só consulta" |

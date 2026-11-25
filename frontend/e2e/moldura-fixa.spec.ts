@@ -53,14 +53,19 @@ test("@critical gestão no desktop: menu, barra, grupo aberto e menu recolhido f
   await nav.getByRole("link", { name: "Alunos" }).click();
   await expect(page.getByRole("heading", { name: "Alunos", level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Recolher menu" }).click();
-  for (const href of ["/pedidos", "/agenda", "/"]) {
-    await nav.locator(`a[href='${href}']`).first().click();
+  // Recolhido (#624): só os ícones; o grupo abre um painel com os subitens, Início navega direto.
+  for (const [group, href] of [["", "/"], ["Pessoas", "/pedidos"], ["Operação", "/agenda"]]) {
+    if (group) {
+      await nav.getByRole("button", { name: group }).click();
+      await nav.getByRole("dialog", { name: group }).locator(`a[href='${href}']`).click();
+    } else await nav.locator(`a[href='${href}']`).first().click();
     await expect(page).toHaveURL((u) => u.pathname === href);
   }
   expect(await marked(page)).toEqual(["barra", "menu"]);
   await expect(page.getByRole("button", { name: "Expandir menu" })).toBeVisible();
   await page.getByRole("button", { name: "Expandir menu" }).click();
-  await expect(nav.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "true");
+  await expect(nav.getByRole("button", { name: "Operação" })).toHaveAttribute("aria-expanded", "true"); // acordeão: só o grupo da página atual
+  await expect(nav.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "false");
   expect(reads.n).toBe(base);
 });
 

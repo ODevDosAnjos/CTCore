@@ -78,7 +78,7 @@ function Tabs({ tab, tabs, onChange }: { tab: Tab; tabs: readonly Tab[]; onChang
     refs.current[tabs[next]]?.focus();
   }
   return (
-    <div role="tablist" aria-label={t("students.record.tabsLabel")} onKeyDown={onKey} className="flex flex-nowrap gap-1 overflow-x-auto border-b">
+    <div role="tablist" aria-label={t("students.record.tabsLabel")} onKeyDown={onKey} className="flex flex-nowrap gap-1 overflow-x-auto overflow-y-hidden border-b">
       {tabs.map((id) => (
         <button
           key={id}
