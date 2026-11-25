@@ -109,13 +109,12 @@ function Wizard() {
 
   const stepLabels = STEPS.map((id) => t(`enrollmentWizard.steps.${id}`));
   const unitLabel = (modalities[0]?.unitId ? unitName(modalities[0].unitId) : "") || (scope.units.find((u) => u.id === scope.selected)?.name ?? "");
-  const subtitle = unitLabel ? t("enrollmentWizard.subtitle", { unit: unitLabel }) : t("enrollmentWizard.subtitleNoUnit");
   const sideColumn = (step === 1 || step === 2) && student;
   const footer = step > 0 && step < 4 && !network;
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("enrollmentWizard.title")} subtitle={subtitle} />
+      <PageHeader title={t("enrollmentWizard.title")} />
       <section className="flex flex-col gap-6 rounded-lg border bg-card p-4 text-card-foreground max-sm:pb-24 sm:p-6">
         <WindowSteps steps={stepLabels} current={step + 1} className="max-sm:hidden" />
         <p role="status" className="text-sm font-medium sm:hidden">

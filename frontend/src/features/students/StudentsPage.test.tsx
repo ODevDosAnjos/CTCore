@@ -402,7 +402,7 @@ describe("StudentsPage", () => {
     expect(calls.at(-1)!.get("status")).toBeNull();
   });
 
-  it("#465 CA1: subtítulo com a contagem (carregando… antes da resposta), Exportar CSV em breve e Nova matrícula", async () => {
+  it("#465 CA1: sem subtítulo nem contagem (antes e depois da resposta), Exportar CSV em breve e Nova matrícula", async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>((r) => (release = r));
     setup("COORDINATOR", async () => {
@@ -410,9 +410,10 @@ describe("StudentsPage", () => {
       return HttpResponse.json({ items: all, page: 1, size: 25, total: 2, counts: { active: 3, former: 1, overdue: 2 } });
     });
     await ready();
-    expect(screen.getByText(/carregando… · 1 ficha por pessoa na organização/)).toBeInTheDocument();
+    expect(screen.queryByText(/ficha por pessoa|carregando…/)).toBeNull();
     release();
-    expect(await screen.findByText(/· 3 ativos · 1 ficha por pessoa na organização/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
+    expect(screen.queryByText(/ficha por pessoa|\d+ ativos/)).toBeNull();
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("link", { name: "Nova matrícula" })).toHaveAttribute("href", "/alunos/nova-matricula");
     expect(screen.queryByText(/Alunos da organização, com a unidade/)).toBeNull();

@@ -116,11 +116,9 @@ function Content() {
   const [creating, setCreating] = useState(false);
   const { permissions } = usePermissions();
   const canWrite = !!permissions && permissions.TEACHERS !== "NONE";
-  // Subtítulo do canvas: ativos e ativos com acesso, vindos de `counts` da lista.
-  const header = ({ counts }: { counts?: Record<string, number> }) => (
+  const header = () => (
     <PageHeader
       title={t("teachers.title")}
-      subtitle={counts ? t("teachers.subtitle", { count: counts.active, withAccess: counts.withAccess }) : t("teachers.subtitleLoading")}
       actions={
         canWrite && (
           <Button className="min-h-11" onClick={() => setCreating(true)}>

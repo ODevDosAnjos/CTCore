@@ -226,8 +226,13 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 710 | Técnica · CSS aplicado de forma diferente conforme as rotas (prioritária: na frente dos próximos itens de tela, junto com a #568; achada no #611) | issue #710 | Sprint 10.5 | — | agente | feito |
 | 568 | Técnica · Avaliar se o limite padrão do visual:canvas está frouxo demais (prioritária: na frente dos próximos itens de tela; remove a regra temporária de conferência à mão) | issue #568 | sem marco | — | agente | feito |
 | 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | feito |
-| 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna | issue #646 | Sprint 10.5 | — | agente | a fazer |
-| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #646, #568 | agente | a fazer |
+| 717 | 646a · Cabeçalhos sem subtítulo: Pessoas | issue #717 (parte da #646) | Sprint 10.5 | #624 | agente | feito |
+| 718 | 646b · Cabeçalhos sem subtítulo: Operação | issue #718 (parte da #646) | Sprint 10.5 | #717 | agente | a fazer |
+| 719 | 646c · Cabeçalhos sem subtítulo: Financeiro | issue #719 (parte da #646) | Sprint 10.5 | #718 | agente | a fazer |
+| 720 | 646d · Cabeçalhos sem subtítulo: Comunicação | issue #720 (parte da #646) | Sprint 10.5 | #719 | agente | a fazer |
+| 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (conferência final; fecha a #646) | issue #721 (parte da #646) | Sprint 10.5 | #720 | agente | a fazer |
+| 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna (item-mãe: dividido em #717 a #721; fecha na #721; sem construção própria) | issue #646 | Sprint 10.5 | #721 | agente | dividido |
+| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #721, #568 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
 | 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Sprint 10.5 | #625 | agente | a fazer |
@@ -383,7 +388,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|

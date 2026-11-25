@@ -21,7 +21,6 @@ import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModalityDot } from "@/components/ui/modality-dot";
 import { Popover } from "@/components/ui/popover";
-import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { PageHeader } from "@/components/ui/page-header";
 
 // O nome abre a ficha em painel (RF-ALU-03), mantendo a busca e os filtros da lista na mesma página.
@@ -106,17 +105,12 @@ function Content({ accountId }: { accountId: string }) {
   const { search } = useLocation();
   const [version, setVersion] = useState(0);
   const narrow = useBelowSm();
-  const scope = useUnitScope();
-  const unitName = scope.units.find((u) => u.id === scope.selected)?.name;
   const all = allColumns(t, search);
   const columns = [all.name, ...visible.map((c) => all[c])];
-  const header = ({ counts }: { counts?: Record<string, number> }) => {
-    const active = counts ? t("students.activeCount", { count: counts.active }) : t("students.subtitleLoading");
-    const subtitle = scope.selected === ALL || !unitName ? t("students.subtitleAll", { active }) : t("students.subtitle", { unit: unitName, active });
+  const header = () => {
     return (
       <PageHeader
         title={t("students.title")}
-        subtitle={subtitle}
         actions={
           narrow ? undefined : (
             <>
