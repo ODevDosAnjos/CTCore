@@ -4,6 +4,10 @@ Origem dos itens: issues do repositório no GitHub (194 issues: 17 fechadas e 17
 
 Sprint liberada: Sprint 10.5 (Identidade visual). O dono confirmou em 29/10/2026 que a Sprint 10 foi revisada e fechada e liberou a Sprint 10.5 (#414 a #423). Em 30/10/2026 o dono aprovou o plano de issues da auditoria do canvas e as #437 a #501 entraram nessa mesma sprint liberada (plano em `docs/auditoria/plano-de-issues.md`). Em 19/11/2026 o dono trocou a cobrança por alunos ativos pela cobrança por vaga de Administrador e mandou os ajustes no que já foi entregue para a 10.5: #608 a #611 (o resto entrou nas issues das Sprints 13 a 16 que ainda não foram feitas). Na mesma data, o dono reorganizou Configurações, tirou a cor da organização, pediu dados novos da unidade, a exigência de duas etapas para Administradores e o ajuste do menu lateral e da rolagem, e Minha conta em abas com conteúdo: #624 a #628, #630 a #636 e #638 a #640 (decisões 19 a 32 em `docs/auditoria/decisoes-canvas.md`). Em 20/11/2026, a partir das anotações de teste do dono, entraram #643 a #662 (padrões gerais de tela, navegação sem recarregar, movimento, seed e ajustes de Financeiro, Operação, Pessoas e Comunicação; a #643 e a #644 vêm antes da #498) e as #122 a #124 (Início) foram trazidas da Sprint 13, com o que depende de sprint futura em "Em breve" (decisões 33 e 34). Na mesma data entrou a #664, revisão de textos pelo guia `docs/design/textos.md`, por último no lote (decisão 35). Ainda em 20/11/2026 entrou a #671 (seed de homologação recriado automaticamente pela API e conteúdo com cara real, no Rio), logo depois da #499 e antes da #500; ela substitui a #662. Ainda em 20/11/2026 entraram as #675 a #677 (estrutura de rotas e telas do front: moldura montada uma vez na rota-pai, estado da tela no endereço e o padrão escrito e cobrado no CI), logo depois da #501 e antes da #608, porque a #611, a #624, a #625, a #630 e a #645 dependem delas. A 10.5 entra antes da Sprint 11. A Sprint 11 fica para depois da 10.5 e começa retomando a #96 do branch `item/96-porta-de-pagamento-simulador` (trabalho em andamento, já enviado, sem PR). Só o dono libera a seguinte.
 
+Triagem de 25/11/2026 (decisão do dono): foram criados os marcos **10.5b · Polimento** (18 issues de polimento cosmético do canvas, mais a #664, que fica para o fim do produto, antes do piloto, porque as sprints seguintes criam textos novos; o `limiteCanvas` delas continua com a issue citada) e **Dívida técnica** (técnicas que não bloqueiam o CI nem a `dev`; sobem para a frente só se falharem no CI). Os dois marcos **não estão liberados**: as linhas deles entram na ordem de trabalho só quando o dono os liberar, qualquer que seja a posição da linha neste arquivo. Fechadas e juntadas: #662 (pela #671), #563 (na #581), #579 (na #590), #540, #594 e #597 (na #724), #535, #557 e #620 (na #725). A #699 continua esperando a decisão do dono e não trava nada; as #667, #706 e #621 são reavaliadas depois da #701.
+
+**Sprint 10.5 concluída** quando: (1) todas as issues abertas do marco "Sprint 10.5 · Identidade visual" estão feitas (moldura, componentes base, telas e regras de domínio, incluindo as partes da #646 e a #714), sem as do polimento nem a #664; (2) a #714 recalibrou o `visual:canvas` e removeu a regra temporária do AGENTS.md; (3) o `ci-gate` está verde na `dev`; (4) o dono revisou a sprint e fez o PR de `dev` para `main`.
+
 Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sprint anterior"), que a ordem já cobre; por isso a coluna fica "—". Exceção declarada no plano: #5 e #11 ficaram só com a parte que o agente faz sozinho; hospedagem e publicação são #192 e #193. Na Sprint 10.5, as issues #437 a #501 trazem na coluna as dependências entre itens do plano (as mesmas marcadas como "bloqueada por" no GitHub) e as linhas seguem a ordem de execução do plano `docs/auditoria/plano-de-issues.md`: Fase 1 (bugs, regras e itens técnicos, #437 a #449, com a #435 logo depois da #448), Fase 2 (componentes, na sequência #450, #452, #453, #434, #454, #455, #456, #457, #458, #459, #460, #451, #461, #462, #463, #464) e Fase 3 (telas por área, #465 a #501).
 
 | ID | Item | Origem | Sprint | Depende de | Quem executa | Situação |
@@ -266,9 +270,8 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 122 | RF-INI-01 · Início do Coordenador | issue #122 | Sprint 10.5 | — | agente | a fazer |
 | 123 | RF-INI-02 · Início do Administrador | issue #123 | Sprint 10.5 | — | agente | a fazer |
 | 124 | RF-INI-03 · Início do Professor | issue #124 | Sprint 10.5 | — | agente | a fazer |
-| 662 | Popular a homologação com o seed novo (substituída pela #671, que a fecha) | issue #662 | Sprint 10.5 | #671 | dono | a fazer |
-| 664 | RNF-55 · Revisão de textos: maiúsculas, botões curtos, frases simples e vocabulário único | issue #664 | Sprint 10.5 | #643 a #661, #122 a #124 | agente | a fazer |
-| 613 | Aviso aberto do portal: autor em duas linhas, como o canvas | issue #613 | Sprint 10.5 | #496 | agente | a fazer |
+| 664 | RNF-55 · Revisão de textos: maiúsculas, botões curtos, frases simples e vocabulário único | issue #664 | 10.5b · Polimento | #643 a #661, #122 a #124 | agente | a fazer |
+| 613 | Aviso aberto do portal: autor em duas linhas, como o canvas | issue #613 | 10.5b · Polimento | #496 | agente | a fazer |
 | 614 | Aviso aberto do portal: avatar do autor com o tom do canvas | issue #614 | Sprint 10.5 | #496 | agente | a fazer |
 | 615 | Avisos do portal: pílulas de filtro e Fixado com o tom do canvas | issue #615 | Sprint 10.5 | #496 | agente | a fazer |
 | 616 | Aviso aberto do portal no celular: página sem cartão, como o canvas | issue #616 | Sprint 10.5 | #496 | agente | a fazer |
@@ -375,12 +378,14 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 527 | Técnica · Conta do dono no AGENTS.md: ODevDosAnjos | issue #527 | Sprint 10.5 | — | agente | feito |
 | 528 | Técnica · Teste visual em paralelo no CI | issue #528 | Sprint 10.5 | — | agente | feito |
 | 530 | Técnica · Teste visual instável em conta-duas-etapas (1440) | issue #530 | Sprint 10.5 | — | agente | feito |
-| 699 | Técnica · Decisão: relógio do banco vs Clock da aplicação (antes das #696 a #698; decisão do dono) | issue #699 | Sprint 10.5 | — | agente | a fazer |
-| 696 | Técnica · Migrar ITs de organization e terms para Clock fixo (medição da #693) | issue #696 | Sprint 10.5 | #699 | agente | a fazer |
-| 697 | Técnica · Migrar ITs de student (portal) para Clock fixo (medição da #693) | issue #697 | Sprint 10.5 | #699 | agente | a fazer |
-| 698 | Técnica · Migrar ITs de billing, plan, notification, mail, agenda, communication e storage para Clock fixo (medição da #693) | issue #698 | Sprint 10.5 | #699 | agente | a fazer |
-| 706 | Técnica · Teste TextModelsIT.audit instável: medir e estabilizar | issue #706 | sem marco | — | agente | a fazer |
-| 707 | Técnica · Teste visual instável em configuracoes-unidade-professor (1440 escuro): medir e estabilizar | issue #707 | sem marco | — | agente | a fazer |
+| 699 | Técnica · Decisão: relógio do banco vs Clock da aplicação (antes das #696 a #698; decisão do dono) | issue #699 | Dívida técnica | — | agente | a fazer |
+| 696 | Técnica · Migrar ITs de organization e terms para Clock fixo (medição da #693) | issue #696 | Dívida técnica | #699 | agente | a fazer |
+| 697 | Técnica · Migrar ITs de student (portal) para Clock fixo (medição da #693) | issue #697 | Dívida técnica | #699 | agente | a fazer |
+| 698 | Técnica · Migrar ITs de billing, plan, notification, mail, agenda, communication e storage para Clock fixo (medição da #693) | issue #698 | Dívida técnica | #699 | agente | a fazer |
+| 706 | Técnica · Teste TextModelsIT.audit instável: medir e estabilizar | issue #706 | Dívida técnica | — | agente | a fazer |
+| 707 | Técnica · Teste visual instável em configuracoes-unidade-professor (1440 escuro): medir e estabilizar | issue #707 | Dívida técnica | — | agente | a fazer |
+| 724 | Técnica: testes de tela instáveis sob carga (junta #540, #594 e #597) | issue #724 | Dívida técnica | — | agente | a fazer |
+| 725 | Técnica: ajuste do processo, kit e AGENTS.md (junta #535, #557 e #620) | issue #725 | Dívida técnica | — | agente | a fazer |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 
