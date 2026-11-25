@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { NavGroup } from "./AppLayout";
 import { BrandMark } from "./BrandMark";
+import { GroupFlyout } from "./GroupFlyout";
 import { iconFor } from "./icons";
 
 const live = "hover:bg-sidebar-accent aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-semibold";
@@ -37,32 +38,34 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
     "flex w-full items-center gap-3 rounded-md px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     menu ? "min-h-12 text-base" : "min-h-11",
   );
-  const [open, setOpen] = useState<Set<string>>(() => new Set(groups.filter((g) => g.items.some((i) => i.id === activeId)).map((g) => g.id)));
-  // O menu é montado uma vez (RNF-43): ao mudar o item ativo, o grupo dele abre sem fechar os outros.
-  const [seen, setSeen] = useState(activeId);
-  if (seen !== activeId) {
-    setSeen(activeId);
-    const group = groups.find((g) => g.items.some((i) => i.id === activeId));
-    if (group && !open.has(group.id)) setOpen(new Set(open).add(group.id));
+  const activeGroup = groups.find((g) => g.items.some((i) => i.id === activeId))?.id ?? null;
+  const [open, setOpen] = useState<string | null>(activeGroup);
+  // Acordeão (D3): um grupo aberto por vez. O menu é montado uma vez (RNF-43): ao mudar o item ativo, ou ao expandir
+  // depois de recolhido, abre o grupo da página atual e os outros fecham.
+  const [seen, setSeen] = useState({ activeId, collapsed });
+  if (seen.activeId !== activeId || seen.collapsed !== collapsed) {
+    setSeen({ activeId, collapsed });
+    if (activeGroup) setOpen(activeGroup);
   }
-  const flip = (id: string) =>
-    setOpen((o) => {
-      const n = new Set(o);
-      if (!n.delete(id)) n.add(id);
-      return n;
-    });
+  const flip = (id: string) => setOpen((o) => (o === id ? null : id));
+  // Recolhido: painel flutuante de um grupo por vez (D2).
+  const [flyout, setFlyout] = useState<{ id: string; button: HTMLElement } | null>(null);
 
   const soon = t("layout.soon");
-  const link = (i: NavGroup["items"][number], nested: boolean) => {
+  // "top": Início e grupos de um item só (ícone; só o ícone no recolhido); "sub": subitem do menu aberto; "fly": subitem do painel.
+  const link = (i: NavGroup["items"][number], kind: "top" | "sub" | "fly") => {
     const Icon = iconFor(i.icon);
     const n = badges[i.id] ?? 0;
-    const badgeId = `${uid}-${i.id}`;
-    const pad = cn(nested && !collapsed && "pl-6", collapsed && "justify-center px-0");
+    const badgeId = `${uid}-${i.id}-${kind}`;
+    const compact = collapsed && kind === "top";
+    const pad = compact && "justify-center px-0";
+    const icon = kind === "top" && <Icon aria-hidden="true" className="size-5 shrink-0" />;
     if (i.disabled) {
       return (
-        <button key={i.id} type="button" disabled title={collapsed ? `${i.label} · ${soon}` : soon} aria-label={collapsed ? `${i.label}, ${soon}` : undefined} className={cn(row, "opacity-60", pad)}>
-          <Icon aria-hidden="true" className="size-5 shrink-0" />
-          {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{i.label}</span>}
+        <button key={i.id} type="button" disabled title={compact ? `${i.label} · ${soon}` : soon} aria-label={compact ? `${i.label}, ${soon}` : undefined} className={cn(row, "opacity-60", pad)}>
+          {icon}
+          {!compact && <span className="min-w-0 flex-1 truncate text-left">{i.label}</span>}
+          {kind === "fly" && <span className="text-xs">{soon}</span>}
         </button>
       );
     }
@@ -71,19 +74,23 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
         key={i.id}
         to={i.href}
         aria-current={i.id === activeId ? "page" : undefined}
-        aria-label={collapsed ? i.label : undefined}
-        aria-describedby={n > 0 && !collapsed ? badgeId : undefined}
-        title={collapsed ? i.label : undefined}
+        aria-label={compact ? i.label : undefined}
+        aria-describedby={n > 0 && !compact ? badgeId : undefined}
+        title={compact ? i.label : undefined}
         className={cn(row, live, pad)}
       >
-        <Icon aria-hidden="true" className="size-5 shrink-0" />
-        {!collapsed && <span className="min-w-0 flex-1 truncate">{i.label}</span>}
-        {n > 0 && !collapsed && (
+        {icon}
+        {!compact && <span className="min-w-0 flex-1 truncate">{i.label}</span>}
+        {n > 0 && !compact && (
           <span id={badgeId} hidden={false} aria-hidden="true" className="rounded-full bg-primary px-1.5 text-center text-xs font-semibold text-primary-foreground">{badgeText(n)}</span>
         )}
       </Link>
     );
   };
+
+  const top = (i: NavGroup["items"][number]) => link(i, "top");
+  const sub = (i: NavGroup["items"][number]) => link(i, "sub");
+  const fly = (i: NavGroup["items"][number]) => link(i, "fly");
 
   const footer = (label: string, Icon: typeof CircleHelp) => (
     <button
@@ -107,21 +114,42 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
         </div>
       )}
       {menu && unitSlot && <div className="px-4 pb-2">{unitSlot}</div>}
-      <nav aria-label={t("layout.main")} className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+      <nav aria-label={t("layout.main")} data-sidebar-scroll className={cn("flex flex-1 flex-col gap-1 overflow-y-auto p-2", !collapsed && "[scrollbar-gutter:stable]")}>
         {groups.map((g) => {
-          if (g.items.length === 1 && g.items[0].id === g.id) return link(g.items[0], false);
-          const expanded = menu || open.has(g.id);
+          if (g.items.length === 1 && g.items[0].id === g.id) return top(g.items[0]);
           const GroupIcon = iconFor(g.icon);
+          if (collapsed) {
+            const shown = flyout?.id === g.id;
+            return (
+              <div key={g.id}>
+                <button
+                  type="button"
+                  aria-expanded={shown}
+                  aria-haspopup="dialog"
+                  aria-label={g.label}
+                  title={g.label}
+                  onClick={(e) => setFlyout(shown ? null : { id: g.id, button: e.currentTarget })}
+                  className={cn(row, "justify-center px-0 hover:bg-sidebar-accent", shown && "bg-sidebar-accent")}
+                >
+                  <GroupIcon aria-hidden="true" className="size-5 shrink-0" />
+                </button>
+                {shown && flyout && (
+                  <GroupFlyout title={g.label} anchor={flyout.button} onClose={() => setFlyout(null)}>
+                    {g.items.map((i) => fly(i))}
+                  </GroupFlyout>
+                )}
+              </div>
+            );
+          }
+          const expanded = menu || open === g.id;
           return (
             <div key={g.id} className={cn(menu && "border-t border-sidebar-accent pt-1")}>
-              {!collapsed && (
-                <button type="button" aria-expanded={expanded} onClick={() => !menu && flip(g.id)} className={cn(row, "font-medium hover:bg-sidebar-accent")}>
-                  <GroupIcon aria-hidden="true" className="size-5 shrink-0" />
-                  <span className="flex-1 text-left">{g.label}</span>
-                  <ChevronRight aria-hidden="true" className={cn("size-4 transition-transform", expanded && "rotate-90")} />
-                </button>
-              )}
-              {(collapsed || expanded) && <div className="flex flex-col gap-1">{g.items.map((i) => link(i, true))}</div>}
+              <button type="button" aria-expanded={expanded} onClick={() => !menu && flip(g.id)} className={cn(row, "font-medium hover:bg-sidebar-accent")}>
+                <GroupIcon aria-hidden="true" className="size-5 shrink-0" />
+                <span className="flex-1 text-left">{g.label}</span>
+                <ChevronRight aria-hidden="true" className={cn("size-4 transition-transform", expanded && "rotate-90")} />
+              </button>
+              {expanded && <div className="ml-5 flex flex-col gap-1 border-l border-sidebar-accent pl-2">{g.items.map((i) => sub(i))}</div>}
             </div>
           );
         })}

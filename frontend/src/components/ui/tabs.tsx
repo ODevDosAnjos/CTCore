@@ -40,7 +40,7 @@ export function Tabs({
   };
   return (
     <div className={className}>
-      <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-divider">
+      <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--divider)]">
         {tabs.map((tab, i) => (
           <button
             key={tab.id}
@@ -56,7 +56,7 @@ export function Tabs({
             onClick={() => setActive(tab.id)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
-              "relative -mb-px min-h-11 whitespace-nowrap border-b-2 px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "relative min-h-11 whitespace-nowrap border-b-2 px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               tab.id === active ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >

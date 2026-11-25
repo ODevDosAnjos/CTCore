@@ -24,14 +24,41 @@ const groups: NavGroup[] = [
 ];
 
 describe("Sidebar", () => {
-  it("RNF-43: ao mudar o item ativo o grupo dele abre, sem fechar os que já estavam abertos", () => {
+  it("CA9 (D3): acordeão: ao mudar o item ativo o grupo dele abre e os outros fecham; dentro do mesmo grupo nada fecha", () => {
     const { rerender } = render(<Sidebar groups={groups} activeId="students" />);
+    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "true");
+    rerender(<Sidebar groups={groups} activeId="requests" />);
     expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "true");
     rerender(<Sidebar groups={groups} activeId="plans" />);
     expect(screen.getByRole("button", { name: "Financeiro" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "false");
     rerender(<Sidebar groups={groups} activeId="" />);
     expect(screen.getByRole("button", { name: "Financeiro" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("CA9: abrir um grupo à mão fecha o que estava aberto", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar groups={groups} activeId="students" />);
+    await user.click(screen.getByRole("button", { name: "Financeiro" }));
+    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: "Alunos" })).toBeNull();
+  });
+
+  it("CA10: recolhido e depois expandido abre o grupo da página atual", () => {
+    const { rerender } = render(<Sidebar groups={groups} activeId="students" />);
+    rerender(<Sidebar groups={groups} activeId="students" collapsed />);
+    rerender(<Sidebar groups={groups} activeId="plans" collapsed />);
+    rerender(<Sidebar groups={groups} activeId="plans" />);
+    expect(screen.getByRole("button", { name: "Financeiro" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Pessoas" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("CA1: só Início e os grupos têm ícone; subitens só com texto, recuados com a linha vertical", () => {
+    render(<Sidebar groups={groups} activeId="students" />);
+    expect(screen.getByRole("link", { name: "Início" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Pessoas" }).querySelectorAll("svg")).toHaveLength(2);
+    for (const n of ["Alunos", "Pedidos"]) expect(screen.getByRole("link", { name: n }).querySelector("svg")).toBeNull();
+    expect(screen.getByRole("link", { name: "Alunos" }).parentElement).toHaveClass("border-l", "ml-5");
   });
 
   it("CA1: fundo do token, organização, área, grupos com aria-expanded e item ativo", async () => {
@@ -50,6 +77,7 @@ describe("Sidebar", () => {
     expect(fin.querySelectorAll("svg")).toHaveLength(2);
     await user.click(fin);
     expect(fin).toHaveAttribute("aria-expanded", "true");
+    expect(pessoas).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("link", { name: "Planos" })).toBeInTheDocument();
   });
 
@@ -85,12 +113,24 @@ describe("Sidebar", () => {
     expect(screen.getByText("feito com ctcore")).toBeInTheDocument();
   });
 
-  it("CA4: recolhido tem 72 px, ícones com nome e title", () => {
+  it("CA3: recolhido tem 72 px e só ícones: Início, um botão por grupo e rodapé, sem links de subitem", () => {
     const { container } = render(<Sidebar groups={groups} activeId="home" collapsed onToggle={() => {}} />);
     expect(container.firstChild).toHaveClass("w-18");
-    expect(screen.getByRole("link", { name: "Alunos" })).toHaveAttribute("title", "Alunos");
-    expect(screen.queryByText("Alunos")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Início" })).toHaveAttribute("title", "Início");
+    const pessoas = screen.getByRole("button", { name: "Pessoas" });
+    expect(pessoas).toHaveAttribute("title", "Pessoas");
+    expect(pessoas).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: "Alunos" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Planos" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Relatórios, Em breve" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Expandir menu" })).toBeInTheDocument();
+  });
+
+  it("CA8: no recolhido Início é link direto, sem painel", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar groups={groups} activeId="students" collapsed />);
+    await user.click(screen.getByRole("link", { name: "Início" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 

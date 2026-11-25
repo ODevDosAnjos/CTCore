@@ -225,7 +225,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | feito |
 | 710 | Técnica · CSS aplicado de forma diferente conforme as rotas (prioritária: na frente dos próximos itens de tela, junto com a #568; achada no #611) | issue #710 | Sprint 10.5 | — | agente | feito |
 | 568 | Técnica · Avaliar se o limite padrão do visual:canvas está frouxo demais (prioritária: na frente dos próximos itens de tela; remove a regra temporária de conferência à mão) | issue #568 | sem marco | — | agente | feito |
-| 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | a fazer |
+| 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | feito |
 | 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna | issue #646 | Sprint 10.5 | — | agente | a fazer |
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #646, #568 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |

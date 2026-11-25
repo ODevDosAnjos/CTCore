@@ -62,6 +62,9 @@ export const casos: Caso[] = [
   { nome: "inicio", rota: "/", perfil: ana, canvas: "Main", canvasEscuro: "MainEscuro" },
   // Moldura da gestão (#417): menu, barra de cima, abas e menu de celular por perfil
   { nome: "moldura-coordenacao", rota: "/alunos", perfil: ana, canvas: "Sidebar" },
+  // #624: menu recolhido (só os ícones dos grupos) e o painel flutuante de um grupo; o canvas não mostra o recolhido (sem comparação, D6)
+  { nome: "moldura-recolhido", rota: "/alunos", perfil: ana, passos: [{ clicar: "Recolher menu", seExistir: true }] },
+  { nome: "moldura-painel-grupo", rota: "/alunos", perfil: ana, passos: [{ clicar: "Recolher menu", seExistir: true }, { clicar: "Operação", seExistir: true }] },
   { nome: "moldura-administrador", rota: "/alunos", perfil: admin, canvas: "Topbar" },
   { nome: "moldura-professor", rota: "/agenda", perfil: prof, canvas: "GMMenu", feriadoHoje: true },
   // #454: no celular o menu em tela cheia e a folha de unidade; a 1440 px o mesmo passo abre o menu da conta e a lista de unidade (o canvas é de 360 px, sem comparação automática)

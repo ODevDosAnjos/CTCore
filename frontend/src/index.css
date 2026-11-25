@@ -49,6 +49,8 @@
   --sidebar: #17171A;
   --sidebar-foreground: #D8D4CB;
   --sidebar-accent: #2B2B30;
+  --scrollbar-thumb: #B8B2A5;
+  --sidebar-scrollbar: #4A4A52;
 
   --ok: #E2EFE5;
   --ok-foreground: #1D5E34;
@@ -109,6 +111,8 @@
   --sidebar: #17171A;
   --sidebar-foreground: #D8D4CB;
   --sidebar-accent: #2B2B30;
+  --scrollbar-thumb: #55555C;
+  --sidebar-scrollbar: #4A4A52;
 
   --ok: #1E3626;
   --ok-foreground: #8FD3A3;
@@ -155,6 +159,7 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-scrollbar-thumb: var(--scrollbar-thumb);
   --color-ok: var(--ok);
   --color-ok-foreground: var(--ok-foreground);
   --color-warn: var(--warn);
@@ -182,6 +187,17 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-size: var(--text-base);
+  }
+  /* Barra de rolagem fina e sem setas em todo o sistema (D4): só aparece com o ponteiro sobre o elemento; o menu usa a cor dos tokens do menu. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  *:hover {
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  [data-sidebar-scroll]:hover {
+    scrollbar-color: var(--sidebar-scrollbar) transparent;
   }
   h1,
   h2,

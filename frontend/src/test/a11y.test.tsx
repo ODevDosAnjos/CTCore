@@ -5,6 +5,8 @@ import { MemoryRouter } from "react-router";
 import { SessionProvider } from "@/features/auth/SessionProvider";
 import { App } from "@/App";
 import { buttonVariants } from "@/components/ui/button";
+import userEvent from "@testing-library/user-event";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { setDevicePrefersDark } from "./device";
 import { axeViolations } from "./axe";
@@ -68,6 +70,27 @@ describe("componentes (CA21, CA22)", () => {
       </ThemeProvider>,
     );
     expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA7: menu recolhido com o painel de grupo aberto sem violações no axe no tema %s", async (_n, dark) => {
+    setDevicePrefersDark(dark);
+    const groups = [
+      { id: "home", label: "Início", items: [{ id: "home", label: "Início", href: "/", icon: "House" }] },
+      { id: "ops", label: "Operação", icon: "Dumbbell", items: [{ id: "agenda", label: "Agenda", href: "/agenda" }, { id: "next", label: "Frequência", href: "/f", disabled: true }] },
+    ];
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Sidebar groups={groups} activeId="home" collapsed onToggle={() => {}} />
+        </MemoryRouter>
+      </ThemeProvider>,
+    );
+    await userEvent.setup().click(screen.getByRole("button", { name: "Operação" }));
+    expect(screen.getByRole("dialog", { name: "Operação" })).toBeInTheDocument();
+    expect(await axeViolations(document.body)).toEqual([]);
   });
 
   it.each([["modal"], ["panel"], ["confirm"]])("janela aberta (%s) sem violações no axe", async (which) => {

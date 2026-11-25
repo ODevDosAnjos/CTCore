@@ -60,7 +60,7 @@ export function AppLayout({
       >
         {t("layout.skip")}
       </a>
-      <aside className="sticky top-0 hidden h-screen shrink-0 md:block">
+      <aside className="sticky top-0 z-30 hidden h-screen shrink-0 md:block">
         <Sidebar {...side} collapsed={collapsed} onToggle={toggle} />
       </aside>
       <div className="min-w-0 flex-1">
