@@ -62,7 +62,7 @@ function Content() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("ageRanges.title")} subtitle={t("ageRanges.subtitle")} actions={api.items.length > 0 ? create : undefined} />
+      <PageHeader title={t("ageRanges.title")} actions={api.items.length > 0 ? create : undefined} />
       {message && <Banner tone={message.kind === "alert" ? "danger" : "ok"}>{message.text}</Banner>}
       {api.items.length === 0 ? (
         <EmptyState title={t("ageRanges.emptyTitle")} text={t("ageRanges.emptyText")} action={create || undefined} />

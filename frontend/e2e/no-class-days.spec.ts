@@ -33,7 +33,7 @@ test("@critical Coordenador confirma um feriado sugerido e a Agenda mostra Sem a
   expect(label).toBeTruthy();
   await page.getByRole("button", { name: label, exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Novo dia sem aula" });
-  await expect(dialog.getByText("A mensalidade não muda.")).toBeVisible();
+  await expect(dialog.getByText("A mensalidade não muda.")).toHaveCount(0);
   await expect(dialog.getByText(/fica(m)? cancelada|Nenhuma aula será cancelada/).first()).toBeVisible(); // prévia das aulas que serão canceladas
   await dialog.getByRole("button", { name: "Lançar dia sem aula" }).click();
   await expect(dialog).toBeHidden();

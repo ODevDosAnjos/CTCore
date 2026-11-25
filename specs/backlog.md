@@ -231,7 +231,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 568 | Técnica · Avaliar se o limite padrão do visual:canvas está frouxo demais (prioritária: na frente dos próximos itens de tela; remove a regra temporária de conferência à mão) | issue #568 | sem marco | — | agente | feito |
 | 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | feito |
 | 717 | 646a · Cabeçalhos sem subtítulo: Pessoas | issue #717 (parte da #646) | Sprint 10.5 | #624 | agente | feito |
-| 718 | 646b · Cabeçalhos sem subtítulo: Operação | issue #718 (parte da #646) | Sprint 10.5 | #717 | agente | a fazer |
+| 718 | 646b · Cabeçalhos sem subtítulo: Operação | issue #718 (parte da #646) | Sprint 10.5 | #717 | agente | feito |
 | 719 | 646c · Cabeçalhos sem subtítulo: Financeiro | issue #719 (parte da #646) | Sprint 10.5 | #718 | agente | a fazer |
 | 720 | 646d · Cabeçalhos sem subtítulo: Comunicação | issue #720 (parte da #646) | Sprint 10.5 | #719 | agente | a fazer |
 | 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (conferência final; fecha a #646) | issue #721 (parte da #646) | Sprint 10.5 | #720 | agente | a fazer |

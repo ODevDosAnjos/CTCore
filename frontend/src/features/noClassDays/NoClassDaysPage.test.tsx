@@ -105,7 +105,8 @@ describe("NoClassDaysPage", () => {
   it("CA1, CA2, CA4: subtítulo, sugestões em tabela com dia da semana e aulas afetadas, lançados em tabela com origem e selo de aviso", async () => {
     setup();
     await ready();
-    expect(await screen.findByText("Unidade Centro · a mensalidade não muda por feriado ou recesso")).toBeInTheDocument();
+    expect(screen.queryByText(/a mensalidade não muda por feriado/)).toBeNull();
+    expect(screen.queryByText(/Feriados nacionais aparecem aqui/)).toBeNull();
     const suggestions = (await screen.findByRole("heading", { name: "Feriados sugeridos" })).closest("section")!;
     const sRows = within(suggestions).getAllByRole("row");
     expect(within(sRows[1]).getByText(new RegExp(`^${br(addDays(todayIso(), 30))} · `))).toBeInTheDocument();
@@ -187,7 +188,7 @@ describe("NoClassDaysPage", () => {
     const dialog = await screen.findByRole("dialog", { name: "Novo dia sem aula" });
     expect(within(dialog).getByLabelText(/^De/)).toHaveValue(addDays(todayIso(), 30));
     expect(within(dialog).getByLabelText(/^Motivo/)).toHaveValue("Tiradentes");
-    expect(within(dialog).getByText("A mensalidade não muda.")).toBeInTheDocument();
+    expect(within(dialog).queryByText("A mensalidade não muda.")).toBeNull();
     await user.click(within(dialog).getByRole("radio", { name: "Agendar" }));
     await user.click(within(dialog).getByRole("button", { name: "Lançar dia sem aula" }));
     expect(await within(dialog).findByText("Informe a data e a hora do aviso.")).toBeInTheDocument();
@@ -238,7 +239,7 @@ describe("NoClassDaysPage", () => {
     fail = false;
     await user.click(await within(dialog).findByRole("button", { name: "Tentar de novo" }));
     expect(await within(dialog).findByText("Nenhuma aula será cancelada nesse período.")).toBeInTheDocument();
-    expect(within(dialog).getByText("A mensalidade não muda.")).toBeInTheDocument();
+    expect(within(dialog).queryByText("A mensalidade não muda.")).toBeNull();
   });
 
   it("CA17: só o Coordenador escolhe várias unidades; com mais de uma, turmas ficam bloqueadas", async () => {

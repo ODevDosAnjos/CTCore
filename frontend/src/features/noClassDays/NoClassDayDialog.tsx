@@ -219,7 +219,6 @@ export function NoClassDayDialog({
             <>
               <p>{t("noClassDays.dialog.previewCount", { count: lessonCount, from: brShort(startsOn), to: brShort(endDate) })}</p>
               <p>{t("noClassDays.dialog.previewTrials")}</p>
-              <p>{t("noClassDays.dialog.fee")}</p>
             </>
           )}
         </section>

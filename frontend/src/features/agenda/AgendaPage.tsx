@@ -49,7 +49,6 @@ function Content() {
   const canNoClassDays = !!permissions && permissions.NO_CLASS_DAYS !== "NONE";
   const thisMonday = mondayOf(today);
   const shown = mondayOf(anchor) === thisMonday ? "this" : mondayOf(anchor) === addDays(thisMonday, 7) ? "next" : "";
-  const subtitle = view?.unit ? t("agenda.subtitle", { name: view.unit.name }) : t("agenda.subtitleNoUnit");
 
   if (status === "forbidden") {
     return (
@@ -63,7 +62,6 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("agenda.title")}
-        subtitle={subtitle}
         actions={
           <>
             {canNoClassDays && (

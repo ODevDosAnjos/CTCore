@@ -98,7 +98,6 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("noClassDays.title")}
-        subtitle={options?.unit ? t("noClassDays.subtitle", { unit: options.unit.name }) : undefined}
         actions={!narrow && newButton}
       />
       {options && options.units.length > 1 && (
@@ -123,7 +122,6 @@ function Content() {
               <h2 id="suggestions-title" className={sectionTitle}>
                 {narrow ? t("noClassDays.suggestions.titleMobile") : t("noClassDays.suggestions.title")}
               </h2>
-              <p className="text-sm text-muted-foreground">{t("noClassDays.suggestions.note")}</p>
               {narrow ? (
                 <ul className="flex flex-col gap-2">
                   {data.suggestions.map((s) => {

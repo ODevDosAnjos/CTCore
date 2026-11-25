@@ -132,13 +132,13 @@ describe("ModalitiesPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    expect(screen.getByText("O Coordenador ativa para a organização; cada unidade marca quais oferece")).toBeInTheDocument();
+    expect(screen.queryByText(/O Coordenador ativa para a organização/)).toBeNull();
     expect(names("Suas modalidades")).toEqual(["Boxe"]);
     expect(within(block("Suas modalidades")).getByText("Graduação ligada · 19 níveis · Tijuca e Barra")).toBeInTheDocument();
     expect(within(block("Suas modalidades")).getByRole("button", { name: /Graduação\s*Boxe/ })).toBeInTheDocument();
     expect(names("Disponíveis para ativar")).toEqual(["Judô", "Jiu-Jitsu"]);
     expect(within(block("Disponíveis para ativar")).getAllByText("Catálogo ctcore")).toHaveLength(2);
-    expect(screen.getByText(/Variações como No-Gi, Kids ou Competição ficam no nome da turma\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Variações como No-Gi, Kids ou Competição ficam no nome da turma\./)).toBeNull();
     expect(screen.getByRole("button", { name: "Não achei minha modalidade" })).toBeInTheDocument();
     await user.click(within(block("Disponíveis para ativar")).getByRole("button", { name: /Ativar\s*Judô/ }));
     await waitFor(() => expect(names("Suas modalidades")).toEqual(["Boxe", "Judô"]));
@@ -149,7 +149,7 @@ describe("ModalitiesPage", () => {
   it("CA4: o Administrador vê a faixa e a tabela só de consulta, sem os botões do Coordenador", async () => {
     setup("ADMINISTRATOR");
     await ready();
-    expect(screen.getByText("Catálogo da organização · só consulta para o Administrador")).toBeInTheDocument();
+    expect(screen.queryByText(/Catálogo da organização · só consulta/)).toBeNull();
     expect(screen.getByRole("status")).toHaveTextContent("Quem ativa e desativa modalidades e edita a graduação é o Coordenador.");
     const table = screen.getByRole("table", { name: "Modalidades da organização" });
     const boxe = within(table).getByRole("row", { name: /Boxe/ });

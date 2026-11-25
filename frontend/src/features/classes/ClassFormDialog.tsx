@@ -187,7 +187,7 @@ function Form({ options, klass, footer, onClose, onSaved }: { options: ClassOpti
           <Field label={t("classes.form.name")} error={errors.name} hint={t("classes.form.nameHelp")}>
             {(c) => <Input {...c} value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />}
           </Field>
-          <Field label={t("classes.form.modality")} error={errors.modality} hint={klass ? t("classes.form.unitFixed") : undefined}>
+          <Field label={t("classes.form.modality")} error={errors.modality}>
             {(c) =>
               klass ? (
                 <Input {...c} value={klass.modality.name} readOnly />

@@ -152,7 +152,7 @@ describe("AgendaPage", () => {
   it("CA1, CA2: cabeçalho com subtítulo da unidade, Dias sem aula, Nova aula avulsa e sem parágrafo de introdução", async () => {
     setup();
     await ready();
-    expect(await screen.findByText("Unidade Centro · 8 semanas sempre criadas a partir dos horários das turmas")).toBeInTheDocument();
+    expect(screen.queryByText(/8 semanas sempre criadas/)).toBeNull();
     expect(within(screen.getByRole("heading", { level: 1 }).closest("header")!).getByRole("link", { name: "Dias sem aula" })).toHaveAttribute("href", "/dias-sem-aula");
     expect(screen.getByRole("button", { name: "Nova aula avulsa" })).toBeInTheDocument();
     expect(screen.queryByText(/As aulas da semana da sua unidade/)).toBeNull();

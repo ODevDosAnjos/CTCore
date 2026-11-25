@@ -195,7 +195,6 @@ function Content() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title={t("modalities.title")}
-        subtitle={t(canManage ? "modalities.subtitle" : "modalities.subtitleReadOnly")}
         actions={
           canManage && (
             <Button variant="ghost" onClick={() => setAsking(true)}>
@@ -226,7 +225,6 @@ function Content() {
           <Section title={t("modalities.available")}>
             <Available items={items.filter((m) => !m.active)} onActivate={toggle} />
           </Section>
-          <p className="text-sm text-muted-foreground">{t("modalities.note")}</p>
         </>
       ) : (
         <>
