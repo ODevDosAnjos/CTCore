@@ -66,7 +66,8 @@ Não é do item: nenhum.
 - Muda: tolerância do teste visual (`maxDiffPixelRatio: 0`, `threshold: 0.05`); 158 referências regeradas por grupo (ver Construção); guarda `frontend/visual/css.visual.ts`; este arquivo e a linha 710 do backlog (`feito`).
 - Causa (R1): a tolerância antiga do `toHaveScreenshot` deixava referências envelhecidas passarem. Medido em `0c857ea0` com limite 0: `notificacoes` 1131/1094 px contra 1440 px; `alunos` passava até com limite 0; 44 casos divergiam abaixo do limite.
 - Verificação: rodadas da construção (duas com referências antigas, uma de regeração) registradas acima. `npm test`: 275 arquivos, 3023 testes passaram. Lint, typecheck e build sem erro no log da construção.
-- Visual do CI: a prova da suíte visual inteira é o job visual do CI deste PR (`Visual do CI: suíte inteira → <resultado do job>`). A rodada local foi encerrada por falta de memória e não se repete.
+- Visual do CI: suíte inteira → passou (`visual (1/2)` e `visual (2/2)` no run 45628762534). A rodada local foi encerrada por falta de memória e não se repete.
+- Instabilidade: o job `frontend` (test:cov) estourou 10 min na primeira execução e passou na repetição (6m51s). Teste instável por tempo (AGENTS, Autonomia 5), sem relação com o diff; anotado no PR.
 - Decisão do dono (25/11/2026): o item segue sem rodada de Verificação separada, autorizado na chamada da entrega; esta seção registra isso.
 - Limitações: `css.visual.ts` passa também em `0c857ea0`, então não prova a correção de CSS; a guarda fica como regressão de cor e alinhamento. Divergências com o canvas continuam com a #568 e a Sprint 10.5.
 - Regressão local: não medida nesta entrega (tempo não registrado).
