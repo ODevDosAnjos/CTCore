@@ -224,8 +224,10 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | feito |
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | feito |
 | 710 | Técnica · CSS aplicado de forma diferente conforme as rotas (prioritária: na frente dos próximos itens de tela, junto com a #568; achada no #611) | issue #710 | Sprint 10.5 | — | agente | feito |
-| 568 | Técnica · Avaliar se o limite padrão do visual:canvas está frouxo demais (prioritária: na frente dos próximos itens de tela; remove a regra temporária de conferência à mão) | issue #568 | sem marco | — | agente | a fazer |
+| 568 | Técnica · Avaliar se o limite padrão do visual:canvas está frouxo demais (prioritária: na frente dos próximos itens de tela; remove a regra temporária de conferência à mão) | issue #568 | sem marco | — | agente | feito |
 | 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | a fazer |
+| 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna | issue #646 | Sprint 10.5 | — | agente | a fazer |
+| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #646, #568 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
 | 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Sprint 10.5 | #625 | agente | a fazer |
@@ -241,7 +243,6 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 639 | RN-MAT-16a · Chaves dos pedidos pelo portal por unidade | issue #639 | Sprint 10.5 | #625 | agente | a fazer |
 | 640 | RF-ORG-10 · Configurações › Visão geral: quadros por unidade e por pessoa | issue #640 | Sprint 10.5 | #625, #627, #628, #638, #639 | agente | a fazer |
 | 645 | RNF-44 · Movimento e retorno: avisos no canto, carregamento e transições | issue #645 | Sprint 10.5 | #624, #643 | agente | a fazer |
-| 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna | issue #646 | Sprint 10.5 | — | agente | a fazer |
 | 647 | RNF-48 a 50 · Campos de valor e número, campos dependentes e validação | issue #647 | Sprint 10.5 | — | agente | a fazer |
 | 648 | RNF-47 · Motivos em lista com "Outro" em todo o sistema | issue #648 | Sprint 10.5 | — | agente | a fazer |
 | 649 | RNF-46 · Quem fez: sem "Decidido por", com "Criado por" nas listas e no histórico | issue #649 | Sprint 10.5 | — | agente | a fazer |
@@ -382,7 +383,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P4 (decidida pelo dono em 25/11/2026: opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|
