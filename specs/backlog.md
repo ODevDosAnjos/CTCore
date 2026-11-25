@@ -223,7 +223,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 609 | RF-ORG-06 · Transferir coordenação: antigo Coordenador sem acesso por padrão, com escolha de unidades e custo | issue #609 | Sprint 10.5 | — | agente | feito |
 | 610 | RF-PRO-02 · Remover acesso do professor sem inativar o cadastro | issue #610 | Sprint 10.5 | — | agente | feito |
 | 611 | RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga | issue #611 | Sprint 10.5 | #610 | agente | feito |
-| 710 | Técnica · CSS aplicado de forma diferente conforme as rotas (prioritária: na frente dos próximos itens de tela, junto com a #568; achada no #611) | issue #710 | Sprint 10.5 | — | agente | a fazer |
+| 710 | Técnica · CSS aplicado de forma diferente conforme as rotas (prioritária: na frente dos próximos itens de tela, junto com a #568; achada no #611) | issue #710 | Sprint 10.5 | — | agente | feito |
 | 568 | Técnica · Avaliar se o limite padrão do visual:canvas está frouxo demais (prioritária: na frente dos próximos itens de tela; remove a regra temporária de conferência à mão) | issue #568 | sem marco | — | agente | a fazer |
 | 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
@@ -382,7 +382,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P3. Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P4 (decidida pelo dono em 25/11/2026: opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|
