@@ -119,8 +119,28 @@ Sugestões: a descrição do PR deve listar as telas conferidas e referências r
 ## Entrega
 
 - O que muda: os cabeçalhos de Alunos, Professores e do assistente de matrícula deixam de mostrar o subtítulo com a unidade e a contagem (RNF-45). A ficha de aluno e o subtítulo do painel de professor (função, unidades, acesso, último acesso) ficam como estão (decisão D2 do item).
-- Como foi verificado: rodada 2 da verificação `OK` (estado `5636e1e38644a9a1853de92938d2ad3e47a7308d`): lint, typecheck e build verdes; `npm test` com 277 arquivos e 3042 testes passando; `e2e:full alunos professores matricula` com 17 passando; visual dos casos da tela sem `--update-snapshots` com 107 passando; `visual:canvas` com 165 comparadas e 0 reprovadas. A `dev` não avançou desde a verificação, então a regressão não foi rodada de novo.
-- Comparação com o canvas: feita na verificação. O canvas ainda mostra o subtítulo; a remoção segue a decisão 33/34 de `docs/auditoria/decisoes-canvas.md`. Alinhamento e demais elementos conferem lado a lado em `alunos-1440-claro`.
+- Como foi verificado: rodada 3 da verificação `OK` (estado `092b3e1e3e85db94829b6e78cae994d2655d5ffd`): lint, typecheck e build verdes; `npm test` com 277 arquivos e 3042 testes passando; suíte visual inteira sem `--update-snapshots` com 664 passando (inclui os casos que reprovaram no CI do PR #722); `e2e:full alunos professores matricula` com 17 passando e `visual:canvas` com 165 comparadas e 0 reprovadas, ambos da rodada 2 (sem mudança de código desde então). A `dev` não avançou desde a verificação, então a regressão não foi rodada de novo.
+- Comparação com o canvas: feita na rodada 2 da verificação. O canvas ainda mostra o subtítulo; a remoção segue a decisão 33/34 de `docs/auditoria/decisoes-canvas.md`. Alinhamento e demais elementos conferem lado a lado em `alunos-1440-claro`.
 - Escopo: 7 arquivos contáveis (código, testes e i18n), abaixo do limite de 30. As 127 referências regeradas de Pessoas não entram na contagem.
 - Limitações: `aluno-*` e `ficha-aluno*` mudam só por causa da lista de trás das janelas. Nenhuma exceção `limiteCanvas` foi usada neste item.
 - Instabilidade achada e corrigida na rodada 1: `TeachersPage.test.tsx` CA1 esperava a contagem antes de ler `calls[0]`; passou a esperar `Ana Souza`. Regex sem barra (`/d+/`) corrigida para `\d+`.
+
+### Correção da entrega
+- Falha real do job `visual` do PR #722: `toHaveScreenshot` com ~85035 pixels diferentes (ratio 0.06). A nota anterior (falha de infraestrutura) leu um run cancelado e estava errada. Causa: casos que mostram a lista de Alunos (`/alunos`) por trás perderam o subtítulo do cabeçalho: `moldura-coordenacao`, `-recolhido`, `-painel-grupo`, `-administrador`, `-celular-unidade` (1440 e 390, claro e escuro), `moldura-celular-menu` (1440), `notificacoes` (1440) e `pedido-trocar-turma` (1440, ficha sobre a lista de Alunos). A verificação rodou só os casos da tela e não pegou. Suíte inteira antes da correção: 638 passaram, 26 falharam, só esses.
+- Corrigido: regeradas só essas 40 referências (`frontend/visual/referencias/{moldura-*,notificacoes,pedido-trocar-turma}-*`) com `npm run test:visual:docker -- --update-snapshots -g "(moldura-[a-z-]+|pedido-trocar-turma|notificacoes) (1440|390) "` → 40 passaram. Suíte visual inteira sem `--update-snapshots`: `npm run test:visual:docker -- --workers=2` → 664 passaram, 0 falharam. `Visual do CI: suíte inteira → passou` (local, 26 min).
+- `CI pegou o que o local não pegou`: casos de moldura e outras telas que mostram a lista de Alunos ao fundo (a regressão reduzida rodou só os casos da tela do item).
+
+### Rodada 3 — OK — 2026-11-25, estado 092b3e1e3e85db94829b6e78cae994d2655d5ffd
+
+Mudou desde a rodada 2 (HEAD 269806aa vs árvore): só 26 referências visuais de moldura, notificações, pedido-trocar-turma e professor-* (regeradas) e este arquivo; nenhum código nem teste.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA5 | PASSOU (mantido da rodada 2) | código e testes inalterados; `npm test` 277 arquivos, 3042 passaram |
+| CA6 | PASSOU | suíte visual inteira sem `--update-snapshots`, `--workers=2` → 664 passaram, 0 falharam (inclui os casos de moldura/notificações/pedido-trocar-turma que reprovaram no CI do PR #722) |
+| CA7 | NÃO CONFERIDO | descrição do PR é da entrega; referências alteradas são só de telas que mostram a lista de Alunos ou de Pessoas (aluno-*, alunos*, ficha-aluno*, matricula-*, professor*, moldura-*, notificacoes, pedido-trocar-turma), o que a correção da entrega registra |
+
+Comandos: lint, typecheck, build → verdes; `npm test` → 3042 passaram; `npm run test:visual:docker -- --workers=2` → 664 passaram (26 min). e2e e `visual:canvas` não rodados de novo: sem mudança de código desde a rodada 2 (17 e2e passaram; 0 reprovadas no canvas). CI do PR #722 visto ainda vermelho em `visual` (run anterior à correção das referências); a correção ainda não foi enviada.
+Instáveis: nenhum.
+Achados: nenhum obrigatório.
+Sugestões: a descrição do PR deve citar as referências de moldura/notificações/pedido-trocar-turma regeradas por mostrarem a lista de Alunos ao fundo.
