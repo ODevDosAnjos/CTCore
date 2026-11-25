@@ -150,4 +150,37 @@ Decisões: o `leftWithoutAdministrator` e o `removed` ficam em `StaffRules`; os 
 Instáveis (fora do item, passaram isolados): `RecordEnrollment.test.tsx` CA7 (texto de data) e `AgendaPage.test.tsx` CA15. Nenhuma falha nova de regressão.
 
 Regressão local: tempo não anotado na construção.
+Comparação com o canvas: ≈10 min (Alunos e Notificações, 1440, lado a lado com `canvas-shot`; os demais casos do item não têm canvas).
+CI pegou o que o local não pegou: visual das telas com menu (mudança de moldura). O local só rodou os casos da tela do item; a suíte visual inteira, no CI, reprovou 40 capturas.
 Limitação: `npm run visual:canvas` não aplicável (nenhum caso novo tem canvas). Sugestões da verificação (JSX redundante em `AdministratorsPage.tsx`, `adminHelp` morto no `pt-BR.json`) não foram aplicadas.
+
+### Correção da entrega
+- CI do PR #709 vermelho só no job `visual` (2 de 2 fatias, 40 capturas): o item Administradores no menu lateral (1440) e o link "Ver tabela de permissões" na aba da unidade mudaram telas que o item não tinha rodado no visual local (só `administradores|configuracoes-permissoes|sem-acesso`). Regeradas as referências de alunos, alunos-filtros, configuracoes (1440 e 390), configuracoes-unidade-professor (1440 e 390 antes com altura diferente), matricula-aluno, -modalidades, -vencimento, -resumo, -concluida, moldura-celular-menu, moldura-celular-unidade (1440), moldura-coordenacao, notificacoes, pedidos, professores, professor-novo e professor-painel (1440) — arquivos: `frontend/visual/referencias/*` (40 PNG) — prova: `npm run test:visual:docker -- --update-snapshots -g "<casos>"` → 68 passaram; de novo sem `--update-snapshots` → 68 passaram.
+Visual do CI: os 17 casos acima → passou (local, sem `--update-snapshots`).
+Referências visuais: 40 PNG regerados; mudança visual pedida pelo item (menu com Administradores; link na unidade). Restante da regressão (backend, frontend, e2e) estava verde no CI.
+
+### Rodada 2 — OK — 2026-11-24, estado 24cd290955b0d6b5e8ce455454922564f7f5ff09
+
+Desde a rodada 1 (`git diff 6d25560c… 24cd2909…`) mudaram só 40 PNG de `frontend/visual/referencias/` (menu com Administradores; link na unidade), `specs/backlog.md` e este arquivo. Nenhum código. Critérios CA1 a CA15: mantidos da rodada 1.
+
+Comandos: `npm run test:visual:docker -- -g "<17 casos corrigidos + administradores + sem-acesso>"` sem `--update-snapshots` → 192 passaram (7,7 min). Achado obrigatório da rodada 1: nenhum.
+Não rodou (fica para o CI): mvnw verify completo, e2e inteiro, visual inteiro, test:cov.
+Instáveis: nenhum novo.
+Achados:
+- sugestão, código, `AdministratorsPage.tsx` JSX redundante e `adminHelp` morto no pt-BR.json — mantidas da rodada 1.
+
+### Correção da entrega, 2.ª parte (decisão do dono)
+- Das 40 capturas, só `configuracoes` (cartão Usuários saiu), `configuracoes-unidade-professor` (link "Ver tabela de permissões") e os casos só de menu (`matricula-*`, `pedidos`, `professores`, `professor-*`) mudam por pedido do item.
+- `notificacoes`, `alunos`, `alunos-filtros` e `moldura-*` mudaram também por outra causa: na `dev` limpa elas passam com a referência antiga (12 de 12), e no branch reprovam, sem causa no diff (nenhum estilo compartilhado foi tocado). A referência antiga mostrava etiquetas cinza-bege, bolinha apagada, título em caixa baixa e rodapé à esquerda; o código (`status-tone.ts`, `NotificationPanel.tsx:153`) e o canvas (`Alunos`, `Notificacoes`) mandam etiquetas amarela e azul, bolinha vermelha, título em caixa alta e rodapé centralizado. Decisão do dono (opção b): regerar e abrir a issue técnica #710 (CSS aplicado de forma diferente conforme as rotas).
+- Divergência com o canvas que sobra e não é do item: a etiqueta "Novo" é azul no sistema (`NEW` no grupo `info`) e verde no canvas.
+
+### Rodada 3 — OK — 2026-11-25, estado 9872953e3279567cad6b4bebdd4301e62e2a1068
+
+Desde a rodada 2 não há mudança de código (`git diff 24cd2909 HEAD` só traz o commit do item, com as referências já regeradas; a árvore atual difere de `HEAD` só em `specs/` e nas 40 PNG de `frontend/visual/referencias/` da 2.ª parte da correção, decisão do dono). Critérios CA1 a CA15: mantidos da rodada 2.
+
+Comandos: `npm run test:visual:docker -- -g "alunos|configuracoes|matricula|moldura|notificacoes|pedidos|professor|administradores"` sem `--update-snapshots` → 220 passaram (9,0 min), cobrindo os 17 casos de referência regerada e os de Administradores.
+Não rodou (fica para o CI): mvnw verify completo, e2e inteiro, visual inteiro, test:cov; lint, typecheck, build e testes unitários não repetidos (nenhum código mudou desde a rodada 2).
+Instáveis: nenhum novo.
+Achados:
+- nenhum obrigatório. Sugestões das rodadas 1 e 2 (JSX redundante em `AdministratorsPage.tsx`, `adminHelp` morto) mantidas.
+- Observação: referências de `notificacoes`, `alunos`, `alunos-filtros` e `moldura-*` mudaram por causa fora do item (issue #710), com aprovação do dono; não é achado do item.
