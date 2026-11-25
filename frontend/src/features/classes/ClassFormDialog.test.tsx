@@ -203,7 +203,7 @@ describe("ClassFormDialog (RF-TUR-03, CA13)", () => {
     expect(within(dialog).getByText(/Última alteração em .* por Ana/)).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Modalidade")).toHaveValue("Jiu-Jitsu");
     expect(within(dialog).getByLabelText("Modalidade")).toHaveAttribute("readonly");
-    expect(within(dialog).getByText("A unidade não muda depois de criada.")).toBeInTheDocument();
+    expect(within(dialog).queryByText("A unidade não muda depois de criada.")).toBeNull();
     expect(within(dialog).getByLabelText("Faixa etária")).toHaveValue("r1");
     expect(within(dialog).getByLabelText("Capacidade")).toHaveValue(30);
     expect(within(dialog).getByLabelText("Professor titular")).toHaveValue("t1");

@@ -1125,8 +1125,6 @@
   },
   "agenda": {
     "title": "Agenda",
-    "subtitle": "Unidade {{name}} · 8 semanas sempre criadas a partir dos horários das turmas",
-    "subtitleNoUnit": "8 semanas sempre criadas a partir dos horários das turmas",
     "noClassDays": "Dias sem aula",
     "weekSwitch": "Semana exibida",
     "legend": "Modalidades",
@@ -1357,7 +1355,6 @@
   },
   "noClassDays": {
     "title": "Dias sem aula",
-    "subtitle": "Unidade {{unit}} · a mensalidade não muda por feriado ou recesso",
     "unit": "Unidade",
     "new": "Novo dia sem aula",
     "ignoredDone": "Feriado ignorado nesta unidade.",
@@ -1374,7 +1371,6 @@
     "suggestions": {
       "title": "Feriados sugeridos",
       "titleMobile": "Feriados para confirmar",
-      "note": "Feriados nacionais aparecem aqui; a unidade confirma quais viram dia sem aula",
       "date": "Data",
       "holiday": "Feriado",
       "affected": "Aulas afetadas",
@@ -1462,7 +1458,6 @@
       "previewCount_one": "{{count}} aula fica cancelada, de {{from}} a {{to}}.",
       "previewCount_other": "{{count}} aulas ficam canceladas, de {{from}} a {{to}}.",
       "previewTrials": "Nenhuma aula experimental marcada no período.",
-      "fee": "A mensalidade não muda.",
       "previewError": "Não foi possível conferir as aulas. Tente de novo.",
       "previewRetry": "Tentar de novo",
       "noticeLegend": "Quando avisar",
@@ -1774,11 +1769,6 @@
   "classes": {
     "viewAria": "Ver {{name}}",
     "title": "Turmas",
-    "subtitle": "Unidade {{unit}} · {{active}} · a turma não guarda presença",
-    "subtitleAll": "Todas as unidades · {{active}} · a turma não guarda presença",
-    "subtitleLoading": "carregando…",
-    "activeCount_one": "{{count}} ativa",
-    "activeCount_other": "{{count}} ativas",
     "search": "Nome da turma",
     "showResults": "Ver {{count}} turmas",
     "columns": {
@@ -1907,7 +1897,6 @@
       "scheduleChanged": "Você mudou os horários. As aulas futuras serão refeitas, menos as alteradas à mão.",
       "notify": "Avisar a turma",
       "nameHelp": "Único na unidade. Variações como No-Gi ou Kids vão no nome.",
-      "unitFixed": "A unidade não muda depois de criada.",
       "headSwap": "Para salvar, troque o titular",
       "assistantsSearch": "Buscar professor",
       "assistantsChosen": "Auxiliares escolhidos",
@@ -2062,7 +2051,6 @@
   },
   "ageRanges": {
     "title": "Faixas etárias",
-    "subtitle": "Administrativas: organizam turmas, diretório e aula experimental. A idade do aluno é sempre calculada pelo nascimento.",
     "columns": {
       "name": "Nome",
       "minAge": "Idade mínima",
@@ -2111,10 +2099,7 @@
   },
   "modalities": {
     "title": "Modalidades",
-    "subtitle": "O Coordenador ativa para a organização; cada unidade marca quais oferece",
-    "subtitleReadOnly": "Catálogo da organização · só consulta para o Administrador",
     "readOnlyBanner": "Quem ativa e desativa modalidades e edita a graduação é o Coordenador. Você marca as modalidades oferecidas na sua unidade em Configurações › Unidade.",
-    "note": "Variações como No-Gi, Kids ou Competição ficam no nome da turma. Desativar exige que não haja turma ativa nem aluno com a modalidade ativa.",
     "catalog": "Catálogo ctcore",
     "graduationOn": "Graduação ligada",
     "graduationOff": "Graduação desligada",
@@ -3640,7 +3625,6 @@
       "409": "Este pedido já foi decidido. Atualize a lista.",
       "generic": "Não conseguimos concluir. Nada foi alterado."
     },
-    "subtitle": "Tudo que chegou pelo portal e pelo link de matrícula, para você decidir",
     "tabs": {
       "label": "Pedidos",
       "requests": "Pedidos do portal",

@@ -164,7 +164,7 @@ function Content() {
         cardsBelow="sm"
         header={({ counts }) => (
           <>
-            <PageHeader title={t("portalRequests.title")} subtitle={t("portalRequests.subtitle")} />
+            <PageHeader title={t("portalRequests.title")} />
             <TabBar total={counts?.total} />
           </>
         )}

@@ -89,14 +89,11 @@ function Content() {
   // A unidade vem da barra (D2): "todas" não filtra. A identidade de fetchPage muda só quando a unidade muda.
   const scope = useUnitScope();
   const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
-  const unitName = scope.units.find((u) => u.id === scope.selected)?.name;
   const fetchPage = useCallback((q: Query) => fetchClasses(q, unitId), [unitId]);
-  const header = ({ counts }: { counts?: Record<string, number> }) => {
-    const active = counts ? t("classes.activeCount", { count: counts.active }) : t("classes.subtitleLoading");
+  const header = () => {
     return (
       <PageHeader
         title={t("classes.title")}
-        subtitle={unitId && unitName ? t("classes.subtitle", { unit: unitName, active }) : t("classes.subtitleAll", { active })}
         actions={
           canManage &&
           !narrow && (

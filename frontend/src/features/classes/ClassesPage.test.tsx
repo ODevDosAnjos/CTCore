@@ -102,7 +102,7 @@ describe("ClassesPage", () => {
   it("#676 CA3, CA5, CA6: abrir e fechar o painel mantém o filtro, sem nova listagem; voltar fecha o painel e a lista continua", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", undefined, undefined, "/turmas?status=INACTIVE&pagina=1");
-    await screen.findByText(/^Unidade Tijuca/);
+    await screen.findByRole("link", { name: "Boxe Antigo" });
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u1"));
     const listed = calls.length;
     await user.click(await screen.findByRole("link", { name: "Boxe Antigo" }));
@@ -121,10 +121,12 @@ describe("ClassesPage", () => {
     expect(calls).toHaveLength(listed);
   });
 
-  it("CA1: subtítulo com a unidade e a contagem (carregando… antes), Nova turma com ícone, sem introdução e sem filtro de unidade", async () => {
+  it("CA1: cabeçalho sem subtítulo, contagem nem unidade, Nova turma com ícone, sem introdução e sem filtro de unidade", async () => {
     setup();
-    expect(await screen.findByText(/carregando…/)).toBeInTheDocument();
-    expect(await screen.findByText("Unidade Tijuca · 5 ativas · a turma não guarda presença")).toBeInTheDocument();
+    expect(screen.queryByText(/carregando…/)).toBeNull();
+    await screen.findByRole("button", { name: "Nova turma" });
+    expect(screen.queryByText(/ativas · a turma não guarda presença/)).toBeNull();
+    expect(screen.queryByText(/^Unidade Tijuca/)).toBeNull();
     const novo = screen.getByRole("button", { name: "Nova turma" });
     expect(novo.querySelector("svg")).not.toBeNull();
     expect(screen.queryByText(/Turmas das suas unidades/)).toBeNull();
@@ -132,13 +134,14 @@ describe("ClassesPage", () => {
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u1"));
   });
 
-  it('CA1: com o escopo "todas" o subtítulo diz Todas as unidades e a lista não filtra por unidade', async () => {
+  it('CA1: com o escopo "todas" não há subtítulo e a lista não filtra por unidade', async () => {
     setup("COORDINATOR", undefined, [
       { id: "u1", name: "Tijuca", shortName: "t" },
       { id: "u2", name: "Barra", shortName: "b" },
     ]);
-    expect(await screen.findByText("Todas as unidades · 5 ativas · a turma não guarda presença")).toBeInTheDocument();
-    expect(calls.at(-1)!.has("unitId")).toBe(false);
+    await screen.findByRole("button", { name: "Nova turma" });
+    expect(screen.queryByText(/Todas as unidades · /)).toBeNull();
+    await waitFor(() => expect(calls.at(-1)!.has("unitId")).toBe(false));
   });
 
   it("CA3: nome em negrito sem sublinhado nem Unidade:, ponto da modalidade, dias, professor com auxiliar, 31 / 30 e selo âmbar na mesma linha; a linha abre o painel", async () => {
@@ -258,8 +261,8 @@ describe("ClassesPage", () => {
     expect(screen.queryByRole("link", { name: "Turmas" })).toBeNull();
   });
 
-  it("RN-TUR-06: o arquivo de tradução da tela não fala de presença nem frequência, fora a frase do subtítulo do canvas", () => {
-    const text = JSON.stringify(JSON.parse(readFileSync(join(process.cwd(), "src/i18n/pt-BR.json"), "utf8")).classes).replaceAll("a turma não guarda presença", "");
+  it("RN-TUR-06: o arquivo de tradução da tela não fala de presença nem frequência", () => {
+    const text = JSON.stringify(JSON.parse(readFileSync(join(process.cwd(), "src/i18n/pt-BR.json"), "utf8")).classes);
     expect(text).not.toMatch(/presen|frequên|frequen/i);
   });
 

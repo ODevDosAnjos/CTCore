@@ -95,7 +95,7 @@ describe("PortalRequestsPage (RF-MAT-04)", () => {
   it("CA1, CA3, CA4, CA5: cabeçalho, abas, colunas, detalhe, prazo e ações", async () => {
     setup();
     await ready();
-    expect(screen.getByText("Tudo que chegou pelo portal e pelo link de matrícula, para você decidir")).toBeInTheDocument();
+    expect(screen.queryByText(/Tudo que chegou pelo portal/)).toBeNull();
     const nav = screen.getByRole("navigation", { name: "Pedidos" });
     await waitFor(() => expect(within(nav).getByText("Pedidos do portal").closest("[aria-current]")).toHaveTextContent("4"));
     const soon = within(nav).getByText("Aguardando aprovação");

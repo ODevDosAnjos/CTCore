@@ -76,7 +76,7 @@ describe("AgeRangesPage", () => {
   it("CA1, CA2: subtítulo, Nova faixa etária no cabeçalho, cinco cabeçalhos, traço sem máximo e Usada em (nenhuma, uma, duas e muitas turmas)", async () => {
     setup("COORDINATOR", { initial: [...defaults(), { id: "r4", name: "Master", minAge: 35, maxAge: null, usedIn: used(0) }] });
     await ready();
-    expect(screen.getByText(/^Administrativas: organizam turmas/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Administrativas: organizam turmas/)).toBeNull();
     expect(screen.getByRole("button", { name: "Nova faixa etária" })).toBeInTheDocument();
     expect(within(screen.getByRole("table")).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Nome", "Idade mínima", "Idade máxima", "Usada em", "Ações"]);
     expect(rows()).toEqual([
