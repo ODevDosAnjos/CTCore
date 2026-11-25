@@ -25,6 +25,11 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 /** Apoio das rotas de /users: organizações e vínculos criados direto no banco (fora da RLS), chamada com o principal montado. */
 @AutoConfigureMockMvc
 abstract class StaffBase extends PostgresIT {
+    @org.junit.jupiter.api.BeforeEach
+    void cleanDatabase() {
+        truncateCascade(adminJdbc(), "organization", "account");
+    }
+
     @Autowired protected MockMvc mvc;
     @Autowired protected Organizations organizations;
     @Autowired protected ObjectMapper json;

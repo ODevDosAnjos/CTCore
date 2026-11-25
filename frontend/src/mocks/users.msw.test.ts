@@ -7,8 +7,6 @@ const json = { "Content-Type": "application/json" };
 const CENTRO = "00000000-0000-0000-0000-000000000021";
 const BRUNO = "00000000-0000-0000-0000-000000000041";
 const CARLA = "00000000-0000-0000-0000-000000000042";
-const DIEGO = "00000000-0000-0000-0000-000000000043";
-const ELISA = "00000000-0000-0000-0000-000000000044";
 const ADMIN_LINK = "00000000-0000-0000-0000-000000000011";
 
 const login = async (email: string, linkId?: string) => {
@@ -31,15 +29,27 @@ describe("equipe da gestão x OpenAPI (CA22)", () => {
     expect((await send("GET", "?status=ENDED").then((r) => r.json())).length).toBe(0);
     expect((await send("GET", "?status=XYZ")).status).toBe(400);
   });
-
-  it("o Administrador vê os Professores do alcance e canManage falso para unidade fora dele", async () => {
+  it("R1/CA1 (#611): o Administrador recebe 403 em todas as rotas e nada muda", async () => {
     await login("varios@exemplo.com", ADMIN_LINK);
-    const rows = await (await send("GET", "")).json();
-    expect(rows.map((r: { name: string; canManage: boolean }) => [r.name, r.canManage])).toEqual([["Diego", true], ["Elisa", false]]);
-    expect((await send("DELETE", `/${ELISA}`)).status).toBe(403);
-    expect((await send("DELETE", `/${BRUNO}`)).status).toBe(404);
-    expect((await send("DELETE", `/${DIEGO}`)).status).toBe(204);
+    expect((await send("GET", "")).status).toBe(403);
+    expect((await send("POST", "", { email: "novo@alfa.test", name: "Novo", unitIds: [CENTRO] })).status).toBe(403);
+    expect((await send("POST", `/${CARLA}/resend`)).status).toBe(403);
+    expect((await send("PUT", `/${BRUNO}/units`, { unitIds: [CENTRO] })).status).toBe(403);
+    expect((await send("DELETE", `/${BRUNO}`)).status).toBe(403);
+    expect((await send("POST", "/coordinator-appointment", { unitIds: [CENTRO] })).status).toBe(403);
   });
+
+  it("R2/CA3 (#611): seats é uma vaga por unidade do vínculo ativo; 0 no pendente e no Coordenador nomeado", async () => {
+    await login("ana@exemplo.com");
+    const seats = async () => Object.fromEntries((await (await send("GET", "")).json()).map((r: { name: string; seats: number }) => [r.name, r.seats]));
+    expect(await seats()).toEqual({ Bruno: 1, Carla: 0 });
+    const own = await (await send("POST", "/coordinator-appointment", { unitIds: [CENTRO] })).json();
+    expect(own.seats).toBe(0);
+    expect(await seats()).toEqual({ Bruno: 1, Carla: 0, [own.name]: 0 });
+    const invited = await (await send("POST", "", { email: "dois@alfa.test", name: "Dois", unitIds: [CENTRO] })).json();
+    expect(invited.seats).toBe(0);
+  });
+
 
   it("convidar: 201 PENDING com perfil implícito; e-mail ligado 409, corpo inválido 400", async () => {
     await login("ana@exemplo.com");
@@ -78,13 +88,12 @@ describe("equipe da gestão x OpenAPI (CA22)", () => {
     expect(declared("/users/{linkId}", "delete")).toEqual(expect.arrayContaining(["204", "403", "404", "409"]));
   });
 
-  it("trocar unidades: o Administrador preserva as unidades alheias do Professor; vazio é 400", async () => {
-    await login("varios@exemplo.com", ADMIN_LINK);
-    expect((await send("PUT", `/${ELISA}/units`, { unitIds: [] })).status).toBe(400);
-    const ok = await send("PUT", `/${ELISA}/units`, { unitIds: [CENTRO] });
+  it("trocar unidades: o Coordenador define a lista; vazio é 400; a linha volta com seats", async () => {
+    await login("ana@exemplo.com");
+    expect((await send("PUT", `/${CARLA}/units`, { unitIds: [] })).status).toBe(400);
+    const ok = await send("PUT", `/${CARLA}/units`, { unitIds: [CENTRO] });
     expect(ok.status).toBe(200);
-    expect((await ok.json()).units).toHaveLength(2);
-    expect((await send("PUT", `/${ELISA}/units`, { unitIds: ["00000000-0000-0000-0000-000000000022"] })).status).toBe(403);
+    expect(await ok.json()).toMatchObject({ seats: 0, units: expect.any(Array) });
     expect(declared("/users/{linkId}/units", "put")).toEqual(expect.arrayContaining(["200", "400", "403", "404", "409"]));
   });
 });

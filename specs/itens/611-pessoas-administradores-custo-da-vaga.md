@@ -1,0 +1,186 @@
+# 611 — RF-ACE-06 · Pessoas › Administradores no lugar de Configurações › Usuários, com o custo da vaga
+
+Origem: issue #611 (Sprint 10.5); `docs/especificacao/02-contas-e-acesso.md` (RF-ACE-06, RN-ACE-05, tabela de permissões), `01-organizacao-e-isolamento.md` (RF-ORG-03, RF-ORG-04, RN-ORG-07), `16-assinatura.md` (RN-ASS-21, RN-ASS-23) e `docs/auditoria/decisoes-canvas.md` (decisão 19). Ajusta o que a #37 e a #30 entregaram. Branch: `item/611-pessoas-administradores`.
+
+O item tem duas partes, construíveis em sessões separadas (uma especificação, uma verificação, uma entrega): **Parte A** (T1 a T3: servidor, contrato, mapa de rotas, menu e redirecionamentos) e **Parte B** (T4 a T6: a tela, o custo da vaga e os testes de tela).
+
+## 1. Objetivo
+
+O Coordenador passa a gerir os Administradores em **Pessoas › Administradores** (`/administradores`), logo depois de Professores no menu: lista com nome, unidades, último acesso, situação e o custo de cada um (R$ 50 por unidade), e as ações convidar, reenviar convite, alterar unidades e desativar. Antes de confirmar, a tela mostra quanto a próxima fatura sobe ("+R$ 50/mês por unidade") ao convidar ou incluir unidade, e que não há devolução no ciclo (RN-ASS-23) ao tirar unidade ou desativar. A tela Configurações › Usuários sai do menu e das rotas; o Administrador deixa de ter qualquer tela ou rota de usuários (o acesso dos Professores já é gerido em Pessoas › Professores, #610).
+
+Entra junto: o custo da vaga no convite opcional do assistente de nova unidade (RF-ORG-03), o atalho da tabela de permissões em Configurações › Unidade, bloco de permissões do Professor (RF-ORG-04), o destino da notificação `INVITE_PENDING` e a linha "Administradores" na tabela de permissões.
+
+Fora do item: a tabela de preços do painel (#140: o valor continua vindo de `ctcore.billing.admin-seat-cents`); a reorganização de Configurações em quatro itens com abas (#625); a tabela de permissões com selos em texto (#634); cobrar a fatura (Sprints 13 a 16); a regra RN-ORG-07 e "Nomear a mim mesmo", que continuam como estão.
+
+## 2. Requisitos
+
+- R1 (RF-ACE-06, tabela de permissões): todas as rotas `/api/v1/users` passam a recusar o Administrador com 403, no servidor; só o Coordenador usa. Professor, Aluno e Responsável continuam em 403 e sem sessão em 401. A linha da tabela (`STAFF_USERS`, nome "Administradores") fica Coordenador ●, Administrador —, Professor —.
+- R2 (RF-ACE-06, RN-ASS-21): cada linha de `GET /users` (e das respostas de convite e de alteração de unidades) ganha `seats`: número de vagas que a pessoa ocupa, ou seja, o número de unidades quando o vínculo é `ACTIVE` e a conta não é a do Coordenador; 0 para convite `PENDING`, `ENDED` e para o vínculo de Administrador que o próprio Coordenador criou ao se nomear (D1).
+- R3 (RF-ACE-06): rota `/administradores` (`administrators` no mapa), item "Administradores" no grupo Pessoas depois de Professores, visível só com a permissão `STAFF_USERS` (Coordenador); a lista mostra nome e e-mail, unidades, último acesso, situação e custo mensal, e por linha as ações Reenviar convite (se `PENDING`), Alterar unidades e Desativar.
+- R4 (RF-ACE-06, RN-ASS-21): o custo da linha é `seats × valor da vaga` por mês (valor de `GET /organization/admin-seat-price`); linha `PENDING` mostra "Sem custo até aceitar o convite"; linha do Coordenador nomeado mostra "Não ocupa vaga". O cabeçalho da página mostra o total mensal das vagas ativas.
+- R5 (RF-ACE-06, RN-ASS-21): a janela Convidar mostra, antes do envio, "+R$ 50/mês por unidade" e o aumento total para as unidades marcadas (o valor vem do servidor, não do texto); a janela Alterar unidades mostra o aumento mensal das unidades incluídas (só em vínculo `ACTIVE`) e, se alguma sai, que não há devolução no ciclo; a janela Desativar de vínculo `ACTIVE` mostra que a fatura só reflete a mudança no ciclo seguinte e que não há devolução (RN-ASS-23).
+- R6 (RF-ACE-06): "Desativar" diz na janela que encerra o vínculo com a organização e não a conta da pessoa; a regra RN-ORG-07 (último Administrador da unidade, "Nomear a mim mesmo") continua como está.
+- R7 (RNF-56): filtros (busca, unidade, situação) no endereço (`?q=`, `?unidade=`, `?situacao=`) pelo `useQueryParams`, no padrão da lista de Professores; moldura da rota-pai; carregamento só na área central.
+- R8 (RF-ACE-06): `/configuracoes/usuarios` e `/configuracoes/usuarios/permissoes` deixam de ser telas: viram redirecionamentos do mapa (`/administradores` e a nova tabela de permissões); o item "Usuários" some do menu de Configurações e do índice de Configurações.
+- R9 (RF-ORG-04): a tabela de permissões passa para `/configuracoes/unidade/permissoes` (sub-rota de Configurações › Unidade, permissão `UNIT_SETTINGS`); o bloco de permissões do Professor da unidade ganha o atalho "Ver tabela de permissões"; a linha "Usuários da gestão" da tabela vira "Administradores" (Coordenador ●, Administrador —, Professor —).
+- R10 (RF-ORG-03): no assistente de nova unidade, o convite opcional do Administrador mostra o custo da vaga ("+R$ 50/mês", valor do servidor) antes de enviar; sem convite, não mostra custo.
+- R11: a notificação `INVITE_PENDING` abre `/administradores`.
+- R12: contrato: `Row` ganha `seats` no `docs/openapi.yaml`, o 403 do Administrador entra nas rotas `/users`, e os handlers MSW batem (Administrador recusado; `seats`; o valor da vaga).
+- R13: textos em pt-BR (`administrators.*` no lugar de `users.*`); quatro estados da tela (carregando, vazio, erro com "Tentar de novo", sem permissão), 360 px, axe nos dois temas; caso no teste visual; e2e dentro da moldura; cada código desta lista tem teste.
+
+## 3. Critérios de aceite
+
+- CA1 (R1): dado Administrador logado, quando chama `GET /users`, `POST /users`, `POST /users/{id}/resend`, `PUT /users/{id}/units`, `DELETE /users/{id}` e `POST /users/coordinator-appointment`, então 403 em todas e nada muda; Professor, Aluno, Responsável 403; sem sessão 401; Coordenador segue com 200/201/204.
+- CA2 (R1): dada a tabela de permissões do servidor (`permission-table.csv` e `PermissionTable`), então `STAFF_USERS` é FULL/ALL para o Coordenador e NONE para Administrador e Professor.
+- CA3 (R2): dado Administrador `ACTIVE` em 2 unidades, quando o Coordenador lista, então `seats = 2`; `PENDING` com 2 unidades, `seats = 0`; o vínculo de Administrador do próprio Coordenador nomeado em 1 unidade, `seats = 0`; e a linha devolvida por convite e por alteração de unidades traz o mesmo cálculo.
+- CA4 (R3): dado o Coordenador, quando abre o menu, então "Administradores" aparece em Pessoas depois de "Professores"; dado Administrador ou Professor, então o item não aparece e abrir `/administradores` mostra "sem permissão" (o servidor já recusa).
+- CA5 (R3, R4): dado Administrador `ACTIVE` em 2 unidades, `PENDING` e o Coordenador nomeado, quando a lista abre (1440 px e 360 px), então as linhas mostram "R$ 100,00/mês", "Sem custo até aceitar o convite" e "Não ocupa vaga", e o total mensal no cabeçalho é a soma das vagas ativas vezes o valor.
+- CA6 (R5): dado a janela Convidar com 2 unidades marcadas e valor R$ 50, então mostra "+R$ 50,00/mês por unidade" e "Sua próxima fatura sobe R$ 100,00/mês" antes do botão de envio; sem unidade marcada mostra só o valor por unidade; o valor muda se o servidor devolver outro (ex.: R$ 70).
+- CA7 (R5): dado vínculo `ACTIVE` em A, quando inclui B e tira A na janela Alterar unidades, então mostra "+R$ 50,00/mês" pela unidade incluída e o aviso de que tirar unidade não gera devolução no ciclo; dado vínculo `PENDING`, então não mostra aumento.
+- CA8 (R5, R6): dado vínculo `ACTIVE`, quando abre Desativar, então a janela diz que encerra o vínculo e não a conta e que não há devolução no ciclo; dado `PENDING`, diz que cancela o convite e não fala de devolução; o erro `LAST_UNIT_ADMINISTRATOR` e "Nomear a mim mesmo" seguem funcionando.
+- CA9 (R7): dado `?q=ana&unidade=<id>&situacao=ACTIVE` no endereço, quando a tela abre, então a lista já vem filtrada; mudar um filtro muda o endereço sem recarregar; "Limpar filtros" limpa o endereço.
+- CA10 (R8): dado o endereço `/configuracoes/usuarios` (e `/configuracoes/usuarios/permissoes`), quando aberto pelo Coordenador, então leva a `/administradores` (e à nova tabela); pelo Administrador, o destino mostra "sem permissão"; o menu e o índice de Configurações não têm "Usuários".
+- CA11 (R9): dado o Coordenador em Configurações › Unidade, aba/bloco de permissões do Professor, quando clica "Ver tabela de permissões", então abre `/configuracoes/unidade/permissoes` na moldura; a linha "Administradores" mostra ● — —; o Administrador também abre a tabela (é só leitura).
+- CA12 (R10): dado o assistente de nova unidade com nome e e-mail do Administrador preenchidos, então o resumo mostra "+R$ 50,00/mês" (valor do servidor); sem convite preenchido, não mostra custo; se o valor não carregar, o assistente funciona e o resumo do convite aparece sem o valor.
+- CA13 (R11): dada a notificação `INVITE_PENDING`, quando clicada, então abre `/administradores`.
+- CA14 (R12): `OpenApiContractTest`, `ContractRoutesTest` e os testes MSW (`users.msw.test.ts`) passam, com `seats` e o 403 do Administrador.
+- CA15 (R13): dado 360 px e os dois temas, sem rolagem horizontal e sem violações do axe; carregando, vazio, erro com nova tentativa e sem permissão presentes; `shell.test.ts`, `noInternalAnchors.test.ts` e `routePattern.test.ts` verdes; o e2e `@critical` do convite e da desativação roda a partir de `/administradores`; caso visual da tela e das janelas sem `--update-snapshots` passa.
+
+## 4. Plano técnico
+
+- **Dados:** não muda o esquema nem o seed. Usa `account_link`, `account_link_unit`, `account.last_access_at`.
+- **API (`backend`, vistos no repositório):**
+  - `permission/PermissionTable.java` (linha `STAFF_USERS`: Administrador passa a `Grant.NONE`) e `src/test/resources/permission-table.csv` (linha 20).
+  - `staff/StaffUsers.java`: `manager()` passa a aceitar só o Coordenador (hoje depende de `managedRole` e do `STAFF_USERS`); `Row` ganha `seats`; `load` calcula `seats` com a conta do Coordenador ativo da organização (consulta única a `account_link` com `role = 'COORDINATOR'`). Sem Administrador como chamador, saem os ramos mortos (`mergeUnits` do Administrador, `canManage` por alcance) em `staff/StaffRules.java`; `canManage` do Coordenador fica `true`.
+  - `staff/StaffUsersController.java`: não muda (a barreira é `StaffUsers.manager`).
+  - Valor da vaga: `GET /organization/admin-seat-price` já existe (`OrganizationController`, só Coordenador, `ctcore.billing.admin-seat-cents`), reaproveitado; não muda.
+  - Testes (`backend/src/test/java/br/com/ctcore/staff/`): `StaffRulesTest`, `StaffUsersListIT`, `StaffUsersInviteIT`, `StaffUsersUnitsIT`, `StaffUsersDeactivateIT`, `StaffUsersIsolationIT`, `StaffUsersAppointmentIT` e `StaffBase`: os casos em que o Administrador gere Professor viram "Administrador recebe 403"; `seats` entra no `StaffUsersListIT`; cada IT começa com banco limpo (`truncate ... cascade`) e relógio fixo, como no AGENTS.md.
+- **Contrato e MSW:** `docs/openapi.yaml` (`StaffUser.seats`; 403 do Administrador nas rotas `/users`; o texto da permissão); `frontend/src/mocks/handlers.ts` (Administrador recebe 403 em `/users`; `seats` nas linhas; handler de `/organization/admin-seat-price` já existe, ~linha 2419), `frontend/src/mocks/permissions.ts` (linha `STAFF_USERS`: `[F, N, N]`), `users.msw.test.ts`, `cenarios-listas.msw.test.ts`.
+- **Interface (`frontend`):**
+  - `routes.ts`: `staffUsers` (`/configuracoes/usuarios`) sai; entra `m("administrators", "/administradores", "STAFF_USERS", "people", "ShieldCheck")` depois de `teachers`; `/configuracoes/usuarios` e `/configuracoes/usuarios/permissoes` viram `sub(... { redirect })` como `plansList`; `permissionsTable` passa a `sub("permissionsTable", "/configuracoes/unidade/permissoes", "unitSettings", "UNIT_SETTINGS", { trail })`. `App.tsx`: `administrators: <AdministratorsPage />` no lugar de `staffUsers`. `routes.test.ts`, `buildMenu.test.ts`.
+  - `features/users/UsersPage.tsx` → `AdministratorsPage.tsx` (git mv): só Administradores, sem os três cartões de perfil, sem o filtro de perfil, sem o botão da tabela de permissões; coluna "Custo"; filtros no endereço com `useQueryParams` (como `TeachersPage.tsx`); carrega a lista e o valor da vaga juntos (falha em qualquer um: `ErrorState`). `useUsers.ts` ganha `seats` e `fetchSeatPrice`. `InviteUserDialog.tsx` (sempre Administrador, sem a escolha de perfil), `EditUnitsDialog.tsx` e `DeactivateUserDialog.tsx` recebem o valor da vaga e mostram o custo e o "sem devolução" (R5, R6). Texto do custo num componente pequeno `SeatCost.tsx` (a criar) usado pelas três janelas e pelo assistente; `UnitChecks.tsx` e `formatCurrency` reaproveitados.
+  - `features/units/UnitTeacherTab.tsx`: atalho "Ver tabela de permissões" (`Link` para `hrefOf("permissionsTable")`); `features/units/NewUnitPage.tsx`: carrega o valor da vaga e mostra o custo no resumo do convite (linhas ~239 a 244); `features/users/permissionMatrix.ts` e `PermissionsTablePage.tsx` (linha "Administradores"); `features/units/SettingsIndexPage.tsx` (tira `staffUsers` de `ORDER`); `features/notifications/notificationActions.ts` (`INVITE_PENDING` → `hrefOf("administrators")`); `features/organization/TransferCoordinationDialog.tsx` não muda (só consome `/users`).
+  - `i18n/pt-BR.json`: `users.*` → `administrators.*`, `menu.items.administrators`, linha da matriz, textos do custo.
+  - `frontend/visual/casos.ts`: os casos `configuracoes-usuarios` e `configuracoes-usuario-convidar` apontam para `/administradores` e ganham os de desativar e alterar unidades; `sem-acesso` e `configuracoes-permissoes` passam às rotas novas; referências em `frontend/visual/referencias/`. `frontend/e2e/usuarios.spec.ts` parte de `/administradores`.
+- **Segurança:** a barreira é o servidor (`StaffUsers.manager`, permissão `STAFF_USERS` só do Coordenador); organização, perfil e alcance continuam vindo da sessão; `seats` não expõe dado de outra organização; nenhuma ação nova de escrita (a auditoria dos fluxos existentes não muda).
+- **Reuso:** `StaffUsers`, `InviteService`, `LinkService`, `OrganizationController.adminSeatPrice`, `Modal`, `UnitChecks`, `useQueryParams`, `DataTable`/`RowCard`, `OrganizationBase`/`StaffBase` dos ITs.
+- **Riscos:** (a) o canvas não tem a tela "Administradores" nem a linha de custo (ver Suposição); (b) renomear o id de rota `staffUsers` toca vários testes (`routes.test.ts`, `shell.test.ts`, `noInternalAnchors`, `routePattern`); (c) a #625 e a #634 dependem desta e mexem em Configurações e na matriz: os ids e caminhos novos (`/administradores`, `/configuracoes/unidade/permissoes`) são o que elas herdam; (d) o Coordenador sem unidades ativas ainda lista vazio, como hoje.
+
+## 5. Tarefas
+
+**Parte A — servidor, contrato e rotas**
+
+- [x] T1: Servidor: `PermissionTable` e `permission-table.csv` (Administrador sem `STAFF_USERS`), `StaffUsers.manager` só do Coordenador, `Row.seats`, limpeza dos ramos do Administrador em `StaffRules`, ITs ajustados — cobre CA1, CA2, CA3 — prova: `./backend/mvnw -f backend/pom.xml test -Dtest=StaffRulesTest` e, para cada IT alterado, `./backend/mvnw -f backend/pom.xml verify -Dtest=NaoExiste -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=<Classe> -Djacoco.skip=true` (`StaffUsersListIT`, `StaffUsersInviteIT`, `StaffUsersUnitsIT`, `StaffUsersDeactivateIT`, `StaffUsersIsolationIT`, `StaffUsersAppointmentIT`) e o teste da tabela de permissões (`grep -l permission-table backend/src/test` para achar a classe)
+- [x] T2: OpenAPI e MSW (`seats`, 403 do Administrador, permissão `STAFF_USERS`) — cobre CA14 — prova: `./backend/mvnw -f backend/pom.xml test -Dtest='OpenApiContractTest,ContractRoutesTest'` e `npm test -- users.msw cenarios-listas` (em `frontend/`)
+- [x] T3: Mapa de rotas, menu e redirecionamentos (`administrators`, `/configuracoes/usuarios*` redirecionando, `permissionsTable` na unidade, `INVITE_PENDING`, índice de Configurações, linha "Administradores" da matriz) — cobre CA4, CA10, CA13 e a rota de CA11 — prova: `npm test -- routes buildMenu shell noInternalAnchors routePattern NotificationPanel SettingsIndexPage permissionMatrix PermissionsTablePage` (em `frontend/`)
+
+**Parte B — tela, custo da vaga e testes de tela**
+
+- [x] T4: `AdministratorsPage` (lista, custo, total, filtros no endereço, quatro estados) e as janelas Convidar, Alterar unidades e Desativar com o custo e o "sem devolução" (`SeatCost.tsx`, `useUsers.ts`, textos pt-BR) — cobre CA5 a CA9 — prova: `npm test -- AdministratorsPage InviteUserDialog` (em `frontend/`)
+- [x] T5: Atalho "Ver tabela de permissões" em `UnitTeacherTab` e custo no convite do assistente `NewUnitPage` — cobre CA11, CA12 — prova: `npm test -- UnitTeacherTab NewUnitPage` (em `frontend/`)
+- [x] T6: Caso visual da tela e das janelas, comparação com o canvas (1440 e 390 px, pt-BR, `.capturas/611/`), e2e do convite e da desativação em `/administradores`, axe 360 px nos dois temas — cobre CA15 — prova: `npm run test:visual:docker -- -g "administradores"` sem `--update-snapshots`, `npm run visual:canvas`, `npm run e2e -- usuarios` (em `frontend/`)
+
+## 6. Decisões
+
+- D1 (muda o comportamento): o custo vem do servidor como `seats` (vagas por linha) e o valor da vaga de `GET /organization/admin-seat-price`; o front só multiplica e formata. Motivo: a regra "o Coordenador nunca ocupa vaga, nem nomeado" e "convite não aceito não ocupa vaga" (RN-ASS-21) fica num lugar só. Alternativa: calcular `unidades × valor` no front (erra no Coordenador nomeado).
+- D2 (muda o comportamento): o Administrador deixa de usar `/users` (403), mesmo que o card diga "a API `/users` pode continuar": o "Pronto quando" exige que o servidor recuse a rota e a tabela de permissões o marca com "—". Consequência: o Administrador não convida mais Professor por `/users`; isso passa pelo painel do Professor (#610, `POST /teachers/{id}/access`). Alternativa: manter o Administrador em `/users` só para Professores (contraria a tabela).
+- D3: o código de permissão `STAFF_USERS` e o nome da pasta `features/users` ficam; muda o texto ("Administradores"), o id de rota e o componente. Motivo: renomear o código quebra OpenAPI, seed e testes sem ganho; a #634 reescreve a matriz.
+- D4: os endereços antigos redirecionam (`/configuracoes/usuarios` → `/administradores`; `/configuracoes/usuarios/permissoes` → `/configuracoes/unidade/permissoes`) em vez de mostrar "área indisponível": o card aceita as duas saídas, e o redirecionamento preserva marcadores e e-mails antigos de convite. O Administrador cai em "sem permissão" no destino.
+- D5: a tabela de permissões vai para `/configuracoes/unidade/permissoes` (sub-rota da unidade, `UNIT_SETTINGS`), e não para a lista de Unidades da #625, porque essa lista ainda não existe nesta forma. A #625 pode movê-la; o `id` `permissionsTable` e o `hrefOf` não mudam.
+- D6: o custo da vaga na janela Alterar unidades considera só o vínculo `ACTIVE` (RN-ASS-21: convite pendente não ocupa vaga); quem inclui unidade em convite `PENDING` não vê aumento.
+- D7: falha ao carregar o valor da vaga na tela de Administradores é erro de tela com "Tentar de novo" (sem custo a tela mentiria); no assistente de nova unidade é só omitir o valor, porque o convite é opcional e o assistente não pode travar por isso.
+- Suposição: o canvas não desenhou "Pessoas › Administradores" nem a coluna de custo (`ConfigUsuarios` e `UsuarioConvidar` são da tela antiga). A tela segue o padrão da lista de Professores e os componentes base (`docs/design/README.md`); o caso visual compara com `ConfigUsuarios` só no que ainda vale (cabeçalho, filtros, tabela) e as divergências (cartões de perfil que saem, coluna de custo, linha de custo nas janelas) vão no PR. Se a comparação reprovar no limite padrão por esse motivo, o caso sai sem `canvas` e a divergência é registrada, como na #610. Se o canvas for atualizado, só a tela muda.
+- Suposição: o valor padrão de R$ 50,00 vem da configuração do ambiente (`ADMIN_SEAT_CENTS`); se o dono mudar o valor, nada no código muda.
+
+## Construção
+
+Parte A (T1 a T3) construída na primeira sessão; Parte B (T4 a T6) na segunda.
+
+- T1 — arquivos: `backend/.../permission/PermissionTable.java`, `test/resources/permission-table.csv`, `staff/StaffUsers.java` (`manager` só do Coordenador, `Row.seats`, ramos do Administrador removidos), `staff/StaffRules.java` (só `leftWithoutAdministrator` e `removed`), `StaffBase` (truncate cascade no `@BeforeEach`), `StaffRulesTest` e os ITs de `staff/` (Administrador agora 403; teste novo de `seats` no `StaffUsersListIT`) — prova: `mvnw test -Dtest='StaffRulesTest,PermissionTableTest'` → 3 passam; `-Dit.test=` de `StaffUsersListIT` (5), `InviteIT` (5), `UnitsIT` (3), `DeactivateIT` (5), `IsolationIT` (4), `AppointmentIT` (1) → todos passam. `seats` usa a conta do chamador (que é o Coordenador) em vez de consulta extra.
+- T2 — arquivos: `docs/openapi.yaml` (`StaffUser.seats`, descrições de `/users*`, `role` só ADMINISTRATOR), `frontend/src/mocks/handlers.ts` (`staffUsersRole`, `seats`, sem Professores na equipe), `mocks/permissions.ts` (`STAFF_USERS: [F,N,N]`), `users.msw.test.ts` — prova: `mvnw test -Dtest='OpenApiContractTest,ContractRoutesTest'` → 7 passam; `npm test -- users.msw cenarios-listas` → 14 passam.
+- T3 — arquivos: `routes.ts` (`administrators`; `staffUsers` e `permissionsTableOld` viram redirecionamentos; `permissionsTable` em `/configuracoes/unidade/permissoes`), `App.tsx`, `UsersPage` → `AdministratorsPage` (git mv, só renomeado; a reescrita é da T4), `notificationActions.ts`, `SettingsIndexPage.tsx`, `permissionMatrix.ts`, `PermissionsTablePage.tsx`, `components/layout/icons.ts` (ShieldCheck), `i18n/pt-BR.json` (menu, matriz, "Voltar à unidade"), testes `routes`, `buildMenu`, `NotificationPanel`, `SettingsIndexPage`, `PermissionsTablePage` — prova: `npm test -- routes buildMenu shell noInternalAnchors routePattern NotificationPanel SettingsIndexPage permissionMatrix PermissionsTablePage` → 13 arquivos, todos passam; `npm run typecheck` limpo.
+Desvios: o id `staffUsers` ficou como redirecionamento (e `permissionsTableOld` para o da tabela) em vez de sair do mapa, porque o redirecionamento precisa de um id; a linha da matriz mantém o id `staffUsers` (D3). `AdministratorsPage.test.tsx` ainda testa o comportamento antigo e será reescrito na T4.
+Regressão (Parte A): `npm test` (frontend inteiro) → 196 de 197 arquivos passam, 1993 de 1996 testes; as 3 falhas são de `AdministratorsPage.test.tsx` (CA1, CA21, CA7 do comportamento antigo do Administrador), que a T4 reescreve. `eslint` nos arquivos tocados → limpo; `npm run lint` completo não terminou em tempo hábil nesta máquina (travou mais de 1 h), não conferido; vale o CI. `mvnw test` completo e `build` não rodados nesta sessão: ficam para a Parte B e para o CI.
+Onde parou (Parte A): T1 a T3 marcadas. Não é do item: `specs/itens/611-...md` ainda sem commit (fase 1).
+
+### Parte B
+- T4 — arquivos: `features/users/AdministratorsPage.tsx` (só Administradores, coluna Custo, total no cabeçalho, filtros `?q=`, `?unidade=`, `?situacao=` por `useQueryParams`), `useUsers.ts` (`seats`, `fetchSeatPrice`; lista e valor da vaga juntos, falha em qualquer um é `ErrorState`), `SeatCost.tsx` (novo), `InviteUserDialog.tsx` (sempre Administrador, custo antes do envio), `EditUnitsDialog.tsx` (aumento só de vínculo ACTIVE e aviso sem devolução), `DeactivateUserDialog.tsx` (vínculo e não a conta; sem devolução; convite pendente só cancela), `i18n/pt-BR.json` (`users.*` virou `administrators.*`; `GrantAccessDialog` e `TeacherFormDialog` ajustados à chave), `AdministratorsPage.test.tsx` reescrito — prova: `npx vitest run src/features/users` → 3 arquivos, 28 testes passam.
+- T5 — arquivos: `units/UnitTeacherTab.tsx` (link "Ver tabela de permissões" para `hrefOf("permissionsTable")`), `units/NewUnitPage.tsx` (valor da vaga no resumo do convite; sem valor se não carregar), `i18n/pt-BR.json`, testes `UnitTeacherTab.test.tsx` e `NewUnitPage.test.tsx` (CA11, CA12) — prova: `npx vitest run src/features/units/NewUnitPage src/features/units/UnitTeacherTab src/features/units/UnitSettingsPage` → todos passam.
+- T6 — arquivos: `visual/casos.ts` (casos `administradores`, `administradores-alterar-unidades`, `administradores-desativar`, `administradores-convidar`; `sem-acesso` e `configuracoes-permissoes` nas rotas novas; `ConfigUsuarios` e `UsuarioConvidar` em `semCaso` com motivo), `visual/telas.visual.ts` (`seats` no cenário), `e2e/usuarios.spec.ts` (parte de `/administradores`), referências regeradas — prova: `npm run e2e -- usuarios` → 1 passou; `npm run test:visual:docker -- -g "administradores|configuracoes-permissoes|sem-acesso"` sem `--update-snapshots` → 28 passaram; axe 360 px nos dois temas no `AdministratorsPage.test.tsx`.
+Visual do CI: administradores → passou; administradores-alterar-unidades → passou; administradores-desativar → passou; administradores-convidar → passou; configuracoes-permissoes → passou; sem-acesso → passou.
+Referências visuais: criadas `visual/referencias/administradores{,-alterar-unidades,-desativar,-convidar}-{1440,390}-{claro,escuro}.png`; regeradas `configuracoes-permissoes-*`; removidas `configuracoes-usuarios-*` e `configuracoes-usuario-convidar-*` (casos antigos).
+Comparação com o canvas: sem caso com `canvas`, como previsto na Suposição (ConfigUsuarios e UsuarioConvidar são da tela antiga). Capturas em `.capturas/611/` (sistema 1440 e 390 de cada caso, e `administradores-1440-canvas.png` da tela antiga). Divergências para o PR: cartões de perfil e filtro de perfil saem, botão "Tabela de permissões" sai (agora na unidade), coluna Custo e total no cabeçalho entram, janelas Convidar, Alterar unidades e Desativar ganham a linha de custo e o "sem devolução". `npm run visual:canvas` não foi rodado (nenhum caso novo tem canvas).
+Regressão (Parte B): `npm test` → 273 de 275 arquivos, 3021 de 3023 testes; falhas: `visual/casos.test.ts` (corrigida com `semCaso`, 167 passam) e `RecordEnrollment.test.tsx` CA7 (texto de data "pedido do portal de 07/10"; passa isolado, 16 testes; instável e fora do item). `npm run typecheck`, `npx eslint src visual e2e` e `npm run build` → limpos. `mvnw test` completo e `e2e` inteiro não rodados nesta sessão: ficam para o CI.
+Desvios: `InviteUserDialog` e `DeactivateUserDialog` não ganharam arquivo de teste próprio; são cobertos em `AdministratorsPage.test.tsx`. O texto "sem Administrador" (`adminHelp`) ficou como texto morto no JSON.
+
+## Verificação
+
+### Rodada 1 — OK — 2026-11-24, estado 6d25560c0b550cc5e55e6f09833acd691baf2efe
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 | PASSOU | StaffUsersIsolationIT (4), InviteIT (5), UnitsIT (3), DeactivateIT (5): Administrador 403 em todas as rotas, 401 sem sessão |
+| CA2 | PASSOU | PermissionTable (Grant.NONE) e permission-table.csv; mvnw test sem falhas |
+| CA3 | PASSOU | StaffUsersListIT (5), com `seats` e Coordenador nomeado em 0 |
+| CA4 | PASSOU | buildMenu.test e routes.test (npm test) |
+| CA5 | PASSOU | AdministratorsPage.test ("Não ocupa vaga", custo, total); captura 1440 e 390 conferida |
+| CA6 | PASSOU | AdministratorsPage.test; captura administradores-convidar-1440 mostra os dois textos de custo |
+| CA7, CA8 | PASSOU | AdministratorsPage.test; textos em pt-BR.json (noRefund, summary, summaryPending) |
+| CA9 | PASSOU | AdministratorsPage.test com `?q=&unidade=&situacao=` |
+| CA10, CA13 | PASSOU | routes.test, SettingsIndexPage.test, NotificationPanel.test |
+| CA11, CA12 | PASSOU | UnitTeacherTab.test, PermissionsTablePage.test, NewUnitPage.test |
+| CA14 | PASSOU | OpenApiContractTest e ContractRoutesTest dentro de mvnw test; users.msw.test no npm test |
+| CA15 | PASSOU | axe 360 px nos dois temas (AdministratorsPage.test); shell, noInternalAnchors, routePattern verdes; e2e usuarios 1 passou; visual 28 passaram |
+
+Comandos: typecheck limpo; lint limpo; build ok; npm test 274 de 275 arquivos (falha só em AgendaPage.test CA15, instável); mvnw test 180 testes, 0 falhas; ITs StaffUsers{List,Invite,Units,Deactivate,Isolation,Appointment} e CoordinationTransferIT passam; test:visual:docker -g "administradores|configuracoes-permissoes|sem-acesso" sem --update-snapshots, 28 passaram; e2e usuarios 1 passou.
+Não rodou (fica para o CI, conforme o AGENTS.md): mvnw verify completo, e2e inteiro, visual inteiro, test:cov. visual:canvas não aplicável (nenhum caso novo tem canvas, como previsto na Suposição).
+Instáveis: AgendaPage.test.tsx "CA15: carregando, vazio, erro..." falhou 1 vez na suíte inteira e passou 3 de 3 isoladas (fora do item, sem relação com Administradores).
+Achados:
+- sugestão, código, frontend/src/features/users/AdministratorsPage.tsx — JSX com `{( <Button .../> )}` e `<>{users.length > 0 && invite}</>` desnecessários e indentação irregular na linha do PillFilter; limpar.
+- sugestão, código, pt-BR.json — `adminHelp` morto (já citado na Construção).
+
+## Entrega
+
+O que muda: a tela de Administradores sai de Configurações › Usuários e vai para Pessoas › Administradores (`/administradores`). Só Administradores aparecem nela, com a coluna Custo, o total no cabeçalho e os filtros por `?q=`, `?unidade=` e `?situacao=`. Convidar, alterar unidades e desativar mostram o custo da vaga e "sem devolução". Cada Administrador ativo ocupa uma vaga por unidade (`seats`, no contrato); o Coordenador que se nomeia não ocupa. As rotas `/api/v1/users` recusam o Administrador com 403 e só o Coordenador as usa. Tabela de permissões vai para `/configuracoes/unidade/permissoes` e o link fica na unidade. Rotas antigas viram redirecionamento.
+
+Verificação: rodada 1 OK (estado `6d25560c0b550cc5e55e6f09833acd691baf2efe`), CA1 a CA15 passaram. Local: `mvnw test` (180, sem falhas), ITs de `staff/` e `PermissionTable`, `npm test` do escopo, typecheck, lint, build, e2e `usuarios` e visual `administradores|configuracoes-permissoes|sem-acesso` sem `--update-snapshots` (28 passaram). Ficam para o CI: `mvnw verify` completo, e2e inteiro, visual inteiro e `test:cov`.
+
+Decisões: o `leftWithoutAdministrator` e o `removed` ficam em `StaffRules`; os ramos de Administrador saem de `StaffUsers`. O id de rota `staffUsers` virou redirecionamento, e a linha da matriz mantém esse id (D3 da Construção).
+
+Instáveis (fora do item, passaram isolados): `RecordEnrollment.test.tsx` CA7 (texto de data) e `AgendaPage.test.tsx` CA15. Nenhuma falha nova de regressão.
+
+Regressão local: tempo não anotado na construção.
+Comparação com o canvas: ≈10 min (Alunos e Notificações, 1440, lado a lado com `canvas-shot`; os demais casos do item não têm canvas).
+CI pegou o que o local não pegou: visual das telas com menu (mudança de moldura). O local só rodou os casos da tela do item; a suíte visual inteira, no CI, reprovou 40 capturas.
+Limitação: `npm run visual:canvas` não aplicável (nenhum caso novo tem canvas). Sugestões da verificação (JSX redundante em `AdministratorsPage.tsx`, `adminHelp` morto no `pt-BR.json`) não foram aplicadas.
+
+### Correção da entrega
+- CI do PR #709 vermelho só no job `visual` (2 de 2 fatias, 40 capturas): o item Administradores no menu lateral (1440) e o link "Ver tabela de permissões" na aba da unidade mudaram telas que o item não tinha rodado no visual local (só `administradores|configuracoes-permissoes|sem-acesso`). Regeradas as referências de alunos, alunos-filtros, configuracoes (1440 e 390), configuracoes-unidade-professor (1440 e 390 antes com altura diferente), matricula-aluno, -modalidades, -vencimento, -resumo, -concluida, moldura-celular-menu, moldura-celular-unidade (1440), moldura-coordenacao, notificacoes, pedidos, professores, professor-novo e professor-painel (1440) — arquivos: `frontend/visual/referencias/*` (40 PNG) — prova: `npm run test:visual:docker -- --update-snapshots -g "<casos>"` → 68 passaram; de novo sem `--update-snapshots` → 68 passaram.
+Visual do CI: os 17 casos acima → passou (local, sem `--update-snapshots`).
+Referências visuais: 40 PNG regerados; mudança visual pedida pelo item (menu com Administradores; link na unidade). Restante da regressão (backend, frontend, e2e) estava verde no CI.
+
+### Rodada 2 — OK — 2026-11-24, estado 24cd290955b0d6b5e8ce455454922564f7f5ff09
+
+Desde a rodada 1 (`git diff 6d25560c… 24cd2909…`) mudaram só 40 PNG de `frontend/visual/referencias/` (menu com Administradores; link na unidade), `specs/backlog.md` e este arquivo. Nenhum código. Critérios CA1 a CA15: mantidos da rodada 1.
+
+Comandos: `npm run test:visual:docker -- -g "<17 casos corrigidos + administradores + sem-acesso>"` sem `--update-snapshots` → 192 passaram (7,7 min). Achado obrigatório da rodada 1: nenhum.
+Não rodou (fica para o CI): mvnw verify completo, e2e inteiro, visual inteiro, test:cov.
+Instáveis: nenhum novo.
+Achados:
+- sugestão, código, `AdministratorsPage.tsx` JSX redundante e `adminHelp` morto no pt-BR.json — mantidas da rodada 1.
+
+### Correção da entrega, 2.ª parte (decisão do dono)
+- Das 40 capturas, só `configuracoes` (cartão Usuários saiu), `configuracoes-unidade-professor` (link "Ver tabela de permissões") e os casos só de menu (`matricula-*`, `pedidos`, `professores`, `professor-*`) mudam por pedido do item.
+- `notificacoes`, `alunos`, `alunos-filtros` e `moldura-*` mudaram também por outra causa: na `dev` limpa elas passam com a referência antiga (12 de 12), e no branch reprovam, sem causa no diff (nenhum estilo compartilhado foi tocado). A referência antiga mostrava etiquetas cinza-bege, bolinha apagada, título em caixa baixa e rodapé à esquerda; o código (`status-tone.ts`, `NotificationPanel.tsx:153`) e o canvas (`Alunos`, `Notificacoes`) mandam etiquetas amarela e azul, bolinha vermelha, título em caixa alta e rodapé centralizado. Decisão do dono (opção b): regerar e abrir a issue técnica #710 (CSS aplicado de forma diferente conforme as rotas).
+- Divergência com o canvas que sobra e não é do item: a etiqueta "Novo" é azul no sistema (`NEW` no grupo `info`) e verde no canvas.
+
+### Rodada 3 — OK — 2026-11-25, estado 9872953e3279567cad6b4bebdd4301e62e2a1068
+
+Desde a rodada 2 não há mudança de código (`git diff 24cd2909 HEAD` só traz o commit do item, com as referências já regeradas; a árvore atual difere de `HEAD` só em `specs/` e nas 40 PNG de `frontend/visual/referencias/` da 2.ª parte da correção, decisão do dono). Critérios CA1 a CA15: mantidos da rodada 2.
+
+Comandos: `npm run test:visual:docker -- -g "alunos|configuracoes|matricula|moldura|notificacoes|pedidos|professor|administradores"` sem `--update-snapshots` → 220 passaram (9,0 min), cobrindo os 17 casos de referência regerada e os de Administradores.
+Não rodou (fica para o CI): mvnw verify completo, e2e inteiro, visual inteiro, test:cov; lint, typecheck, build e testes unitários não repetidos (nenhum código mudou desde a rodada 2).
+Instáveis: nenhum novo.
+Achados:
+- nenhum obrigatório. Sugestões das rodadas 1 e 2 (JSX redundante em `AdministratorsPage.tsx`, `adminHelp` morto) mantidas.
+- Observação: referências de `notificacoes`, `alunos`, `alunos-filtros` e `moldura-*` mudaram por causa fora do item (issue #710), com aprovação do dono; não é achado do item.

@@ -47,6 +47,7 @@ function setup(role: string, path: string, opts: { list?: UnitSummary[]; post?: 
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: false, units: [] })),
     http.get("/api/v1/units", () => HttpResponse.json(opts.list ?? [unit(1)])),
     http.get("/api/v1/modalities", () => HttpResponse.json(catalog)),
+    http.get("/api/v1/organization/admin-seat-price", () => HttpResponse.json({ adminSeatCents: 5000 })),
     http.post("/api/v1/units", async ({ request }) => {
       posts.push((await request.json()) as NewUnit);
       return opts.post?.() ?? HttpResponse.json({ unit: created, invite: "SENT" }, { status: 201 });
@@ -121,6 +122,7 @@ describe("NewUnitPage", () => {
     expect(screen.getByText("Informe o nome e o e-mail juntos, ou deixe os dois vazios.")).toBeInTheDocument();
     await user.type(screen.getByLabelText("E-mail do Administrador"), "ana@exemplo.com");
     expect(screen.getByText(/Vamos enviar um convite de Administrador desta unidade para Ana \(ana@exemplo.com\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/\+R\$ 50,00\/mês na sua próxima fatura/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Criar unidade" }));
     expect(await screen.findByRole("heading", { name: "Unidades", level: 1 })).toBeInTheDocument();
     expect(screen.getByText("Unidade Unidade 99 criada.")).toBeInTheDocument();
@@ -128,11 +130,24 @@ describe("NewUnitPage", () => {
     expect(puts.sort()).toEqual(["u99:m1", "u99:m2"]);
   });
 
+  it("CA12: se o valor da vaga não carregar, o resumo do convite aparece sem o valor e o assistente funciona", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", NEW);
+    server.use(http.get("/api/v1/organization/admin-seat-price", () => HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 })));
+    await toLast(user);
+    await user.type(screen.getByLabelText("Nome do Administrador"), "Ana");
+    await user.type(screen.getByLabelText("E-mail do Administrador"), "ana@exemplo.com");
+    expect(screen.getByText(/Vamos enviar um convite de Administrador desta unidade para Ana/)).toBeInTheDocument();
+    expect(screen.queryByText(/próxima fatura/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Criar unidade" })).toBeEnabled();
+  });
+
   it("CA5: nenhuma modalidade marcada permite criar; sem convite o resumo diz que nenhum será enviado", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", NEW);
     await toLast(user);
     expect(screen.getByText("Nenhum convite será enviado agora.")).toBeInTheDocument();
+    expect(screen.queryByText(/próxima fatura/)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Criar unidade" }));
     expect(await screen.findByRole("heading", { name: "Unidades", level: 1 })).toBeInTheDocument();
     expect(puts).toEqual([]);

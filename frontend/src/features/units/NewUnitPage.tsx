@@ -13,6 +13,7 @@ import { Field, Input } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { WindowSteps } from "@/components/ui/window-steps";
 import { ApiError, api } from "@/lib/api";
+import { formatCurrency } from "@/lib/format";
 import { SwitchRow } from "./SwitchRow";
 import { Text } from "./Text";
 import { createUnit, type NewUnit, type NewUnitResult } from "./useUnits";
@@ -96,6 +97,11 @@ function Wizard({ onDone, onForbidden }: { onDone: (d: Done) => void; onForbidde
   const [step, setStep] = useState(0);
   const [f, setF] = useState<Form>(empty);
   const [chosen, setChosen] = useState<string[]>([]);
+  // RF-ORG-03 / D7: o valor da vaga é só informação do convite; se não carregar, o resumo aparece sem ele.
+  const [seatPrice, setSeatPrice] = useState<number>();
+  useEffect(() => {
+    api<{ adminSeatCents: number }>("/organization/admin-seat-price").then((r) => setSeatPrice(r.adminSeatCents), () => undefined);
+  }, []);
   const [catalog, setCatalog] = useState<Catalog>({
     status: "loading",
     items: [],
@@ -240,7 +246,7 @@ function Wizard({ onDone, onForbidden }: { onDone: (d: Done) => void; onForbidde
           ? t("units.new.inviteSummary", {
               name: f.adminName.trim(),
               email: f.adminEmail.trim(),
-            })
+            }) + (seatPrice === undefined ? "" : " " + t("units.new.inviteCost", { price: formatCurrency(seatPrice) }))
           : t("units.new.noInvite")}
       </p>
     </div>,

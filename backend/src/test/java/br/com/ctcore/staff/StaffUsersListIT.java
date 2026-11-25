@@ -28,7 +28,7 @@ class StaffUsersListIT extends StaffBase {
         assertThat(names(rows)).containsExactly("Ana Admin", "Bruno Admin");
         var first = rows.get(0);
         assertThat(first.fieldNames()).toIterable().containsExactlyInAnyOrder("linkId", "name", "email", "role", "units", "lastAccessAt",
-                "status", "canManage");
+                "status", "canManage", "seats");
         assertThat(first.path("units").findValuesAsText("name")).containsExactly("Unit", "Zeta");
         assertThat(first.path("lastAccessAt").isNull()).isFalse();
         assertThat(first.path("status").asText()).isEqualTo("ACTIVE");
@@ -39,22 +39,35 @@ class StaffUsersListIT extends StaffBase {
     }
 
     @Test
-    @DisplayName("CA2: o Administrador vê os Professores com ao menos uma das suas unidades, e canManage só se todas forem dele")
-    void administratorSeesTeachers() throws Exception {
+    @DisplayName("CA2 / CA1 (#611): o Administrador recebe 403 na lista, mesmo com Professores e Administradores na organização")
+    void administratorIsDenied() throws Exception {
         var t = tenant();
-        var b = addUnit(t, "B", true);
-        var c = addUnit(t, "C", true);
         var admin = member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId());
         member(t, Role.TEACHER, "Solo", "ACTIVE", t.unitId());
-        member(t, Role.TEACHER, "Dupla", "ACTIVE", t.unitId(), b);
-        member(t, Role.TEACHER, "Longe", "ACTIVE", c);
-        member(t, Role.ADMINISTRATOR, "Outro Admin", "ACTIVE", t.unitId());
+        assertThat(call(list(""), admin).getStatus()).isEqualTo(403);
+    }
 
-        var rows = body(call(list(""), admin));
-        assertThat(names(rows)).containsExactly("Dupla", "Solo");
-        assertThat(rows.get(0).path("canManage").asBoolean()).isFalse();
-        assertThat(rows.get(0).path("units")).hasSize(2);
-        assertThat(rows.get(1).path("canManage").asBoolean()).isTrue();
+    @Test
+    @DisplayName("CA3 (#611): seats = unidades do vínculo ACTIVE; 0 em PENDING e no Coordenador nomeado; convite e alteração de unidades trazem o mesmo cálculo")
+    void seats() throws Exception {
+        var t = tenant();
+        var second = addUnit(t, "Zeta", true);
+        var coordinator = coordinator(t);
+        member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId(), second);
+        member(t, Role.ADMINISTRATOR, "Bruno Admin", "PENDING", t.unitId(), second);
+        member(t, Role.ADMINISTRATOR, "Carla Admin", "ACTIVE", second);
+        assertThat(call(appoint(t.unitId()), coordinator).getStatus()).isEqualTo(200);
+
+        var rows = body(call(list(""), coordinator));
+        assertThat(names(rows)).containsExactly("Ana Admin", "Bruno Admin", "Carla Admin", "Coord");
+        assertThat(rows.findValues("seats").stream().map(n -> n.asInt()).toList()).containsExactly(2, 0, 1, 0);
+
+        var invited = body(call(invite(inviteBody("novo-" + t.orgId() + "@synthetic.example", "Novo", t.unitId(), second)), coordinator));
+        assertThat(invited.path("status").asText()).isEqualTo("PENDING");
+        assertThat(invited.path("seats").asInt()).isZero();
+        var ana = rows.get(0).path("linkId").asText();
+        var changed = body(call(units(java.util.UUID.fromString(ana), t.unitId()), coordinator));
+        assertThat(changed.path("seats").asInt()).isEqualTo(1);
     }
 
     @Test

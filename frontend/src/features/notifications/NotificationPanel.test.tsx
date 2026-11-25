@@ -85,7 +85,7 @@ describe("notificationActions", () => {
     expect(notificationTarget({ type: "EMAIL_PROBLEM", refType: "student", refId: "x" })).toBe("/alunos/x");
     expect(notificationTarget({ type: "EMAIL_PROBLEM", refType: "guardian", refId: "x" })).toBe("/alunos");
     expect(notificationTarget({ type: "PAYMENT_RECEIVED", refType: "charge", refId: "x" })).toBe("/cobrancas");
-    expect(notificationTarget({ type: "INVITE_PENDING", refType: "invite", refId: "x" })).toBe("/configuracoes/usuarios");
+    expect(notificationTarget({ type: "INVITE_PENDING", refType: "invite", refId: "x" })).toBe("/administradores");
     expect(notificationTarget({ type: "PORTAL_REQUEST", refType: "portal_request", refId: "x" })).toBe("/pedidos");
     expect(notificationTarget({ type: "PAYMENT_PROOF", refType: "payment_proof", refId: "x" })).toBe("/cobrancas/conferencia");
     expect(notificationTarget({ type: "CLOSURE_REQUEST", refType: "portal_request", refId: "x" })).toBe("/pedidos");
@@ -110,7 +110,7 @@ describe("NotificationPanel (RF-NOT-01)", () => {
     const paid = within(panel).getByRole("link", { name: /Pagamento recebido.*Maria Souza pagou.*Não lida/ });
     expect(paid).toHaveAttribute("href", "/cobrancas");
     const invite = within(panel).getByRole("link", { name: /Convite sem aceite/ });
-    expect(invite).toHaveAttribute("href", "/configuracoes/usuarios");
+    expect(invite).toHaveAttribute("href", "/administradores");
     expect(invite).not.toHaveTextContent("Não lida");
     expect(within(panel).queryByRole("link", { name: "Ver cobranças" })).not.toBeInTheDocument();
     expect(within(panel).queryByRole("switch")).not.toBeInTheDocument();

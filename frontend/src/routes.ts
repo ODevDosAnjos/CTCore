@@ -69,6 +69,7 @@ export const routes: AppRoute[] = [
   sub("enrollment", "/alunos/nova-matricula", "students", "STUDENT_MANAGE", { trail: "enrollmentWizard.trail" }),
   m("requests", "/pedidos", "STUDENT_MANAGE", "people", "Inbox"),
   m("teachers", "/professores", "TEACHERS", "people", "UserCheck"),
+  m("administrators", "/administradores", "STAFF_USERS", "people", "ShieldCheck"),
   sub("teacherPanel", "/professores/:id", "teachers", "TEACHERS", { parent: "teachers" }),
 
   m("agenda", "/agenda", "AGENDA_VIEW", "operation", "CalendarDays"),
@@ -107,8 +108,10 @@ export const routes: AppRoute[] = [
   m("ageRanges", "/configuracoes/faixas-etarias", "ORGANIZATION_SETTINGS", "settings", "Baby"),
   m("terms", "/configuracoes/termos", "ORGANIZATION_SETTINGS", "settings", "FileText"),
   m("texts", "/configuracoes/textos", "ORGANIZATION_SETTINGS", "settings", "Type"),
-  m("staffUsers", "/configuracoes/usuarios", "STAFF_USERS", "settings", "UserCog"),
-  sub("permissionsTable", "/configuracoes/usuarios/permissoes", "staffUsers", "STAFF_USERS", { trail: "permissionsTable.title" }),
+  // #611: Usuários saiu de Configurações; os endereços antigos levam aos novos (R8).
+  sub("staffUsers", "/configuracoes/usuarios", "administrators", "STAFF_USERS", { redirect: "/administradores" }),
+  sub("permissionsTableOld", "/configuracoes/usuarios/permissoes", "unitSettings", "UNIT_SETTINGS", { redirect: "/configuracoes/unidade/permissoes" }),
+  sub("permissionsTable", "/configuracoes/unidade/permissoes", "unitSettings", "UNIT_SETTINGS", { trail: "permissionsTable.title" }),
   m("subscription", "/configuracoes/assinatura", "SUBSCRIPTION", "settings", "CreditCard", "soon"),
   m("audit", "/configuracoes/auditoria", "AUDIT", "settings", "ScrollText", "soon"),
   m("import", "/configuracoes/importar", "IMPORT", "settings", "Upload", "soon"),

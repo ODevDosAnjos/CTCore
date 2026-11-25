@@ -4,11 +4,10 @@ import { Send } from "lucide-react";
 import { Modal } from "@/components/Modal";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { ChoiceCards } from "@/components/ui/choice-cards";
-import { useSession } from "@/features/auth/SessionProvider";
 import { Text } from "@/features/units/Text";
 import { useUnitScope } from "@/features/units/UnitScopeProvider";
 import { ApiError } from "@/lib/api";
+import { SeatCost } from "./SeatCost";
 import { UnitChecks } from "./UnitChecks";
 import { inviteUser } from "./useUsers";
 
@@ -16,14 +15,10 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const KNOWN = ["ALREADY_LINKED", "STAFF_LIMIT_REACHED", "FORBIDDEN"];
 type Errors = { email?: string; name?: string; units?: string; form?: string };
 
-// RF-ACE-06: convida; o perfil vem do servidor (Coordenador convida Administrador, Administrador convida Professor).
-export function InviteUserDialog({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+// RF-ACE-06: o Coordenador convida Administrador; a janela mostra o custo da vaga (RN-ASS-21) antes do envio.
+export function InviteUserDialog({ open, price, onClose, onDone }: { open: boolean; price: number; onClose: () => void; onDone: () => void }) {
   const { t } = useTranslation();
   const { units } = useUnitScope();
-  const { state } = useSession();
-  // D5: o perfil do convite é o que o servidor usa para quem convida (o corpo não leva perfil).
-  const active = state.status === "ready" ? state.session.links.find((l) => l.id === state.session.activeLinkId)?.role : undefined;
-  const invited = active === "ADMINISTRATOR" ? "TEACHER" : "ADMINISTRATOR";
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [unitIds, setUnitIds] = useState<string[]>([]);
@@ -40,9 +35,9 @@ export function InviteUserDialog({ open, onClose, onDone }: { open: boolean; onC
 
   async function submit() {
     const found: Errors = {};
-    if (!EMAIL.test(email.trim())) found.email = t("users.invite.emailInvalid");
-    if (!name.trim()) found.name = t("users.invite.nameRequired");
-    if (unitIds.length === 0) found.units = t("users.invite.unitsRequired");
+    if (!EMAIL.test(email.trim())) found.email = t("administrators.invite.emailInvalid");
+    if (!name.trim()) found.name = t("administrators.invite.nameRequired");
+    if (unitIds.length === 0) found.units = t("administrators.invite.unitsRequired");
     setErrors(found);
     if (Object.keys(found).length) return;
     setBusy(true);
@@ -50,7 +45,7 @@ export function InviteUserDialog({ open, onClose, onDone }: { open: boolean; onC
       await inviteUser({ email: email.trim(), name: name.trim(), unitIds });
     } catch (e) {
       const code = e instanceof ApiError && KNOWN.includes(e.code) ? e.code : "generic";
-      setErrors({ form: t(`users.invite.errors.${code}`) });
+      setErrors({ form: t(`administrators.invite.errors.${code}`) });
       setBusy(false);
       return;
     }
@@ -66,7 +61,7 @@ export function InviteUserDialog({ open, onClose, onDone }: { open: boolean; onC
       size="md"
       scrim="canvas"
       onOpenChange={(o) => !o && !busy && close()}
-      title={t("users.invite.title")}
+      title={t("administrators.invite.title")}
       footer={
         <>
           <Button type="button" variant="ghost" onClick={close} disabled={busy}>
@@ -74,7 +69,7 @@ export function InviteUserDialog({ open, onClose, onDone }: { open: boolean; onC
           </Button>
           <Button type="submit" form={formId} disabled={busy}>
             <Send aria-hidden="true" />
-            {t("users.invite.send")}
+            {t("administrators.invite.send")}
           </Button>
         </>
       }
@@ -90,21 +85,12 @@ export function InviteUserDialog({ open, onClose, onDone }: { open: boolean; onC
         }}
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <Text label={t("users.invite.name")} required value={name} onChange={setName} error={errors.name} autoComplete="off" />
-          <Text label={t("users.invite.email")} required type="email" value={email} onChange={setEmail} error={errors.email} autoComplete="off" />
+          <Text label={t("administrators.invite.name")} required value={name} onChange={setName} error={errors.name} autoComplete="off" />
+          <Text label={t("administrators.invite.email")} required type="email" value={email} onChange={setEmail} error={errors.email} autoComplete="off" />
         </div>
-        <ChoiceCards
-          legend={t("users.invite.role")}
-          columns={2}
-          value={invited}
-          onChange={() => undefined}
-          options={[
-            { value: "ADMINISTRATOR", label: t("users.roles.ADMINISTRATOR"), description: t("users.invite.roleAdministrator"), disabled: invited !== "ADMINISTRATOR" },
-            { value: "TEACHER", label: t("users.roles.TEACHER"), description: t("users.invite.roleTeacher"), disabled: invited !== "TEACHER" },
-          ]}
-        />
         <UnitChecks units={units} value={unitIds} onChange={setUnitIds} error={errors.units} />
-        <p className="text-[13px] leading-normal text-muted-foreground">{t("users.invite.notice")}</p>
+        <SeatCost price={price} added={unitIds.length} />
+        <p className="text-[13px] leading-normal text-muted-foreground">{t("administrators.invite.notice")}</p>
         {errors.form && <Banner tone="danger">{errors.form}</Banner>}
       </form>
     </Modal>

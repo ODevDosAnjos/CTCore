@@ -7,7 +7,7 @@ export function UnitChecks({ units, value, onChange, error }: { units: Reachable
   const { t } = useTranslation();
   return (
     <fieldset aria-describedby={error ? "unit-checks-erro" : undefined}>
-      <legend className="mb-1 text-xs font-medium text-muted-foreground">{t("users.units")}</legend>
+      <legend className="mb-1 text-xs font-medium text-muted-foreground">{t("administrators.units")}</legend>
       {units.map((u) => (
         <label key={u.id} className="flex min-h-11 items-center gap-2">
           <Checkbox

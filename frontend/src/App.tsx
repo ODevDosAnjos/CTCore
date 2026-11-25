@@ -44,7 +44,7 @@ import { AgendaPage } from "@/features/agenda/AgendaPage";
 import { LessonPanelPage } from "@/features/agenda/LessonPanelPage";
 import { NoClassDaysPage } from "@/features/noClassDays/NoClassDaysPage";
 import { PermissionsTablePage } from "@/features/users/PermissionsTablePage";
-import { UsersPage } from "@/features/users/UsersPage";
+import { AdministratorsPage } from "@/features/users/AdministratorsPage";
 import { AccountPage } from "@/features/account/AccountPage";
 import { ConfirmEmailPage } from "@/features/account/ConfirmEmailPage";
 import { ModalityConfirmations } from "@/features/portal/ModalityConfirmations";
@@ -133,7 +133,7 @@ const screens: Record<string, ReactNode> = {
   ageRanges: <AgeRangesPage />,
   terms: <TermsPage />,
   texts: <TextsPage />,
-  staffUsers: <UsersPage />,
+  administrators: <AdministratorsPage />,
   permissionsTable: <PermissionsTablePage />,
 };
 

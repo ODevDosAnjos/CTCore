@@ -31,7 +31,7 @@ function Body({ user, onClose, onDone }: { user: StaffUser; onClose: () => void;
       await deactivateUser(user.linkId);
     } catch (e) {
       if (!appoint && e instanceof ApiError && e.code === "LAST_UNIT_ADMINISTRATOR") setAffected((e.fields[0]?.message ?? "").split(",").filter(Boolean));
-      else setError(t("users.deactivate.error"));
+      else setError(t("administrators.deactivate.error"));
       setBusy(false);
       return;
     }
@@ -41,18 +41,19 @@ function Body({ user, onClose, onDone }: { user: StaffUser; onClose: () => void;
   }
 
   return (
-    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("users.deactivate.title", { name: user.name })}>
+    <Modal open onOpenChange={(o) => !o && !busy && onClose()} title={t("administrators.deactivate.title", { name: user.name })}>
       <div className="flex flex-col gap-3">
-        <p>{t("users.deactivate.summary")}</p>
+        <p>{t(user.status === "PENDING" ? "administrators.deactivate.summaryPending" : "administrators.deactivate.summary")}</p>
+        {user.status === "ACTIVE" && <p className="text-[13px] text-muted-foreground">{t("administrators.cost.noRefund")}</p>}
         {affected.length > 0 && (
           <Banner tone="warn">
-            <p className="font-medium">{t("users.lastAdmin.explain")}</p>
+            <p className="font-medium">{t("administrators.lastAdmin.explain")}</p>
             <ul className="list-disc pl-5">
               {affected.map((id) => (
                 <li key={id}>{units.find((u) => u.id === id)?.name ?? id}</li>
               ))}
             </ul>
-            <p className="mt-1">{t(coordinator ? "users.lastAdmin.coordinatorHelp" : "users.lastAdmin.adminHelp")}</p>
+            <p className="mt-1">{t(coordinator ? "administrators.lastAdmin.coordinatorHelp" : "administrators.lastAdmin.adminHelp")}</p>
           </Banner>
         )}
         {error && (
@@ -64,12 +65,12 @@ function Body({ user, onClose, onDone }: { user: StaffUser; onClose: () => void;
           </Button>
           {affected.length > 0 && coordinator && (
             <Button type="button" className="min-h-11" onClick={() => void run(true)} disabled={busy}>
-              {t("users.lastAdmin.appoint")}
+              {t("administrators.lastAdmin.appoint")}
             </Button>
           )}
           {affected.length === 0 && (
             <Button type="button" className="min-h-11" onClick={() => void run(false)} disabled={busy}>
-              {t("users.deactivate.confirm")}
+              {t("administrators.deactivate.confirm")}
             </Button>
           )}
         </div>

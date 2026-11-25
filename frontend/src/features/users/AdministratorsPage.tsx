@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
-import { Plus, ShieldCheck } from "lucide-react";
+import { Plus } from "lucide-react";
 import { DataTable, type Column } from "@/components/query/DataTable";
 import { RowCard } from "@/components/query/RowCard";
 import { useBelowSm } from "@/components/query/useBelowSm";
@@ -9,24 +8,19 @@ import { RelativeDate } from "@/components/RelativeDate";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Avatar, Person } from "@/components/ui/avatar";
 import { Banner } from "@/components/ui/banner";
+import { useQueryParams } from "@/components/query/useQueryParams";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillFilter } from "@/components/ui/pill-filter";
 import { SearchBox } from "@/components/ui/search-box";
-import type { Tone } from "@/components/ui/status-tone";
+import { formatCurrency } from "@/lib/format";
 import { useUnitScope } from "@/features/units/UnitScopeProvider";
 import { DeactivateUserDialog } from "./DeactivateUserDialog";
 import { EditUnitsDialog } from "./EditUnitsDialog";
 import { InviteUserDialog } from "./InviteUserDialog";
 import { resendInvite, useUsers, type StaffUser } from "./useUsers";
 
-const ROLE_TONE: Record<string, { tone: Tone; className?: string }> = {
-  COORDINATOR: { tone: "neutral", className: "bg-primary text-primary-foreground" },
-  ADMINISTRATOR: { tone: "info" },
-  TEACHER: { tone: "neutral" },
-};
-const PROFILES = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"] as const;
 const list = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" });
 
 function Content() {
@@ -38,10 +32,11 @@ function Content() {
   const [editing, setEditing] = useState<StaffUser | null>(null);
   const [deactivating, setDeactivating] = useState<StaffUser | null>(null);
   const [notice, setNotice] = useState<string>();
-  const [q, setQ] = useState("");
-  const [role, setRole] = useState("");
-  const [unit, setUnit] = useState("");
-  const [status, setStatus] = useState("");
+  // R7: busca e filtros no endereço, pelo roteador.
+  const { get, set, clear } = useQueryParams();
+  const q = get("q");
+  const unit = get("unidade");
+  const status = get("situacao");
   if (api.status === "loading") return <LoadingState />;
   if (api.status === "forbidden") return <ForbiddenState />;
   if (!api.users) return <ErrorState onRetry={api.retry} />;
@@ -54,124 +49,95 @@ function Content() {
   async function resend(u: StaffUser) {
     try {
       await resendInvite(u.linkId);
-      setNotice(t("users.resendDone"));
+      setNotice(t("administrators.resendDone"));
     } catch {
-      setNotice(t("users.resendError"));
+      setNotice(t("administrators.resendError"));
     }
   }
-  const clear = () => {
-    setQ("");
-    setRole("");
-    setUnit("");
-    setStatus("");
-  };
 
   // D1: busca e filtros no cliente; a lista do servidor já vem inteira (até 200 vínculos).
   const needle = q.trim().toLowerCase();
   const shown = users.filter(
     (u) =>
       (status ? u.status === status : u.status !== "ENDED") &&
-      (!role || u.role === role) &&
       (!unit || u.units.some((x) => x.id === unit)) &&
       (!needle || u.name.toLowerCase().includes(needle) || u.email.toLowerCase().includes(needle)),
   );
 
   const sr = (u: StaffUser) => <span className="sr-only"> {u.name}</span>;
-  const roleBadge = (r: string) => (
-    <Badge tone={ROLE_TONE[r].tone} className={ROLE_TONE[r].className}>
-      {t(`layout.roles.${r}`)}
-    </Badge>
-  );
   const statusBadge = (u: StaffUser) =>
-    u.status === "PENDING" ? <Badge tone="info">{t("users.statuses.PENDING")}</Badge> : <StatusBadge status={u.status} label={t(`users.statuses.${u.status}`)} />;
+    u.status === "PENDING" ? <Badge tone="info">{t("administrators.statuses.PENDING")}</Badge> : <StatusBadge status={u.status} label={t(`administrators.statuses.${u.status}`)} />;
+  // RN-ASS-21: o servidor diz quantas vagas a linha ocupa; aqui só se multiplica.
+  const cost = (u: StaffUser) =>
+    u.status === "PENDING" ? t("administrators.cost.pending") : u.seats === 0 ? t("administrators.cost.free") : t("administrators.cost.perMonth", { value: formatCurrency(u.seats * api.price) });
+  const total = users.filter((u) => u.status === "ACTIVE").reduce((n, u) => n + u.seats, 0) * api.price;
   const unitNames = (u: StaffUser) => list.format(u.units.map((x) => x.name));
   const actions = (u: StaffUser) =>
     u.canManage && (
       <div className="flex flex-wrap gap-1">
         {u.status === "PENDING" && (
           <Button variant="ghost" size="sm" onClick={() => void resend(u)}>
-            {t("users.resend")}
+            {t("administrators.resend")}
             {sr(u)}
           </Button>
         )}
-        {(u.status !== "PENDING" || u.role === "TEACHER") && (
+        {(
           <Button variant="ghost" size="sm" onClick={() => setEditing(u)}>
-            {t("users.editUnits.button")}
+            {t("administrators.editUnits.button")}
             {sr(u)}
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={() => setDeactivating(u)}>
-          {t("users.deactivate.button")}
+          {t("administrators.deactivate.button")}
           {sr(u)}
         </Button>
       </div>
     );
   const columns: Column<StaffUser>[] = [
-    { key: "name", label: t("users.person"), render: (u) => <Person size="sm" name={u.name} secondary={u.email} /> },
-    { key: "role", label: t("users.role"), render: (u) => roleBadge(u.role) },
-    { key: "units", label: t("users.units"), render: (u) => unitNames(u) },
-    { key: "last", label: t("users.lastAccess"), render: (u) => <RelativeDate value={u.lastAccessAt} /> },
-    { key: "status", label: t("users.status"), render: statusBadge },
-    { key: "actions", label: t("users.actions"), hideLabel: true, render: actions },
+    { key: "name", label: t("administrators.person"), render: (u) => <Person size="sm" name={u.name} secondary={u.email} /> },
+    { key: "units", label: t("administrators.units"), render: (u) => unitNames(u) },
+    { key: "last", label: t("administrators.lastAccess"), render: (u) => <RelativeDate value={u.lastAccessAt} /> },
+    { key: "status", label: t("administrators.status"), render: statusBadge },
+    { key: "cost", label: t("administrators.cost.column"), render: cost },
+    { key: "actions", label: t("administrators.actions"), hideLabel: true, render: actions },
   ];
 
   const invite = (
     <Button className="w-full max-sm:order-first sm:w-auto" onClick={() => setInviting(true)}>
       <Plus aria-hidden="true" />
-      {t("users.invite.button")}
-    </Button>
-  );
-  const tableLink = (
-    <Button asChild variant="secondary" className="w-full sm:w-auto">
-      <Link to="/configuracoes/usuarios/permissoes">
-        <ShieldCheck aria-hidden="true" />
-        {t("users.permissionsTable")}
-      </Link>
+      {t("administrators.invite.button")}
     </Button>
   );
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title={t("users.title")}
-        subtitle={t("users.subtitle")}
+        title={t("administrators.title")}
+        subtitle={`${t("administrators.subtitle")} · ${t("administrators.total", { total: formatCurrency(total) })}`}
         className="max-sm:[&>div:last-child]:w-full"
         actions={
           <>
-            {tableLink}
             {users.length > 0 && invite}
           </>
         }
       />
       {notice && <Banner tone="ok">{notice}</Banner>}
-      <div className="hidden gap-3 sm:grid sm:grid-cols-3">
-        {PROFILES.map((p) => (
-          <section key={p} className="flex min-w-0 flex-col gap-2 rounded-card border bg-card p-4">
-            <div className="flex items-center gap-3">
-              {roleBadge(p)}
-              <span className="text-[13px] text-muted-foreground">{t(`users.profiles.${p}.scope`)}</span>
-            </div>
-            <p className="text-[13px] leading-normal">{t(`users.profiles.${p}.text`)}</p>
-          </section>
-        ))}
-      </div>
       {users.length === 0 ? (
-        <EmptyState title={t("users.emptyTitle")} text={t("users.emptyText")} action={<Button onClick={() => setInviting(true)}>{t("users.invite.button")}</Button>} />
+        <EmptyState title={t("administrators.emptyTitle")} text={t("administrators.emptyText")} action={<Button onClick={() => setInviting(true)}>{t("administrators.invite.button")}</Button>} />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <SearchBox className="w-full sm:w-[260px]" value={q} onChange={setQ} placeholder={t("users.search")} />
-            <PillFilter label={t("users.filter.role")} value={role} onChange={setRole} allLabel={t("users.filter.allRoles")} options={["ADMINISTRATOR", "TEACHER"].map((id) => ({ id, name: t(`users.roles.${id}`) }))} />
-            <PillFilter label={t("users.filter.unit")} value={unit} onChange={setUnit} allLabel={t("users.filter.allUnits")} options={units.map((u) => ({ id: u.id, name: u.name }))} />
-            <PillFilter label={t("users.filter.status")} value={status} onChange={setStatus} allLabel={t("users.filter.allStatuses")} options={["ACTIVE", "PENDING"].map((id) => ({ id, name: t(`users.filters.${id}`) }))} />
+            <SearchBox className="w-full sm:w-[260px]" value={q} onChange={(v) => set({ q: v }, true)} placeholder={t("administrators.search")} />
+                        <PillFilter label={t("administrators.filter.unit")} value={unit} onChange={(v) => set({ unidade: v })} allLabel={t("administrators.filter.allUnits")} options={units.map((u) => ({ id: u.id, name: u.name }))} />
+            <PillFilter label={t("administrators.filter.status")} value={status} onChange={(v) => set({ situacao: v })} allLabel={t("administrators.filter.allStatuses")} options={["ACTIVE", "PENDING"].map((id) => ({ id, name: t(`administrators.filters.${id}`) }))} />
           </div>
           {shown.length === 0 ? (
             <EmptyState
-              title={t("users.noMatchTitle")}
-              text={t("users.noMatchText")}
+              title={t("administrators.noMatchTitle")}
+              text={t("administrators.noMatchText")}
               action={
                 <Button variant="secondary" onClick={clear}>
-                  {t("users.clearFilters")}
+                  {t("administrators.clearFilters")}
                 </Button>
               }
             />
@@ -186,7 +152,10 @@ function Content() {
                       <>
                         <span className="break-all">{u.email}</span>
                         <span>
-                          {t(`users.roles.${u.role}`)} · {unitNames(u)} · <RelativeDate value={u.lastAccessAt} />
+                          {unitNames(u)} · <RelativeDate value={u.lastAccessAt} />
+                        </span>
+                        <span>
+                          {cost(u)}
                         </span>
                         {actions(u)}
                       </>
@@ -203,14 +172,14 @@ function Content() {
           )}
         </>
       )}
-      <InviteUserDialog open={inviting} onClose={() => setInviting(false)} onDone={done("users.invite.done")} />
-      <EditUnitsDialog user={editing} onClose={() => setEditing(null)} onDone={done("users.editUnits.done")} />
-      <DeactivateUserDialog user={deactivating} onClose={() => setDeactivating(null)} onDone={done("users.deactivate.done")} />
+      <InviteUserDialog open={inviting} price={api.price} onClose={() => setInviting(false)} onDone={done("administrators.invite.done")} />
+      <EditUnitsDialog user={editing} price={api.price} onClose={() => setEditing(null)} onDone={done("administrators.editUnits.done")} />
+      <DeactivateUserDialog user={deactivating} onClose={() => setDeactivating(null)} onDone={done("administrators.deactivate.done")} />
     </div>
   );
 }
 
-// RF-ACE-06: a rota já nega Professor; a barreira de dados é o servidor.
-export function UsersPage() {
+// RF-ACE-06: só o Coordenador; a barreira é o servidor (403 vira "sem permissão").
+export function AdministratorsPage() {
   return <Content />;
 }

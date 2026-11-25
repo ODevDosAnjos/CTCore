@@ -265,7 +265,7 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         const override = (spec: unknown) => (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.(spec);
         const tijuca = { id: "00000000-0000-0000-0000-0000000004a1", name: "Tijuca" };
         const barra = { id: "00000000-0000-0000-0000-0000000004a2", name: "Barra" };
-        const pessoa = (n: number, name: string, email: string, units: object[], lastAccessAt: string | null, status: string) => ({ linkId: `00000000-0000-0000-0000-0000000004b${n}`, name, email, role: "ADMINISTRATOR", units, lastAccessAt, status, canManage: true });
+        const pessoa = (n: number, name: string, email: string, units: object[], lastAccessAt: string | null, status: string) => ({ linkId: `00000000-0000-0000-0000-0000000004b${n}`, name, email, role: "ADMINISTRATOR", units, lastAccessAt, status, canManage: true, seats: status === "ACTIVE" ? units.length : 0 });
         override({ method: "get", path: "/units/reachable", status: 200, body: { allUnits: true, units: [tijuca, barra].map((u) => ({ ...u, shortName: u.name.toLowerCase() })) } });
         override({
           method: "get",

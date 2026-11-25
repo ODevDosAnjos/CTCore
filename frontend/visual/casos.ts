@@ -132,8 +132,8 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-links", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
-  { nome: "configuracoes-usuarios", rota: "/configuracoes/usuarios", perfil: ana, canvas: "ConfigUsuarios", usuariosCanvas: true },
-  { nome: "configuracoes-permissoes", rota: "/configuracoes/usuarios/permissoes", perfil: ana, canvas: "PermissoesTabela", fullPage: true },
+  { nome: "administradores", rota: "/administradores", perfil: ana, usuariosCanvas: true }, // #611: sem canvas (a tela nasceu depois do desenho: o canvas ConfigUsuarios é a tela antiga, com cartões de perfil e sem custo; segue a especificação e os componentes base)
+  { nome: "configuracoes-permissoes", rota: "/configuracoes/unidade/permissoes", perfil: ana, canvas: "PermissoesTabela", fullPage: true },
   { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
   { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
@@ -161,7 +161,7 @@ export const casos: Caso[] = [
   { nome: "convite-conta-existente", rota: "/convite/existente", canvas: "PrimeiroAcessoConta" },
   { nome: "convite-vencido", rota: "/convite/vencido", canvas: "ConviteVencido" },
   { nome: "pagina-nao-encontrada", rota: "/pagina-que-nao-existe", perfil: prof }, // #675: sem canvas (D6); segue a especificação e os estados base
-  { nome: "sem-acesso", rota: "/configuracoes/usuarios", perfil: prof, canvas: "EstadoSemAcesso", canvasCelular: "SemAcessoM" },
+  { nome: "sem-acesso", rota: "/administradores", perfil: prof, canvas: "EstadoSemAcesso", canvasCelular: "SemAcessoM" },
   { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", informacoesCanvas: true, passos: [{ clicar: "Trocar e-mail" }], limiteCanvas: { valor: 0.75, motivo: "fundo: a janela confere com o canvas (Novo e-mail, Senha atual com a dica, Resumo de 4 avisos, rodapé fixo); atrás dela o canvas mostra só o cartão Acesso, e o sistema mostra a página inteira (medido a 68,5% na #498; a #642 remove este limite)" } },
   { nome: "conta-duas-etapas", rota: "/conta?aba=duas-etapas", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img' },
   { nome: "conta-codigos-reserva", rota: "/conta?aba=duas-etapas", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Ver códigos de reserva novos" }, { clicar: "Guardei os códigos em lugar seguro", papel: "checkbox" }], aguardar: '[role="dialog"] ul li:nth-child(10)' },
@@ -174,7 +174,9 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", unidadesCanvas: "lista", passos: [{ clicar: "Desativar a Barra" }] },
   { nome: "configuracoes-unidade-unica", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeUnica", unidadesCanvas: "unica", passos: [{ clicar: "Desativar a Academia" }] },
   { nome: "configuracoes-unidade-professor", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPermProf", unidadeCanvas: "conectada", passos: [{ clicar: "Permissões do Professor", papel: "tab" }], fullPage: true },
-  { nome: "configuracoes-usuario-convidar", rota: "/configuracoes/usuarios", perfil: ana, canvas: "UsuarioConvidar", usuariosCanvas: true, passos: [{ clicar: "Convidar" }, { preencher: ["Nome *", "Fernanda Rocha"] }, { preencher: ["E-mail *", "fernanda@academialeao.example"] }, { clicar: "Tijuca", papel: "checkbox" }] },
+  { nome: "administradores-alterar-unidades", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Alterar unidades Carla Mendes" }, { clicar: "Tijuca", papel: "checkbox" }] },
+  { nome: "administradores-desativar", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Desativar Carla Mendes" }] },
+  { nome: "administradores-convidar", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Convidar" }, { preencher: ["Nome *", "Fernanda Rocha"] }, { preencher: ["E-mail *", "fernanda@academialeao.example"] }, { clicar: "Tijuca", papel: "checkbox" }] },
   // Modalidades, faixas, professores, turmas, agenda e dias sem aula (#420). Janelas abrem pelos passos.
   // Sem caso: painel da aula, editar, cancelar e corrigir aula (o id da aula é gerado pelo MSW, sem rota fixa); GM* são as mesmas telas a 390 px (D1).
   { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin", modalidadesCanvas: "administrador" },
@@ -289,6 +291,8 @@ export const semCaso: Record<string, string[]> = {
     "AlunosImportar", "PacoteCompleto", "FalarSuporte", "PortalExcluir",
     "PortalEstados", "PortalMCarteirinha", "PortalMEstados",
   ],
+  // tela antiga que a #611 substituiu: os casos "administradores*" não têm canvas (a tela Pessoas › Administradores nasceu depois do desenho)
+  "tela antiga que a #611 substituiu (Configurações › Usuários); o canvas ainda não foi redesenhado": ["ConfigUsuarios", "UsuarioConvidar"],
   // celular a 360 px: o teste visual captura 390 (D5 da #435)
   "celular a 360 px: o teste visual captura 390 (D5 da #435)": [
     "GMInicio", "GMBusca", "GMInicioCoord", "GMInicioProfessor", "GMNotificacoes",

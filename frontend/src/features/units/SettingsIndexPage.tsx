@@ -11,7 +11,7 @@ import { buildMenu } from "@/features/permissions/buildMenu";
 import { usePermissions } from "@/features/permissions/usePermissions";
 
 // Ordem e itens do canvas (GMConfig, D10); Assinatura e Unidades ficam só no menu lateral do Coordenador.
-const ORDER = ["organizationSettings", "unitSettings", "modalities", "ageRanges", "staffUsers", "terms", "texts", "audit", "import"];
+const ORDER = ["organizationSettings", "unitSettings", "modalities", "ageRanges", "terms", "texts", "audit", "import"];
 
 function Content() {
   const { t } = useTranslation();

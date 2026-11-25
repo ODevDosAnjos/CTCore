@@ -33,21 +33,13 @@ class StaffUsersUnitsIT extends StaffBase {
     }
 
     @Test
-    @DisplayName("CA11: o Administrador mexe só nas unidades dele e as outras do Professor ficam; ficar sem unidade é 400; unidade fora do alcance é 403")
-    void administratorKeepsTheOthers() throws Exception {
+    @DisplayName("CA11 / CA1 (#611): o Administrador recebe 403 ao alterar unidades e nada muda")
+    void administratorIsDenied() throws Exception {
         var t = tenant();
-        var b = addUnit(t, "B", true);
-        var d = addUnit(t, "D", true);
-        var admin = member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId(), d);
-        var teacher = member(t, Role.TEACHER, "Prof", "ACTIVE", t.unitId(), b);
-        assertThat(call(units(teacher.link(), t.unitId(), d), admin).getStatus()).isEqualTo(200);
-        assertThat(unitsOf(teacher.link())).containsExactlyInAnyOrder(t.unitId(), b, d);
-        assertThat(call(units(teacher.link(), d), admin).getStatus()).isEqualTo(200);
-        assertThat(unitsOf(teacher.link())).containsExactlyInAnyOrder(b, d);
-        var solo = member(t, Role.TEACHER, "Solo", "ACTIVE", t.unitId());
-        assertThat(call(units(solo.link()), admin).getStatus()).isEqualTo(400);
-        assertThat(call(units(solo.link(), b), admin).getStatus()).isEqualTo(403);
-        assertThat(unitsOf(solo.link())).containsExactly(t.unitId());
+        var admin = member(t, Role.ADMINISTRATOR, "Ana Admin", "ACTIVE", t.unitId());
+        var other = member(t, Role.ADMINISTRATOR, "Outra", "ACTIVE", t.unitId());
+        assertThat(call(units(other.link(), t.unitId()), admin).getStatus()).isEqualTo(403);
+        assertThat(unitsOf(other.link())).containsExactly(t.unitId());
     }
 
     @Test

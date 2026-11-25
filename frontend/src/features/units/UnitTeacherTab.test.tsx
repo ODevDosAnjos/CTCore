@@ -18,6 +18,11 @@ describe("UnitTeacherTab (R6)", () => {
     expect(screen.getByText(/Em qualquer caso, o Professor nunca vê valores, plano, benefício, CPF, endereço nem situação financeira/)).toBeInTheDocument();
   });
 
+  it("CA11: o atalho Ver tabela de permissões abre a tabela da unidade", () => {
+    renderTab(tab);
+    expect(screen.getByRole("link", { name: "Ver tabela de permissões" })).toHaveAttribute("href", "/configuracoes/unidade/permissoes");
+  });
+
   it("CA15: cada interruptor grava a sua permissão no rascunho", async () => {
     const user = userEvent.setup();
     const { draft } = renderTab(tab);

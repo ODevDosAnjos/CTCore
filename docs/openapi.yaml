@@ -2098,11 +2098,13 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /users:
     get:
-      summary: Lista a equipe da gestão que o vínculo ativo gere (RF-ACE-06). Coordenador e Administrador.
+      summary: Lista os Administradores da organização (RF-ACE-06). Só o Coordenador.
       description: |
-        O Coordenador vê os Administradores da organização; o Administrador vê os Professores com ao menos uma das suas unidades.
-        Professor, Aluno e Responsável recebem 403. Sem `status` devolve `PENDING` e `ACTIVE`; `ENDED` só quando pedido.
-        `canManage` é falso quando o Professor tem unidade fora do alcance do Administrador. Sem token, hash nem IP. Sem paginação (até 200).
+        Só o Coordenador usa as rotas `/users` (tabela de permissões, `STAFF_USERS`); o Administrador recebe 403 em todas (#611), e o acesso do Professor
+        é gerido em `/teachers/{id}/access`.
+        Professor, Aluno e Responsável também recebem 403. Sem `status` devolve `PENDING` e `ACTIVE`; `ENDED` só quando pedido.
+        `seats` é o número de vagas que a linha ocupa (RN-ASS-21): as unidades do vínculo `ACTIVE`; 0 em `PENDING`, `ENDED` e no vínculo de
+        Administrador do próprio Coordenador. Sem token, hash nem IP. Sem paginação (até 200).
       security: [{ sessionCookie: [] }]
       parameters:
         - { name: status, in: query, required: false, schema: { type: string, enum: [PENDING, ACTIVE, ENDED] } }
@@ -2114,9 +2116,9 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
-      summary: Convida alguém da gestão (RF-ACE-06, RN-ACE-05). Coordenador convida Administrador; Administrador convida Professor.
+      summary: Convida um Administrador (RF-ACE-06, RN-ACE-05). Só o Coordenador.
       description: |
-        O perfil nunca vem do corpo (um `role` enviado é ignorado). O Administrador só convida para unidades dele (senão 403); unidade de
+        O perfil nunca vem do corpo (um `role` enviado é ignorado; o convite é sempre de Administrador). Unidade de
         outra organização ou inativa responde 400. E-mail já ligado a esta organização no mesmo perfil, com vínculo `PENDING` ou `ACTIVE`,
         responde 409 `ALREADY_LINKED`; conta desativada, 403. Acima de 200 usuários da gestão, 409 `STAFF_LIMIT_REACHED` (RN-ORG-05).
         Grava `invite.created` na auditoria, sem o e-mail nem o código.
@@ -2171,9 +2173,8 @@ paths:
     put:
       summary: Troca as unidades de um vínculo pendente ou ativo (RF-ACE-06).
       description: |
-        O Coordenador define a lista inteira de um Administrador. O Administrador mexe só nas unidades dele num Professor; as demais do
-        Professor ficam. Lista vazia ou que deixaria o vínculo sem unidade: 400; unidade fora do alcance de quem chama: 403; unidade de outra
-        organização ou inativa: 400. Tirar a unidade do último Administrador ativo de uma unidade ativa responde 409 `LAST_UNIT_ADMINISTRATOR`
+        O Coordenador define a lista inteira de um Administrador. Lista vazia: 400; unidade de outra organização ou inativa: 400. Tirar a unidade
+        do último Administrador ativo de uma unidade ativa responde 409 `LAST_UNIT_ADMINISTRATOR`
         (`fields`, campo `unitIds`, traz os ids separados por vírgula). Vínculo fora do alcance ou do perfil gerido: 404. Grava `link.units_changed`.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
@@ -2195,7 +2196,7 @@ paths:
       summary: Desativa o vínculo (RF-ACE-06, RN-ACE-20); a conta e os vínculos em outras organizações ficam.
       description: |
         Vínculo `ACTIVE` vira `ENDED` (as sessões acabam se era o último vínculo de gestão); `PENDING` tem o convite cancelado. Ninguém desativa
-        a si mesmo (409 `CONFLICT`) nem o Coordenador (403). O Administrador só desativa Professor cujas unidades estejam todas entre as dele (403).
+        a si mesmo (409 `CONFLICT`) nem o Coordenador (403). O Administrador chamador recebe 403 (#611).
         Desativar o último Administrador ativo de uma unidade ativa responde 409 `LAST_UNIT_ADMINISTRATOR`. Alvo de outra organização ou perfil: 404.
         Grava `link.ended` ou `invite.canceled`.
       security: [{ sessionCookie: [], csrfHeader: [] }]
@@ -5312,12 +5313,12 @@ components:
         deactivatedAt: { type: string, format: date-time, nullable: true, description: 'Instante da desativação; nulo nas ativas e nas desativadas antes deste campo existir.' }
     StaffUser:
       type: object
-      required: [linkId, name, email, role, units, lastAccessAt, status, canManage]
+      required: [linkId, name, email, role, units, lastAccessAt, status, canManage, seats]
       properties:
         linkId: { type: string, format: uuid, description: 'Identificador da linha: o vínculo, não a conta.' }
         name: { type: string }
         email: { type: string }
-        role: { type: string, enum: [ADMINISTRATOR, TEACHER] }
+        role: { type: string, enum: [ADMINISTRATOR] }
         units:
           type: array
           items:
@@ -5328,7 +5329,8 @@ components:
               name: { type: string }
         lastAccessAt: { type: string, format: date-time, nullable: true, description: 'Nulo se a pessoa nunca entrou.' }
         status: { type: string, enum: [PENDING, ACTIVE, ENDED] }
-        canManage: { type: boolean, description: 'Falso quando alguma unidade da pessoa está fora do alcance de quem chama.' }
+        canManage: { type: boolean, description: 'Sempre verdadeiro para o Coordenador, o único que usa estas rotas (#611).' }
+        seats: { type: integer, minimum: 0, description: 'Vagas de Administrador que a linha ocupa (RN-ASS-21): uma por unidade do vínculo ACTIVE; 0 em PENDING, ENDED e no Coordenador nomeado.' }
     StaffInvite:
       type: object
       required: [email, name, unitIds]

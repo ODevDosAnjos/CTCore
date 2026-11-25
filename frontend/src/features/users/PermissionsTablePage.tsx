@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { hrefOf } from "@/routes";
 import { MATRIX, PROFILES } from "./permissionMatrix";
 
 function Content() {
@@ -19,7 +20,7 @@ function Content() {
         subtitle={t("permissionsTable.subtitle")}
         actions={
           <Button asChild variant="ghost">
-            <Link to="/configuracoes/usuarios">
+            <Link to={hrefOf("unitSettings")}>
               <ChevronLeft aria-hidden="true" />
               {t("permissionsTable.back")}
             </Link>
