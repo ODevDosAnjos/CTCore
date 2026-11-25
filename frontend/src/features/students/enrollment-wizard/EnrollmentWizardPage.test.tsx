@@ -79,10 +79,11 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     expect(await screen.findByText(/Aluno Adulto Fictício · \d+ anos/)).toBeInTheDocument();
   });
 
-  it("CA1 a CA3: migalha, subtítulo, passos, Até aqui só nas etapas 2 e 3 e botões da moldura", async () => {
+  it("CA1 a CA3: migalha, sem subtítulo, passos, Até aqui só nas etapas 2 e 3 e botões da moldura", async () => {
     const user = userEvent.setup();
     await setup();
-    expect(await screen.findByText(/Unidade .* · o aluno fica Ativo ao concluir|O aluno fica Ativo ao concluir/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Nova matrícula" })).toBeInTheDocument();
+    expect(screen.queryByText(/o aluno fica Ativo ao concluir/i)).toBeNull();
     expect(within(screen.getByRole("navigation", { name: "Você está em" })).getByText("Nova matrícula")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("list", { name: "Etapas" }).querySelectorAll("li")).toHaveLength(5);
     expect(screen.getByText("Etapa 1 de 5 · Aluno")).toBeInTheDocument();

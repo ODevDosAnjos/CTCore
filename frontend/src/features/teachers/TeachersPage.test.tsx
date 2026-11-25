@@ -117,11 +117,11 @@ describe("TeachersPage", () => {
     expect(calls.at(-1)!.get("size")).toBe("25");
   });
 
-  it("CA1: subtítulo com a contagem (carregando… antes), abre em Ativos, Todos traz os inativos, busca com ícone e sem introdução", async () => {
+  it("CA1: sem subtítulo nem contagem, abre em Ativos, Todos traz os inativos, busca com ícone e sem introdução", async () => {
     const user = userEvent.setup();
     setup();
-    expect(await screen.findByText("carregando…")).toBeInTheDocument();
-    expect(await screen.findByText("5 professores · 4 com acesso")).toBeInTheDocument();
+    expect(await screen.findByText("Ana Souza")).toBeInTheDocument();
+    expect(screen.queryByText(/carregando…|professores · \d+ com acesso/)).toBeNull();
     expect(screen.getByRole("button", { name: "Situação Ativos" })).toBeInTheDocument();
     expect(calls[0].get("status")).toBe("ACTIVE");
     expect(screen.queryByText("João Pereira")).toBeNull();
