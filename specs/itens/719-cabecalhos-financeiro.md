@@ -104,6 +104,17 @@ Não rodou (fica para o CI, conforme AGENTS.md): suíte visual inteira, `test:co
 Instáveis: nenhum visto nesta rodada.
 Achados: nenhum.
 
+### Rodada 2 — OK — 2026-11-25, estado 3a00374f12f53907d6020e2904e26571e2d16dad
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA10 | PASSOU (mantido da rodada 1) | `git diff --name-only 8729d56 HEAD` lista só `AGENTS.md`, `specs/backlog.md` e este arquivo; nenhum código, teste, i18n nem referência visual mudou desde a rodada 1 |
+
+Comandos: `git status --short` → limpo; `git diff --name-only 8729d56 HEAD` → só os 3 arquivos acima. Lint, typecheck e visual não foram rodados de novo porque o código é idêntico ao da rodada 1 (orientação do dono).
+Base: merge simples de `origin/dev` (`c72abdf9`), backlog da `dev` mantido; a diferença em `AGENTS.md` vem da base e não é do item.
+Instáveis: nenhum visto.
+Achados: nenhum.
+
 ## Entrega
 
 - O que muda: nas telas de Financeiro (planos, benefícios, cobranças e subtelas, recebimentos, conferência, pagamento manual e comprovante Pix), saem o subtítulo com a unidade, as contagens soltas, as frases de regra interna e as notas de regra; as chaves de `pt-BR.json` que ficaram sem uso saem junto. Layout, API e regras não mudam.
@@ -111,4 +122,4 @@ Achados: nenhum.
 - Divergência com o canvas que sobra: o canvas ainda mostra o subtítulo de Cobranças, que a decisão 33/34 manda tirar; a referência segue o sistema (sem subtítulo), conforme o AGENTS.md.
 - Visual do CI: suíte inteira passou (depois de regerar as 80 referências listadas na construção).
 - Commit inclui `specs/itens/646-cabecalhos-sem-subtitulo.md`: a edição já estava na pasta de trabalho antes da construção e entrou na rodada verificada; não é alteração de código.
-- Base: `origin/dev` avançou para `c72abdf9` (backlog reescrito, `AGENTS.md`) depois da verificação. O merge de `origin/dev` na branch deu conflito em `specs/backlog.md`; merge abortado, sem alteração de código. Entrega bloqueada até a base ser incorporada.
+- Base: `origin/dev` avançou para `c72abdf9` depois da rodada 1; incorporada por merge simples (`3a00374f`), com o conflito em `specs/backlog.md` resolvido mantendo o backlog da `dev` com a #719 marcada feita. Código idêntico ao da rodada 1; rodada 2 OK registrada. Entrega liberada.
