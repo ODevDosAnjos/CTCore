@@ -92,7 +92,7 @@ describe("AccountPage: abas (CA1, CA2)", () => {
     expect(screen.getByRole("link", { name: "Voltar" })).toHaveAttribute("href", "/portal/minhas-informacoes");
     for (const name of ["Acesso", "Verificação em duas etapas", "Sessões ativas", "Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     expect(screen.getByText("Opcional para alunos")).toBeInTheDocument();
-    expect(screen.getByText("No portal, a sessão dura 30 dias.")).toBeInTheDocument();
+    expect(await screen.findByText("No portal, a sessão dura 30 dias.")).toBeInTheDocument();
     for (const name of ["Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("button", { name })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getAllByText("Em breve").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();

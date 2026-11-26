@@ -52,6 +52,12 @@ async function fillModality(user: ReturnType<typeof userEvent.setup>) {
   await choose(user, "Plano", /Jiu-Jitsu Livre/);
 }
 
+// Texto longo de uma vez (paste): digitar tecla a tecla estoura o tempo do teste sob carga.
+const paste = async (user: ReturnType<typeof userEvent.setup>, field: HTMLElement, text: string) => {
+  await user.click(field);
+  await user.paste(text);
+};
+
 const pickDay = async (user: ReturnType<typeof userEvent.setup>) => user.click(await screen.findByRole("radio", { name: "Dia 5" }));
 
 async function toBilling(user: ReturnType<typeof userEvent.setup>) {
@@ -83,6 +89,7 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     const user = userEvent.setup();
     await setup();
     expect(await screen.findByRole("heading", { name: "Nova matrícula" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Cancelar" })).toBeInTheDocument();
     expect(screen.queryByText(/o aluno fica Ativo ao concluir/i)).toBeNull();
     expect(within(screen.getByRole("navigation", { name: "Você está em" })).getByText("Nova matrícula")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("list", { name: "Etapas" }).querySelectorAll("li")).toHaveLength(5);
@@ -130,23 +137,23 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
     const user = userEvent.setup();
     await setup();
     await choose(user, "Unidade de cadastro", /Centro/);
-    await user.type(await screen.findByLabelText(/Nome completo/), "Criança Nova");
+    await paste(user, await screen.findByLabelText(/Nome completo/), "Criança Nova");
     await user.type(screen.getByLabelText(/Data de nascimento/), "2018-04-05");
     await user.type(screen.getByLabelText("CEP"), "01001000");
-    await user.type(screen.getByLabelText("Rua"), "Rua A");
+    await paste(user, screen.getByLabelText("Rua"), "Rua A");
     await user.type(screen.getByLabelText("Número"), "10");
-    await user.type(screen.getByLabelText("Bairro"), "Centro");
-    await user.type(screen.getByLabelText("Cidade"), "Rio");
+    await paste(user, screen.getByLabelText("Bairro"), "Centro");
+    await paste(user, screen.getByLabelText("Cidade"), "Rio");
     await choose(user, "Estado", "RJ");
     expect(await screen.findByText("Responsáveis")).toBeInTheDocument();
     expect(screen.getByText("Menor de idade: vincule ao menos um responsável.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
-    await user.type(screen.getByLabelText("Nome do responsável"), "Mãe Fictícia");
+    await paste(user, screen.getByLabelText("Nome do responsável"), "Mãe Fictícia");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findAllByText("Informe os dados do responsável.")).not.toHaveLength(0);
     expect(screen.queryByText(/Etapa 2 de 5/)).toBeNull();
     await user.type(screen.getByLabelText("CPF do responsável"), NEW_CPF);
-    await user.type(screen.getByLabelText("E-mail do responsável"), "mae@exemplo.example");
+    await paste(user, screen.getByLabelText("E-mail do responsável"), "mae@exemplo.example");
     await user.type(screen.getByLabelText("Celular do responsável"), "21999990000");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findByText(/Etapa 2 de 5/)).toBeInTheDocument();

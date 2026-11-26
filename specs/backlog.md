@@ -243,7 +243,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 719 | 646c · Cabeçalhos sem subtítulo: Financeiro | issue #719 (parte da #646) | Sprint 10.5 | #718 | agente | feito |
 | 720 | 646d · Cabeçalhos sem subtítulo: Comunicação | issue #720 (parte da #646) | Sprint 10.5 | #719 | agente | feito |
 | 683 | Teste instável: e2e recuperar-senha (@critical Recuperação de senha) falha uma vez no CI | issue #683 | Sprint 10.5 | — | agente | feito |
-| 724 | Técnica: testes de tela instáveis sob carga (junta #540, #594 e #597) | issue #724 | Sprint 10.5 | — | agente | a fazer |
+| 724 | Técnica: testes de tela instáveis sob carga (junta #540, #594 e #597) | issue #724 | Sprint 10.5 | — | agente | feito |
 | 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (conferência final; fecha a #646) | issue #721 (parte da #646) | Sprint 10.5 | #720 | agente | a fazer |
 | 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna (item-mãe: dividido em #717 a #721; fecha na #721; sem construção própria) | issue #646 | Sprint 10.5 | #721 | agente | dividido |
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #721, #568 | agente | a fazer |

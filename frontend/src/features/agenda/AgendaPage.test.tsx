@@ -152,9 +152,9 @@ describe("AgendaPage", () => {
   it("CA1, CA2: cabeçalho com subtítulo da unidade, Dias sem aula, Nova aula avulsa e sem parágrafo de introdução", async () => {
     setup();
     await ready();
+    expect(await screen.findByRole("button", { name: "Nova aula avulsa" })).toBeInTheDocument();
     expect(screen.queryByText(/8 semanas sempre criadas/)).toBeNull();
     expect(within(screen.getByRole("heading", { level: 1 }).closest("header")!).getByRole("link", { name: "Dias sem aula" })).toHaveAttribute("href", "/dias-sem-aula");
-    expect(screen.getByRole("button", { name: "Nova aula avulsa" })).toBeInTheDocument();
     expect(screen.queryByText(/As aulas da semana da sua unidade/)).toBeNull();
   });
 
@@ -296,9 +296,15 @@ describe("AgendaPage", () => {
   it("CA15: carregando, vazio, erro com Tentar de novo e sem permissão", async () => {
     const user = userEvent.setup();
     let fail = true;
-    const view = () => (fail ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json(data({ lessons: [], noClassDays: [] })));
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r)); // segura a resposta até o "Carregando..." ser visto
+    const view = async () => {
+      await gate;
+      return fail ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json(data({ lessons: [], noClassDays: [] }));
+    };
     setup({ body: view });
     expect(await screen.findByText("Carregando...")).toBeInTheDocument();
+    release();
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
     fail = false;
     await user.click(retry);
