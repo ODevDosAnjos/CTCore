@@ -77,8 +77,8 @@ describe("DailyReceiptsPage (RF-COB-08, #479)", () => {
     await ready();
     expect(await screen.findByText(/^[A-Z][^ ,]+, \d{1,2} de [a-zç]+ de \d{4}$/)).toBeInTheDocument();
     expect(screen.queryByText(/sem abertura ou fechamento/)).toBeNull();
-    expect(screen.getByRole("button", { name: "Dia anterior" })).toBeInTheDocument();
-    const csv = screen.getByRole("button", { name: /Exportar CSV/ });
+    expect(await screen.findByRole("button", { name: "Dia anterior" })).toBeInTheDocument();
+    const csv = await screen.findByRole("button", { name: /Exportar CSV/ });
     expect(csv).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText("Em breve")).toBeInTheDocument();
     expect(screen.queryByLabelText("Data")).toBeNull();
@@ -147,17 +147,14 @@ describe("DailyReceiptsPage (RF-COB-08, #479)", () => {
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
-  it("CA13: a 360 px vira cartões, sem tabela, e o axe não acusa violação nos dois temas", async () => {
-    for (const dark of [false, true]) {
-      setDeviceNarrow(true, dark);
-      window.innerWidth = 360;
-      const { container, unmount } = setup();
-      await ready();
-      await screen.findByText("Total");
-      expect(screen.queryAllByRole("table")).toHaveLength(0);
-      expect(screen.getByText("Portal (aluno pagou)")).toBeInTheDocument();
-      expect(await axeViolations(container)).toEqual([]);
-      unmount();
-    }
+  it.each([["claro", false], ["escuro", true]] as const)("CA13: a 360 px vira cartões, sem tabela, e o axe não acusa violação no tema %s", async (_n, dark) => {
+    setDeviceNarrow(true, dark);
+    window.innerWidth = 360;
+    const { container } = setup();
+    await ready();
+    await screen.findByText("Total");
+    expect(screen.queryAllByRole("table")).toHaveLength(0);
+    expect(await screen.findByText("Portal (aluno pagou)")).toBeInTheDocument();
+    expect(await axeViolations(container)).toEqual([]);
   });
 });

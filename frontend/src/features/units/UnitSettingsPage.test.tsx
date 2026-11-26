@@ -309,31 +309,36 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     expect(puts[0]!.body.settings).toMatchObject({ directoryEnabled: true });
   });
 
-  it("CA18: carregando, erro com Tentar de novo, sem permissão e Professor veem os estados certos", async () => {
-    const user = userEvent.setup();
-    const first = setup("COORDINATOR", { read: () => new Promise<Response>(() => {}) });
+  // Um cenário por teste: somados num só, sessão + permissões + dados de cada etapa estouravam os 20 s sob carga.
+  it("CA18: carregando mostra o aviso de carregando", async () => {
+    setup("COORDINATOR", { read: () => new Promise<Response>(() => {}) });
     // #519: o aviso de carregando da sessão e o da tela têm o mesmo texto; findBy sozinho devolvia um nó que já tinha sido trocado.
     await waitFor(() => expect(screen.getByText("Carregando...")).toBeInTheDocument());
-    first.unmount();
+  });
 
+  it("CA18: erro de leitura mostra Tentar de novo e recarrega", async () => {
+    const user = userEvent.setup();
     let fail = true;
-    const second = setup("COORDINATOR", {
+    setup("COORDINATOR", {
       read: () => (fail ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json(stored[A])),
     });
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
     fail = false;
     await user.click(retry);
     await ready();
-    second.unmount();
+  });
 
-    const third = setup("COORDINATOR", { read: () => HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 }) });
+  it("CA18: unidade não encontrada mostra Você não tem acesso", async () => {
+    setup("COORDINATOR", { read: () => HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
-    third.unmount();
+  });
 
-    const fourth = setup("ADMINISTRATOR", { reachable: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
+  it("CA18: Administrador sem alcance (403) mostra Você não tem acesso", async () => {
+    setup("ADMINISTRATOR", { reachable: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
-    fourth.unmount();
+  });
 
+  it("CA18: Professor vê que a área não está disponível para o perfil", async () => {
     setup("TEACHER");
     expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
   });

@@ -139,7 +139,7 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
     );
     show(result("ready", enrollmentOf([modalityRow()])), false, "/alunos/s1?pedido=r1");
     const dialog = await screen.findByRole("dialog", { name: "Trocar turma" });
-    expect(within(dialog).getByText(/· pedido do portal de 07\/10$/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/· pedido do portal de 07\/10$/)).toBeInTheDocument();
     expect(within(dialog).getByText(/^Pedido aprovado\. Termine a troca abaixo; se desistir, o pedido continua Aprovado e a matrícula não muda\.$/)).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Confirmar troca" })).toBeInTheDocument();
     await userEvent.setup().click(within(dialog).getByRole("button", { name: "Desistir" }));
@@ -147,10 +147,15 @@ describe("aba Matrícula e modalidades (R23, R27, CA33)", () => {
   });
 
   it("R18: pedido de outro aluno ou que não carrega não abre janela", async () => {
-    server.use(http.get("/api/v1/portal-requests/r1", () => HttpResponse.json({ id: "r1", kind: "CLASS_CHANGE", studentId: "outro", modalityRowId: "m1", targetClassId: "k3" })));
+    let answered = false;
+    server.use(http.get("/api/v1/portal-requests/r1", () => {
+      answered = true;
+      return HttpResponse.json({ id: "r1", kind: "CLASS_CHANGE", studentId: "outro", modalityRowId: "m1", targetClassId: "k3" });
+    }));
     show(result("ready", enrollmentOf([modalityRow()])), false, "/alunos/s1?pedido=r1");
     await screen.findByText("Jiu-Jitsu");
-    await new Promise((r) => setTimeout(r, 50));
+    await waitFor(() => expect(answered).toBe(true));
+    await Promise.resolve();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
