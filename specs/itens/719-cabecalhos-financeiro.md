@@ -111,3 +111,4 @@ Achados: nenhum.
 - Divergência com o canvas que sobra: o canvas ainda mostra o subtítulo de Cobranças, que a decisão 33/34 manda tirar; a referência segue o sistema (sem subtítulo), conforme o AGENTS.md.
 - Visual do CI: suíte inteira passou (depois de regerar as 80 referências listadas na construção).
 - Commit inclui `specs/itens/646-cabecalhos-sem-subtitulo.md`: a edição já estava na pasta de trabalho antes da construção e entrou na rodada verificada; não é alteração de código.
+- Base: `origin/dev` avançou para `c72abdf9` (backlog reescrito, `AGENTS.md`) depois da verificação. O merge de `origin/dev` na branch deu conflito em `specs/backlog.md`; merge abortado, sem alteração de código. Entrega bloqueada até a base ser incorporada.
