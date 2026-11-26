@@ -6,6 +6,8 @@ Sprint liberada: Sprint 10.5 (Identidade visual). O dono confirmou em 29/10/2026
 
 Triagem de 25/11/2026 (decisão do dono): foram criados os marcos **10.5b · Polimento** (18 issues de polimento cosmético do canvas, mais a #664, que fica para o fim do produto, antes do piloto, porque as sprints seguintes criam textos novos; o `limiteCanvas` delas continua com a issue citada) e **Dívida técnica** (técnicas que não bloqueiam o CI nem a `dev`; sobem para a frente só se falharem no CI). Os dois marcos **não estão liberados**: as linhas deles entram na ordem de trabalho só quando o dono os liberar, qualquer que seja a posição da linha neste arquivo. Fechadas e juntadas: #662 (pela #671), #563 (na #581), #579 (na #590), #540, #594 e #597 (na #724), #535, #557 e #620 (na #725). A #699 continua esperando a decisão do dono e não trava nada; as #667, #706 e #621 são reavaliadas depois da #701.
 
+Versão 1.0 e Atualizações (decisão do dono, 25/11/2026; ordem e motivos em "ctcore · Ordem de prioridades até o lançamento", no projeto CTCORE): a meta é o sistema funcional até 31/12/2026, a academia piloto implantada na 1ª quinzena de janeiro de 2027 e a venda aberta logo depois, com atualizações semanais. A ordem de trabalho abaixo é a da versão 1.0 (68 issues), seguida dos marcos sem número **Atualizações · Polimento** (as 18 de polimento da antiga 10.5b, mais #534 e #567, que estavam na 10.5) e **Atualizações · Funcionalidades** (67 issues), que **não estão liberados**, e do marco **Manutenção · Dívida técnica** (o antigo "Dívida técnica", renomeado, que também recebe #407 e #413, testes instáveis que estavam na Sprint 11). O marco "10.5b · Polimento" foi esvaziado e fechado. Marcos sem número são trilhas contínuas: o loop só os pega quando o dono libera. Mudanças de marco: #664 volta da 10.5b para a 10.5 (revisão de textos na 1.0); #168 (site, só a versão mínima: o que é, preço, botão de assinar e termos) vai para a Sprint 16; o resto da 10.5b, as issues de configuração da 10.5 que não entram na 1.0 e as Sprints 15, 17 a 21 (menos a #168), além de #101, #103, #112, #114 a #116, #125, #126, #335, #375, #149, #150, #177, #178, #180, #181 e #190, vão para Atualizações · Funcionalidades (o polimento vai para Atualizações · Polimento). Premissas da 1.0: a piloto entra pelo cadastro normal com um cupom de 100% por 3 ciclos (criado por script; a tela de cupons fica em Atualizações); a assinatura é cobrada como pessoa física; sem SMS, boleto e débito automático; termos de uso e política de privacidade fixos no seed; conexões reais por último. Ajustes de especificação pendentes antes das sprints afetadas: P7 a P10 em "Pendências para o dono".
+
 **Sprint 10.5 concluída** quando: (1) todas as issues abertas do marco "Sprint 10.5 · Identidade visual" estão feitas (moldura, componentes base, telas e regras de domínio, incluindo as partes da #646 e a #714), sem as do polimento nem a #664; (2) a #714 recalibrou o `visual:canvas` e removeu a regra temporária do AGENTS.md; (3) o `ci-gate` está verde na `dev`; (4) o dono revisou a sprint e fez o PR de `dev` para `main`.
 
 Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sprint anterior"), que a ordem já cobre; por isso a coluna fica "—". Exceção declarada no plano: #5 e #11 ficaram só com a parte que o agente faz sozinho; hospedagem e publicação são #192 e #193. Na Sprint 10.5, as issues #437 a #501 trazem na coluna as dependências entre itens do plano (as mesmas marcadas como "bloqueada por" no GitHub) e as linhas seguem a ordem de execução do plano `docs/auditoria/plano-de-issues.md`: Fase 1 (bugs, regras e itens técnicos, #437 a #449, com a #435 logo depois da #448), Fase 2 (componentes, na sequência #450, #452, #453, #434, #454, #455, #456, #457, #458, #459, #460, #451, #461, #462, #463, #464) e Fase 3 (telas por área, #465 a #501).
@@ -232,6 +234,10 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 624 | Menu lateral e rolagem: ícones só nos grupos, painel flutuante no recolhido, um grupo aberto e barra de rolagem discreta em todo o sistema | issue #624 | Sprint 10.5 | — | agente | feito |
 | 717 | 646a · Cabeçalhos sem subtítulo: Pessoas | issue #717 (parte da #646) | Sprint 10.5 | #624 | agente | feito |
 | 718 | 646b · Cabeçalhos sem subtítulo: Operação | issue #718 (parte da #646) | Sprint 10.5 | #717 | agente | feito |
+| 523 | Técnica · Testes com relógio real: AgendaPage CA14 e cenarios-cobrancas CA11 falham aos domingos | issue #523 | sem marco | — | agente | feito |
+| 527 | Técnica · Conta do dono no AGENTS.md: ODevDosAnjos | issue #527 | Sprint 10.5 | — | agente | feito |
+| 528 | Técnica · Teste visual em paralelo no CI | issue #528 | Sprint 10.5 | — | agente | feito |
+| 530 | Técnica · Teste visual instável em conta-duas-etapas (1440) | issue #530 | Sprint 10.5 | — | agente | feito |
 | 719 | 646c · Cabeçalhos sem subtítulo: Financeiro | issue #719 (parte da #646) | Sprint 10.5 | #718 | agente | a fazer |
 | 720 | 646d · Cabeçalhos sem subtítulo: Comunicação | issue #720 (parte da #646) | Sprint 10.5 | #719 | agente | a fazer |
 | 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (conferência final; fecha a #646) | issue #721 (parte da #646) | Sprint 10.5 | #720 | agente | a fazer |
@@ -239,18 +245,10 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #721, #568 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
-| 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Sprint 10.5 | #625 | agente | a fazer |
 | 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #625 | agente | a fazer |
 | 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade | issue #630 | Sprint 10.5 | #608 | agente | a fazer |
-| 631 | RN-ACE-25 · Atividade recente em Minha conta › Segurança | issue #631 | Sprint 10.5 | #630 | agente | a fazer |
-| 632 | RF-PRO-05 · Minha conta › Perfil de professor com o consentimento do diretório | issue #632 | Sprint 10.5 | #630 | agente | a fazer |
-| 633 | RF-MOD-01 a 03 · Modalidades e graduação mais claras: cartões, janela, editor de níveis e modalidades da unidade | issue #633 | Sprint 10.5 | #625 | agente | a fazer |
-| 634 | RF-ACE-09 · Tabela de permissões com selos em texto, por área e com o estado das chaves da unidade | issue #634 | Sprint 10.5 | #611, #625 | agente | a fazer |
-| 635 | RF-ORG-04 · Bloco "Vale para todas as unidades" nas abas da unidade | issue #635 | Sprint 10.5 | #625 | agente | a fazer |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) | issue #636 | Sprint 10.5 | — | agente | a fazer |
 | 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |
-| 639 | RN-MAT-16a · Chaves dos pedidos pelo portal por unidade | issue #639 | Sprint 10.5 | #625 | agente | a fazer |
-| 640 | RF-ORG-10 · Configurações › Visão geral: quadros por unidade e por pessoa | issue #640 | Sprint 10.5 | #625, #627, #628, #638, #639 | agente | a fazer |
 | 645 | RNF-44 · Movimento e retorno: avisos no canto, carregamento e transições | issue #645 | Sprint 10.5 | #624, #643 | agente | a fazer |
 | 647 | RNF-48 a 50 · Campos de valor e número, campos dependentes e validação | issue #647 | Sprint 10.5 | — | agente | a fazer |
 | 648 | RNF-47 · Motivos em lista com "Outro" em todo o sistema | issue #648 | Sprint 10.5 | — | agente | a fazer |
@@ -260,31 +258,18 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 652 | RF-COB-01 a 08 · Cobranças e pagamentos: ordem, criado por, painel, recibo e calendário | issue #652 | Sprint 10.5 | #646 a #650 | agente | a fazer |
 | 653 | RN-PLA-07 · Planos com nome gerado e tela só de planos | issue #653 | Sprint 10.5 | #647 | agente | a fazer |
 | 654 | RN-BEN-01 a 08 · Benefícios: sem benefício alto, editar em vez de substituir, cascata e limites | issue #654 | Sprint 10.5 | #647, #649 | agente | a fazer |
-| 655 | RF-AGE-01/04 · Agenda de domingo a sábado, filtros da unidade e aula avulsa | issue #655 | Sprint 10.5 | #647, #658 | agente | a fazer |
 | 656 | RN-TUR-01/02 · Turmas com nome gerado, variação e capacidade de 1 a 30 | issue #656 | Sprint 10.5 | #647 | agente | a fazer |
-| 657 | RN-AGE-09 · Feriados e recessos: feriados automáticos e aviso com 24 h | issue #657 | Sprint 10.5 | #648 | agente | a fazer |
-| 658 | RF-COM-01/02 · Comunicados: tela única, destino por escopo, tipos novos, agendamento e imagem | issue #658 | Sprint 10.5 | #646, #647, #650 | agente | a fazer |
 | 659 | RF-MAT-01 · Nova matrícula: CPF automático, retomar etapa, faixa etária da turma e sem etapa de vencimento | issue #659 | Sprint 10.5 | #651, #647, #648, #649 | agente | a fazer |
-| 660 | RF-PRO-03 · Professor: graduação obrigatória, CPF e endereço opcionais e edição como a ficha | issue #660 | Sprint 10.5 | #647 | agente | a fazer |
-| 661 | RF-MAT-04 · Pedidos: aprovar sem sair da tela | issue #661 | Sprint 10.5 | #645, #648 | agente | a fazer |
 | 122 | RF-INI-01 · Início do Coordenador | issue #122 | Sprint 10.5 | — | agente | a fazer |
 | 123 | RF-INI-02 · Início do Administrador | issue #123 | Sprint 10.5 | — | agente | a fazer |
 | 124 | RF-INI-03 · Início do Professor | issue #124 | Sprint 10.5 | — | agente | a fazer |
-| 664 | RNF-55 · Revisão de textos: maiúsculas, botões curtos, frases simples e vocabulário único | issue #664 | 10.5b · Polimento | #643 a #661, #122 a #124 | agente | a fazer |
-| 613 | Aviso aberto do portal: autor em duas linhas, como o canvas | issue #613 | 10.5b · Polimento | #496 | agente | a fazer |
-| 614 | Aviso aberto do portal: avatar do autor com o tom do canvas | issue #614 | Sprint 10.5 | #496 | agente | a fazer |
-| 615 | Avisos do portal: pílulas de filtro e Fixado com o tom do canvas | issue #615 | Sprint 10.5 | #496 | agente | a fazer |
-| 616 | Aviso aberto do portal no celular: página sem cartão, como o canvas | issue #616 | Sprint 10.5 | #496 | agente | a fazer |
-| 617 | Aviso aberto do portal: ícone do botão do grupo da turma como o canvas | issue #617 | Sprint 10.5 | #496 | agente | a fazer |
-| 618 | Avisos do portal: linha de apoio do aviso de unidade como o canvas | issue #618 | Sprint 10.5 | #496 | agente | a fazer |
+| 664 | RNF-55 · Revisão de textos: maiúsculas, botões curtos, frases simples e vocabulário único | issue #664 | Sprint 10.5 | #643 a #661, #122 a #124 | agente | a fazer |
 | 96 | Porta de pagamento com o simulador: baixa, webhook e conciliação | issue #96 | Sprint 11 | — | agente | a fazer |
 | 97 | RF-PAG-01 · Configurações › Unidade › Pagamentos | issue #97 | Sprint 11 | — | agente | a fazer |
 | 98 | RF-PAG-02 · Janela de pagamento no portal | issue #98 | Sprint 11 | — | agente | a fazer |
 | 99 | RF-PAG-03 · Pagamento por Pix | issue #99 | Sprint 11 | — | agente | a fazer |
 | 100 | RF-PAG-04 · Pagamento por cartão | issue #100 | Sprint 11 | — | agente | a fazer |
-| 101 | RF-PAG-05 · Pagamento por boleto | issue #101 | Sprint 11 | — | agente | a fazer |
 | 102 | RF-PAG-06 · Pagamento confirmado e recibo | issue #102 | Sprint 11 | — | agente | a fazer |
-| 103 | RF-PAG-07 · Débito automático no portal | issue #103 | Sprint 11 | — | agente | a fazer |
 | 104 | RF-PAG-08 · Estorno total ou parcial | issue #104 | Sprint 11 | — | agente | a fazer |
 | 105 | RF-GRA-01 · Operação › Graduações (lista) | issue #105 | Sprint 12 | — | agente | a fazer |
 | 106 | RF-GRA-02 · Registrar graduação | issue #106 | Sprint 12 | — | agente | a fazer |
@@ -293,75 +278,24 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 109 | RF-INA-01 · Situação por modalidade e data de bloqueio na ficha | issue #109 | Sprint 12 | — | agente | a fazer |
 | 110 | RF-INA-02 · Inativar, reativar e cancelar cobranças acumuladas | issue #110 | Sprint 12 | — | agente | a fazer |
 | 111 | RF-INA-03 · Tarefa diária de bloqueio | issue #111 | Sprint 12 | — | agente | a fazer |
-| 112 | Desempenho e paginação com a organização de referência | issue #112 | Sprint 13 | — | agente | a fazer |
 | 113 | Prazos de guarda e procedimento de incidente (LGPD) | issue #113 | Sprint 13 | — | agente | a fazer |
-| 114 | RF-AUD-01 · Configurações › Auditoria | issue #114 | Sprint 13 | — | agente | a fazer |
-| 115 | RF-AUD-02 · Painel do registro de auditoria | issue #115 | Sprint 13 | — | agente | a fazer |
-| 116 | RF-AUD-03 · Exportar auditoria em CSV | issue #116 | Sprint 13 | — | agente | a fazer |
 | 117 | RF-LGP-01 · Baixar dados (portal e ficha) | issue #117 | Sprint 13 | — | agente | a fazer |
 | 118 | RF-LGP-02 · Excluir minha conta no portal | issue #118 | Sprint 13 | — | agente | a fazer |
 | 119 | RF-LGP-03 · Pedidos de exclusão no "Precisa de atenção" | issue #119 | Sprint 13 | — | agente | a fazer |
 | 120 | RF-LGP-04 · Anonimizar aluno | issue #120 | Sprint 13 | — | agente | a fazer |
 | 121 | RF-ALU-05 · Ações de LGPD na ficha do aluno | issue #121 | Sprint 13 | — | agente | a fazer |
-| 125 | RF-BUS-01 · Busca global | issue #125 | Sprint 13 | — | agente | a fazer |
-| 126 | RF-BUS-02 · Busca vazia: telas e ações rápidas | issue #126 | Sprint 13 | — | agente | a fazer |
-| 335 | Limpar comprovantes de graduação de origem enviados e não usados | issue #335 | Sprint 13 | — | agente | a fazer |
-| 375 | Editar comunicado agendado e limpar imagens de comunicado não usadas | issue #375 | Sprint 13 | — | agente | a fazer |
 | 127 | Pico de alunos, faturas e situações da assinatura no servidor | issue #127 | Sprint 14 | — | agente | a fazer |
 | 128 | RF-ASS-01 · Configurações › Assinatura | issue #128 | Sprint 14 | — | agente | a fazer |
 | 129 | RF-ASS-02 · Pagar fatura da assinatura | issue #129 | Sprint 14 | — | agente | a fazer |
 | 130 | RF-ASS-03 · Cancelar assinatura | issue #130 | Sprint 14 | — | agente | a fazer |
 | 131 | RF-ASS-04 · Faixa de situação da assinatura | issue #131 | Sprint 14 | — | agente | a fazer |
 | 132 | RF-ASS-05 · Modo somente leitura | issue #132 | Sprint 14 | — | agente | a fazer |
-| 133 | Modo suporte: consulta, liberação pelo Coordenador e auditoria | issue #133 | Sprint 15 | — | agente | a fazer |
-| 134 | RF-AJU-05 · "Falar com o suporte" (chamado) | issue #134 | Sprint 15 | — | agente | a fazer |
-| 135 | RF-PNL-01 · Painel da plataforma: Início | issue #135 | Sprint 15 | — | agente | a fazer |
-| 136 | RF-PNL-02 · Painel: lista de organizações | issue #136 | Sprint 15 | — | agente | a fazer |
-| 137 | RF-PNL-03 · Painel: detalhe da organização | issue #137 | Sprint 15 | — | agente | a fazer |
-| 138 | RF-PNL-04 · Painel: ações sobre a organização | issue #138 | Sprint 15 | — | agente | a fazer |
-| 139 | RF-PNL-05 · Painel: catálogo de modalidades e graduação | issue #139 | Sprint 15 | — | agente | a fazer |
-| 140 | RF-PNL-06 · Painel: preços da assinatura | issue #140 | Sprint 15 | — | agente | a fazer |
-| 141 | RF-PNL-07 · Painel: modelos de termos e políticas | issue #141 | Sprint 15 | — | agente | a fazer |
-| 142 | RF-PNL-08 · Painel: avisos e notas de versão | issue #142 | Sprint 15 | — | agente | a fazer |
-| 143 | RF-PNL-09 · Painel: denúncias do diretório | issue #143 | Sprint 15 | — | agente | a fazer |
-| 144 | RF-PNL-10 · Painel: chamados | issue #144 | Sprint 15 | — | agente | a fazer |
-| 145 | RF-PNL-11 · Painel: equipe da plataforma | issue #145 | Sprint 15 | — | agente | a fazer |
 | 146 | RF-CAD-01 · Formulário de cadastro da organização | issue #146 | Sprint 16 | — | agente | a fazer |
 | 147 | RF-CAD-02 · Confirmação de telefone e e-mail | issue #147 | Sprint 16 | — | agente | a fazer |
 | 148 | RF-CAD-03 · Aceite e pagamento da primeira fatura | issue #148 | Sprint 16 | — | agente | a fazer |
-| 149 | RF-CAD-04 · Assistente de boas-vindas | issue #149 | Sprint 16 | — | agente | a fazer |
-| 150 | RF-CAD-05 · Checklist "Primeiros passos" | issue #150 | Sprint 16 | — | agente | a fazer |
-| 151 | Exportação CSV e pacote completo | issue #151 | Sprint 17 | — | agente | a fazer |
-| 152 | RF-IMP-01 · Configurações › Importar e exportar | issue #152 | Sprint 17 | — | agente | a fazer |
-| 153 | RF-IMP-02 · Assistente de importação | issue #153 | Sprint 17 | — | agente | a fazer |
-| 154 | RF-IMP-03 · Convites do portal após importar | issue #154 | Sprint 17 | — | agente | a fazer |
-| 155 | RF-AEX-01 · Página pública de aula experimental | issue #155 | Sprint 18 | — | agente | a fazer |
-| 156 | RF-AEX-02 · Operação › Aulas experimentais | issue #156 | Sprint 18 | — | agente | a fazer |
-| 157 | RF-AEX-03 · Agendar aula experimental | issue #157 | Sprint 18 | — | agente | a fazer |
-| 158 | RF-AEX-04 · Painel da aula experimental | issue #158 | Sprint 18 | — | agente | a fazer |
-| 159 | RF-AEX-05 · Experimental na agenda e no Início | issue #159 | Sprint 18 | — | agente | a fazer |
-| 160 | RF-AUT-01 · Página pública de autocadastro | issue #160 | Sprint 18 | — | agente | a fazer |
-| 161 | RF-AUT-02 · Aguardando aprovação (autocadastro) | issue #161 | Sprint 18 | — | agente | a fazer |
-| 162 | RF-AUT-03 · Configurações › Unidade › Links | issue #162 | Sprint 18 | — | agente | a fazer |
-| 163 | Base dos relatórios: período, comparação, gráfico com tabela e CSV | issue #163 | Sprint 19 | — | agente | a fazer |
-| 164 | RF-REL-01 · Relatório financeiro | issue #164 | Sprint 19 | — | agente | a fazer |
-| 165 | RF-REL-02 · Relatório de alunos | issue #165 | Sprint 19 | — | agente | a fazer |
-| 166 | RF-REL-03 · Relatório de aulas experimentais | issue #166 | Sprint 19 | — | agente | a fazer |
-| 167 | RF-REL-04 · Relatório de aulas | issue #167 | Sprint 19 | — | agente | a fazer |
-| 168 | Site da plataforma pré-renderizado | issue #168 | Sprint 20 | — | agente | a fazer |
-| 169 | Diretório de academias | issue #169 | Sprint 20 | — | agente | a fazer |
-| 170 | Demonstração em /demo | issue #170 | Sprint 20 | — | agente | a fazer |
-| 171 | App instalável (PWA) do portal com uso sem conexão | issue #171 | Sprint 21 | — | agente | a fazer |
-| 172 | RF-AJU-01 · Central de ajuda | issue #172 | Sprint 21 | — | agente | a fazer |
-| 173 | RF-AJU-02 · Ícones "?" de ajuda nas telas | issue #173 | Sprint 21 | — | agente | a fazer |
-| 174 | RF-AJU-03 · Tour do primeiro acesso | issue #174 | Sprint 21 | — | agente | a fazer |
-| 175 | RF-AJU-04 · Página Novidades | issue #175 | Sprint 21 | — | agente | a fazer |
+| 168 | Site da plataforma pré-renderizado | issue #168 | Sprint 16 | — | agente | a fazer |
 | 176 | Conexão real de e-mail | issue #176 | Sprint 22 | — | pessoa (dono) | a fazer |
-| 177 | Conexão real de SMS | issue #177 | Sprint 22 | — | pessoa (dono) | a fazer |
-| 178 | Push real no navegador (Web Push) | issue #178 | Sprint 22 | — | pessoa (dono) | a fazer |
 | 179 | Desafio invisível (Turnstile) nos formulários | issue #179 | Sprint 22 | — | pessoa (dono) | a fazer |
-| 180 | Mapa e localização reais | issue #180 | Sprint 22 | — | pessoa (dono) | a fazer |
-| 181 | Métricas de uso sem cookies no site e na gestão | issue #181 | Sprint 22 | — | pessoa (dono) | a fazer |
 | 182 | Contas dos fornecedores, chaves e domínio | issue #182 | Sprint 22 | — | pessoa (dono) | a fazer |
 | 192 | Hospedagem: contratar, ligar a publicação automática e o backup | issue #192 | Sprint 22 | — | pessoa (dono) | a fazer |
 | 193 | Monitoramento em produção: alertas e disponibilidade | issue #193 | Sprint 22 | — | pessoa (dono) | a fazer |
@@ -372,20 +306,114 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 187 | Piloto em produção: organização, dados, Mercado Pago e convites | issue #187 | Sprint 24 | — | pessoa (dono) | a fazer |
 | 188 | Suíte ponta a ponta completa e teste de restauração | issue #188 | Sprint 24 | — | pessoa (dono) | a fazer |
 | 189 | Acompanhamento do primeiro ciclo e correções da piloto | issue #189 | Sprint 24 | — | pessoa (dono) | a fazer |
-| 190 | Ajustes pedidos pela piloto e desconto fixo | issue #190 | Sprint 25 | — | pessoa (dono) | a fazer |
 | 191 | Checklist de lançamento | issue #191 | Sprint 25 | — | pessoa (dono) | a fazer |
-| 523 | Técnica · Testes com relógio real: AgendaPage CA14 e cenarios-cobrancas CA11 falham aos domingos | issue #523 | sem marco | — | agente | feito |
-| 527 | Técnica · Conta do dono no AGENTS.md: ODevDosAnjos | issue #527 | Sprint 10.5 | — | agente | feito |
-| 528 | Técnica · Teste visual em paralelo no CI | issue #528 | Sprint 10.5 | — | agente | feito |
-| 530 | Técnica · Teste visual instável em conta-duas-etapas (1440) | issue #530 | Sprint 10.5 | — | agente | feito |
-| 699 | Técnica · Decisão: relógio do banco vs Clock da aplicação (antes das #696 a #698; decisão do dono) | issue #699 | Dívida técnica | — | agente | a fazer |
-| 696 | Técnica · Migrar ITs de organization e terms para Clock fixo (medição da #693) | issue #696 | Dívida técnica | #699 | agente | a fazer |
-| 697 | Técnica · Migrar ITs de student (portal) para Clock fixo (medição da #693) | issue #697 | Dívida técnica | #699 | agente | a fazer |
-| 698 | Técnica · Migrar ITs de billing, plan, notification, mail, agenda, communication e storage para Clock fixo (medição da #693) | issue #698 | Dívida técnica | #699 | agente | a fazer |
-| 706 | Técnica · Teste TextModelsIT.audit instável: medir e estabilizar | issue #706 | Dívida técnica | — | agente | a fazer |
-| 707 | Técnica · Teste visual instável em configuracoes-unidade-professor (1440 escuro): medir e estabilizar | issue #707 | Dívida técnica | — | agente | a fazer |
-| 724 | Técnica: testes de tela instáveis sob carga (junta #540, #594 e #597) | issue #724 | Dívida técnica | — | agente | a fazer |
-| 725 | Técnica: ajuste do processo, kit e AGENTS.md (junta #535, #557 e #620) | issue #725 | Dívida técnica | — | agente | a fazer |
+| 142 | RF-PNL-08 · Painel: avisos e notas de versão | issue #142 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 175 | RF-AJU-04 · Página Novidades | issue #175 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 135 | RF-PNL-01 · Painel da plataforma: Início | issue #135 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 136 | RF-PNL-02 · Painel: lista de organizações | issue #136 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 137 | RF-PNL-03 · Painel: detalhe da organização | issue #137 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 138 | RF-PNL-04 · Painel: ações sobre a organização | issue #138 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 613 | Aviso aberto do portal: autor em duas linhas, como o canvas | issue #613 | Atualizações · Polimento | #496 | agente | a fazer |
+| 614 | Aviso aberto do portal: avatar do autor com o tom do canvas | issue #614 | Atualizações · Polimento | #496 | agente | a fazer |
+| 615 | Avisos do portal: pílulas de filtro e Fixado com o tom do canvas | issue #615 | Atualizações · Polimento | #496 | agente | a fazer |
+| 616 | Aviso aberto do portal no celular: página sem cartão, como o canvas | issue #616 | Atualizações · Polimento | #496 | agente | a fazer |
+| 617 | Aviso aberto do portal: ícone do botão do grupo da turma como o canvas | issue #617 | Atualizações · Polimento | #496 | agente | a fazer |
+| 618 | Avisos do portal: linha de apoio do aviso de unidade como o canvas | issue #618 | Atualizações · Polimento | #496 | agente | a fazer |
+| 534 | Alunos ativos por unidade no seletor de unidade (activeStudents) | issue #534 | Atualizações · Polimento | — | agente | a fazer |
+| 553 | Professores: Inativar e Editar abertos pela lista, no visual do canvas | issue #553 | Atualizações · Polimento | — | agente | a fazer |
+| 556 | Pedidos do portal: Recusar e Trocar turma alinhados ao canvas, sem limiteCanvas | issue #556 | Atualizações · Polimento | — | agente | a fazer |
+| 558 | Ficha do aluno pelo Professor: miolo igual ao canvas, sem limiteCanvas | issue #558 | Atualizações · Polimento | — | agente | a fazer |
+| 560 | Aula: janelas e Nova aula avulsa alinhadas ao canvas, sem limiteCanvas | issue #560 | Atualizações · Polimento | — | agente | a fazer |
+| 566 | Turmas: painel (gaveta) alinhado ao canvas TurmaPainel: colunas, ícones, selos e link do grupo | issue #566 | Atualizações · Polimento | — | agente | a fazer |
+| 567 | Componente base: Tabela com cabeçalho e cartão como no canvas | issue #567 | Atualizações · Polimento | — | agente | a fazer |
+| 573 | Cobranças: fundo e dados do cenário dos casos de janela iguais ao canvas, sem limiteCanvas | issue #573 | Atualizações · Polimento | — | agente | a fazer |
+| 577 | Planos: fundo e dados do cenário dos casos de janela e gaveta iguais ao canvas, sem limiteCanvas | issue #577 | Atualizações · Polimento | — | agente | a fazer |
+| 601 | Início do portal: janela Nova modalidade e dados da API iguais ao canvas, sem limiteCanvas | issue #601 | Atualizações · Polimento | — | agente | a fazer |
+| 603 | Termo de matrícula do portal: barra do celular com sino e avatar como no canvas PortalMTermo | issue #603 | Atualizações · Polimento | — | agente | a fazer |
+| 622 | Financeiro do portal: janela Pix na chave e tabelas iguais ao canvas, sem limiteCanvas | issue #622 | Atualizações · Polimento | — | agente | a fazer |
+| 642 | Identidade visual Portal: fundo dos casos de janela (Trocar e-mail e Revogar uso de imagem) igual ao canvas, sem limiteCanvas | issue #642 | Atualizações · Polimento | — | agente | a fazer |
+| 674 | Pedidos do portal no celular: janelas de pedido como gaveta de baixo iguais ao canvas, sem limiteCanvas | issue #674 | Atualizações · Polimento | — | agente | a fazer |
+| 172 | RF-AJU-01 · Central de ajuda | issue #172 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 173 | RF-AJU-02 · Ícones "?" de ajuda nas telas | issue #173 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 174 | RF-AJU-03 · Tour do primeiro acesso | issue #174 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 149 | RF-CAD-04 · Assistente de boas-vindas | issue #149 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 150 | RF-CAD-05 · Checklist "Primeiros passos" | issue #150 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Atualizações · Funcionalidades | #625 | agente | a fazer |
+| 633 | RF-MOD-01 a 03 · Modalidades e graduação mais claras: cartões, janela, editor de níveis e modalidades da unidade | issue #633 | Atualizações · Funcionalidades | #625 | agente | a fazer |
+| 634 | RF-ACE-09 · Tabela de permissões com selos em texto, por área e com o estado das chaves da unidade | issue #634 | Atualizações · Funcionalidades | #611, #625 | agente | a fazer |
+| 635 | RF-ORG-04 · Bloco "Vale para todas as unidades" nas abas da unidade | issue #635 | Atualizações · Funcionalidades | #625 | agente | a fazer |
+| 639 | RN-MAT-16a · Chaves dos pedidos pelo portal por unidade | issue #639 | Atualizações · Funcionalidades | #625 | agente | a fazer |
+| 640 | RF-ORG-10 · Configurações › Visão geral: quadros por unidade e por pessoa | issue #640 | Atualizações · Funcionalidades | #625, #627, #628, #638, #639 | agente | a fazer |
+| 658 | RF-COM-01/02 · Comunicados: tela única, destino por escopo, tipos novos, agendamento e imagem | issue #658 | Atualizações · Funcionalidades | #646, #647, #650 | agente | a fazer |
+| 655 | RF-AGE-01/04 · Agenda de domingo a sábado, filtros da unidade e aula avulsa | issue #655 | Atualizações · Funcionalidades | #647, #658 | agente | a fazer |
+| 657 | RN-AGE-09 · Feriados e recessos: feriados automáticos e aviso com 24 h | issue #657 | Atualizações · Funcionalidades | #648 | agente | a fazer |
+| 660 | RF-PRO-03 · Professor: graduação obrigatória, CPF e endereço opcionais e edição como a ficha | issue #660 | Atualizações · Funcionalidades | #647 | agente | a fazer |
+| 661 | RF-MAT-04 · Pedidos: aprovar sem sair da tela | issue #661 | Atualizações · Funcionalidades | #645, #648 | agente | a fazer |
+| 631 | RN-ACE-25 · Atividade recente em Minha conta › Segurança | issue #631 | Atualizações · Funcionalidades | #630 | agente | a fazer |
+| 101 | RF-PAG-05 · Pagamento por boleto | issue #101 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 103 | RF-PAG-07 · Débito automático no portal | issue #103 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 151 | Exportação CSV e pacote completo | issue #151 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 152 | RF-IMP-01 · Configurações › Importar e exportar | issue #152 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 153 | RF-IMP-02 · Assistente de importação | issue #153 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 154 | RF-IMP-03 · Convites do portal após importar | issue #154 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 133 | Modo suporte: consulta, liberação pelo Coordenador e auditoria | issue #133 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 134 | RF-AJU-05 · "Falar com o suporte" (chamado) | issue #134 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 139 | RF-PNL-05 · Painel: catálogo de modalidades e graduação | issue #139 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 140 | RF-PNL-06 · Painel: preços da assinatura | issue #140 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 141 | RF-PNL-07 · Painel: modelos de termos e políticas | issue #141 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 143 | RF-PNL-09 · Painel: denúncias do diretório | issue #143 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 144 | RF-PNL-10 · Painel: chamados | issue #144 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 145 | RF-PNL-11 · Painel: equipe da plataforma | issue #145 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 155 | RF-AEX-01 · Página pública de aula experimental | issue #155 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 156 | RF-AEX-02 · Operação › Aulas experimentais | issue #156 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 157 | RF-AEX-03 · Agendar aula experimental | issue #157 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 158 | RF-AEX-04 · Painel da aula experimental | issue #158 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 159 | RF-AEX-05 · Experimental na agenda e no Início | issue #159 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 160 | RF-AUT-01 · Página pública de autocadastro | issue #160 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 161 | RF-AUT-02 · Aguardando aprovação (autocadastro) | issue #161 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 162 | RF-AUT-03 · Configurações › Unidade › Links | issue #162 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 163 | Base dos relatórios: período, comparação, gráfico com tabela e CSV | issue #163 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 164 | RF-REL-01 · Relatório financeiro | issue #164 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 165 | RF-REL-02 · Relatório de alunos | issue #165 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 166 | RF-REL-03 · Relatório de aulas experimentais | issue #166 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 167 | RF-REL-04 · Relatório de aulas | issue #167 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 169 | Diretório de academias | issue #169 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 170 | Demonstração em /demo | issue #170 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 632 | RF-PRO-05 · Minha conta › Perfil de professor com o consentimento do diretório | issue #632 | Atualizações · Funcionalidades | #630 | agente | a fazer |
+| 171 | App instalável (PWA) do portal com uso sem conexão | issue #171 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 177 | Conexão real de SMS | issue #177 | Atualizações · Funcionalidades | — | pessoa (dono) | a fazer |
+| 178 | Push real no navegador (Web Push) | issue #178 | Atualizações · Funcionalidades | — | pessoa (dono) | a fazer |
+| 180 | Mapa e localização reais | issue #180 | Atualizações · Funcionalidades | — | pessoa (dono) | a fazer |
+| 181 | Métricas de uso sem cookies no site e na gestão | issue #181 | Atualizações · Funcionalidades | — | pessoa (dono) | a fazer |
+| 112 | Desempenho e paginação com a organização de referência | issue #112 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 114 | RF-AUD-01 · Configurações › Auditoria | issue #114 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 115 | RF-AUD-02 · Painel do registro de auditoria | issue #115 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 116 | RF-AUD-03 · Exportar auditoria em CSV | issue #116 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 125 | RF-BUS-01 · Busca global | issue #125 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 126 | RF-BUS-02 · Busca vazia: telas e ações rápidas | issue #126 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 335 | Limpar comprovantes de graduação de origem enviados e não usados | issue #335 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 375 | Editar comunicado agendado e limpar imagens de comunicado não usadas | issue #375 | Atualizações · Funcionalidades | — | agente | a fazer |
+| 190 | Ajustes pedidos pela piloto e desconto fixo | issue #190 | Atualizações · Funcionalidades | — | pessoa (dono) | a fazer |
+| 699 | Técnica · Decisão: relógio do banco vs Clock da aplicação (antes das #696 a #698; decisão do dono) | issue #699 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 696 | Técnica · Migrar ITs de organization e terms para Clock fixo (medição da #693) | issue #696 | Manutenção · Dívida técnica | #699 | agente | a fazer |
+| 697 | Técnica · Migrar ITs de student (portal) para Clock fixo (medição da #693) | issue #697 | Manutenção · Dívida técnica | #699 | agente | a fazer |
+| 698 | Técnica · Migrar ITs de billing, plan, notification, mail, agenda, communication e storage para Clock fixo (medição da #693) | issue #698 | Manutenção · Dívida técnica | #699 | agente | a fazer |
+| 706 | Técnica · Teste TextModelsIT.audit instável: medir e estabilizar | issue #706 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 707 | Técnica · Teste visual instável em configuracoes-unidade-professor (1440 escuro): medir e estabilizar | issue #707 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 724 | Técnica: testes de tela instáveis sob carga (junta #540, #594 e #597) | issue #724 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 725 | Técnica: ajuste do processo, kit e AGENTS.md (junta #535, #557 e #620) | issue #725 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 407 | Suíte test:cov do front estoura 20 s em vários arquivos com paralelismo padrão: medir e estabilizar | issue #407 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 413 | Teste SimulatedMessagingTest.infoLogHasTypeAndIdButNotTheText instável: o UUID sorteado do log pode conter o número do cartão usado como isca | issue #413 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 564 | Teste visual instável: dia-sem-aula-novo reprova em HEAD limpo e passa em outras execuções | issue #564 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 581 | Teste instável: LoginPage 'trava com horário (#445)' falha na suíte completa | issue #581 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 587 | Remover exceção do picomatch (GHSA-fc5q-39xc-vjpf) quando sair a correção | issue #587 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 590 | Testes de comunicados falham no CI: AnnouncementSendJobIT e SeedDataIT.announcementsSeed | issue #590 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 596 | Técnica: construir e verificar rodam os jobs frontend e e2e do CI antes do push (estende a #569) | issue #596 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 621 | Técnica · StudentListIT falha no verify do CI: linha em teacher sobra de outro IT | issue #621 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 667 | Teste instável: EmailServiceIT.retries falha na regressão completa e passa isolado | issue #667 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 683 | Teste instável: e2e recuperar-senha (@critical Recuperação de senha) falha uma vez no CI | issue #683 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 701 | Técnica · Migrar ITs com limpeza por delete para truncate em cascata (medição da #690) | issue #701 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 702 | Técnica · S3FileStorageIT falha com Connection refused em execução local do verify | issue #702 | Manutenção · Dívida técnica | — | agente | a fazer |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 
@@ -393,12 +421,16 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|
 | P2 | Com a #67, `student_graduation` aponta para `graduation_level`: salvar a graduação da modalidade sem um nível já usado por graduação de aluno (origem) falha na chave estrangeira (a resposta é a de conflito de dados, sem texto próprio). A #105/#106 decidem a mensagem (ex.: "nível em uso por N alunos"). | Tratar na #105, junto da tela de graduações do aluno. | nenhum | Salvar o sistema de graduação continua valendo; só a exclusão de nível em uso é recusada. |
 | P3 | #84 (D3): o resumo diário por e-mail com o "Precisa de atenção" e a opção de desligá-lo (RN-NOT-01) ficaram fora do painel do sino, porque a lista "Precisa de atenção" ainda não existe. | Novo item, no marco em que o "Precisa de atenção" for criado. | nenhum | O sino e o contador funcionam; não sai resumo por e-mail. |
+| P7 | Fatura de R$ 0: com cupom de 100%, a fatura zerada se confirma sozinha e a organização nasce sem pagamento; o uso do cupom conta nessa confirmação (RN-CAD-08). | Regra nova na #127 e na #148. | #127, #148 | — |
+| P8 | RN-ASS-18 diz "cortesia até o lançamento e depois 50% por 12 ciclos"; o dono decidiu cupom de 100% por 3 ciclos. | Atualizar `16-assinatura.md` antes da #127. | #127 | — |
+| P9 | Sem SMS na 1.0: o cadastro confirma só o e-mail (RF-CAD-02) e o aviso de 5 dias antes do bloqueio sai só por e-mail (RN-INA-03). | Nota em `18` e `12`; SMS volta com a #177 em Atualizações · Funcionalidades. | #111, #147 | — |
+| P10 | Vocabulário: "mensalidade" (aluno → academia, conta da unidade) e "assinatura" (academia → ctcore, conta da plataforma). | Fixar em `docs/design/textos.md` antes da #664. | #664 | — |
 
 ## Encaixes para as próximas sprints
 
