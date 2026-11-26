@@ -101,7 +101,6 @@
     },
     "setup": {
       "title": "Ativar duas etapas",
-      "subtitle": "Obrigatória para o Coordenador · configurada no primeiro acesso",
       "stepRead": "Ler o QR code",
       "stepConfirm": "Confirmar código",
       "stepSave": "Guardar códigos",
@@ -191,7 +190,7 @@
     "confirm": "Repita a senha",
     "card": {
       "role": "{{role}} na {{organization}}",
-      "units_one": "Unidade {{list}}",
+      "units_one": "Unidade {{list, unit}}",
       "units_other": "Unidades {{list}}",
       "invitedBy": "convite de {{name}}",
       "validUntil": "vale até {{date}}"
@@ -497,8 +496,8 @@
     "title": "Aniversariantes de hoje",
     "empty": "Ninguém faz aniversário hoje",
     "emptyText": "Quando alguém fizer aniversário, aparece aqui com a mensagem de parabéns pronta.",
-    "messageStudent": "Parabéns, {{name}}! A equipe da unidade {{unit}} deseja a você um feliz aniversário!",
-    "messageGuardian": "Olá, {{contact}}! Hoje é aniversário de {{name}}. A equipe da unidade {{unit}} deseja a ele(a) um feliz aniversário!"
+    "messageStudent": "Parabéns, {{name}}! A equipe da unidade {{unit, unit}} deseja a você um feliz aniversário!",
+    "messageGuardian": "Olá, {{contact}}! Hoje é aniversário de {{name}}. A equipe da unidade {{unit, unit}} deseja a ele(a) um feliz aniversário!"
   },
   "students": {
     "rowSecondary": "{{age}} anos · {{unit}}",
@@ -2271,7 +2270,7 @@
       "limitReached": "A organização já tem 10 unidades, o máximo do plano. Nada foi criado.",
       "error": "Não foi possível criar a unidade. Confira os dados e tente de novo.",
       "fieldError": "Confira o campo \"{{field}}\" na etapa \"{{step}}\".",
-      "created": "Unidade {{name}} criada.",
+      "created": "Unidade {{name, unit}} criada.",
       "inviteSent": "O convite foi enviado.",
       "inviteFailed": "A unidade foi criada, mas o convite não foi enviado. Convide o Administrador depois, em Usuários da gestão.",
       "modalitiesFailed": "A unidade foi criada, mas não foi possível ligar todas as modalidades. Abra a unidade para ligar as que faltam.",
@@ -3389,14 +3388,14 @@
       "CLASS": "Turma · {{name}}",
       "CLASSES": "Turmas · {{name}}",
       "MODALITY": "Modalidade · {{name}}",
-      "UNIT": "Unidade · {{name}}",
+      "UNIT": "Unidade · {{name, unit}}",
       "ORGANIZATION": "Todas as unidades"
     },
     "target": {
       "CLASS": "Turma {{name}}",
       "CLASSES": "Turmas {{name}}",
       "MODALITY": "Modalidade {{name}}",
-      "UNIT": "Unidade {{name}}",
+      "UNIT": "Unidade {{name, unit}}",
       "ORGANIZATION": "Todas as unidades"
     },
     "types": {
@@ -3433,7 +3432,7 @@
       "subtitleCancelled": "Aberto a partir da aula cancelada de {{day}}, {{date}}",
       "destination": "Destino",
       "destClass": "Turma {{name}}",
-      "destUnit": "Unidade {{name}}",
+      "destUnit": "Unidade {{name, unit}}",
       "counter": "{{count}} / 2.000",
       "whatsapp": "Abrir o grupo no WhatsApp",
       "summaryLabel": "Resumo",
@@ -3531,7 +3530,7 @@
     "summary": {
       "CLASS_CHANGE": "{{modality}}: para a turma {{targetClass}}",
       "PLAN_CHANGE": "{{modality}}: para o plano {{targetPlan}}",
-      "NEW_MODALITY": "{{modality}} na unidade {{targetUnit}}",
+      "NEW_MODALITY": "{{modality}} na unidade {{targetUnit, unit}}",
       "CLOSURE": "{{modality}}: encerrar ({{reason}})"
     },
     "filters": {
@@ -3588,7 +3587,7 @@
     "detail": {
       "CLASS_CHANGE": "{{modality}}: {{from}} → {{to}}",
       "PLAN_CHANGE": "{{modality}}: {{from}} → {{to}}",
-      "NEW_MODALITY": "{{modality}} na unidade {{targetUnit}}",
+      "NEW_MODALITY": "{{modality}} na unidade {{targetUnit, unit}}",
       "CLOSURE": "{{modality}} · motivo: {{reason}} · encerra sozinho em {{date}} se ninguém agir"
     },
     "deadline": {
@@ -3598,7 +3597,6 @@
       "left_one": "falta {{count}} dia",
       "left_other": "faltam {{count}} dias"
     },
-    "footerNote": "Pedidos sem resposta expiram em 30 dias e o aluno é avisado. Ao recusar, você escreve a mensagem que o aluno vai ver.",
     "cardDate": "Recebido em {{date}}"
   },
   "common": {
@@ -3705,8 +3703,7 @@
       "disableTitle": "Desligar duas etapas",
       "disableIntro": "Para desligar, confirme a sua senha e um código.",
       "disableSubmit": "Desligar",
-      "disabling": "Desligando...",
-      "note": "Opcional para Administradores. Obrigatória para o Coordenador."
+      "disabling": "Desligando..."
     },
     "sessions": {
       "title": "Sessões ativas",
@@ -3721,8 +3718,6 @@
       "empty": "Não há outras sessões ativas.",
       "device": "Aparelho",
       "place": "Local",
-      "note": "Sessões da gestão duram 12 horas; do portal, 30 dias.",
-      "notePortal": "No portal, a sessão dura 30 dias.",
       "actions": "Ações",
       "list": "Sessões ativas"
     },
@@ -3735,9 +3730,6 @@
       "invalid": "Este link venceu, já foi usado ou não é desta conta. Peça um novo na tela Minha conta.",
       "back": "Ir para Minha conta"
     },
-    "subtitle_one": "{{name}} · {{role}} da {{units}}",
-    "subtitle_other": "{{name}} · {{role}} de {{units}}",
-    "subtitleNoUnits": "{{name}} · {{role}}",
     "tabs": {
       "label": "Seções de Minha conta",
       "access": "Acesso",
@@ -3766,8 +3758,7 @@
       "changedAt": "alterada em {{date}}",
       "never": "nunca alterada",
       "changeEmail": "Trocar e-mail",
-      "changePassword": "Trocar senha",
-      "note": "O novo e-mail só vale depois de confirmado pelo link (24 horas). O endereço antigo recebe um aviso."
+      "changePassword": "Trocar senha"
     },
     "menu": {
       "senha": "Senha",
@@ -3879,9 +3870,9 @@
   "portalTerm": {
     "title": "Termo de matrícula",
     "eyebrow": "Antes de começar",
-    "introAdult": "Leia e aceite o termo de matrícula da {{org}} para liberar o portal. Você aceita uma vez.",
+    "introAdult": "Leia e aceite o termo de matrícula da {{org}} para liberar o portal.",
     "greeting": "Olá, {{name}}!",
-    "introGuardian": "Para liberar o portal de {{student}}, leia e aceite o termo de matrícula da {{org}}. Você aceita uma vez, por {{student}}.",
+    "introGuardian": "Para liberar o portal de {{student}}, leia e aceite o termo de matrícula da {{org}}.",
     "introMany": "Você é responsável por {{count}} alunos com termo pendente. O portal libera depois que você aceitar por todos.",
     "students": "Alunos",
     "progress": "{{done}} de {{total}} aceitos",
@@ -4038,8 +4029,6 @@
   "portalOwn": {
     "label": "Minhas informações",
     "title": "Pedidos",
-    "intro": "A academia sempre confirma. Pedidos sem resposta expiram em 30 dias e você é avisado.",
-    "introShort": "A academia sempre confirma. Sem resposta em 30 dias, o pedido expira.",
     "back": "Voltar",
     "student": "Aluno",
     "students": "Alunos",
@@ -4148,7 +4137,6 @@
   },
   "portalConfirm": {
     "title": "Nova modalidade",
-    "subtitle": "Não bloqueia o portal e não tem prazo.",
     "student": "{{student}} começou uma modalidade nova. Confirme o plano e o valor.",
     "modality": "Modalidade",
     "plan": "Plano",
@@ -4172,7 +4160,6 @@
     "family": "Toda a família",
     "familyTotal": "{{value}} em aberto",
     "reduced": {
-      "label": "Unidade {{unit}}",
       "greeting": "Olá, {{name}}",
       "note": "Agenda, avisos e graduação ficam ocultos enquanto o acesso estiver reduzido. A carteirinha continua visível, com o selo \"Inativo\".",
       "noteShort": "Agenda, avisos e graduação ficam ocultos. A carteirinha mostra o selo \"Inativo\"."
@@ -4187,7 +4174,6 @@
     },
     "open": {
       "title": "Em aberto",
-      "subtitle": "vencidas primeiro",
       "emptyTitle": "Nenhuma cobrança em aberto",
       "emptyText": "Quando houver uma cobrança, ela aparece aqui. Se o responsável financeiro cuida dos pagamentos, é ele quem as vê.",
       "columns": { "select": "Seleção", "charge": "Cobrança", "due": "Vencimento", "amount": "Valor", "situation": "Situação" },
@@ -4270,7 +4256,6 @@
     "nextDay": "Próximo dia",
     "modality": "Modalidade",
     "allModalities": "Todas",
-    "note": "Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.",
     "typeMain": "turma principal",
     "typeOther": "Outro horário",
     "typeAdhoc": "Aula avulsa",
@@ -4288,7 +4273,6 @@
     },
     "markAll": "Marcar todos como lidos",
     "markAllShort": "Marcar lidos",
-    "hint": "Abrir um aviso marca como lido. \"Marcar todos como lidos\" limpa a lista.",
     "pinnedUntil": "Fixado até {{date}}",
     "unreadDot": "Não lido",
     "allClasses": "Todas as turmas",
@@ -4314,7 +4298,6 @@
     "at": "{{date}} às {{time}}",
     "viewAgenda": "Ver na agenda",
     "openGroup": "Abrir o grupo da turma",
-    "readNote": "Ao abrir, o aviso conta como lido para a academia.",
     "pageNav": "Páginas de avisos",
     "prev": "Página anterior",
     "next": "Próxima página",
@@ -4341,14 +4324,12 @@
     "madeWith": "feito com ctcore",
     "reception": "Mostre na recepção quando pedirem. Não tem QR code: a situação e a data do dia já valem como conferência.",
     "receptionMobile": "Sem QR code. Mostre na recepção quando pedirem.",
-    "installedNote": "No app instalado, a carteirinha abre mesmo sem internet, com \"Sem conexão · Atualizada em…\".",
     "download": "Baixar imagem",
     "back": "Voltar",
     "offlineBanner": "Sem conexão · Atualizada em {{date}}",
     "offlineText": "Sem internet, o app mostra a última versão do Início, da agenda e da carteirinha. Pagar e enviar pedidos precisam de conexão.",
     "familyLabel": "Responsável",
     "familyTitle": "Carteirinhas",
-    "familyText": "Você vê a carteirinha de cada filho ligado à sua conta, seja ou não o responsável financeiro.",
     "modalitiesTitle": "Modalidades",
     "noBelt": "Sem faixa registrada",
     "emptyTitle": "Nenhuma modalidade ativa",

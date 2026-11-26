@@ -175,7 +175,6 @@ function Content() {
         filterKeys={["kind", "unitId"]}
         filters={(p) => <Filters {...p} />}
         texts={{ emptyTitle: t("portalRequests.emptyTitle"), emptyText: t("portalRequests.emptyText") }}
-        footer={() => <p className="text-sm text-muted-foreground">{t("portalRequests.footerNote")}</p>}
       />
       {failure && (
         <p role="alert" className="text-sm text-danger-foreground">

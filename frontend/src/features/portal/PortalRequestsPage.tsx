@@ -77,7 +77,7 @@ export function PortalRequestsPage() {
           {t("portalOwn.back")}
         </Button>
       )}
-      <PortalHeading label={t("portalOwn.label")} title={t("portalOwn.title")} subtitle={t(narrow ? "portalOwn.introShort" : "portalOwn.intro")} className="mb-4" />
+      <PortalHeading label={t("portalOwn.label")} title={t("portalOwn.title")} className="mb-4" />
       {body}
     </>
   );

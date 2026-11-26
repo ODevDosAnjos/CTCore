@@ -53,6 +53,12 @@ describe("InvitePage", () => {
     expect(screen.getByText("Unidade Centro · convite de Ana")).toBeInTheDocument();
   });
 
+  it("unidade cujo nome já começa por Unidade não repete a palavra (#733)", async () => {
+    server.use(http.get(URL_INFO, () => HttpResponse.json({ email: "a@x.com", name: null, expiresAt: "2026-12-31T15:30:00Z", existingAccount: false, role: "TEACHER", organizationName: "Academia Alfa", invitedByName: "Ana", unitNames: ["Unidade Principal"] })));
+    open("/convite/qualquer");
+    expect(await screen.findByText("Unidade Principal · convite de Ana")).toBeInTheDocument();
+  });
+
   it("CA1: convite sem nome não mostra o campo Nome", async () => {
     server.use(http.get(URL_INFO, () => HttpResponse.json({ email: "a@x.com", name: null, expiresAt: "2026-12-31T15:30:00Z", existingAccount: false, role: "TEACHER", organizationName: "Academia Alfa", invitedByName: null, unitNames: [] })));
     open("/convite/qualquer");

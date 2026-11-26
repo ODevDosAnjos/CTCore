@@ -19,7 +19,6 @@ import { NotificationsTab } from "./NotificationsTab";
 import { SessionsSection } from "./SessionsSection";
 import { TwoFactorSection } from "./TwoFactorSection";
 import { useAccountSessions } from "./useAccount";
-import { useManagementProfile } from "./useManagementProfile";
 
 const TABS = ["acesso", "duas-etapas", "sessoes", "notificacoes"] as const;
 const DATA_CARDS = ["download", "delete"] as const;
@@ -95,7 +94,6 @@ function PortalAccount() {
 function ManagementAccount() {
   const { t } = useTranslation();
   const sessions = useAccountSessions();
-  const profile = useManagementProfile();
   const narrow = useBelowMd();
   const [params] = useSearchParams();
   const [tab, setTab] = useTabParam(TABS);
@@ -110,7 +108,7 @@ function ManagementAccount() {
           {t("account.back")}
         </Link>
       )}
-      <PageHeader title={t("account.title")} subtitle={profile.subtitle} />
+      <PageHeader title={t("account.title")} />
       {narrow && !aba ? (
         <AccountMenuList sessionCount={sessions.status === "ready" ? sessions.items.length : null} />
       ) : (

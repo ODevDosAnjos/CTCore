@@ -110,7 +110,7 @@ export function PortalOpenCharges({ items, showStudent, onChanged }: Props) {
   // Na visão da família o pagamento é por unidade: um grupo (com resumo e botões) para cada uma.
   const units = showStudent ? [...new Map(items.map((c) => [c.unit.id, c.unit])).values()] : [];
   return (
-    <Card heading="h2" titleClassName="text-2xl uppercase" title={t("portalFinance.open.title")} actions={<span className="text-sm text-muted-foreground">{t("portalFinance.open.subtitle")}</span>}>
+    <Card heading="h2" titleClassName="text-2xl uppercase" title={t("portalFinance.open.title")}>
       {items.length === 0 ? (
         <EmptyState title={t("portalFinance.open.emptyTitle")} text={t("portalFinance.open.emptyText")} />
       ) : units.length > 1 ? (

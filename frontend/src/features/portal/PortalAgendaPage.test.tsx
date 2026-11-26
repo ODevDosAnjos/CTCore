@@ -113,7 +113,7 @@ describe("PortalAgendaPage (RF-POR-04)", () => {
     expect(screen.queryByText("Já aconteceu")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Modalidade/ })).not.toBeInTheDocument();
-    expect(screen.getByText("Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.")).toBeInTheDocument();
+    expect(screen.queryByText("Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Dia anterior" }));
     expect(screen.getByText("Já aconteceu")).toBeInTheDocument();
@@ -222,7 +222,7 @@ describe("PortalAgendaPage (RF-POR-04)", () => {
     expect(within(screen.getByRole("region", { name: "Dom 01/11" })).getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("Legenda")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.getByText("Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.")).toBeInTheDocument();
+    expect(screen.queryByText("Sem presença nem frequência. Para mudar de turma, faça um pedido em Minhas informações.")).not.toBeInTheDocument();
   });
 
   it("?aluno=, ?semana= e ?escopo= na URL chegam à leitura", async () => {

@@ -35,7 +35,6 @@ export function AccessCard({ onPasswordChanged, portal = false }: { onPasswordCh
             {t("account.access.changePassword")}
           </Button>
         </div>
-        {!portal && <p className="text-sm text-muted-foreground">{t("account.access.note")}</p>}
       </div>
       {dialog === "password" && <ChangePasswordForm onChanged={onPasswordChanged} onClose={() => setDialog(null)} />}
       {dialog === "email" && <ChangeEmailForm onClose={() => setDialog(null)} />}

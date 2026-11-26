@@ -69,7 +69,7 @@ describe("PortalRequestsPage do portal (RF-MAT-04, #500)", () => {
       const { container, unmount } = setup();
       expect(await screen.findByRole("heading", { name: "Pedidos", level: 1 })).toBeInTheDocument();
       expect(screen.getAllByText("Minhas informações")).toHaveLength(2);
-      expect(screen.getByText("A academia sempre confirma. Pedidos sem resposta expiram em 30 dias e você é avisado.")).toBeInTheDocument();
+      expect(screen.queryByText("A academia sempre confirma. Pedidos sem resposta expiram em 30 dias e você é avisado.")).toBeNull();
       for (const title of ["Trocar de turma", "Nova modalidade", "Trocar de plano", "Solicitar encerramento"]) expect(await screen.findByRole("button", { name: `Pedir: ${title}` })).toBeEnabled();
       expect(screen.getByText("A academia tem 7 dias para conversar com você")).toBeInTheDocument();
       expect(screen.queryByText("Fazer um pedido")).toBeNull();
@@ -79,11 +79,11 @@ describe("PortalRequestsPage do portal (RF-MAT-04, #500)", () => {
     }
   });
 
-  it("CA1: no celular tem Voltar, o subtítulo curto e só o título nos cartões", async () => {
+  it("CA1: no celular tem Voltar, sem subtítulo, e só o título nos cartões", async () => {
     setDeviceNarrow(true);
     setup();
-    expect(await screen.findByText("A academia sempre confirma. Sem resposta em 30 dias, o pedido expira.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Voltar" })).toBeInTheDocument();
+    expect(screen.queryByText("A academia sempre confirma. Sem resposta em 30 dias, o pedido expira.")).toBeNull();
     expect(await screen.findByRole("button", { name: "Pedir: Trocar de turma" })).toHaveTextContent(/^Trocar de turma$/);
     expect(screen.queryByText("Escolha outra turma da mesma modalidade")).toBeNull();
   });

@@ -53,10 +53,10 @@ export function PortalFinancePage() {
     <>
       <PortalHeading
         className="mb-4"
-        label={reduced ? (shell.data?.unit ? t("portalFinance.reduced.label", { unit: shell.data.unit.name }) : undefined) : t("portalFinance.label")}
+        label={reduced ? undefined : t("portalFinance.label")}
         title={reduced ? t("portalFinance.reduced.greeting", { name: firstName ?? "" }) : t("portalShell.tabs.finance")}
-        subtitle={shown && family ? t("portalFinance.familyTotal", { value: formatCurrency(shown.familyOpenCents) }) : undefined}
       />
+      {shown && family && <p className="mb-4 text-sm text-muted-foreground">{t("portalFinance.familyTotal", { value: formatCurrency(shown.familyOpenCents) })}</p>}
       {shown && shown.students.length > 1 && (
         <div role="group" aria-label={t("portalFinance.student")} className="mb-4 flex flex-wrap gap-2">
           {[...shown.students.map((s) => ({ id: s.id, name: s.name, label: s.self ? t("portalFinance.you") : s.name })), { id: FAMILY, name: "", label: t("portalFinance.family") }].map((c) => {

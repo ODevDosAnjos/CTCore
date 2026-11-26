@@ -17,4 +17,7 @@ void i18n.use(initReactI18next).init({
   },
 });
 
+// Nome de unidade que já começa por "Unidade" não repete a palavra nos textos que a escrevem (#733, D3).
+i18n.services.formatter?.add("unit", (value) => String(value).replace(/^unidade\s+/i, ""));
+
 export default i18n;

@@ -125,7 +125,7 @@ describe("NewUnitPage", () => {
     expect(await screen.findByText(/\+R\$ 50,00\/mês na sua próxima fatura/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Criar unidade" }));
     expect(await screen.findByRole("heading", { name: "Unidades", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("Unidade Unidade 99 criada.")).toBeInTheDocument();
+    expect(screen.getByText("Unidade 99 criada.")).toBeInTheDocument();
     expect(posts).toEqual([{ name: "Academia Tijuca", email: "tijuca@exemplo.com", administrator: { name: "Ana", email: "ana@exemplo.com" } }]);
     expect(puts.sort()).toEqual(["u99:m1", "u99:m2"]);
   });
@@ -211,7 +211,7 @@ describe("NewUnitPage", () => {
     setup("COORDINATOR", NEW, { post: () => HttpResponse.json({ unit: created, invite: "FAILED" }, { status: 201 }) });
     await toLast(user);
     await user.click(screen.getByRole("button", { name: "Criar unidade" }));
-    expect(await screen.findByText("Unidade Unidade 99 criada.")).toBeInTheDocument();
+    expect(await screen.findByText("Unidade 99 criada.")).toBeInTheDocument();
     expect(screen.getByText(/o convite não foi enviado/)).toBeInTheDocument();
   });
 

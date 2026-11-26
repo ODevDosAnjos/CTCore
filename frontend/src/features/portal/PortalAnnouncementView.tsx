@@ -107,7 +107,6 @@ export function PortalAnnouncementView({ id, studentId, onBack, onRead }: { id: 
             )}
           </div>
         </article>
-        <p className="text-xs text-muted-foreground">{t("portalAnnouncements.readNote")}</p>
         </>
       )}
     </div>

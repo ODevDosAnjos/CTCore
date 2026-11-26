@@ -139,7 +139,6 @@ export function PortalAnnouncementsPage() {
                 <PortalAnnouncementItem key={n.id} item={n} onOpen={(id) => change({ aviso: id })} />
               ))}
             </ul>
-            <p className="mt-3 text-sm text-muted-foreground">{t("portalAnnouncements.hint")}</p>
             {pages > 1 && (
               <nav aria-label={t("portalAnnouncements.pageNav")} className="mt-4 flex flex-wrap items-center gap-2">
                 <button type="button" className="min-h-11 rounded-md border px-3 disabled:opacity-50" disabled={page <= 1} onClick={() => change({ pagina: page - 1 > 1 ? String(page - 1) : null })}>

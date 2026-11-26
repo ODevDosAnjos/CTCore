@@ -126,7 +126,6 @@ export function PortalAgendaPage() {
       ) : (
         <ErrorState onRetry={reload} />
       )}
-      <p className="mt-4 text-sm text-muted-foreground">{t("portalAgenda.note")}</p>
     </>
   );
 }

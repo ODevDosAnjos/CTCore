@@ -107,11 +107,11 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     send.calls.length = 0;
   });
 
-  it("abertas: tabela na ordem do servidor, subtítulo, Em conferência sem caixa, sem Pagar por linha nem composição; histórico e débito automático (CA1, CA3)", async () => {
+  it("abertas: tabela na ordem do servidor, sem subtítulo, Em conferência sem caixa, sem Pagar por linha nem composição; histórico e débito automático (CA1, CA3)", async () => {
     serve(finance());
     setup();
     const open = within(await screen.findByRole("region", { name: "Em aberto" }));
-    expect(open.getByText("vencidas primeiro")).toBeInTheDocument();
+    expect(open.queryByText("vencidas primeiro")).not.toBeInTheDocument();
     expect(open.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Seleção", "Cobrança", "Vencimento", "Valor", "Situação"]);
     const rows = open.getAllByRole("row").slice(1);
     expect(rows.map((r) => within(r).getAllByRole("cell")[1].textContent)).toEqual(["Jiu-Jitsu · 10/2026", "Kimono", "Judô · 10/2026", "Seminário"]);
@@ -259,7 +259,8 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     const chips = await screen.findByRole("group", { name: "Aluno" });
     expect(within(chips).getAllByRole("button").map((o) => o.textContent)).toEqual(["AS" + "Você", "DS" + "Davi Souza", "Toda a família"]);
     await user.click(within(chips).getByRole("button", { name: "Toda a família" }));
-    expect(await screen.findByText("R$ 170,00 em aberto")).toBeInTheDocument();
+    const total = await screen.findByText("R$ 170,00 em aberto"); // uma vez só: findByText falha com duas
+    expect(total.closest("header")).toBeNull();
     expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?visao=familia");
     expect(await screen.findByText("Davi Souza", { selector: "span" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Histórico" })).not.toBeInTheDocument();
@@ -268,6 +269,7 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     await user.click(within(screen.getByRole("group", { name: "Aluno" })).getByRole("button", { name: /Davi Souza/ }));
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/portal/financeiro?aluno=s2"));
     expect(await screen.findByRole("region", { name: "Histórico" })).toBeInTheDocument();
+    expect(screen.queryByText("R$ 170,00 em aberto")).not.toBeInTheDocument();
     expect(seen.at(-1)).toBe("studentId=s2");
   });
 
@@ -312,15 +314,15 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     { id: "h2", referenceLabel: "Muay Thai · jun/2026", dueOn: "2026-06-10", amountCents: 16000, status: "CANCELED" as const, paidAt: null, method: null, receipt: null },
   ];
 
-  it("CA3, CA4: reduzido abre com Olá, a unidade, a cobrança, o contato, o histórico só de pagos e a nota; sem débito automático nem recibos por e-mail", async () => {
+  it("CA3, CA4: reduzido abre com Olá, sem rótulo de unidade, a cobrança, o contato, o histórico só de pagos e a nota; sem débito automático nem recibos por e-mail", async () => {
     serve(finance({ reduced: true, history: reducedHistory }));
     setup("/portal/financeiro", { reduced: true, unit });
     expect(await screen.findByRole("heading", { name: "Olá, Ana", level: 1 })).toBeInTheDocument();
-    expect(screen.getAllByText("Unidade Tijuca").length).toBeGreaterThan(0);
     expect(await screen.findByRole("button", { name: /^Pagar / })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Em aberto" })).not.toBeInTheDocument();
     const contact = within(await screen.findByRole("region", { name: "Fale com a academia" }));
     expect(contact.getByText(/A equipe da Tijuca responde pelo WhatsApp/)).toBeInTheDocument();
+    expect(screen.queryByText("Unidade Tijuca")).not.toBeInTheDocument();
     expect(contact.getByRole("link", { name: "WhatsApp da unidade" })).toHaveAttribute("href", "https://wa.me/5521970001200");
     expect(contact.getByText("(21) 97000-1200 · tijuca@exemplo.example")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Débito automático" })).not.toBeInTheDocument();
