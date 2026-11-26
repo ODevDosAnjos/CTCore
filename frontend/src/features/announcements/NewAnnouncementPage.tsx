@@ -249,7 +249,8 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
   }
 
   const describe = (id: string, field: string, help = false) => (errors[field] ? `${id}-erro` : help ? `${id}-ajuda` : undefined);
-  const subtitle = unitName && daily ? t("announcements.new.subtitle", { unit: unitName, used: daily.unit.used, limit: daily.unit.limit }) : unitName ? t("announcements.new.subtitleUnit", { unit: unitName }) : t("announcements.new.intro");
+  const left = daily ? daily.unit.limit - daily.unit.used : 0;
+  const subtitle = unitName && daily && left > 0 && left <= 5 ? t("announcements.new.subtitle", { used: daily.unit.used, limit: daily.unit.limit }) : undefined;
 
   const targetBlock = <AnnouncementTargetPicker targets={targets} kind={kind} value={target} compact={narrow} onKind={chooseKind} onChange={setTarget} />;
   const typeBlock = (
@@ -329,7 +330,7 @@ function Form({ targets, templates }: { targets: AnnouncementTargets; templates:
               <ArrowLeft aria-hidden />
             </Link>
           </Button>
-          <PageHeader compact title={t("announcements.new.title")} subtitle={unitName} className="min-w-0" />
+          <PageHeader compact title={t("announcements.new.title")} className="min-w-0" />
         </header>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {targetBlock}

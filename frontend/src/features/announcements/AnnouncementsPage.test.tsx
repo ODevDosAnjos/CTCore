@@ -127,13 +127,16 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     expect(within(trilha).getByText("Comunicados")).toHaveAttribute("aria-current", "page");
   });
 
-  it("CA2, CA3: subtítulo e botão com + do canvas, sem busca e sem data nativa solta; nota do rodapé e Fixado até", async () => {
+  it("CA1, CA3: cabeçalho só com o título, sem subtítulo nem nota do rodapé, sem busca e sem data nativa solta; Fixado até", async () => {
     setup(() => HttpResponse.json({ items: [item({ pinnedUntil: "2026-10-17" }), two[1]], page: 1, size: 25, total: 2 }), "/comunicados", undefined, true);
     await ready();
-    expect(await screen.findByText("Unidade Tijuca · o aluno lê no portal e por e-mail; não responde · limite de 20 por dia")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Comunicados" });
+    expect(screen.queryByText(/o aluno lê no portal/)).toBeNull();
+    expect(screen.queryByText(/limite de 20 por dia/)).toBeNull();
+    expect(screen.queryByText(/Unidade Tijuca/)).toBeNull();
     await screen.findAllByText("Aula de sexta cancelada");
     expect(within(tableRow("Aula de sexta cancelada")).getByText("Fixado até 17/10")).toBeInTheDocument();
-    expect(screen.getByText(/Enviado não é editado nem apagado/)).toBeInTheDocument();
+    expect(screen.queryByText(/Enviado não é editado nem apagado/)).toBeNull();
     expect(screen.queryByRole("searchbox")).toBeNull();
     expect(document.querySelector('input[type="date"]')).toBeNull();
     expect(screen.queryByText("Itens por página")).toBeNull();
@@ -142,7 +145,7 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     expect(calls.at(-1)!.get("to")).toBeNull();
   });
 
-  it("CA8: com 20 de 20 a faixa amarela aparece e o botão fica desabilitado; com menos, o subtítulo mostra N de 20", async () => {
+  it("CA8: com 20 de 20 a faixa amarela aparece e o botão fica desabilitado; com 3, 15 e 19 o subtítulo só aparece quando faltam 5 ou menos", async () => {
     used = 20;
     const { unmount } = setup(undefined, "/comunicados", undefined, true);
     await ready();
@@ -152,10 +155,21 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     expect(screen.queryByRole("link", { name: "Novo comunicado" })).toBeNull();
     unmount();
     used = 3;
+    const second = setup(undefined, "/comunicados", undefined, true);
+    await ready();
+    await screen.findAllByText("Aula de sexta cancelada");
+    expect(screen.queryByText(/enviados hoje/)).toBeNull();
+    expect(screen.queryByText(/chegou a 20/)).toBeNull();
+    second.unmount();
+    used = 15;
+    const third = setup(undefined, "/comunicados", undefined, true);
+    await ready();
+    expect(await screen.findByText("15 de 20 enviados hoje")).toBeInTheDocument();
+    third.unmount();
+    used = 19;
     setup(undefined, "/comunicados", undefined, true);
     await ready();
-    expect(await screen.findByText("Tijuca · 3 de 20 enviados hoje")).toBeInTheDocument();
-    expect(screen.queryByText(/chegou a 20/)).toBeNull();
+    expect(await screen.findByText("19 de 20 enviados hoje")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Novo comunicado" })[0]).toBeInTheDocument();
   });
 
@@ -177,7 +191,7 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     await user.click(within(tableRow("Recesso de fim de ano")).getByRole("button", { name: /Cancelar o agendamento/ }));
     await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancelar comunicado" }));
     await waitFor(() => expect(screen.queryByText(/chegou a 20/)).toBeNull());
-    expect(await screen.findByText("Tijuca · 19 de 20 enviados hoje")).toBeInTheDocument();
+    expect(await screen.findByText("19 de 20 enviados hoje")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Novo comunicado" })[0]).toBeInTheDocument();
   });
 
@@ -288,14 +302,14 @@ describe("AnnouncementsPage (RF-COM-01)", () => {
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
-  it("CA17: no celular há botão largo com +, subtítulo curto, sem filtros e a janela abre pelo cartão", async () => {
+  it("CA17: no celular há botão largo com +, sem subtítulo, sem filtros e a janela abre pelo cartão", async () => {
     const user = userEvent.setup();
     used = 3;
     setDeviceNarrow(true);
     setup(undefined, "/comunicados", undefined, true);
     await ready();
-    expect(await screen.findByText("Tijuca · 3 de 20 hoje")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Período/ })).toBeNull();
+    await screen.findByRole("heading", { name: "Comunicados" });
+    expect(screen.queryByText(/de 20 hoje/)).toBeNull();    expect(screen.queryByRole("button", { name: /Período/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Tipo Todos/ })).toBeNull();
     expect(screen.getByRole("link", { name: "Novo comunicado" }).className).toContain("w-full");
     await screen.findAllByText("Recesso de fim de ano");

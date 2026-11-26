@@ -41,15 +41,16 @@ const platform = {
 let previews: AnnouncementDraft[];
 let creates: AnnouncementDraft[];
 
-type Options = { role?: string; templates?: typeof platform; targets?: AnnouncementTargets; targetsResponse?: () => Response; create?: () => Response; path?: string };
-function setup({ role = "COORDINATOR", templates = platform, targets = full, targetsResponse, create, path = "/comunicados/novo" }: Options = {}) {
+type Options = { role?: string; templates?: typeof platform; targets?: AnnouncementTargets; targetsResponse?: () => Response; create?: () => Response; path?: string; daily?: number };
+function setup({ role = "COORDINATOR", templates = platform, targets = full, targetsResponse, create, path = "/comunicados/novo", daily }: Options = {}) {
   previews = [];
   creates = [];
   window.history.replaceState(null, "", path);
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role as never) })),
-    http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: [] })),
+    http.get("/api/v1/units/reachable", () => HttpResponse.json(daily === undefined ? { allUnits: true, units: [] } : { allUnits: false, units: [{ id: "u1", name: "Tijuca", shortName: "Tij" }] })),
+    http.get("/api/v1/announcements/daily-limit", () => HttpResponse.json({ unit: { id: "u1", name: "Tijuca", used: daily ?? 0, limit: 20 }, organization: null })),
     http.get("/api/v1/announcements/targets", () => targetsResponse?.() ?? HttpResponse.json(targets)),
     http.get("/api/v1/announcements/templates", () => HttpResponse.json({ templates })),
     http.post("/api/v1/announcements/preview", async ({ request }) => {
@@ -80,6 +81,20 @@ const optionNames = () => within(targetSelect()).getAllByRole("option").map((o) 
 const radios = () => within(screen.getByRole("group", { name: "Destino" })).getAllByRole("radio").map((r) => r.closest("label")?.textContent);
 
 describe("NewAnnouncementPage (RF-COM-02)", () => {
+  it("CA4 (#720): só o título; o subtítulo da contagem aparece quando faltam 5 ou menos", async () => {
+    const { unmount } = setup({ daily: 3 });
+    await ready();
+    await screen.findByRole("combobox", { name: "Turma" });
+    expect(screen.queryByText(/comunicados hoje/)).toBeNull();
+    expect(screen.queryByText(/Escolha para quem o aviso vai/)).toBeNull();
+    expect(screen.queryByText(/Unidade Tijuca/)).toBeNull();
+    unmount();
+    setup({ daily: 16 });
+    await ready();
+    expect(await screen.findByText("16 de 20 comunicados hoje")).toBeInTheDocument();
+  });
+
+
   it("CA9: o Coordenador vê quatro cartões de destino; o Professor, só o de turma, com as turmas dele", async () => {
     const user = userEvent.setup();
     const { unmount } = setup();
