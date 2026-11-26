@@ -37,7 +37,7 @@ describe("BrandCard (R2)", () => {
     expect(screen.getByRole("button", { name: "Enviar logo" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remover logo" })).not.toBeInTheDocument();
     expect(screen.getByText("JPG, PNG ou WebP · cortado em quadrado, 512 px")).toBeInTheDocument();
-    expect(screen.getByText(/sempre com "feito com ctcore" no rodapé/)).toBeInTheDocument();
+    expect(screen.queryByText(/sempre com "feito com ctcore" no rodapé/)).not.toBeInTheDocument();
   });
 
   it("CA2: com logo mostra a miniatura, Trocar logo e Remover logo", () => {

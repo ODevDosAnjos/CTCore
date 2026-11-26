@@ -408,10 +408,10 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
 });
 
 describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)", () => {
-  it("CA1: mostra título, subtítulo e os cartões Marca, Regras da organização e Coordenação, sem os cartões antigos", async () => {
+  it("CA1: mostra título, sem subtítulo, e os cartões Marca, Regras da organização e Coordenação, sem os cartões antigos", async () => {
     setup("COORDINATOR", full);
     await ready();
-    expect(screen.getByText("Marca e regras que valem para todas as unidades · só o Coordenador altera")).toBeInTheDocument();
+    expect(screen.queryByText("Marca e regras que valem para todas as unidades · só o Coordenador altera")).not.toBeInTheDocument();
     for (const name of ["Marca", "Regras da organização", "Coordenação"]) expect(screen.getByRole("heading", { name, level: 2 })).toBeInTheDocument();
     for (const gone of ["Dados da organização", "Logo"]) expect(screen.queryByRole("heading", { name: gone })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("E-mail do novo Coordenador")).not.toBeInTheDocument();

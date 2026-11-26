@@ -153,7 +153,6 @@ function TermEditor({ kind }: { kind: TermsKind }) {
           <History versions={versions} />
         </div>
       </div>
-      <p className="text-sm text-muted-foreground">{t("terms.imageNote")}</p>
     </div>
   );
 }
@@ -163,7 +162,7 @@ function Content() {
   const [kind, setKind] = useTabParam<TermsKind>(KINDS);
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("terms.title")} subtitle={t("terms.subtitle")} />
+      <PageHeader title={t("terms.title")} />
       <Tabs
         label={t("terms.tabs")}
         value={kind}

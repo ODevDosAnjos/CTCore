@@ -16,7 +16,6 @@ import { TermsPage } from "@/features/terms/TermsPage";
 import { TextsPage } from "@/features/texts/TextsPage";
 import { ModalitiesPage } from "@/features/modalities/ModalitiesPage";
 import { NewUnitPage } from "@/features/units/NewUnitPage";
-import { ScopeLine } from "@/features/units/UnitSwitcher";
 import { UnitSettingsPage } from "@/features/units/UnitSettingsPage";
 import { SettingsIndexPage } from "@/features/units/SettingsIndexPage";
 import { UnitsPage } from "@/features/units/UnitsPage";
@@ -84,7 +83,6 @@ function Home() {
     return (
       <>
         <Welcome />
-        <ScopeLine />
         {(role === "ADMINISTRATOR" || role === "TEACHER") && <BirthdaysCard />}
       </>
     );

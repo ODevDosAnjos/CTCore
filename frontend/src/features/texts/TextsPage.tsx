@@ -214,7 +214,7 @@ function Content() {
   const selected = ordered.find((m) => m.key === key) ?? ordered[0];
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("texts.title")} subtitle={t("texts.subtitle")} />
+      <PageHeader title={t("texts.title")} />
       {ordered.length === 0 && <EmptyState title={t("texts.emptyTitle")} text={t("texts.emptyText")} />}
       {selected && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">

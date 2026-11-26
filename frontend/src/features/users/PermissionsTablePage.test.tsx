@@ -37,10 +37,10 @@ function setup(role = "COORDINATOR", path = "/configuracoes/unidade/permissoes")
 const ready = () => screen.findByRole("heading", { name: "Tabela de permissões", level: 1 });
 
 describe("PermissionsTablePage", () => {
-  it("CA8: título, subtítulo, legenda e a matriz de 28 linhas com as três colunas", async () => {
+  it("CA8: título sem subtítulo, legenda e a matriz de 28 linhas com as três colunas", async () => {
     setup();
     await ready();
-    expect(screen.getByText("Fixa: não existe edição de perfis")).toBeInTheDocument();
+    expect(screen.queryByText("Fixa: não existe edição de perfis")).not.toBeInTheDocument();
     expect(screen.getByText(/● pode · ○ só consulta/)).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Área ou ação", "Coordenador", "Administrador", "Professor"]);

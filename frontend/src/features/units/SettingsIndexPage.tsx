@@ -6,7 +6,6 @@ import { iconFor } from "@/components/layout/icons";
 import { ErrorState, LoadingState } from "@/components/states";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
-import { useSession } from "@/features/auth/SessionProvider";
 import { buildMenu } from "@/features/permissions/buildMenu";
 import { usePermissions } from "@/features/permissions/usePermissions";
 
@@ -15,9 +14,7 @@ const ORDER = ["organizationSettings", "unitSettings", "modalities", "ageRanges"
 
 function Content() {
   const { t } = useTranslation();
-  const { state } = useSession();
   const { status, permissions, retry } = usePermissions();
-  const role = state.status === "ready" ? state.session.links.find((l) => l.id === state.session.activeLinkId)?.role : undefined;
   if (!permissions) return status === "loading" ? <LoadingState /> : <ErrorState onRetry={retry} />;
   const allowed = buildMenu(permissions, t).find((g) => g.id === "settings")?.items ?? [];
   const items = ORDER.flatMap((id) => allowed.filter((i) => i.id === id));
@@ -53,7 +50,6 @@ function Content() {
           })}
         </ul>
       </Card>
-      {role === "ADMINISTRATOR" && <p className="text-sm text-muted-foreground">{t("settingsIndex.adminNote")}</p>}
     </div>
   );
 }

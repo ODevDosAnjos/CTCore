@@ -100,7 +100,7 @@ beforeEach(() => {
 });
 
 describe("AdministratorsPage", () => {
-  it("CA5: custo por linha e total no cabeçalho: 2 unidades, convite pendente e Coordenador nomeado", async () => {
+  it("CA5: custo por linha e total no corpo: 2 unidades, convite pendente e Coordenador nomeado", async () => {
     rows = [
       user({ linkId: "a", name: "Ana", units: [CENTRO, NORTE], seats: 2 }),
       user({ linkId: "b", name: "Bia", status: "PENDING", seats: 0, units: [CENTRO, NORTE] }),
@@ -112,7 +112,9 @@ describe("AdministratorsPage", () => {
     expect(within(card("Ana")).getByText("R$ 100,00/mês")).toBeInTheDocument();
     expect(within(card("Bia")).getByText("Sem custo até aceitar o convite")).toBeInTheDocument();
     expect(within(card("Cris")).getByText("Não ocupa vaga")).toBeInTheDocument();
-    expect(screen.getByText(/Vagas ativas: R\$ 100,00\/mês/)).toBeInTheDocument();
+    const total = screen.getByText("Vagas ativas: R$ 100,00/mês");
+    expect(screen.getByRole("heading", { name: "Administradores", level: 1 }).closest("header")).not.toContainElement(total);
+    expect(screen.queryByText(/Quem gere as unidades com você/)).not.toBeInTheDocument();
     expect(screen.queryByText("Tabela de permissões")).toBeNull();
   });
 

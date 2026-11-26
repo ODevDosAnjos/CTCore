@@ -86,7 +86,7 @@ describe("NewUnitPage", () => {
     const user = userEvent.setup();
     setup("COORDINATOR", NEW);
     await wizard();
-    expect(screen.getByText('Assistente curto · o resto entra nos "Primeiros passos" da unidade')).toBeInTheDocument();
+    expect(screen.queryByText('Assistente curto · o resto entra nos "Primeiros passos" da unidade')).not.toBeInTheDocument();
     const steps = screen.getByRole("list", { name: "Etapas" });
     expect(within(steps).getAllByRole("listitem").map((i) => i.textContent)).toEqual(["1Nome e endereço", "2Contato", "3Modalidades", "4Administrador"]);
     expect(within(steps).getByText("Nome e endereço").closest("li")).toHaveAttribute("aria-current", "step");

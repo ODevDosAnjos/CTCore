@@ -17,7 +17,6 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("permissionsTable.title")}
-        subtitle={t("permissionsTable.subtitle")}
         actions={
           <Button asChild variant="ghost">
             <Link to={hrefOf("unitSettings")}>

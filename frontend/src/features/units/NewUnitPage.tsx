@@ -313,7 +313,7 @@ function Content({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("units.new.title")} subtitle={t("units.new.subtitle")} />
+      <PageHeader title={t("units.new.title")} />
       {children}
     </div>
   );

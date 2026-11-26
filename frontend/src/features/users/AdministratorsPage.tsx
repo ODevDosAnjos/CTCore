@@ -113,7 +113,6 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("administrators.title")}
-        subtitle={`${t("administrators.subtitle")} · ${t("administrators.total", { total: formatCurrency(total) })}`}
         className="max-sm:[&>div:last-child]:w-full"
         actions={
           <>
@@ -121,6 +120,7 @@ function Content() {
           </>
         }
       />
+      <p className="text-sm text-muted-foreground">{t("administrators.total", { total: formatCurrency(total) })}</p>
       {notice && <Banner tone="ok">{notice}</Banner>}
       {users.length === 0 ? (
         <EmptyState title={t("administrators.emptyTitle")} text={t("administrators.emptyText")} action={<Button onClick={() => setInviting(true)}>{t("administrators.invite.button")}</Button>} />

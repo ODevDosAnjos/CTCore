@@ -226,7 +226,6 @@ function Detail({ id }: { id: string }) {
     <>
       <PageHeader
         title={d ? heading(d.name, t("unitSettings.unitWord")) : t("unitSettings.generalTitle")}
-        subtitle={d ? t("unitSettings.subtitle", { name: d.shortName }) : undefined}
         actions={d && <LastChange value={d.lastChange} />}
       />
       {api.status === "loading" && <LoadingState />}

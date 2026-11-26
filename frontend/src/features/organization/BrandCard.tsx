@@ -125,7 +125,6 @@ export function BrandCard({
           {notice && <Banner tone={notice.kind === "ok" ? "ok" : "danger"}>{notice.text}</Banner>}
         </div>
         <ColorField value={color} onChange={onColor} disabled={!canEdit} error={colorError} />
-        <p className="text-[13px] leading-normal text-muted-foreground">{t("organization.brandNote")}</p>
       </div>
       {cropping && (
         <LogoCropDialog

@@ -80,11 +80,11 @@ const open = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
 };
 
 describe("TextsPage", () => {
-  it("CA9, CA10, CA11: subtítulo, lista única na ordem do canvas com selos, sem botão Editar, e o primeiro modelo já aberto", async () => {
+  it("CA9, CA10, CA11: sem subtítulo, lista única na ordem do canvas com selos, sem botão Editar, e o primeiro modelo já aberto", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    expect(screen.getByText(/Nove modelos que a organização edita/)).toBeInTheDocument();
+    expect(screen.queryByText(/Nove modelos que a organização edita/)).not.toBeInTheDocument();
     const items = within(screen.getByRole("navigation", { name: "Modelos de texto" })).getAllByRole("button");
     expect(items.map((b) => b.textContent)).toEqual(["Boas-vindasTexto da plataforma", "Lembrete: no diaTexto da plataforma", "Comunicado: Aviso geralEditado"]);
     expect(screen.queryByRole("button", { name: /^Editar/ })).toBeNull();

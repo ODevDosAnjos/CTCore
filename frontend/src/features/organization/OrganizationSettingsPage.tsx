@@ -194,7 +194,7 @@ function Content({ canEdit }: { canEdit: boolean }) {
   if (!api.view) return <ErrorState onRetry={api.retry} />;
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("organization.title")} subtitle={t("organization.subtitle")} actions={<LastChange value={api.view.lastChange} />} />
+      <PageHeader title={t("organization.title")} actions={<LastChange value={api.view.lastChange} />} />
       {!canEdit && <Banner tone="info">{t("organization.readOnly")}</Banner>}
       <OrganizationForm view={api.view} api={api} canEdit={canEdit} onTransferred={() => setNotice({ kind: "ok", text: t("organization.transfer.done") })} />
       <NoticeText notice={notice} />
