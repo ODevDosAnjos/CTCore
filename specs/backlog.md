@@ -244,9 +244,11 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 720 | 646d · Cabeçalhos sem subtítulo: Comunicação | issue #720 (parte da #646) | Sprint 10.5 | #719 | agente | feito |
 | 683 | Teste instável: e2e recuperar-senha (@critical Recuperação de senha) falha uma vez no CI | issue #683 | Sprint 10.5 | — | agente | feito |
 | 724 | Técnica: testes de tela instáveis sob carga (junta #540, #594 e #597) | issue #724 | Sprint 10.5 | — | agente | feito |
-| 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (conferência final; fecha a #646) | issue #721 (parte da #646) | Sprint 10.5 | #720 | agente | a fazer |
+| 732 | 721a · Cabeçalhos sem subtítulo: Configurações, Administradores e Início | issue #732 (parte da #721) | Sprint 10.5 | #720 | agente | feito |
+| 733 | 721b · Cabeçalhos sem subtítulo: conta, duas etapas, convite e portal (conferência final; fecha a #721 e a #646) | issue #733 (parte da #721) | Sprint 10.5 | #732 | agente | a fazer |
+| 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (item-mãe: dividido em #732 e #733; fecha na #733; sem construção própria) | issue #721 (parte da #646) | Sprint 10.5 | #733 | agente | dividido |
 | 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna (item-mãe: dividido em #717 a #721; fecha na #721; sem construção própria) | issue #646 | Sprint 10.5 | #721 | agente | dividido |
-| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #721, #568 | agente | a fazer |
+| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
 | 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #625 | agente | a fazer |
@@ -424,7 +426,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|

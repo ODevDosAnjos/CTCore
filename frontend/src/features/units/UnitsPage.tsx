@@ -35,7 +35,6 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("units.title")}
-        subtitle={t("units.subtitle", { count: active.length })}
         actions={
           full ? (
             <Button disabled aria-describedby="units-limit">
@@ -131,7 +130,6 @@ function Content() {
               </table>
             </div>
           </Card>
-          {active[0] && <p className="text-sm text-muted-foreground">{t("units.shortNameNote", { shortName: active[0].shortName })}</p>}
           <div className="flex flex-wrap gap-2">
             {active.map((u) => (
               <Button key={u.id} variant="danger" size="sm" onClick={() => setDeactivating(u)}>

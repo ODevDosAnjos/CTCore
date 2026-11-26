@@ -49,8 +49,8 @@ const names = (list: HTMLElement) => within(list).getAllByRole("button").map((o)
 describe("seletor de unidade (RF-ORG-05)", () => {
   it("D6 / CA8: com uma unidade é só rótulo, sem botão nem lista; com duas há botão", async () => {
     const one = setup("ADMINISTRATOR", () => HttpResponse.json({ allUnits: false, units: [unit(A, "Unidade A")] }));
-    expect(await screen.findByText("Unidade: Unidade A")).toBeInTheDocument();
-    expect(screen.getAllByRole("group", { name: "Unidade ativa: Unidade A" }).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("group", { name: "Unidade ativa: Unidade A" })).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Unidade: Unidade A")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Unidade ativa/ })).not.toBeInTheDocument();
     one.unmount();
     setup("ADMINISTRATOR", two(false));
@@ -63,7 +63,7 @@ describe("seletor de unidade (RF-ORG-05)", () => {
     const list = await open(user);
     expect(names(list)).toEqual(["Todas as unidadesSó consulta", "Unidade A", "Unidade B"]);
     expect(within(list).getAllByRole("button")[0]).toHaveAttribute("aria-current", "true");
-    expect(screen.getByText(/todas as unidades, só para consulta/)).toBeInTheDocument();
+    expect(screen.queryByText(/todas as unidades, só para consulta/)).not.toBeInTheDocument();
     coordinator.unmount();
     setup("ADMINISTRATOR", two(false));
     const admin = await open(user);

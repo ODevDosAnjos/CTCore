@@ -129,24 +129,24 @@ describe("TermsPage", () => {
     expect(screen.queryByRole("button", { name: /Salvar rascunho/ })).toBeNull();
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.getByText(v1.body)).toBeInTheDocument();
-    expect(screen.getByText(/O uso de imagem é uma caixa separada/)).toBeInTheDocument();
+    expect(screen.queryByText(/O uso de imagem é uma caixa separada/)).not.toBeInTheDocument();
   });
 
-  it("CA1, CA2, CA3, CA6: subtítulo, abas com sublinhado, barra desabilitada, linha da versão e rodapé lado a lado; nota nas duas abas", async () => {
+  it("CA1, CA2, CA3, CA6: sem subtítulo, abas com sublinhado, barra desabilitada, linha da versão e rodapé lado a lado; sem nota nas duas abas", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", { initial: [v1] });
     await ready();
-    expect(screen.getByText(/cada alteração vira uma nova versão/)).toBeInTheDocument();
+    expect(screen.queryByText(/cada alteração vira uma nova versão/)).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Termo de matrícula" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("toolbar", { name: "Formatação do texto" })).toHaveTextContent("Lista");
     expect(screen.getByRole("button", { name: "Lista" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText(/Versão 1 publicada em .+ por Ana/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Salvar rascunho" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("button", { name: "Publicar versão 2" })).toBeInTheDocument();
-    expect(screen.getByText(/O uso de imagem é uma caixa separada/)).toBeInTheDocument();
+    expect(screen.queryByText(/O uso de imagem é uma caixa separada/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Uso de imagem" }));
     expect(await screen.findByRole("tab", { name: "Uso de imagem", selected: true })).toBeInTheDocument();
-    expect(screen.getByText(/O uso de imagem é uma caixa separada/)).toBeInTheDocument();
+    expect(screen.queryByText(/O uso de imagem é uma caixa separada/)).not.toBeInTheDocument();
   });
 
   it("CA3: sem versão publicada, a linha traz a mensagem do texto padrão e o botão é Publicar versão 1", async () => {

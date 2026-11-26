@@ -268,7 +268,6 @@
   },
   "organization": {
     "title": "Organização",
-    "subtitle": "Marca e regras que valem para todas as unidades · só o Coordenador altera",
     "readOnly": "Você pode ver estes dados, mas só o Coordenador altera.",
     "name": "Nome da organização",
     "nameRequired": "Informe o nome da organização.",
@@ -276,7 +275,6 @@
     "holder": "Titular (razão social ou nome)",
     "holderInvalid": "Confira o número: o CPF ou CNPJ digitado não é válido.",
     "brandTitle": "Marca",
-    "brandNote": "A marca aparece no portal, na carteirinha, nos recibos e nos e-mails ao aluno, sempre com \"feito com ctcore\" no rodapé.",
     "color": "Cor principal",
     "colorHex": "Cor principal",
     "colorSwatches": "Amostras de cor",
@@ -388,7 +386,6 @@
   },
   "administrators": {
     "title": "Administradores",
-    "subtitle": "Quem gere as unidades com você · cada Administrador ocupa uma vaga por unidade",
     "total": "Vagas ativas: {{total}}/mês",
     "search": "Nome ou e-mail",
     "filter": { "unit": "Unidade", "allUnits": "Todas", "status": "Situação", "allStatuses": "Ativos e convites" },
@@ -462,7 +459,6 @@
   },
   "permissionsTable": {
     "title": "Tabela de permissões",
-    "subtitle": "Fixa: não existe edição de perfis",
     "back": "Voltar à unidade",
     "legend": "● pode · ○ só consulta · — não acessa · U só nas suas unidades · T só nas suas turmas · * depende da permissão da unidade",
     "area": "Área ou ação",
@@ -1914,7 +1910,6 @@
   },
   "terms": {
     "title": "Termos",
-    "subtitle": "Termo de matrícula e termo de uso de imagem · cada alteração vira uma nova versão",
     "tabs": "Tipo de termo",
     "kinds": {
       "ENROLLMENT": "Termo de matrícula",
@@ -1955,8 +1950,7 @@
       "version": "Versão",
       "publishedAt": "Publicada",
       "acceptances": "Aceites"
-    },
-    "imageNote": "O uso de imagem é uma caixa separada e opcional, que o aluno pode revogar no portal. Cada aceite guarda conta, versão, data, hora e IP."
+    }
   },
   "texts": {
     "title": "Textos",
@@ -2035,7 +2029,6 @@
       "generic": "Não foi possível salvar. Nada foi alterado. Tente de novo.",
       "resetGeneric": "Não foi possível voltar ao texto da plataforma. Nada foi alterado. Tente de novo."
     },
-    "subtitle": "Nove modelos que a organização edita, iguais para todas as unidades · ficam fora: conta e segurança, recibo, cobrança gerada, reajuste, diferença e aviso de bloqueio",
     "list": "Modelos de texto"
   },
   "ageRanges": {
@@ -2189,8 +2182,6 @@
   },
   "units": {
     "title": "Unidades",
-    "subtitle_one": "{{count}} unidade ativa",
-    "subtitle_other": "{{count}} ativas · até 10 unidades e 200 usuários por organização · unidades não mudam o preço",
     "unit": "Unidade",
     "city": "Cidade",
     "noCity": "Não informada",
@@ -2207,7 +2198,6 @@
     "open": "Abrir",
     "history": "Ver histórico",
     "tableLabel": "Unidades da organização",
-    "shortNameNote": "O nome curto aparece nos links públicos (ctcore.com.br/aula/{{shortName}}). É único na plataforma e pode ser ajustado uma vez; o antigo redireciona.",
     "emptyTitle": "Nenhuma unidade",
     "emptyText": "Quando a organização tiver unidades, elas aparecem aqui.",
     "newButton": "Nova unidade",
@@ -2241,7 +2231,6 @@
     },
     "new": {
       "title": "Nova unidade",
-      "subtitle": "Assistente curto · o resto entra nos \"Primeiros passos\" da unidade",
       "steps": {
         "unit": "Nome e endereço",
         "contact": "Contato",
@@ -2319,7 +2308,6 @@
   "unitSettings": {
     "generalTitle": "Configurações da unidade",
     "unitWord": "Unidade",
-    "subtitle": "{{name}} · cada unidade tem seus dados, recebimentos e links",
     "tabsLabel": "Seções da unidade",
     "tabs": {
       "data": "Dados",
@@ -2497,8 +2485,7 @@
       "texts": "Textos",
       "audit": "Auditoria",
       "import": "Importar e exportar"
-    },
-    "adminNote": "Assinatura e Unidades aparecem só para o Coordenador."
+    }
   },
   "unitScope": {
     "label": "Unidade ativa",
@@ -2509,9 +2496,7 @@
     "close": "Fechar",
     "loading": "Carregando unidades...",
     "error": "Não foi possível carregar as unidades.",
-    "chooseToEdit": "Escolha uma unidade no topo da tela para ver e alterar as configurações.",
-    "scopeAll": "Você está vendo todas as unidades, só para consulta.",
-    "scopeOne": "Unidade: {{name}}"
+    "chooseToEdit": "Escolha uma unidade no topo da tela para ver e alterar as configurações."
   },
   "menu": {
     "groups": {

@@ -59,11 +59,11 @@ describe("SettingsIndexPage (R8, GMConfig)", () => {
     expect(screen.queryByRole("heading", { name: "Configurações", level: 1 })).not.toBeInTheDocument();
   });
 
-  it("CA17: o Administrador vê a lista filtrada pela permissão e a nota sobre Assinatura e Unidades", async () => {
+  it("CA17: o Administrador vê a lista filtrada pela permissão, sem a nota sobre Assinatura e Unidades", async () => {
     setup("ADMINISTRATOR");
     const items = await list();
     expect(items.getByRole("link", { name: "Organização" })).toBeInTheDocument();
-    expect(screen.getByText("Assinatura e Unidades aparecem só para o Coordenador.")).toBeInTheDocument();
+    expect(screen.queryByText("Assinatura e Unidades aparecem só para o Coordenador.")).not.toBeInTheDocument();
     expect(items.queryByText("Assinatura")).not.toBeInTheDocument();
   });
 

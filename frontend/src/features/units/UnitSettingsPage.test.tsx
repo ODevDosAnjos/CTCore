@@ -102,10 +102,10 @@ const discard = () => screen.getByRole("button", { name: "Descartar" });
 const openTab = (user: ReturnType<typeof userEvent.setup>, name: string) => user.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
 
 describe("UnitSettingsPage (RF-ORG-04)", () => {
-  it("CA1: mostra o título, o subtítulo, a última alteração e as cinco abas na ordem do canvas", async () => {
+  it("CA1: mostra o título sem subtítulo, a última alteração e as cinco abas na ordem do canvas", async () => {
     setup("COORDINATOR", { units: [{ ...detail(A, "Tijuca"), lastChange: { at: "2026-05-20T15:30:00Z", by: "Bia" } }] });
     await ready("Unidade Tijuca");
-    expect(screen.getByText("tijuca · cada unidade tem seus dados, recebimentos e links")).toBeInTheDocument();
+    expect(screen.queryByText("tijuca · cada unidade tem seus dados, recebimentos e links")).not.toBeInTheDocument();
     expect(screen.getByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]);
   });

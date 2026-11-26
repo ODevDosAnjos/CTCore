@@ -54,10 +54,10 @@ function setup(role: string, read: () => Response | Promise<Response> = () => Ht
 const ready = () => screen.findByRole("heading", { name: "Unidades", level: 1 });
 
 describe("UnitsPage", () => {
-  it("CA1 / CA2 / CA3: subtítulo, tabela em cartão, selos, Abrir, Ver histórico em breve, nota e botões vermelhos", async () => {
+  it("CA1 / CA2 / CA3: sem subtítulo nem nota, tabela em cartão, selos, Abrir, Ver histórico em breve e botões vermelhos", async () => {
     setup("COORDINATOR");
     await ready();
-    expect(screen.getByText(/^2 ativas · até 10 unidades e 200 usuários por organização · unidades não mudam o preço$/)).toBeInTheDocument();
+    expect(screen.queryByText(/^2 ativas · até 10 unidades e 200 usuários por organização · unidades não mudam o preço$/)).not.toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Unidades da organização" });
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Unidade", "Cidade", "Alunos ativos", "Administradores", "Situação", "Nome curto", "Ações"]);
     const rowOf = (name: string) => within(table).getAllByRole("row").find((r) => r.querySelector("td")?.textContent === name)!;
@@ -72,18 +72,18 @@ describe("UnitsPage", () => {
     expect(within(meierRow).getByRole("button", { name: "Ver histórico" })).toHaveAttribute("aria-disabled", "true");
     expect(within(meierRow).getByText("Em breve")).toBeInTheDocument();
     expect(within(table).queryByRole("button", { name: /Configurar|Desativar a|Ajustar nome curto/ })).toBeNull();
-    expect(screen.getByText("O nome curto aparece nos links públicos (ctcore.com.br/aula/academia-leao-tijuca). É único na plataforma e pode ser ajustado uma vez; o antigo redireciona.")).toBeInTheDocument();
+    expect(screen.queryByText("O nome curto aparece nos links públicos (ctcore.com.br/aula/academia-leao-tijuca). É único na plataforma e pode ser ajustado uma vez; o antigo redireciona.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar a Tijuca…" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar a Barra…" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Desativar a Méier…" })).toBeNull();
     expect(screen.getByRole("link", { name: "Nova unidade" })).toHaveAttribute("href", "/configuracoes/unidades/nova");
   });
 
-  it("CA1: com uma só unidade ativa o subtítulo é \"1 unidade ativa\" e o botão abre a janela informativa", async () => {
+  it("CA1: com uma só unidade ativa não há subtítulo e o botão abre a janela informativa", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", () => HttpResponse.json([unit()]));
     await ready();
-    expect(screen.getByText("1 unidade ativa")).toBeInTheDocument();
+    expect(screen.queryByText("1 unidade ativa")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Desativar a Tijuca…" }));
     const dialog = await screen.findByRole("dialog", { name: "A única unidade ativa não pode ser desativada" });
     expect(within(dialog).getByText(/cancele a assinatura em Configurações › Assinatura/)).toBeInTheDocument();

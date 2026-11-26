@@ -81,3 +81,4 @@ Até a Sprint 22 todas usam só a versão simulada; nenhuma regra cita fornecedo
 | Sprint 00 revisada e Sprint 01 liberada (dono, 16/10/2026) | Confirmação explícita: "A sprint 00 foi revisada, pode prosseguir com a sprint 01." | Manter a parada entre sprints após a liberação do dono |
 | Sprint 02 revisada e Sprint 03 liberada (dono, 18/10/2026) | Liberação registrada na revisão da Sprint 03 (R03-1) | Manter a parada entre sprints após a liberação do dono |
 | Sprint 03 revisada e Sprint 04 liberada (dono, 18/10/2026) | PR dev→main #260 mergeado pelo dono | Manter a parada entre sprints após a liberação do dono |
+| #721 dividida em #732 (#721a, primeiro) e #733 (#721b, fecha a #721 e a #646) (dono, 26/11/2026, P11) | Cerca de 46 arquivos contáveis, acima do limite de 30 | Um PR só |

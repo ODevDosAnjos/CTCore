@@ -12,6 +12,6 @@ A #646 passa muito de 30 arquivos contáveis (AGENTS.md, "Tamanho do item"). O d
 | b | #718 | Operação: agenda, feriados e recessos, turmas, faixas etárias, modalidades, pedidos do portal | `specs/itens/718-cabecalhos-operacao.md` (especificado) |
 | c | #719 | Financeiro: planos, benefícios, cobranças e subtelas, pagamento, comprovante Pix | `specs/itens/719-cabecalhos-financeiro.md` (especificado) |
 | d | #720 | Comunicação: comunicados, novo comunicado, aviso de aula | a especificar |
-| e | #721 | Configurações, conta e portal; conferência final tela por tela; fecha a #646 | a especificar |
+| e | #721 | Configurações, conta e portal; conferência final tela por tela; fecha a #646 | `specs/itens/721-cabecalhos-config-conta-portal.md` (dividida em #732 e #733; a #733 fecha a #646) |
 
-Ordem: #717, #718, #719, #720, #721 (cada uma depende da anterior). A #714 depende da #721. A #646 fecha no merge da #721 (o PR da #721 traz `Closes #721` e `Closes #646`).
+Ordem: #717, #718, #719, #720, #721 (cada uma depende da anterior). A #714 depende da #721 (fechada pela #733). A #646 fecha no merge da #721 (com a divisão da #721, o PR da #733 traz `Closes #733`, `Closes #721` e `Closes #646`).
