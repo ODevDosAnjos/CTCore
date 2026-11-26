@@ -71,7 +71,7 @@ describe("janela Gerar próximas mensalidades (RN-COB-06, CA13, CA14, CA15)", ()
       ["jan/2027", "05/01/2027", "R$ 220,00"],
       ["Total", "R$ 660,00"],
     ]);
-    expect(screen.getByText("Se o plano for reajustado depois, as cobranças pagas não mudam.")).toBeInTheDocument();
+    expect(screen.queryByText(/Se o plano for reajustado depois/)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Gerar 3 mensalidades" }));
     expect(await screen.findByText("3 mensalidades criadas (de dez/2026 a fev/2027).")).toBeInTheDocument();
     expect(sent).toEqual([{ path: "s1/m1", body: { count: 3 } }]);

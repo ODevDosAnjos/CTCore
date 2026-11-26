@@ -10,7 +10,7 @@ A #646 passa muito de 30 arquivos contáveis (AGENTS.md, "Tamanho do item"). O d
 |---|---|---|---|
 | a | #717 | Pessoas: alunos, matrícula, professores, ficha | `specs/itens/717-cabecalhos-pessoas.md` (especificado) |
 | b | #718 | Operação: agenda, feriados e recessos, turmas, faixas etárias, modalidades, pedidos do portal | `specs/itens/718-cabecalhos-operacao.md` (especificado) |
-| c | #719 | Financeiro: planos, benefícios, cobranças e subtelas, pagamento, comprovante Pix | a especificar |
+| c | #719 | Financeiro: planos, benefícios, cobranças e subtelas, pagamento, comprovante Pix | `specs/itens/719-cabecalhos-financeiro.md` (especificado) |
 | d | #720 | Comunicação: comunicados, novo comunicado, aviso de aula | a especificar |
 | e | #721 | Configurações, conta e portal; conferência final tela por tela; fecha a #646 | a especificar |
 

@@ -135,7 +135,7 @@ export function PixProofDialog({ chargeIds, onClose, onSent, description }: Prop
           {!narrow && (
             <p className="text-sm">
               <span className="text-muted-foreground">{t("pixProof.amount")} </span>
-              <span className="font-medium">{t("pixProof.noFee", { value: formatCurrency(data.amountCents) })}</span>
+              <span className="font-medium">{formatCurrency(data.amountCents)}</span>
             </p>
           )}
           {data.charges && (

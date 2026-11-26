@@ -37,7 +37,7 @@ describe("RegisterPaymentDialog (RF-COB-04)", () => {
     setup();
     const dialog = within(await screen.findByRole("dialog", { name: "Registrar pagamento" }));
     expect(dialog.getByText("Marina Teixeira · Jiu-Jitsu · 10/2026 · vence 10/10/2026")).toBeInTheDocument();
-    expect(dialog.getByText("Valor da cobrança: R$ 50,00 · sem taxa no pagamento manual")).toBeInTheDocument();
+    expect(dialog.getByText("Valor da cobrança: R$ 50,00")).toBeInTheDocument();
     expect(dialog.getAllByRole("radio").map((r) => r.closest("label")?.textContent)).toEqual(["Dinheiro", "Pix na chave da unidade", "Cartão na maquininha", "Transferência"]);
     expect(dialog.getByRole("radio", { name: "Dinheiro" })).toBeChecked();
     expect(dialog.getByLabelText("Valor")).toBeDisabled();

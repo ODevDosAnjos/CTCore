@@ -55,7 +55,7 @@ describe("PlanInspectDrawer (RN-PLA-06)", () => {
     const rows = d.getAllByRole("row").slice(1);
     expect(rows[0]).toHaveTextContent("01/03/2025R$ 150,00Carla Mendes");
     expect(rows[1]).toHaveTextContent("01/01/2024R$ 130,00—");
-    expect(d.getByText("A unidade e a modalidade de um plano não mudam: para outra, crie um plano novo.")).toBeInTheDocument();
+    expect(d.queryByText(/não mudam: para outra/)).toBeNull();
     expect(d.queryByRole("textbox")).toBeNull();
   });
 

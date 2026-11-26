@@ -105,11 +105,11 @@ describe("ChargesPage (RF-COB-01)", () => {
     expect(calls.at(-1)!.get("size")).toBe("25");
   });
 
-  it("CA1 (R1): subtítulo com a regra, os quatro botões; Exportar CSV é Em breve e não responde; Nova cobrança abre a janela; somem os botões antigos", async () => {
+  it("CA1 (R1): sem subtítulo, os quatro botões; Exportar CSV é Em breve e não responde; Nova cobrança abre a janela; somem os botões antigos", async () => {
     const user = userEvent.setup();
     setup("ADMINISTRATOR");
     await ready();
-    expect(screen.getByText(/^Todas as unidades · sem juros, multa ou pagamento parcial · taxas do meio de pagamento repassadas ao aluno$/)).toBeInTheDocument();
+    expect(screen.queryByText(/sem juros, multa/)).toBeNull();
     expect(screen.getByRole("link", { name: "Recebimentos do dia" })).toHaveAttribute("href", "/cobrancas/recebimentos");
     expect(screen.getByRole("link", { name: "Prévia da geração" })).toHaveAttribute("href", "/cobrancas/previa");
     const exportCsv = screen.getByRole("button", { name: "Exportar CSV" });
@@ -302,7 +302,7 @@ describe("ChargesPage (RF-COB-01)", () => {
 describe("ChargesPage · celular (R7)", () => {
   afterEach(() => setDeviceNarrow(false));
 
-  it("CA8: a 390 px o título leva Mês/Ano e a contagem, só a linha de pílulas e os cartões; busca e filtros ficam na folha; Nova cobrança vai ao pé", async () => {
+  it("CA8: a 390 px o título fica sem Mês/Ano e contagem, só a linha de pílulas e os cartões; busca e filtros ficam na folha; Nova cobrança vai ao pé", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-15T15:00:00Z"));
     try {
@@ -313,7 +313,7 @@ describe("ChargesPage · celular (R7)", () => {
       await ready();
       const card = (await screen.findByText("Ana Souza")).closest("li")!;
       expect(screen.queryByRole("table")).toBeNull();
-      expect(screen.getByText("Outubro/2026 · 3 cobranças")).toBeInTheDocument();
+      expect(screen.queryByText("Outubro/2026 · 3 cobranças")).toBeNull();
       expect(within(card).getByText("Jiu-Jitsu · 03/2026")).toBeInTheDocument();
       expect(within(card).getByText("Em atraso")).toBeInTheDocument();
       expect(within(card).getByText("venceu 05/03 · 25 dias")).toBeInTheDocument();

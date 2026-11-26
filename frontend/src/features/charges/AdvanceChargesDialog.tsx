@@ -59,7 +59,6 @@ function Preview({ studentId, rowId, count }: { studentId: string; rowId: string
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">{t(`${k}note`)}</p>
     </>
   );
 }

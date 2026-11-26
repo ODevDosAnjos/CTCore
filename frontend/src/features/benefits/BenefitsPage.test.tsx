@@ -78,16 +78,16 @@ function setup(opts: { role?: string; list?: () => Response | Promise<Response>;
 describe("BenefitsPage (RF-BEN-01)", () => {
   afterEach(() => setDeviceNarrow(false));
 
-  it("CA1: subtítulo com a unidade escolhida (e todas as unidades), botão Conceder benefício sem ícone", async () => {
+  it("CA1: sem subtítulo (com unidade e em todas), botão Conceder benefício sem ícone", async () => {
     const user = userEvent.setup();
     setup();
     await screen.findByText("Davi Nogueira");
-    expect(screen.getByText(/^Todas as unidades · no máximo um benefício ativo por modalidade/)).toBeInTheDocument();
+    expect(screen.queryByText(/no máximo um benefício ativo/)).toBeNull();
     const grant = screen.getByRole("button", { name: "Conceder benefício" });
     expect(grant.querySelector("svg")).toBeNull();
     await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
     await user.click(screen.getByRole("button", { name: "Tijuca" }));
-    expect(await screen.findByText("Unidade Tijuca · no máximo um benefício ativo por modalidade · vale a partir da próxima cobrança gerada")).toBeInTheDocument();
+    expect(screen.queryByText(/no máximo um benefício ativo/)).toBeNull();
     await waitFor(() => expect(calls.at(-1)!.get("unitId")).toBe("u1"));
   });
 
@@ -122,7 +122,7 @@ describe("BenefitsPage (RF-BEN-01)", () => {
     await waitFor(() => expect(calls.at(-1)!.get("type")).toBe("AMOUNT"));
   });
 
-  it("CA4: linhas com avatar, valor, Benefício alto, validade, situação e a nota de rodapé", async () => {
+  it("CA4: linhas com avatar, valor, Benefício alto, validade e situação, sem nota de rodapé", async () => {
     setup({ list: () => HttpResponse.json({ items: all, page: 1, size: 25, total: all.length, counts }) });
     const table = within(await screen.findByRole("table"));
     const davi = within(table.getByText("Davi Nogueira").closest("tr")!);
@@ -144,7 +144,7 @@ describe("BenefitsPage (RF-BEN-01)", () => {
     expect(olivia.getByText("venceu 30/09")).toBeInTheDocument();
     expect(olivia.getByText("Encerrado")).toBeInTheDocument();
     expect(table.queryByText("Unidade Tijuca")).toBeNull();
-    expect(screen.getByText(/^Benefício acima de 50% \(ou desconto acima de metade do plano\) avisa o Coordenador/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Benefício acima de 50%/)).toBeNull();
   });
 
   it("CA5: Encerrar só nos ativos, com o nome no aria-label; Encerrar abre a janela, envia o motivo e recarrega", async () => {

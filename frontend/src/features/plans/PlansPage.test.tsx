@@ -113,9 +113,10 @@ describe("PlansPage · tela (RF-PLA-01, RF-PLA-02)", () => {
     await user.click(screen.getByRole("button", { name: "Tijuca" }));
     await waitFor(() => expect(summaryCalls.at(-1)!.get("unitId")).toBe("u1"));
     const plans = within(await screen.findByRole("region", { name: "Resumo de planos e benefícios" }));
-    expect(await plans.findByText("ativos na Tijuca · só mensais, um por modalidade")).toBeInTheDocument();
-    expect(plans.getByText("ativos · 2 acima de 50% · bolsas e descontos")).toBeInTheDocument();
-    expect(screen.getByText("Unidade Tijuca · valores guardados em centavos · a graduação não muda a mensalidade")).toBeInTheDocument();
+    expect(await plans.findByText("Planos")).toBeInTheDocument();
+    expect(plans.queryByText(/só mensais/)).toBeNull();
+    expect(plans.queryByText(/bolsas e descontos/)).toBeNull();
+    expect(screen.queryByText(/valores guardados em centavos/)).toBeNull();
     expect(plans.getByRole("link", { name: "Ver benefícios" })).toHaveAttribute("href", "/beneficios");
     await user.click(plans.getByRole("button", { name: "Novo plano" }));
     expect(await screen.findByRole("dialog", { name: "Novo plano" })).toBeInTheDocument();
@@ -136,7 +137,7 @@ describe("PlansPage · tela (RF-PLA-01, RF-PLA-02)", () => {
     expect(screen.queryByRole("searchbox")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Situação/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Unidade:/ })).toBeNull();
-    expect(screen.getByText(/A frequência é só informativa/)).toBeInTheDocument();
+    expect(screen.queryByText(/A frequência é só informativa/)).toBeNull();
     await user.click(screen.getByRole("button", { name: /^Modalidade/ }));
     await user.click(await screen.findByRole("option", { name: "Muay Thai" }));
     await waitFor(() => expect(listCalls.at(-1)!.get("modalityId")).toBe("m2"));

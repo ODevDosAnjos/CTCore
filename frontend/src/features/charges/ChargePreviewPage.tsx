@@ -31,15 +31,12 @@ function Content() {
   // R10: com "todas as unidades" a rota não tem o que consultar; a pessoa escolhe uma da lista ao alcance.
   const all = scope.selected === ALL;
   const unitId = all ? picked || null : scope.selected;
-  const unitName = scope.units.find((u) => u.id === unitId)?.name;
   const { status, data, reload } = useChargePreview(unitId, days);
   const full = permissions?.COLLECTIONS === "FULL";
 
   // O mês da tela é o do primeiro vencimento previsto; sem vencimentos, o de hoje.
   const reference = data?.days[0]?.dueOn ?? todayIso();
-  const month = monthName(reference);
   const previous = previousMonthName(reference);
-  const monthYear = `${month.charAt(0).toUpperCase()}${month.slice(1)}/${reference.slice(0, 4)}`;
 
   let body;
   if (!unitId) body = <EmptyState variant="card" title={t("charges.preview.pickUnit")} text={t("charges.preview.pickUnitText")} />;
@@ -75,7 +72,6 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("charges.preview.title")}
-        subtitle={unitName ? t("charges.preview.subtitle", { month: monthYear, unit: unitName }) : t("charges.preview.subtitleNoUnit", { month: monthYear })}
         actions={
           <>
             <label className="flex items-center gap-2 text-sm font-medium">

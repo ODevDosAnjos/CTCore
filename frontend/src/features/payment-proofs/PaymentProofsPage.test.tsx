@@ -75,7 +75,7 @@ describe("PaymentProofsPage (RF-COB-05)", () => {
     setup();
     await ready();
     const box = within(await featured());
-    expect(screen.getByText("Comprovantes de Pix na chave da unidade · 2 aguardando")).toBeInTheDocument();
+    expect(screen.queryByText(/Comprovantes de Pix na chave da unidade/)).toBeNull();
     expect(box.getByText("Centro · Jiu-Jitsu · mar/2026")).toBeInTheDocument();
     expect(box.getByRole("img", { name: "Comprovante de Ana Souza" })).toHaveAttribute("src", IMAGE);
     expect(box.getByText("Em conferência")).toBeInTheDocument();
@@ -150,7 +150,7 @@ describe("PaymentProofsPage (RF-COB-05)", () => {
     const user = userEvent.setup();
     setup(grouped);
     await ready();
-    expect(await screen.findByText("Comprovantes de Pix na chave da unidade · 2 aguardando")).toBeInTheDocument();
+    await featured();
     const box = within(await featured());
     expect(box.getByText("Barra · Jiu-Jitsu e Muay Thai · out/2026")).toBeInTheDocument();
     expect(box.getByText(/360,00/)).toBeInTheDocument();
@@ -202,14 +202,14 @@ describe("PaymentProofsPage (RF-COB-05)", () => {
     expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
   });
 
-  it("CA13: a 360 px a lista são os cartões do canvas (contagem, Comprovante, Confirmar e Recusar) e o axe não acusa violação nos dois temas", async () => {
+  it("CA13: a 360 px a lista são os cartões do canvas (Comprovante, Confirmar e Recusar) e o axe não acusa violação nos dois temas", async () => {
     for (const dark of [false, true]) {
       setDeviceNarrow(true, dark);
       window.innerWidth = 360;
       const { container, unmount } = setup(grouped);
       await ready();
       await screen.findByText("Lucas Almeida");
-      expect(screen.getByText("Todas as unidades · 2 comprovantes")).toBeInTheDocument();
+      expect(screen.queryByText(/2 comprovantes/)).toBeNull();
       const cards = screen.getAllByRole("listitem").filter((li) => li.className.includes("rounded-md border p-3"));
       expect(cards).toHaveLength(2);
       expect(within(cards[0]).getByRole("link", { name: /Comprovante/ })).toHaveAttribute("href", IMAGE);

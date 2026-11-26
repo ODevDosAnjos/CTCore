@@ -25,7 +25,6 @@ function Content() {
   const day = useSentDay();
   const scope = useUnitScope();
   const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
-  const unitName = scope.selected && scope.selected !== ALL ? scope.units.find((u) => u.id === scope.selected)?.name : undefined;
   const [version, setVersion] = useState(0);
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [decision, setDecision] = useState<Decision>();
@@ -70,8 +69,6 @@ function Content() {
     },
   ];
 
-  const scopeText = unitName ? t("paymentProofs.scopeUnit", { unit: unitName }) : t("paymentProofs.scopeAll");
-  const subtitle = narrow ? `${scopeText} · ${t("paymentProofs.mobileCount", { count: groups.length })}` : t("paymentProofs.subtitle", { count: groups.length });
   let body;
   if (load.state === "loading") body = <LoadingState variant="card" />;
   else if (load.state === "error") body = <ErrorState variant="card" title={t("charges.errorTitle")} text={t("charges.errorText")} secondary={<SupportLink />} onRetry={reload} />;
@@ -106,7 +103,7 @@ function Content() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("paymentProofs.title")} subtitle={load.state === "ok" && groups.length > 0 ? subtitle : undefined} />
+      <PageHeader title={t("paymentProofs.title")} />
       {!narrow && <p className="text-muted-foreground">{t("paymentProofs.intro")}</p>}
       {body}
       {decision?.mode === "confirm" && <ConfirmProofDialog proof={decision.proof} onClose={() => setDecision(undefined)} onDone={reload} />}

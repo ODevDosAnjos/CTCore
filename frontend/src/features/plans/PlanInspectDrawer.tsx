@@ -189,7 +189,6 @@ function Detail({
           </table>
         </div>
       </section>
-      <p className="text-xs text-muted-foreground">{t(`${k}note`)}</p>
     </>
   );
 }

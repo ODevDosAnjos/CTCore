@@ -119,7 +119,6 @@ function Content() {
   // Com "todas as unidades" a rota não tem o que consultar; a pessoa escolhe uma da lista ao alcance.
   const all = scope.selected === ALL;
   const unitId = all ? picked || null : scope.selected;
-  const unitName = scope.units.find((u) => u.id === unitId)?.name;
   const { status, data, reload } = useDailyReceipts(unitId, date);
   const today = todayIso();
 
@@ -136,7 +135,7 @@ function Content() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("charges.daily.title")}
-        subtitle={unitName ? t("charges.daily.subtitle", { date: when, unit: unitName }) : t("charges.daily.subtitleNoUnit", { date: when })}
+        subtitle={t("charges.daily.subtitle", { date: when })}
         actions={
           <>
             <Button type="button" variant="outline" className="min-h-11" onClick={() => setDate(shiftDay(date, -1))}>

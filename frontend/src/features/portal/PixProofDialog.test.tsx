@@ -43,7 +43,8 @@ describe("PixProofDialog (RF-COB-05)", () => {
     view(() => {}, onSent);
     const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave com comprovante" }));
     expect(await dialog.findByText("pix@alfa.test")).toBeInTheDocument();
-    expect(dialog.getByText(/120,00 \(sem taxa\)/)).toBeInTheDocument();
+    expect(dialog.getByText(/120,00/)).toBeInTheDocument();
+    expect(dialog.queryByText(/sem taxa/)).toBeNull();
     expect(dialog.getByText("O pagamento online da Centro está fora do ar agora. Pague na chave Pix da unidade e envie o comprovante.")).toBeInTheDocument();
     expect(dialog.getByText("Chave Pix (e-mail)")).toBeInTheDocument();
     expect(dialog.getByText("Titular: Centro")).toBeInTheDocument();

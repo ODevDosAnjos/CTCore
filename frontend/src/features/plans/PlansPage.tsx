@@ -21,7 +21,7 @@ import { PlanFormDialog } from "./PlanFormDialog";
 import type { PlansOutlet } from "./PlanInspectDrawer";
 import { fetchPlans, usePlanOptions, usePlanSummary, type PlanRow } from "./usePlans";
 
-function SummaryCard({ icon, label, value, note, action }: { icon: ReactNode; label: string; value: number; note: string; action: ReactNode }) {
+function SummaryCard({ icon, label, value, action }: { icon: ReactNode; label: string; value: number; action: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-3 rounded-card border bg-card p-5">
       <div className="flex items-center gap-3">
@@ -34,7 +34,6 @@ function SummaryCard({ icon, label, value, note, action }: { icon: ReactNode; la
         <span data-stat-value className="font-heading text-[40px] font-semibold leading-none">
           {value}
         </span>
-        <span className="text-[13px] text-muted-foreground">{note}</span>
       </div>
       <div className="flex items-center gap-3">{action}</div>
     </div>
@@ -53,7 +52,6 @@ function Content() {
   const canManage = !!permissions && permissions.PLANS !== "NONE";
   const all = !scope.selected || scope.selected === ALL;
   const unitId = all ? null : scope.selected;
-  const unitName = scope.units.find((u) => u.id === scope.selected)?.name ?? "";
   const { summary, status, retry } = usePlanSummary(unitId);
   const options = usePlanOptions(true);
   const crossUnit = options.options?.crossUnitTraining === "plan";
@@ -143,7 +141,6 @@ function Content() {
   };
 
   if (status === "forbidden") return <ForbiddenState />;
-  const subtitle = narrow ? unitName || t("plans.mobileSubtitleAll") : all ? t("plans.subtitleAll") : t("plans.subtitle", { unit: unitName });
   let summaryView: ReactNode;
   if (status === "error") summaryView = <ErrorState variant="card" onRetry={retry} />;
   else if (status === "loading" || !summary) summaryView = <div role="status" aria-label={t("states.loadingCard")} className="h-24 animate-pulse rounded-card bg-neutral" />;
@@ -167,14 +164,12 @@ function Content() {
             icon={<FileText className="size-[22px]" />}
             label={t("plans.cards.plansTitle")}
             value={plans.active}
-            note={all ? t("plans.cards.plansNoteAll") : t("plans.cards.plansNote", { unit: unitName })}
             action={newButton("card")}
           />
           <SummaryCard
             icon={<Gift className="size-[22px]" />}
             label={t("plans.cards.benefitsTitle")}
             value={benefits.active}
-            note={t("plans.cards.benefitsNote", { high: benefits.high })}
             action={
               <Button asChild variant="outline" size="sm">
                 <Link to="/beneficios">{t("plans.cards.seeBenefits")}</Link>
@@ -187,7 +182,7 @@ function Content() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("plans.title")} subtitle={subtitle} />
+      <PageHeader title={t("plans.title")} />
       {summaryView}
       <QueryPage
         key={version}
@@ -221,7 +216,6 @@ function Content() {
         filterKeys={["modalityId"]}
         texts={{ emptyTitle: t("plans.table.emptyTitle"), emptyText: t("plans.table.emptyText") }}
         emptyAction={newButton("card")}
-        footer={() => <p className="text-xs text-muted-foreground">{t("plans.table.footnote")}</p>}
       />
       {narrow && fullButton}
       <PlanFormDialog

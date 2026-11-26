@@ -19,7 +19,6 @@ import { ChargeFilters } from "./ChargeFilters";
 import { ChargeRowMenu } from "./ChargeRowMenu";
 import { OneOffChargeDialog } from "./OneOffChargeDialog";
 import type { ChargesOutlet } from "./ChargePanelPage";
-import { periodLabel } from "./period";
 import { fetchCharges } from "./useCharges";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -40,7 +39,6 @@ function Content() {
   // A unidade vem da barra: "todas" não filtra. A identidade de fetchPage muda só quando a unidade muda.
   const scope = useUnitScope();
   const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
-  const unitName = scope.units.find((u) => u.id === scope.selected)?.name;
   const fetchPage = useCallback((q: Query) => fetchCharges(q, unitId), [unitId]);
   const reload = () => setVersion((v) => v + 1);
   const open = (id: string) => void navigate({ pathname: `/cobrancas/${id}`, search: listSearch(search) });
@@ -51,16 +49,11 @@ function Content() {
       {t("charges.creation.open")}
     </Button>
   );
-  const header = ({ total }: { counts?: Record<string, number>; total?: number }) => {
-    if (narrow) {
-      const period = get("period");
-      const month = periodLabel(period || new Date().toISOString().slice(0, 7));
-      return <PageHeader title={t("charges.title")} subtitle={total === undefined ? month : t("charges.mobileSubtitle", { month, count: total })} />;
-    }
+  const header = () => {
+    if (narrow) return <PageHeader title={t("charges.title")} />;
     return (
       <PageHeader
         title={t("charges.title")}
-        subtitle={unitId && unitName ? t("charges.subtitle", { unit: unitName }) : t("charges.subtitleAll")}
         actions={
           <>
             <Button asChild variant="outline" className="min-h-11">

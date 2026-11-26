@@ -72,10 +72,11 @@ const shift = (iso: string, d: number) => new Date(Date.parse(`${iso}T12:00:00Z`
 describe("DailyReceiptsPage (RF-COB-08, #479)", () => {
   afterEach(() => setDeviceNarrow(false));
 
-  it("CA1, CA3: subtítulo com a data por extenso e a unidade; Dia anterior e Exportar CSV (Em breve); sem campo de data nem Voltar", async () => {
+  it("CA1, CA3: subtítulo só com a data por extenso; Dia anterior e Exportar CSV (Em breve); sem campo de data nem Voltar", async () => {
     setup();
     await ready();
-    expect(await screen.findByText(/sem abertura ou fechamento de caixa/)).toHaveTextContent(/^[A-Z][^ ,]+, \d{1,2} de [a-zç]+ de \d{4} · Centro · sem abertura/);
+    expect(await screen.findByText(/^[A-Z][^ ,]+, \d{1,2} de [a-zç]+ de \d{4}$/)).toBeInTheDocument();
+    expect(screen.queryByText(/sem abertura ou fechamento/)).toBeNull();
     expect(screen.getByRole("button", { name: "Dia anterior" })).toBeInTheDocument();
     const csv = screen.getByRole("button", { name: /Exportar CSV/ });
     expect(csv).toHaveAttribute("aria-disabled", "true");

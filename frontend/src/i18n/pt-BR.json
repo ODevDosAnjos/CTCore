@@ -1497,9 +1497,6 @@
   },
   "plans": {
     "title": "Planos e benefícios",
-    "subtitle": "Unidade {{unit}} · valores guardados em centavos · a graduação não muda a mensalidade",
-    "subtitleAll": "Todas as unidades · valores guardados em centavos · a graduação não muda a mensalidade",
-    "mobileSubtitleAll": "Todas as unidades",
     "newButton": "Novo plano",
     "tabsLabel": "Planos e benefícios",
     "tabPlans": "Planos",
@@ -1507,10 +1504,7 @@
     "summaryLabel": "Resumo de planos e benefícios",
     "cards": {
       "plansTitle": "Planos",
-      "plansNote": "ativos na {{unit}} · só mensais, um por modalidade",
-      "plansNoteAll": "ativos · só mensais, um por modalidade",
       "benefitsTitle": "Benefícios",
-      "benefitsNote": "ativos · {{high}} acima de 50% · bolsas e descontos",
       "seeBenefits": "Ver benefícios"
     },
     "table": {
@@ -1526,7 +1520,6 @@
       "otherNo": "Só nesta unidade",
       "edit": "Editar",
       "editFor": "Editar o plano {{name}}",
-      "footnote": "A frequência é só informativa: nada controla quantas aulas o aluno faz. Plano com alunos não é excluído, só desativado.",
       "columns": {
         "modality": "Modalidade",
         "name": "Plano",
@@ -1633,14 +1626,11 @@
       "value": "Valor",
       "changedBy": "Alterado por",
       "noAuthor": "—",
-      "note": "A unidade e a modalidade de um plano não mudam: para outra, crie um plano novo.",
       "reactivate": "Reativar plano"
     }
   },
   "benefits": {
     "title": "Benefícios",
-    "subtitle": "Unidade {{unit}} · no máximo um benefício ativo por modalidade · vale a partir da próxima cobrança gerada",
-    "subtitleAll": "Todas as unidades · no máximo um benefício ativo por modalidade · vale a partir da próxima cobrança gerada",
     "tabsLabel": "Situação dos benefícios",
     "search": "Buscar por nome",
     "views": { "ACTIVE": "Ativos", "HIGH": "Benefícios altos", "CLOSED": "Encerrados" },
@@ -1654,7 +1644,6 @@
     "noDeadline": "sem validade",
     "until": "até {{month}}",
     "expiredOn": "venceu {{date}}",
-    "footnote": "Benefício acima de 50% (ou desconto acima de metade do plano) avisa o Coordenador e aparece em \"Benefícios altos\". Não precisa de aprovação.",
     "grant": {
       "button": "Conceder benefício",
       "title": "Conceder benefício",
@@ -2825,8 +2814,6 @@
   "charges": {
     "showResults": "Ver {{count}} cobranças",
     "title": "Cobranças",
-    "subtitle": "Unidade {{unit}} · sem juros, multa ou pagamento parcial · taxas do meio de pagamento repassadas ao aluno",
-    "subtitleAll": "Todas as unidades · sem juros, multa ou pagamento parcial · taxas do meio de pagamento repassadas ao aluno",
     "search": "Aluno, CPF ou referência",
     "export": "Exportar CSV",
     "creation": {
@@ -2869,7 +2856,6 @@
       "dueOn": "Vencimento",
       "value": "Valor",
       "total": "Total",
-      "note": "Se o plano for reajustado depois, as cobranças pagas não mudam.",
       "submit_one": "Gerar {{count}} mensalidade",
       "submit_other": "Gerar {{count}} mensalidades",
       "doneTitle": "Mensalidades geradas",
@@ -2895,8 +2881,6 @@
     "late_other": "{{count}} dias",
     "dueLate": "venceu {{date}} · {{days}}",
     "dueOn": "vencimento {{date}}",
-    "mobileSubtitle_one": "{{month}} · {{count}} cobrança",
-    "mobileSubtitle_other": "{{month}} · {{count}} cobranças",
     "seeOverdue": "Ver atrasados",
     "errorTitle": "Não foi possível carregar as cobranças",
     "errorText": "A conexão caiu no meio do caminho. Nada foi alterado. Se continuar, fale com o suporte.",
@@ -2975,7 +2959,7 @@
       "value": "Valor",
       "benefit": "Benefício",
       "final": "Valor final",
-      "compositionNote": "Vencimento {{due}} · gerada em {{created}} · a composição não muda depois de gerada",
+      "compositionNote": "Vencimento {{due}} · gerada em {{created}}",
       "history": "Origem e histórico",
       "origin": "Substitui a cobrança:",
       "replacedBy": "Substituída por:",
@@ -3054,10 +3038,6 @@
     "overdue": {
       "open": "Em atraso",
       "title": "Em atraso",
-      "subtitle_one": "{{scope}} · {{count}} cobrança · {{total}}",
-      "subtitle_other": "{{scope}} · {{count}} cobranças · {{total}}",
-      "scopeUnit": "Unidade {{unit}}",
-      "scopeAll": "Todas as unidades",
       "notice": "Lembretes automáticos: 3 dias antes, no dia, 3 e 10 dias depois e 5 dias antes do bloqueio. O WhatsApp é sempre manual: o botão abre a conversa com a mensagem pronta.",
       "configure": "Configurar",
       "emptyTitle": "Nenhuma cobrança em atraso",
@@ -3115,8 +3095,7 @@
     "daily": {
       "open": "Recebimentos do dia",
       "title": "Recebimentos do dia",
-      "subtitle": "{{date}} · {{unit}} · sem abertura ou fechamento de caixa",
-      "subtitleNoUnit": "{{date}} · sem abertura ou fechamento de caixa",
+      "subtitle": "{{date}}",
       "previous": "Dia anterior",
       "next": "Próximo dia",
       "unit": "Unidade",
@@ -3149,8 +3128,6 @@
     "preview": {
       "open": "Prévia da geração",
       "title": "Prévia da geração",
-      "subtitle": "{{month}} · {{unit}} · a geração é automática, todo dia, 10 dias antes de cada vencimento",
-      "subtitleNoUnit": "{{month}} · a geração é automática, todo dia, 10 dias antes de cada vencimento",
       "unit": "Unidade",
       "chooseUnit": "Escolha uma unidade",
       "pickUnit": "Escolha uma unidade",
@@ -3519,7 +3496,7 @@
       "title": "Registrar pagamento",
       "block": "Cobrança",
       "chargeLine": "{{student}} · {{label}} · vence {{due}}",
-      "valueLine": "Valor da cobrança: {{value}} · sem taxa no pagamento manual",
+      "valueLine": "Valor da cobrança: {{value}}",
       "methods": {
         "CASH": "Dinheiro",
         "PIX_KEY": "Pix na chave da unidade",
@@ -3953,12 +3930,6 @@
   },
   "paymentProofs": {
     "title": "Em conferência",
-    "subtitle_one": "Comprovantes de Pix na chave da unidade · {{count}} aguardando",
-    "subtitle_other": "Comprovantes de Pix na chave da unidade · {{count}} aguardando",
-    "scopeUnit": "{{unit}}",
-    "scopeAll": "Todas as unidades",
-    "mobileCount_one": "{{count}} comprovante",
-    "mobileCount_other": "{{count}} comprovantes",
     "mobileLine": "{{reference}} · enviado {{day}} {{time}}",
     "mobileProof": "Comprovante",
     "intro": "Quando o Mercado Pago está desconectado ou o aluno paga direto na chave, ele envia o comprovante pelo portal. Ao recusar, o prazo de bloqueio volta de onde parou.",
@@ -4024,7 +3995,6 @@
     "keyType": { "CNPJ": "CNPJ", "CPF": "CPF", "EMAIL": "e-mail", "PHONE": "telefone", "RANDOM": "aleatória" },
     "holder": "Titular: {{name}}",
     "amount": "Valor",
-    "noFee": "{{value}} (sem taxa)",
     "copy": "Copiar chave",
     "copied": "Chave copiada.",
     "copyFailed": "Não foi possível copiar. Selecione a chave e copie.",
