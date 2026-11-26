@@ -5,7 +5,10 @@ test("@critical Recuperação de senha", async ({ page }) => {
   await page.goto("/entrar");
   await page.getByRole("link", { name: "Esqueci minha senha" }).click();
   await page.getByLabel("E-mail").fill("ana@exemplo.com");
+  // #683: sob carga o POST do MSW passa de 5 s; espera a resposta (limite do teste) antes de afirmar a mensagem.
+  const resposta = page.waitForResponse((r) => r.url().includes("/auth/password-reset") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Enviar link" }).click();
+  await resposta;
   await expect(page.getByText("Confira também a caixa de spam.", { exact: false })).toBeVisible();
 
   await page.goto("/redefinir-senha/valido");
