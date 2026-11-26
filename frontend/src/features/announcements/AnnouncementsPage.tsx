@@ -136,10 +136,8 @@ function Content() {
   );
   const emptyAction = full ? undefined : newButton;
 
-  let subtitle: string;
-  if (unitName && used > 0) subtitle = t(narrow ? "announcements.subtitleMobile" : "announcements.subtitleUsed", { unit: unitName, used, limit });
-  else if (narrow) subtitle = unitName ?? t("announcements.scopeAll");
-  else subtitle = t("announcements.subtitle", { scope: unitName ? t("announcements.scopeUnit", { unit: unitName }) : t("announcements.scopeAll"), limit });
+  const left = limit - used;
+  const subtitle = unitName && left > 0 && left <= 5 ? t("announcements.subtitleUsed", { used, limit }) : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -168,9 +166,7 @@ function Content() {
         filters={({ get, set }) => <AnnouncementFilters get={get} set={set} />}
         emptyAction={emptyAction}
         texts={{ emptyTitle: t("announcements.emptyTitle"), emptyText: t("announcements.emptyText"), noResultTitle: t("announcements.noResultTitle"), noResultText: t("announcements.noResultText") }}
-        cards={(a) => <Card row={a} onCancel={setCancelling} />}
-        footer={() => <p className="text-sm text-muted-foreground">{t("announcements.note")}</p>}
-      />
+        cards={(a) => <Card row={a} onCancel={setCancelling} />}      />
       {orgOpen && (
         <OrganizationAnnouncementDialog
           unitId={unitId}
