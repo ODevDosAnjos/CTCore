@@ -282,6 +282,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 109 | RF-INA-01 · Situação por modalidade e data de bloqueio na ficha | issue #109 | Sprint 12 | — | agente | a fazer |
 | 110 | RF-INA-02 · Inativar, reativar e cancelar cobranças acumuladas | issue #110 | Sprint 12 | — | agente | a fazer |
 | 111 | RF-INA-03 · Tarefa diária de bloqueio | issue #111 | Sprint 12 | — | agente | a fazer |
+| 730 | RN-ACE-26 · Convite do portal por link: copiar e enviar pelo WhatsApp | issue #730 | Sprint 12 | — | agente | a fazer |
 | 113 | Prazos de guarda e procedimento de incidente (LGPD) | issue #113 | Sprint 13 | — | agente | a fazer |
 | 117 | RF-LGP-01 · Baixar dados (portal e ficha) | issue #117 | Sprint 13 | — | agente | a fazer |
 | 118 | RF-LGP-02 · Excluir minha conta no portal | issue #118 | Sprint 13 | — | agente | a fazer |
