@@ -189,7 +189,7 @@ describe("PortalFinancePage (RF-POR-05)", () => {
 
     const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave com comprovante" }));
     expect(await dialog.findByText("pix@alfa.test")).toBeInTheDocument();
-    expect(dialog.getByText(/120,00 \(sem taxa\)/)).toBeInTheDocument();
+    expect(dialog.getByText(/120,00/)).toBeInTheDocument();
     expect(dialog.getAllByRole("listitem")).toHaveLength(2);
     await user.upload(dialog.getByLabelText(/Comprovante \(JPG/), new File(["x"], "comprovante.png", { type: "image/png" }));
     await user.click(dialog.getByRole("button", { name: "Enviar comprovante" }));
@@ -220,7 +220,7 @@ describe("PortalFinancePage (RF-POR-05)", () => {
     await user.click(await screen.findByRole("checkbox", { name: "Selecionar Kimono" }));
     await user.click(screen.getByRole("button", { name: "Enviar comprovante de Pix" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Pix na chave com comprovante" }));
-    expect(await dialog.findByText(/30,00 \(sem taxa\)/)).toBeInTheDocument();
+    expect(await dialog.findByText(/30,00/)).toBeInTheDocument();
     expect(dialog.queryByRole("list")).not.toBeInTheDocument();
   });
 

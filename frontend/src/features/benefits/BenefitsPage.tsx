@@ -36,7 +36,6 @@ function Content() {
   const scope = useUnitScope();
   const all = !scope.selected || scope.selected === ALL;
   const unitId = all ? undefined : (scope.selected ?? undefined);
-  const unitName = scope.units.find((u) => u.id === scope.selected)?.name ?? "";
   const [granting, setGranting] = useState(false);
   const [ending, setEnding] = useState<BenefitRow>();
   const [version, setVersion] = useState(0);
@@ -103,7 +102,7 @@ function Content() {
         key={version}
         header={({ counts, get, set }) => (
           <>
-            <PageHeader title={t("benefits.title")} subtitle={all ? t("benefits.subtitleAll") : t("benefits.subtitle", { unit: unitName })} actions={!narrow && grantButton()} />
+            <PageHeader title={t("benefits.title")} actions={!narrow && grantButton()} />
             <nav aria-label={t("benefits.tabsLabel")}>
               <QuickFilters
                 value={get("view")}
@@ -128,7 +127,6 @@ function Content() {
         filters={(p) => <BenefitFilters {...p} />}
         texts={(get) => ({ emptyTitle: t(`benefits.empty.${get("view")}.title`), emptyText: t(`benefits.empty.${get("view")}.text`) })}
         emptyAction={grantButton()}
-        footer={() => <p className="text-xs text-muted-foreground">{t("benefits.footnote")}</p>}
       />
       {narrow && grantButton(true)}
       {granting && <GrantBenefitDialog onClose={() => setGranting(false)} onDone={reload} />}

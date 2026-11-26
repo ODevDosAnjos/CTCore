@@ -82,11 +82,11 @@ const ready = () => screen.findByRole("heading", { name: "Em atraso", level: 1 }
 const tableRow = (name: string) => screen.getAllByText(name).map((e) => e.closest("tr")).find(Boolean)!;
 
 describe("OverduePage (RF-COB-06)", () => {
-  it("CA1, CA3: subtítulo com o escopo, a contagem e a soma do filtro; cada linha traz aluno, atraso, valor, último lembrete e bloqueio; pede dias de atraso decrescente", async () => {
+  it("CA1, CA3: sem subtítulo; cada linha traz aluno, atraso, valor, último lembrete e bloqueio; pede dias de atraso decrescente", async () => {
     setup();
     await ready();
     await screen.findAllByText("Ana Souza");
-    expect(screen.getByText("Todas as unidades · 2 cobranças · R$ 210,00")).toBeInTheDocument();
+    expect(screen.queryByText(/2 cobranças · R$/)).toBeNull();
     const a = tableRow("Ana Souza");
     expect(within(a).getByText("Muay Thai · Centro")).toBeInTheDocument();
     expect(within(a).getByText(/120,00/)).toBeInTheDocument();

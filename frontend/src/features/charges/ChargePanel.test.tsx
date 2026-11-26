@@ -111,7 +111,8 @@ describe("ChargePanel (RF-COB-02)", () => {
     expect(await within(panel).findByText("Plano Mensal")).toBeInTheDocument();
     expect(within(panel).getByText("R$ 150,00")).toBeInTheDocument();
     expect(within(panel).getByText("− R$ 30,00")).toBeInTheDocument();
-    expect(within(panel).getByText(/Vencimento 05\/03\/2026 · gerada em 20\/02\/2026 · a composição não muda depois de gerada/)).toBeInTheDocument();
+    expect(within(panel).getByText(/Vencimento 05\/03\/2026 · gerada em 20\/02\/2026/)).toBeInTheDocument();
+    expect(within(panel).queryByText(/a composição não muda/)).toBeNull();
     expect(within(panel).getByText("Nenhum pagamento registrado")).toBeInTheDocument();
     expect(within(panel).getByText("Nenhum lembrete enviado")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Cancelar cobrança" })).toBeEnabled();

@@ -92,11 +92,11 @@ const openAll = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("ChargePreviewPage (RF-COB-03)", () => {
   afterEach(() => setDeviceNarrow(false));
 
-  it("CA8: subtítulo com mês, unidade e a regra da geração; botão no topo; período com 30 dias marcado; sem Voltar", async () => {
+  it("CA8: sem subtítulo; botão no topo; período com 30 dias marcado; sem Voltar", async () => {
     setup();
     await ready();
     await screen.findByText("Total previsto");
-    expect(screen.getByText(/a geração é automática, todo dia, 10 dias antes de cada vencimento/)).toHaveTextContent("Dezembro/2099 · Centro · a geração é automática");
+    expect(screen.queryByText(/a geração é automática/)).toBeNull();
     expect(screen.getByRole("button", { name: "Gerar próximas mensalidades" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Período" })).toHaveValue("30");
     expect(screen.queryByRole("link", { name: "Voltar às cobranças" })).toBeNull();

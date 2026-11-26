@@ -26,7 +26,6 @@ function Content() {
   // A unidade vem da barra: "todas" não filtra. A identidade de fetchPage muda só quando a unidade muda.
   const scope = useUnitScope();
   const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
-  const unitName = scope.units.find((u) => u.id === scope.selected)?.name;
   // A seleção fica na tela (id -> linha, para o resultado citar o aluno) e vale entre páginas; recarregar a lista a zera.
   const [selected, setSelected] = useState<Map<string, OverdueCharge>>(new Map());
   const [pageRows, setPageRows] = useState<OverdueCharge[]>([]);
@@ -84,20 +83,9 @@ function Content() {
   ];
 
   // Cabeçalho, aviso dos lembretes automáticos e a barra do envio em lote ficam acima da lista.
-  const header = ({ counts, total }: { counts?: Record<string, number>; total?: number }) => (
+  const header = () => (
     <>
-      <PageHeader
-        title={t("charges.overdue.title")}
-        subtitle={
-          total === undefined
-            ? undefined
-            : t("charges.overdue.subtitle", {
-                scope: unitId && unitName ? t("charges.overdue.scopeUnit", { unit: unitName }) : t("charges.overdue.scopeAll"),
-                count: total,
-                total: formatCurrency(counts?.totalCents ?? 0),
-              })
-        }
-      />
+      <PageHeader title={t("charges.overdue.title")} />
       <Banner tone="info">
         {t("charges.overdue.notice")}{" "}
         <Link to="/configuracoes/unidade" className="font-medium underline">
