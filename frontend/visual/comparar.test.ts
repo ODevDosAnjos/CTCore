@@ -38,8 +38,13 @@ describe("comparação com o canvas", () => {
     expect(diferenca(png(320, 1000, branco), png(320, 1500, branco))).toBe(0);
     expect(() => diferenca(png(320, 100, branco), png(390, 100, branco), { nomes: ["sistema", "canvas"] })).toThrow(/sistema.*320.*canvas.*390/);
   });
-  it("limiteCanvas do caso vale no lugar do padrão", () => {
-    expect(limiteDoCaso({})).toBe(LIMITE_PADRAO);
-    expect(limiteDoCaso({ limiteCanvas: { valor: 0.6, motivo: "x" } })).toBe(0.6);
+  it("sem limiteCanvas, vale o padrão de 15% nas duas larguras", () => {
+    expect(limiteDoCaso({}, 1440)).toBe(0.15);
+    expect(limiteDoCaso({}, 390)).toBe(0.15);
+  });
+  it("limiteCanvas vale só na largura que o traz", () => {
+    const c = { limiteCanvas: { 390: 0.6, motivo: "x" } };
+    expect(limiteDoCaso(c, 390)).toBe(0.6);
+    expect(limiteDoCaso(c, 1440)).toBe(LIMITE_PADRAO);
   });
 });

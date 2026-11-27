@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { casos, semCaso } from "./casos";
+// @ts-expect-error módulo .mjs sem tipos, compartilhado com scripts/visual-canvas.mjs
+import { LIMITE_PADRAO } from "./comparar.mjs";
 
 const indice: { arquivo: string; pagina: string; largura: number }[] = JSON.parse(readFileSync("../docs/design/canvas/indice.json", "utf8"));
 const nomeTela = (t: { arquivo: string }) => t.arquivo.replace(".dc.html", "");
@@ -24,11 +26,17 @@ describe("casos do teste visual", () => {
       if (c.canvasCelular) expect(larguraDe.get(c.canvasCelular), c.nome).toBe(390);
     }
   });
-  it("limiteCanvas traz valor entre 0 e 1 e motivo", () => {
+  it("limiteCanvas é por largura comparada, acima do padrão, com motivo e issue (#714)", () => {
     for (const c of casos.filter((c) => c.limiteCanvas)) {
-      expect(c.limiteCanvas!.valor, c.nome).toBeGreaterThan(0);
-      expect(c.limiteCanvas!.valor, c.nome).toBeLessThanOrEqual(1);
-      expect(c.limiteCanvas!.motivo.trim(), c.nome).not.toBe("");
+      const { motivo, ...limites } = c.limiteCanvas!;
+      expect(Object.keys(limites).length, c.nome).toBeGreaterThan(0);
+      for (const [largura, valor] of Object.entries(limites)) {
+        expect(["1440", "390"], c.nome).toContain(largura);
+        expect(largura === "390" ? c.canvasCelular : c.canvas, `${c.nome} não compara ${largura}`).toBeTruthy();
+        expect(valor, c.nome).toBeGreaterThan(LIMITE_PADRAO);
+        expect(valor, c.nome).toBeLessThanOrEqual(1);
+      }
+      expect(motivo, c.nome).toMatch(/#[0-9]+/);
     }
   });
   it("toda tela de gestão e portal do canvas tem caso ou está em semCaso com motivo", () => {
