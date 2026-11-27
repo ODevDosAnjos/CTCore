@@ -19,6 +19,7 @@ export const unitFixture = (settings: Partial<UnitDetail["settings"]> = {}): Uni
   email: null,
   whatsapp: null,
   cnpj: null,
+  legalName: null,
   active: true,
   timezone: "America/Sao_Paulo",
   version: 0,

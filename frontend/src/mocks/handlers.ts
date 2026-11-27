@@ -270,6 +270,7 @@ type MockLastChange = { at: string; by: string | null } | null;
 const initialOrganization = {
   name: "Academia Alfa",
   holderDocument: null as string | null,
+  holderName: null as string | null,
   logoUrl: null as string | null,
   version: 0,
   lastChange: null as MockLastChange,
@@ -567,6 +568,7 @@ const makeUnitDetail = (u: (typeof units)[number]) => ({
   email: null as string | null,
   whatsapp: null as string | null,
   cnpj: null as string | null,
+  legalName: null as string | null,
   active: u.active,
   timezone: "America/Sao_Paulo",
   settings: defaultUnitSettings(),
@@ -2444,12 +2446,14 @@ export const routes: Route[] = [
       if (denied) return denied;
       const missing = precondition(request);
       if (missing) return missing;
-      const body = (await request.json()) as { name?: string; holderDocument?: string | null; rules?: Record<string, unknown> };
+      const body = (await request.json()) as { name?: string; holderDocument?: string | null; holderName?: string | null; rules?: Record<string, unknown> };
       const name = (body.name ?? "").trim();
+      const holderName = (body.holderName ?? "").trim() || null;
       const holder = body.holderDocument ? body.holderDocument : null;
       const fields: { field: string; message: string }[] = [];
       if (!name || name.length > 120) fields.push({ field: "name", message: "entre 1 e 120 caracteres" });
       if (holder !== null && !isValidCpfOrCnpj(holder)) fields.push({ field: "holderDocument", message: "CPF ou CNPJ inválido" });
+      if (holderName !== null && holderName.length > 160) fields.push({ field: "holderName", message: "no máximo 160 caracteres" });
       if (body.rules) {
         for (const [key, min, max] of ruleRanges) {
           const value = body.rules[key];
@@ -2461,9 +2465,9 @@ export const routes: Route[] = [
       const stale = precondition(request, organization.version);
       if (stale) return stale;
       const rules = body.rules ? (body.rules as typeof organization.rules) : organization.rules;
-      const next = { ...organization, name, holderDocument: holder ? onlyDigits(holder) : null, rules };
+      const next = { ...organization, name, holderName, holderDocument: holder ? onlyDigits(holder) : null, rules };
       const changed =
-        next.name !== organization.name || next.holderDocument !== organization.holderDocument || JSON.stringify(rules) !== JSON.stringify(organization.rules);
+        next.name !== organization.name || next.holderName !== organization.holderName || next.holderDocument !== organization.holderDocument || JSON.stringify(rules) !== JSON.stringify(organization.rules);
       organization = changed ? { ...next, version: organization.version + 1, lastChange: changedNow() } : organization;
       return HttpResponse.json(organization);
     },
@@ -2949,6 +2953,8 @@ export const routes: Route[] = [
       const name = String(b.name ?? "").trim();
       if (!name || name.length > 120) bad.push({ field: "name", message: "entre 1 e 120 caracteres" });
       if (b.cnpj && !isValidCpfOrCnpj(String(b.cnpj))) bad.push({ field: "cnpj", message: "CNPJ inválido" });
+      const legalName = String(b.legalName ?? "").trim() || null;
+      if (legalName && legalName.length > 160) bad.push({ field: "legalName", message: "no máximo 160 caracteres" });
       const days: number[] = s.dueDays ?? [];
       if (days.length === 0 || new Set(days).size !== days.length || days.some((d) => d < 1 || d > 28)) bad.push({ field: "settings.dueDays", message: "valores entre 1 e 28" });
       if (s.pixKey && !/^([^@\s]+@[^@\s]+\.[^@\s]+|\+55\d{10,11}|\d{11}|\d{14}|[0-9a-f-]{36})$/i.test(String(s.pixKey))) bad.push({ field: "settings.pixKey", message: "chave Pix inválida" });
@@ -2977,6 +2983,7 @@ export const routes: Route[] = [
         email: b.email || null,
         whatsapp: b.whatsapp || null,
         cnpj: b.cnpj ? String(b.cnpj).replace(/\D/g, "") : null,
+        legalName,
         settings: {
           ...current.settings,
           ...s,

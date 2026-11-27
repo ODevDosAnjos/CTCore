@@ -44,6 +44,7 @@ export interface UnitDetail {
   email: string | null;
   whatsapp: string | null;
   cnpj: string | null;
+  legalName: string | null;
   active: boolean;
   timezone: string;
   settings: UnitSettingsData;

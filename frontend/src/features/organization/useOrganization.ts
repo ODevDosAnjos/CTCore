@@ -20,6 +20,7 @@ export interface Coordinator {
 export interface OrganizationView {
   name: string;
   holderDocument: string | null;
+  holderName: string | null;
   logoUrl: string | null;
   version: number;
   lastChange: LastChangeValue | null;
@@ -29,6 +30,7 @@ export interface OrganizationView {
 export interface OrganizationUpdate {
   name: string;
   holderDocument: string | null;
+  holderName: string | null;
   rules?: OrganizationRules;
 }
 

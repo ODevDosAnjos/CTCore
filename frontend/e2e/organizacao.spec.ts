@@ -22,6 +22,10 @@ test("@critical configurações da organização: Coordenador edita e Administra
 
   await page.getByLabel(/^Nome da organização/).fill("Dojo Novo");
   await expect(page.getByLabel("Cor principal")).toHaveCount(0); // #754: a marca é só nome e logo
+  // RN-MAT-21 e RNF-56: nome e documento do titular, na tela dentro da moldura.
+  await expect(page.getByRole("navigation", { name: "Menu principal" })).toBeVisible();
+  await page.getByLabel("Titular (razão social ou nome)").fill("Dojo Novo Ltda.");
+  await page.getByLabel("CNPJ ou CPF do titular").fill("11222333000181");
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page.getByText("Dados salvos.")).toBeVisible();
 
@@ -29,6 +33,11 @@ test("@critical configurações da organização: Coordenador edita e Administra
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, "/configuracoes/organizacao");
   await expect(page.getByLabel(/^Nome da organização/)).toHaveValue("Dojo Novo");
+  await expect(page.getByLabel("Titular (razão social ou nome)")).toHaveValue("Dojo Novo Ltda.");
+  await expect(page.getByLabel("CNPJ ou CPF do titular")).toHaveValue("11.222.333/0001-81");
+  await page.setViewportSize({ width: 360, height: 740 });
+  expect(await page.evaluate("document.documentElement.scrollWidth")).toBeLessThanOrEqual(360);
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");
@@ -38,6 +47,8 @@ test("@critical configurações da organização: Coordenador edita e Administra
   await open(page, "/configuracoes/organizacao");
   await expect(page.getByRole("heading", { name: "Organização", level: 1 })).toBeVisible();
   await expect(page.getByLabel(/^Nome da organização/)).toBeDisabled();
+  await expect(page.getByLabel("Titular (razão social ou nome)")).toBeDisabled();
+  await expect(page.getByLabel("CNPJ ou CPF do titular")).toBeDisabled();
   await expect(page.getByRole("button", { name: "Salvar alterações" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Enviar logo" })).toHaveCount(0);
   // #747: o Administrador percorre as outras abas só em leitura.

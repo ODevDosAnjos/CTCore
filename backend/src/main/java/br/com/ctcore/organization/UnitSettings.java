@@ -46,11 +46,11 @@ public class UnitSettings {
             int remindersHour, int trialLimit) {}
 
     public record UnitDetail(UUID id, String name, String shortName, String postalCode, String address, String city, Double latitude,
-            Double longitude, String phone, String email, String whatsapp, String cnpj, boolean active, String timezone, Settings settings, int version,
+            Double longitude, String phone, String email, String whatsapp, String cnpj, String legalName, boolean active, String timezone, Settings settings, int version,
             LastChange lastChange) {
         UnitDetail with(LastChange last) {
-            return new UnitDetail(id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, active,
-                    timezone, settings, version, last);
+            return new UnitDetail(id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, legalName,
+                    active, timezone, settings, version, last);
         }
     }
 
@@ -62,7 +62,7 @@ public class UnitSettings {
             select u.id, u.name, u.short_name, u.postal_code, u.address, u.city, u.latitude, u.longitude, u.phone, u.email, u.whatsapp,
                    u.cnpj, u.active, s.due_days, s.enrollment_fee_enabled, s.enrollment_fee_cents, %s, s.pix_key,
                    s.payment_account_reference is not null, s.reminder_days, s.teacher_permissions, s.directory_enabled,
-                   s.trial_link_enabled, s.self_registration_link_enabled, u.version, s.reminders_enabled, s.reminders_hour, u.timezone, s.trial_limit
+                   s.trial_link_enabled, s.self_registration_link_enabled, u.version, s.reminders_enabled, s.reminders_hour, u.timezone, s.trial_limit, u.legal_name
             from unit u join unit_settings s on s.unit_id = u.id and s.organization_id = u.organization_id
             """.formatted(String.join(", ", UnitUpdate.FEE_COLUMNS.values().stream().map(c -> "s." + c).toList()));
 
@@ -121,11 +121,13 @@ public class UnitSettings {
             UnitUpdate.Settings s = next.settings();
             jdbc.sql("""
                     update unit set name = :name, postal_code = :cep, address = :address, city = :city, latitude = :lat, longitude = :lon,
-                        phone = :phone, email = :email, whatsapp = :whatsapp, cnpj = :cnpj where id = :id""")
+                        phone = :phone, email = :email, whatsapp = :whatsapp, cnpj = :cnpj,
+                        legal_name = :legalName where id = :id""")
                     .param("name", next.name()).param("cep", next.postalCode()).param("address", next.address()).param("city", next.city())
                     .param("lat", coordinates == null ? null : BigDecimal.valueOf(coordinates[0]))
                     .param("lon", coordinates == null ? null : BigDecimal.valueOf(coordinates[1]))
                     .param("phone", next.phone()).param("email", next.email()).param("whatsapp", next.whatsapp()).param("cnpj", next.cnpj())
+                    .param("legalName", next.legalName())
                     .param("id", unitId).update();
             StringBuilder fees = new StringBuilder();
             UnitUpdate.FEE_COLUMNS.forEach((key, column) -> fees.append(", ").append(column).append(" = :").append(key));
@@ -205,7 +207,7 @@ public class UnitSettings {
                 rs.getBoolean(30), rs.getBoolean(31), rs.getBoolean(32), rs.getBoolean(34), rs.getInt(35), rs.getInt(37));
         return new UnitDetail(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6),
                 number(rs.getBigDecimal(7)), number(rs.getBigDecimal(8)), rs.getString(9), rs.getString(10), rs.getString(11),
-                rs.getString(12), rs.getBoolean(13), rs.getString(36), settings, rs.getInt(33), null);
+                rs.getString(12), rs.getString(38), rs.getBoolean(13), rs.getString(36), settings, rs.getInt(33), null);
     }
 
     private static Double number(BigDecimal value) {
@@ -242,6 +244,7 @@ public class UnitSettings {
         m.put("email", d.email());
         m.put("whatsapp", d.whatsapp());
         m.put("cnpj", d.cnpj());
+        m.put("legalName", d.legalName());
         Settings s = d.settings();
         m.put("dueDays", s.dueDays());
         m.put("enrollmentFeeEnabled", s.enrollmentFeeEnabled());

@@ -46,7 +46,7 @@ public record NewUnit(String name, String postalCode, String address, String cit
         return s == null || s.isBlank() ? null : s.strip();
     }
 
-    private static String limited(String field, String value, int max) {
+    static String limited(String field, String value, int max) {
         String v = blank(value);
         if (v != null && v.length() > max) throw new ApiValidationException(field, "no máximo " + max + " caracteres");
         return v;

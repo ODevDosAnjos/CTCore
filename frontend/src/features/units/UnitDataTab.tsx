@@ -26,6 +26,9 @@ export function UnitDataTab({ d, set, problems, errors, unitId, unitName, shortN
           <Text label={t("unitSettings.name")} value={d.name} onChange={set("name")} maxLength={120} autoComplete="off" error={shown("name", problems.name)} />
           <Text label={t("unitSettings.cnpj")} value={d.cnpj} onChange={(v) => set("cnpj")(formatCpfCnpj(v))} inputMode="numeric" autoComplete="off" help={t("unitSettings.cnpjHelp")} error={shown("cnpj", problems.cnpj)} />
           <div className="sm:col-span-2">
+            <Text label={t("unitSettings.legalName")} value={d.legalName} onChange={set("legalName")} maxLength={160} autoComplete="off" error={errors.legalName} />
+          </div>
+          <div className="sm:col-span-2">
             <Text label={t("unitSettings.address")} value={d.address} onChange={set("address")} autoComplete="street-address" error={errors.address} />
           </div>
           <Text label={t("unitSettings.postalCode")} value={d.postalCode} onChange={(v) => set("postalCode")(formatCep(v))} inputMode="numeric" autoComplete="postal-code" error={shown("postalCode", problems.postalCode)} />

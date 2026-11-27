@@ -22,6 +22,7 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await expect(page.getByRole("heading", { name: /^Unidade /, level: 1 })).toBeVisible();
 
   await page.getByLabel("Telefone").fill("21999998888");
+  await page.getByLabel("Razão social (opcional)").fill("Dojo Centro Ltda.");
   // RNF-56: a tela abre dentro da moldura.
   await expect(page.getByRole("navigation").first()).toBeVisible();
   await page.getByRole("tab", { name: "Cobrança" }).click();
@@ -39,6 +40,7 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await open(page, UNIT);
   await expect(page.getByLabel("Telefone")).toHaveValue("(21) 99999-8888");
+  await expect(page.getByLabel("Razão social (opcional)")).toHaveValue("Dojo Centro Ltda.");
   await page.getByRole("tab", { name: "Cobrança" }).click();
   await expect(page.getByLabel("Valor da taxa")).toHaveValue("R$ 150,00");
   await page.getByRole("tab", { name: "Divulgação" }).click();

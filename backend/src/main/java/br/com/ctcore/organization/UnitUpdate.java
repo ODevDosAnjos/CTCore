@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  * Nome curto, organização e situação do Mercado Pago não existem aqui: o que o cliente mandar a mais é ignorado.
  */
 public record UnitUpdate(String name, String postalCode, String address, String city, Double latitude, Double longitude, String phone,
-        String email, String whatsapp, String cnpj, Settings settings) {
+        String email, String whatsapp, String cnpj, String legalName, Settings settings) {
     public record TeacherPermissions(Boolean announcements, Boolean agendaEdit, Boolean studentContacts, Boolean trialClasses,
             Boolean studentRecord) {}
 
@@ -74,13 +74,14 @@ public record UnitUpdate(String name, String postalCode, String address, String 
     static final long MAX_FEE_CENTS = 100_000; // D5: teto de R$ 1.000,00 por meio
     static final long MAX_ENROLLMENT_CENTS = 100_000_000; // R$ 1.000.000,00, só para barrar erro de digitação
     static final int MAX_REMINDERS = 8;
+    static final int MAX_LEGAL_NAME = 160; // RN-MAT-21: o mesmo limite do check da V64
 
     public UnitUpdate validated() {
         if (settings == null) throw new ApiValidationException("settings", "obrigatório");
         NewUnit data = new NewUnit(name, postalCode, address, city, latitude, longitude, phone, email, whatsapp, null).validated();
         String cnpjDigits = field("cnpj", () -> HolderDocument.normalizeCnpj(cnpj));
         return new UnitUpdate(data.name(), data.postalCode(), data.address(), data.city(), data.latitude(), data.longitude(), data.phone(),
-                data.email(), data.whatsapp(), cnpjDigits, settings.validated());
+                data.email(), data.whatsapp(), cnpjDigits, NewUnit.limited("legalName", legalName, MAX_LEGAL_NAME), settings.validated());
     }
 
     private static <T> T field(String field, Supplier<T> parse) {

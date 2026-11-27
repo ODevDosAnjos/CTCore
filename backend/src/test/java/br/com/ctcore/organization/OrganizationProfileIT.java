@@ -62,7 +62,7 @@ class OrganizationProfileIT extends OrganizationBase {
         var a = tenant();
         for (Role role : new Role[] {Role.COORDINATOR, Role.ADMINISTRATOR}) {
             var view = ok(get(), a, role);
-            assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("name", "holderDocument", "logoUrl", "version", "lastChange", "rules", "coordinator");
+            assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("name", "holderDocument", "holderName", "logoUrl", "version", "lastChange", "rules", "coordinator");
             assertThat(view.path("name").asText()).isEqualTo("Synthetic " + a.orgId());
             assertThat(view.path("logoUrl").isNull()).isTrue();
             assertThat(view.path("coordinator").isNull()).isTrue();
@@ -157,6 +157,60 @@ class OrganizationProfileIT extends OrganizationBase {
     }
 
     @Test
+    @DisplayName("RN-MAT-21: nome do titular grava aparado, não exige documento, sobe a versão e audita antes e depois; vazio, nulo e omitido apagam")
+    void holderName() throws Exception {
+        var a = tenant();
+        int version = 0;
+        for (String erase : new String[] {",\"holderName\":\"\"", ",\"holderName\":\"   \"", ",\"holderName\":null", ""}) {
+            var view = ok(patch("{\"name\":\"Dojo\",\"holderName\":\"  Dojo Ltda.  \"}"), a, Role.COORDINATOR);
+            assertThat(view.path("holderName").asText()).isEqualTo("Dojo Ltda.");
+            assertThat(view.path("holderDocument").isNull()).isTrue();
+            assertThat(view.path("version").asInt()).isEqualTo(++version);
+            assertThat(ok(get(), a, Role.ADMINISTRATOR)).isEqualTo(view);
+            var cleared = ok(patch("{\"name\":\"Dojo\"" + erase + "}"), a, Role.COORDINATOR);
+            assertThat(cleared.path("holderName").isNull()).as(erase).isTrue();
+            assertThat(cleared.path("version").asInt()).isEqualTo(++version);
+            assertThat(lastHolderName(a)).as(erase).isEqualTo("Dojo Ltda.>null");
+        }
+        // só o documento: o nome continua nulo; os dois juntos: documento mascarado na auditoria, nome com o valor
+        assertThat(ok(patch("{\"name\":\"Dojo\",\"holderDocument\":\"52998224725\"}"), a, Role.COORDINATOR).path("holderName").isNull()).isTrue();
+        String both = "{\"name\":\"Dojo\",\"holderDocument\":\"52998224725\",\"holderName\":\"" + "x".repeat(160) + "\"}";
+        version = ok(patch(both), a, Role.COORDINATOR).path("version").asInt();
+        int audits = audit(a, "organization.update").size();
+        assertThat(ok(patch(both), a, Role.COORDINATOR).path("version").asInt()).isEqualTo(version);
+        assertThat(audit(a, "organization.update")).hasSize(audits);
+        assertThat(audit(a, "organization.update").toString()).contains("x".repeat(160)).doesNotContain("52998224725");
+        var before = row(a);
+        invalid(patch("{\"name\":\"Dojo\",\"holderName\":\"" + "x".repeat(161) + "\"}"), a, "holderName");
+        assertThat(row(a)).isEqualTo(before);
+        assertThat(audit(a, "organization.update")).hasSize(audits);
+    }
+
+    // Antes e depois do nome do titular no último organization.update, como "antes>depois".
+    private String lastHolderName(Tenant t) {
+        return adminJdbc().queryForObject("select coalesce(before_data->>'holderName', 'null') || '>' || coalesce(after_data->>'holderName', 'null') "
+                + "from audit_log where organization_id = ? and action = 'organization.update' order by occurred_at desc limit 1", String.class, t.orgId());
+    }
+
+    @Test
+    @DisplayName("RN-MAT-21 / RNF-26: Administrador, Professor e portal não gravam o titular (403); o PATCH de uma organização não altera a outra")
+    void holderNameRefused() throws Exception {
+        var a = tenant();
+        var b = tenant();
+        var beforeA = row(a);
+        var beforeB = row(b);
+        String body = "{\"name\":\"Hack\",\"holderName\":\"Invasora Ltda.\"}";
+        for (Role role : new Role[] {Role.ADMINISTRATOR, Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) {
+            assertThat(call(patch(body), who(a, role)).getResponse().getStatus()).as(role.name()).isEqualTo(403);
+        }
+        assertThat(row(a)).isEqualTo(beforeA);
+        assertThat(audit(a, "organization.update")).isEmpty();
+        ok(patch(body), a, Role.COORDINATOR);
+        assertThat(row(b)).isEqualTo(beforeB);
+        assertThat(audit(b, "organization.update")).isEmpty();
+    }
+
+    @Test
     @DisplayName("#758 CA2: color no PATCH é ignorado; os outros campos gravam, sem color na resposta nem na auditoria")
     void colorIgnored() throws Exception {
         var a = tenant();
@@ -213,6 +267,10 @@ class OrganizationProfileIT extends OrganizationBase {
     @DisplayName("T2: o banco também recusa titular fora do formato")
     void databaseChecks() {
         var a = tenant();
+        for (String bad : new String[] {"", "x".repeat(161)}) {
+            assertThatThrownBy(() -> adminJdbc().update("update organization set holder_name = ? where id = ?", bad, a.orgId()))
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        }
         assertThatThrownBy(() -> adminJdbc().update("update organization set holder_document = '123' where id = ?", a.orgId())).isInstanceOf(Exception.class);
     }
 

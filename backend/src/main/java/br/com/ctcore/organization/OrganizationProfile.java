@@ -29,9 +29,10 @@ import org.springframework.stereotype.Service;
 public class OrganizationProfile {
     private static final Logger LOG = LoggerFactory.getLogger(OrganizationProfile.class);
     static final int MAX_NAME = 120;
+    static final int MAX_HOLDER_NAME = 160; // RN-MAT-21: o mesmo limite do check da V64
 
     /** Resposta de GET e das escritas; {@code logoUrl} é a URL temporária assinada, nunca o caminho no armazenamento. */
-    public record OrganizationView(String name, String holderDocument, String logoUrl, int version, LastChange lastChange,
+    public record OrganizationView(String name, String holderDocument, String holderName, String logoUrl, int version, LastChange lastChange,
             OrganizationRules rules, Coordinator coordinator) {}
 
     /** Coordenador ativo da organização (dado de conta visível à gestão); nulo se não houver vínculo ativo. */
@@ -39,7 +40,7 @@ public class OrganizationProfile {
 
     public record Brand(String name, String logoUrl) {}
 
-    private record Row(String name, String holder, String logo, int version) {}
+    private record Row(String name, String holder, String holderName, String logo, int version) {}
 
     private record CoordinatorRow(UUID accountId, String name, String email) {}
 
@@ -75,13 +76,15 @@ public class OrganizationProfile {
         });
     }
 
-    public OrganizationView update(AccountPrincipal who, String ifMatch, String name, String holderDocument, OrganizationRules.Request rulesRequest, String ip) {
+    public OrganizationView update(AccountPrincipal who, String ifMatch, String name, String holderDocument, String holderName,
+            OrganizationRules.Request rulesRequest, String ip) {
         requireWrite(who);
         int expectedVersion = IfMatch.version(ifMatch);
         String newName = name == null ? "" : name.trim();
         if (newName.isEmpty()) throw new ApiValidationException("name", "obrigatório");
         if (newName.length() > MAX_NAME) throw new ApiValidationException("name", "no máximo 120 caracteres");
         String newHolder = field("holderDocument", () -> HolderDocument.normalize(holderDocument));
+        String newHolderName = NewUnit.limited("holderName", holderName, MAX_HOLDER_NAME);
         OrganizationRules newRules = rulesRequest == null ? null : OrganizationRules.validate(rulesRequest);
         Loaded after = transactions.execute(() -> {
             Row before = lockedRow(who.organizationId());
@@ -89,11 +92,11 @@ public class OrganizationProfile {
             OrganizationRules oldRules = rules(who.organizationId());
             OrganizationRules nextRules = newRules == null ? oldRules : newRules;
             boolean rulesChanged = !nextRules.equals(oldRules);
-            Row next = new Row(newName, newHolder, before.logo(), before.version());
+            Row next = new Row(newName, newHolder, newHolderName, before.logo(), before.version());
             if (!next.equals(before) || rulesChanged) {
-                next = new Row(newName, newHolder, before.logo(), before.version() + 1);
-                jdbc.sql("update organization set name = :name, holder_document = :holder, version = version + 1 where id = :id")
-                        .param("name", newName).param("holder", newHolder)
+                next = new Row(newName, newHolder, newHolderName, before.logo(), before.version() + 1);
+                jdbc.sql("update organization set name = :name, holder_document = :holder, holder_name = :holderName, version = version + 1 where id = :id")
+                        .param("name", newName).param("holder", newHolder).param("holderName", newHolderName)
                         .param("id", who.organizationId()).update();
                 Map<String, Object> oldAudit = auditValues(before);
                 Map<String, Object> newAudit = auditValues(next);
@@ -172,8 +175,8 @@ public class OrganizationProfile {
     }
 
     private Row row(UUID organizationId, String lock) {
-        return jdbc.sql("select name, holder_document, logo_url, version from organization where id = :id" + lock).param("id", organizationId)
-                .query((rs, i) -> new Row(rs.getString(1), rs.getString(2), rs.getString(3), rs.getInt(4))).single();
+        return jdbc.sql("select name, holder_document, holder_name, logo_url, version from organization where id = :id" + lock).param("id", organizationId)
+                .query((rs, i) -> new Row(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5))).single();
     }
 
     private Loaded loaded(Row row, AccountPrincipal who) {
@@ -196,7 +199,7 @@ public class OrganizationProfile {
 
     private OrganizationView view(Loaded loaded) {
         Row row = loaded.row();
-        return new OrganizationView(row.name(), row.holder(), logoUrl(row), row.version(), loaded.last(), loaded.rules(), coordinator(loaded.coordinator()));
+        return new OrganizationView(row.name(), row.holder(), row.holderName(), logoUrl(row), row.version(), loaded.last(), loaded.rules(), coordinator(loaded.coordinator()));
     }
 
     // Duas etapas ficam sob o escopo da conta (RLS), fora da transação da organização.
@@ -222,10 +225,11 @@ public class OrganizationProfile {
         }
     }
 
-    // O titular entra na auditoria mascarado (só os dois últimos dígitos) e a logo, só pelo nome do arquivo.
+    // O documento do titular entra na auditoria mascarado (só os dois últimos dígitos); o nome do titular, com o valor (RN-MAT-21).
     private static Map<String, Object> auditValues(Row r) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("name", r.name());
+        m.put("holderName", r.holderName());
         m.put("holderDocument", r.holder() == null ? null : "*".repeat(r.holder().length() - 2) + r.holder().substring(r.holder().length() - 2));
         return m;
     }

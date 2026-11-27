@@ -40,6 +40,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   const nameInput = useRef<HTMLInputElement>(null);
   const conflict = useEditConflict(api.fetchCurrent);
   const [name, setName] = useState(view.name);
+  const [holderName, setHolderName] = useState(view.holderName ?? "");
   const [holder, setHolder] = useState(holderText(view));
   const [holderTouched, setHolderTouched] = useState(false);
   const [rules, setRules] = useState<RulesDraft>(toDraft(view.rules));
@@ -53,6 +54,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   const blocked = !!nameError || holderBad || badRules.length > 0 || busy;
   const dirty =
     name.trim() !== view.name ||
+    holderName.trim() !== (view.holderName ?? "") ||
     onlyDigits(holder) !== (view.holderDocument ?? "") ||
     !sameRules(rules, toDraft(view.rules));
   const holderShown = errors.holderDocument ?? (holderTouched && holderBad ? t("organization.holderInvalid") : undefined);
@@ -64,6 +66,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
 
   function discard() {
     setName(view.name);
+    setHolderName(view.holderName ?? "");
     setHolder(holderText(view));
     setHolderTouched(false);
     setRules(toDraft(view.rules));
@@ -78,7 +81,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
     setNotice(undefined);
     try {
       await save(
-        { name: name.trim(), holderDocument: holder === "" ? null : onlyDigits(holder), rules: toRules(rules) },
+        { name: name.trim(), holderName: holderName.trim() || null, holderDocument: holder === "" ? null : onlyDigits(holder), rules: toRules(rules) },
         version,
       );
       setNotice({ kind: "ok", text: t("organization.saved") });
@@ -102,7 +105,8 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
     const mine = toRules(rules);
     const fields: [string, string, string, (v: string) => string][] = [
       [t("organization.name"), name.trim(), current.name, (v) => v],
-      [t("organization.holder"), onlyDigits(holder), current.holderDocument ?? "", formatCpfCnpj],
+      [t("organization.holder"), holderName.trim(), current.holderName ?? "", (v) => v],
+      [t("organization.holderDocument"), onlyDigits(holder), current.holderDocument ?? "", formatCpfCnpj],
       ...(Object.keys(RANGES) as NumericRule[]).map((key): [string, string, string, (v: string) => string] => [
         t(`organization.rules.${key}`),
         String(mine[key]),
@@ -117,6 +121,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   }
   function reload(current: OrganizationView) {
     setName(current.name);
+    setHolderName(current.holderName ?? "");
     setHolder(holderText(current));
     setHolderTouched(false);
     setRules(toDraft(current.rules));
@@ -142,6 +147,9 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
           name={name}
           onName={setName}
           nameError={canEdit ? (errors.name ?? nameError) : undefined}
+          holderName={holderName}
+          onHolderName={setHolderName}
+          holderNameError={errors.holderName}
           holder={holder}
           onHolder={(v) => setHolder(formatCpfCnpj(v))}
           onHolderBlur={() => setHolderTouched(true)}
