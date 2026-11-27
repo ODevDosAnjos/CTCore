@@ -153,7 +153,7 @@ class CoordinationTransferKeepUnitsIT extends CoordinationTransferBase {
                     .as(role.name()).isEqualTo(403);
         }
         assertThat(call(MockMvcRequestBuilders.get("/api/v1/organization/admin-seat-price"), null).getResponse().getStatus()).isEqualTo(401);
-        var other = new OrganizationController(null, null, permissions, 7000);
+        var other = new OrganizationController(null, null, null, permissions, 7000);
         assertThat(other.adminSeatPrice(a.principal())).isEqualTo(new OrganizationController.SeatPrice(7000));
     }
 }

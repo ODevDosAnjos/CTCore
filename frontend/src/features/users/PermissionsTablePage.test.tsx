@@ -37,14 +37,14 @@ function setup(role = "COORDINATOR", path = "/configuracoes/unidades/u1/permisso
 const ready = () => screen.findByRole("heading", { name: "Tabela de permissões", level: 1 });
 
 describe("PermissionsTablePage", () => {
-  it("CA8: título sem subtítulo, legenda e a matriz de 28 linhas com as três colunas", async () => {
+  it("CA8: título sem subtítulo, legenda e a matriz de 29 linhas com as três colunas", async () => {
     setup();
     await ready();
     expect(screen.queryByText("Fixa: não existe edição de perfis")).not.toBeInTheDocument();
     expect(screen.getByText(/● pode · ○ só consulta/)).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Área ou ação", "Coordenador", "Administrador", "Professor"]);
-    expect(within(table).getAllByRole("row")).toHaveLength(29);
+    expect(within(table).getAllByRole("row")).toHaveLength(30);
     const linha = within(table).getByRole("row", { name: /Dias sem aula/ });
     expect(within(linha).getByText("● várias unidades")).toBeInTheDocument();
   });
@@ -53,7 +53,7 @@ describe("PermissionsTablePage", () => {
     setup();
     await ready();
     expect(screen.getByRole("link", { name: "Voltar à unidade" })).toHaveAttribute("href", "/configuracoes/unidades/u1");
-    const linha = within(screen.getByRole("table")).getByRole("row", { name: /Administradores/ });
+    const linha = within(screen.getByRole("table")).getByRole("row", { name: /^Administradores/ });
     expect(within(linha).getAllByRole("cell").map((c) => c.textContent)).toEqual(["●", "—", "—"]);
   });
 
@@ -69,7 +69,7 @@ describe("PermissionsTablePage", () => {
     setup();
     await ready();
     expect(screen.queryByRole("table")).toBeNull();
-    expect(screen.getAllByRole("definition")).toHaveLength(28 * 3);
+    expect(screen.getAllByRole("definition")).toHaveLength(29 * 3);
     expect(screen.getByText("Início da unidade")).toBeInTheDocument();
   });
 

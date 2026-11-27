@@ -10,6 +10,8 @@ export interface CatalogItem {
   available: boolean;
   /** Item de sprint futura que o canvas mostra: aparece desabilitado "Em breve" (sem rota), só para quem teria a permissão. */
   soon?: boolean;
+  /** Sem a permissão do item, quem tem esta o vê desabilitado "Em breve". */
+  soonFor?: Permission;
   /** Ícone (lucide-react) do menu lateral; o mapa nome -> componente fica em `components/layout/icons.ts`. */
   icon: string;
 }
@@ -33,5 +35,6 @@ export const menuCatalog: CatalogGroup[] = menuGroups.map((g) => ({
       icon: r.item!.icon,
       available: !r.item!.state,
       ...(r.item!.state === "soon" ? { soon: true } : {}),
+      ...(r.item!.soonFor ? { soonFor: r.item!.soonFor } : {}),
     })),
 }));

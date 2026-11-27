@@ -207,6 +207,7 @@ export const resetMockSession = () => {
   current = session;
   ticketAccount = null;
   organization = { ...initialOrganization };
+  adminTwoFactor = { required: false, lastChange: null };
   units = initialUnits();
   unitDetails = {};
   staff = initialStaff();
@@ -284,6 +285,10 @@ const precondition = (request: Request, version?: number) => {
 };
 const changedNow = (): MockLastChange => ({ at: new Date().toISOString(), by: current.account.name });
 let organization = { ...initialOrganization };
+// RN-ACE-24: exigência de duas etapas dos Administradores, em memória. Ligada, toda conta com vínculo de Administrador é obrigada.
+let adminTwoFactor = { required: false, lastChange: null as MockLastChange };
+const sessionView = (s: typeof session) =>
+  adminTwoFactor.required && s.links.some((l) => l.role === "ADMINISTRATOR") ? { ...s, twoFactor: { ...s.twoFactor, required: true } } : s;
 // PNG de 1 pixel: o mock não guarda o arquivo enviado, só que existe uma logo.
 const MOCK_LOGO =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg==";
@@ -2065,7 +2070,7 @@ export const routes: Route[] = [
       loggedIn = true;
       current = account ?? (email === many.account.email ? { ...many } : session);
       if (email !== many.account.email) rememberLogin(email);
-      return HttpResponse.json(current);
+      return HttpResponse.json(sessionView(current));
     },
   },
   {
@@ -2079,7 +2084,7 @@ export const routes: Route[] = [
       loggedIn = true;
       current = accounts[ticketAccount] ?? session;
       ticketAccount = null;
-      return HttpResponse.json(current);
+      return HttpResponse.json(sessionView(current));
     },
   },
   {
@@ -2121,7 +2126,7 @@ export const routes: Route[] = [
       if (password === "limite") return error(429, "TOO_MANY_REQUESTS", "Muitas tentativas.");
       if (password === "errada") return error(401, "INVALID_CREDENTIALS", "E-mail ou senha incorretos.");
       if (!code || !VALID_CODES.includes(code)) return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
-      if (current.twoFactor.required) return error(403, "FORBIDDEN", "Sem permissão.");
+      if (sessionView(current).twoFactor.required) return error(403, "FORBIDDEN", "Sem permissão.");
       current = { ...current, twoFactor: { ...current.twoFactor, enabled: false, enabledAt: null } };
       return new HttpResponse(null, { status: 204 });
     },
@@ -2292,7 +2297,7 @@ export const routes: Route[] = [
   {
     method: "get",
     path: "/auth/session",
-    resolver: () => (loggedIn ? HttpResponse.json(current) : error(401, "UNAUTHENTICATED", "Sem sessão.")),
+    resolver: () => (loggedIn ? HttpResponse.json(sessionView(current)) : error(401, "UNAUTHENTICATED", "Sem sessão.")),
   },
   {
     method: "put",
@@ -2416,6 +2421,23 @@ export const routes: Route[] = [
     method: "get",
     path: "/organization/admin-seat-price",
     resolver: () => organizationAccess(true) ?? HttpResponse.json({ adminSeatCents: 5000 }),
+  },
+  {
+    method: "get",
+    path: "/organization/admin-two-factor",
+    resolver: () => organizationAccess(true) ?? HttpResponse.json(adminTwoFactor),
+  },
+  {
+    method: "put",
+    path: "/organization/admin-two-factor",
+    resolver: async ({ request }) => {
+      const denied = organizationAccess(true);
+      if (denied) return denied;
+      const { required } = (await request.json()) as { required?: unknown };
+      if (typeof required !== "boolean") return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "required", message: "obrigatório (verdadeiro ou falso)" }]);
+      if (required !== adminTwoFactor.required) adminTwoFactor = { required, lastChange: changedNow() };
+      return HttpResponse.json(adminTwoFactor);
+    },
   },
   {
     method: "get",
