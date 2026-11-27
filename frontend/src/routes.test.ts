@@ -73,7 +73,7 @@ const ALL = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"];
 const GESTAO = ["COORDINATOR", "ADMINISTRATOR"];
 const legacy: Record<string, string[]> = {
   agenda: ALL, lesson: ALL, teacherRecord: ["TEACHER"], announcements: ALL, newAnnouncement: ALL,
-  newUnit: ["COORDINATOR"], administrators: ["COORDINATOR"],
+  newUnit: ["COORDINATOR"], administrators: ["COORDINATOR"], dataSecurity: ["COORDINATOR"],
 };
 
 describe("equivalência do acesso por permissão com a lista de perfis de hoje (CA5, D1)", () => {

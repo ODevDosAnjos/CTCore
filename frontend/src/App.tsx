@@ -10,6 +10,7 @@ import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import { RequireSession } from "@/features/auth/RequireSession";
 import { RequireTwoFactor, TWO_FACTOR_REQUIRED_PATH } from "@/features/auth/RequireTwoFactor";
 import { TwoFactorRequiredPage } from "@/features/auth/TwoFactorRequiredPage";
+import { DataSecurityPage } from "@/features/data-security/DataSecurityPage";
 import { OrganizationSettingsPage } from "@/features/organization/OrganizationSettingsPage";
 import { NewUnitPage } from "@/features/units/NewUnitPage";
 import { LegacyUnitRedirect } from "@/features/units/LegacyUnitRedirect";
@@ -121,6 +122,7 @@ const screens: Record<string, ReactNode> = {
   newAnnouncement: <NewAnnouncementPage />,
   settings: <SettingsIndexPage />,
   organizationSettings: <OrganizationSettingsPage />,
+  dataSecurity: <DataSecurityPage />,
   units: <UnitsPage />,
   newUnit: <NewUnitPage />,
   unitSettings: <UnitSettingsPage />,

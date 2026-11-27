@@ -37,6 +37,7 @@ export const MATRIX: MatrixRow[] = [
   row("exportFull", ["EXPORT_FULL"], ["FULL/ALL", "NONE", "NONE"]),
   row("import", ["IMPORT"]),
   row("support", ["SUPPORT_ACCESS"], ["FULL/ALL", "NONE", "NONE"]),
+  row("requireAdminTwoFactor", ["REQUIRE_ADMIN_TWO_FACTOR"], ["FULL/ALL", "NONE", "NONE"]),
 ];
 
 export const PROFILES = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"] as const;

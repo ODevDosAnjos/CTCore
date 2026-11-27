@@ -260,7 +260,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo (item-mãe: dividido em #754 e #755; fecha na #758, junto com a #755; sem construção própria) | issue #626 | Sprint 10.5 | #755 | agente | dividido |
 | 757 | 755a · Tirar a cor da organização dos dados de exemplo dos testes | issue #757 (parte da #755) | Sprint 10.5 | #754 | agente | feito |
 | 758 | 755b · Retirar o campo de cor da API, do contrato, do MSW e do banco (fecha a #755 e a #626) | issue #758 (parte da #755) | Sprint 10.5 | #757 | agente | feito |
-| 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #748 | agente | a fazer |
+| 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #748 | agente | feito |
 | 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade | issue #630 | Sprint 10.5 | #608 | agente | a fazer |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) | issue #636 | Sprint 10.5 | — | agente | a fazer |
 | 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |

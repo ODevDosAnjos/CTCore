@@ -140,6 +140,7 @@ export const casos: Caso[] = [
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/organizacao?aba=faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
   { nome: "administradores", rota: "/administradores", perfil: ana, usuariosCanvas: true }, // #611: sem canvas (a tela nasceu depois do desenho: o canvas ConfigUsuarios é a tela antiga, com cartões de perfil e sem custo; segue a especificação e os componentes base)
   { nome: "configuracoes-permissoes", rota: `${UNIDADE}/permissoes`, perfil: ana, canvas: "PermissoesTabela", fullPage: true },
+  { nome: "configuracoes-dados-seguranca", rota: "/configuracoes/dados-e-seguranca", perfil: ana }, // #628: sem canvas (decisão 22); o caso só guarda a referência do teste visual
   { nome: "configuracoes-termos", rota: "/configuracoes/organizacao?aba=termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
   { nome: "configuracoes-textos", rota: "/configuracoes/organizacao?aba=textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },

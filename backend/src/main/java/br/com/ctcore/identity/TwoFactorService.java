@@ -78,10 +78,15 @@ public class TwoFactorService {
                 .param("a", accountId).query((rs, n) -> rs.getObject(1, java.time.OffsetDateTime.class)).optional().orElse(null));
     }
 
-    /** The one place that says who must have two-step: an active Coordinator link (the platform staff joins here, D2). */
+    /**
+     * The one place that says who must have two-step: an active Coordinator link, or an active Administrator link in an
+     * organization that requires it (RN-ACE-24). The platform staff joins here, D2.
+     */
     public boolean requiredFor(UUID accountId) {
         return accountTx.forAccount(accountId, () -> jdbc.sql(
-                "select exists (select 1 from account_link where account_id = :a and status = 'ACTIVE' and role = 'COORDINATOR')")
+                "select exists (select 1 from account_link l where l.account_id = :a and l.status = 'ACTIVE' and (l.role = 'COORDINATOR' "
+                + "or (l.role = 'ADMINISTRATOR' and exists (select 1 from organization_settings s "
+                + "where s.organization_id = l.organization_id and s.require_admin_two_factor))))")
                 .param("a", accountId).query(Boolean.class).single());
     }
 

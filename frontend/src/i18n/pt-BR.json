@@ -134,6 +134,7 @@
     "required": {
       "title": "Ative as duas etapas para continuar",
       "text": "O perfil de Coordenador exige a verificação em duas etapas. Ative para usar o sistema.",
+      "organizationText": "A sua organização exige a verificação em duas etapas dos Administradores. Ative para usar o sistema.",
       "activate": "Ativar duas etapas"
     },
     "errors": {
@@ -481,7 +482,8 @@
       "exportLists": {"label":"Exportar listas","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
       "exportFull": {"label":"Exportação completa","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"},
       "import": {"label":"Importar","COORDINATOR":"●","ADMINISTRATOR":"U","TEACHER":"—"},
-      "support": {"label":"Liberar acesso de suporte","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"}
+      "support": {"label":"Liberar acesso de suporte","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"},
+      "requireAdminTwoFactor": {"label":"Exigir duas etapas dos Administradores","COORDINATOR":"●","ADMINISTRATOR":"—","TEACHER":"—"}
     }
   },
   "birthdays": {
@@ -2518,6 +2520,30 @@
     "text": "Gestão, portal do aluno e cobrança no mesmo lugar.",
     "help": "Precisa de ajuda para entrar?",
     "icon": "ct"
+  },
+  "dataSecurity": {
+    "title": "Dados e segurança",
+    "tabsLabel": "Seções de Dados e segurança",
+    "tabs": {
+      "audit": "Auditoria",
+      "importExport": "Importar e exportar",
+      "support": "Acesso do suporte",
+      "twoFactor": "Duas etapas"
+    },
+    "twoFactor": {
+      "label": "Exigir duas etapas dos Administradores",
+      "effect": "Quem é Administrador e ainda não usa as duas etapas configura no próximo login, antes de entrar na gestão. Enquanto a exigência valer, nenhum Administrador pode desligá-las.",
+      "confirm": {
+        "title": "Exigir duas etapas dos Administradores?",
+        "text": "Os Administradores que ainda não usam as duas etapas são desconectados agora e configuram no próximo login.",
+        "action": "Exigir duas etapas"
+      },
+      "saved": {
+        "on": "Exigência ligada.",
+        "off": "Exigência desligada. Quem já usa as duas etapas continua com elas."
+      },
+      "saveFailed": "Não foi possível salvar. Tente de novo."
+    }
   },
   "comingSoon": {
     "badge": "Em breve",

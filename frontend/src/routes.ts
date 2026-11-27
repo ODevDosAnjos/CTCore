@@ -27,6 +27,8 @@ export interface MenuItemDef {
   icon: string;
   /** "soon": aparece desabilitado "Em breve" (sem rota); "off": ainda não aparece no menu. Sem valor: a tela existe. */
   state?: "soon" | "off";
+  /** RF-ORG-09: quem não abre a tela mas tem esta permissão vê o item "Em breve" (as abas dele ainda são futuras). */
+  soonFor?: Permission;
 }
 
 export interface AppRoute {
@@ -118,7 +120,8 @@ export const routes: AppRoute[] = [
   sub("permissionsTableLegacy", "/configuracoes/unidade/permissoes", "units", "UNIT_SETTINGS"),
   sub("permissionsTable", "/configuracoes/unidades/:id/permissoes", "units", "UNIT_SETTINGS", { trail: "permissionsTable.title" }),
   m("subscription", "/configuracoes/assinatura", "SUBSCRIPTION", "settings", "CreditCard", "soon"),
-  m("dataSecurity", "/configuracoes/dados-e-seguranca", "AUDIT", "settings", "ScrollText", "soon"),
+  // #628: a única aba pronta é Duas etapas, só do Coordenador.
+  { ...m("dataSecurity", "/configuracoes/dados-e-seguranca", "REQUIRE_ADMIN_TWO_FACTOR", "settings", "ScrollText"), item: { group: "settings", icon: "ScrollText", soonFor: "AUDIT" } },
 
   { id: "portalRequests", path: "/portal/pedidos", area: "portal" },
   { id: "portalCard", path: "/portal/carteirinha", area: "portal" },

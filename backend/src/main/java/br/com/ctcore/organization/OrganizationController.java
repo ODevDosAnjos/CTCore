@@ -6,6 +6,7 @@ import br.com.ctcore.organization.OrganizationProfile.OrganizationView;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
@@ -38,16 +39,20 @@ class OrganizationController {
 
     record SeatPrice(int adminSeatCents) {}
 
+    record AdminTwoFactorRequest(JsonNode required) {}
+
     private final OrganizationProfile profile;
     private final CoordinationTransfer transfer;
+    private final AdminTwoFactorPolicy adminTwoFactor;
 
     private final Permissions permissions;
     private final int adminSeatCents;
 
-    OrganizationController(OrganizationProfile profile, CoordinationTransfer transfer, Permissions permissions,
+    OrganizationController(OrganizationProfile profile, CoordinationTransfer transfer, AdminTwoFactorPolicy adminTwoFactor, Permissions permissions,
             @Value("${ctcore.billing.admin-seat-cents:5000}") int adminSeatCents) {
         this.profile = profile;
         this.transfer = transfer;
+        this.adminTwoFactor = adminTwoFactor;
         this.permissions = permissions;
         this.adminSeatCents = adminSeatCents;
     }
@@ -73,6 +78,19 @@ class OrganizationController {
     @DeleteMapping("/logo")
     OrganizationView removeLogo(@AuthenticationPrincipal AccountPrincipal who, HttpServletRequest request) {
         return profile.removeLogo(who, request.getRemoteAddr());
+    }
+
+    // RN-ACE-24
+    @GetMapping("/admin-two-factor")
+    AdminTwoFactorPolicy.View adminTwoFactor(@AuthenticationPrincipal AccountPrincipal who) {
+        return adminTwoFactor.read(who);
+    }
+
+    @PutMapping("/admin-two-factor")
+    AdminTwoFactorPolicy.View updateAdminTwoFactor(@AuthenticationPrincipal AccountPrincipal who, @RequestBody AdminTwoFactorRequest body,
+            HttpServletRequest request) {
+        if (body.required() == null || !body.required().isBoolean()) throw new ApiValidationException("required", "obrigatório (verdadeiro ou falso)");
+        return adminTwoFactor.update(who, body.required().booleanValue(), request.getRemoteAddr());
     }
 
     // RF-ORG-06

@@ -12,6 +12,7 @@ const rows: Record<Permission, [Access, Access, Access]> = {
   ANNOUNCEMENTS: [F, F, F], TRIAL_CLASSES: [F, F, R], TEACHERS: [F, F, N], STAFF_USERS: [F, N, N], UNIT_SETTINGS: [F, F, N],
   ORGANIZATION_SETTINGS: [F, R, N], UNITS: [F, N, N], SUBSCRIPTION: [F, "NOTICE", N], AUDIT: [F, F, N], REPORTS: [F, F, "OWN"],
   EXPORT_LISTS: [F, F, N], EXPORT_FULL: [F, N, N], IMPORT: [F, F, N], SUPPORT_ACCESS: [F, N, N],
+  REQUIRE_ADMIN_TWO_FACTOR: [F, N, N],
 };
 const column: Record<string, number> = { COORDINATOR: 0, ADMINISTRATOR: 1, TEACHER: 2 };
 

@@ -1,6 +1,6 @@
 import type { NavGroup } from "@/components/layout/AppLayout";
 import { menuCatalog, type CatalogGroup } from "./menuCatalog";
-import type { PermissionMap } from "./types";
+import type { Permission, PermissionMap } from "./types";
 
 // R7: só entram itens cujo nível não é NONE (disponíveis ou "Em breve", desabilitados), e grupos que ficarem com algum item; ordem do catálogo.
 // NOTICE (Administrador em Assinatura) é a faixa de aviso, não o item.
@@ -9,14 +9,15 @@ export function buildMenu(
   t: (key: string) => string,
   catalog: CatalogGroup[] = menuCatalog,
 ): NavGroup[] {
+  const allows = (p: Permission) => !["NONE", "NOTICE"].includes(permissions[p]);
   return catalog
     .map((g) => ({
       id: g.id,
       label: t(`menu.groups.${g.id}`),
       icon: g.icon,
       items: g.items
-        .filter((i) => (i.available || i.soon) && !["NONE", "NOTICE"].includes(permissions[i.permission]))
-        .map((i) => ({ id: i.id, label: t(`menu.items.${i.id}`), href: i.href, icon: i.icon, ...(i.available ? {} : { disabled: true }) })),
+        .filter((i) => (i.available || i.soon) && (allows(i.permission) || (!!i.soonFor && allows(i.soonFor))))
+        .map((i) => ({ id: i.id, label: t(`menu.items.${i.id}`), href: i.href, icon: i.icon, ...(i.available && allows(i.permission) ? {} : { disabled: true }) })),
     }))
     .filter((g) => g.items.length > 0);
 }

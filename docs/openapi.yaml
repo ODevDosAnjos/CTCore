@@ -181,7 +181,7 @@ paths:
   /auth/two-factor:
     delete:
       summary: Desliga as duas etapas, com senha e código (RN-ACE-17).
-      description: Quem é obrigado a tê-las (Coordenador) recebe 403 FORBIDDEN e nada muda. Apaga o segredo e os códigos de reserva.
+      description: Quem é obrigado a tê-las (Coordenador, e Administrador de organização que exige, RN-ACE-24) recebe 403 FORBIDDEN e nada muda. Apaga o segredo e os códigos de reserva.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       requestBody:
         required: true
@@ -386,6 +386,41 @@ paths:
         '200':
           description: Logo removida (`logoUrl` nula).
           content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationView' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /organization/admin-two-factor:
+    get:
+      summary: Lê a exigência de duas etapas dos Administradores (RN-ACE-24). Só o Coordenador.
+      description: Da organização do vínculo ativo. Administrador, Professor e portal recebem 403.
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Valor atual e última alteração.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminTwoFactorPolicy' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      summary: Liga ou desliga a exigência de duas etapas dos Administradores (RN-ACE-24). Só o Coordenador.
+      description: |
+        Idempotente, sem `If-Match`. Ao ligar, encerra todas as sessões das contas com vínculo ativo de Administrador na organização que não
+        têm duas etapas; no login seguinte elas configuram antes de usar o sistema. Desligar não desliga as duas etapas de ninguém.
+        Mudança de valor grava `organization.admin_two_factor.update` na auditoria; gravar o valor atual não grava registro nem encerra sessão.
+        Sem `required` booleano responde 400 VALIDATION_ERROR no campo `required`.
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [required]
+              properties:
+                required: { type: boolean }
+      responses:
+        '200':
+          description: Valor gravado.
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminTwoFactorPolicy' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
   /organization/coordination-transfer:
@@ -3923,7 +3958,7 @@ components:
     Permission:
       type: string
       description: Linha "Área / ação" da tabela de permissões, na ordem da especificação.
-      enum: [HOME, ALL_UNITS_CONSOLIDATED, STUDENT_VIEW, STUDENT_RECORD, STUDENT_CONTACTS, STUDENT_MANAGE, BENEFITS, PLANS, COLLECTIONS, CHARGE_ADJUSTMENTS, CLASSES_MANAGE, AGENDA_VIEW, AGENDA_EDIT, NO_CLASS_DAYS, GRADUATION, ANNOUNCEMENTS, TRIAL_CLASSES, TEACHERS, STAFF_USERS, UNIT_SETTINGS, ORGANIZATION_SETTINGS, UNITS, SUBSCRIPTION, AUDIT, REPORTS, EXPORT_LISTS, EXPORT_FULL, IMPORT, SUPPORT_ACCESS]
+      enum: [HOME, ALL_UNITS_CONSOLIDATED, STUDENT_VIEW, STUDENT_RECORD, STUDENT_CONTACTS, STUDENT_MANAGE, BENEFITS, PLANS, COLLECTIONS, CHARGE_ADJUSTMENTS, CLASSES_MANAGE, AGENDA_VIEW, AGENDA_EDIT, NO_CLASS_DAYS, GRADUATION, ANNOUNCEMENTS, TRIAL_CLASSES, TEACHERS, STAFF_USERS, UNIT_SETTINGS, ORGANIZATION_SETTINGS, UNITS, SUBSCRIPTION, AUDIT, REPORTS, EXPORT_LISTS, EXPORT_FULL, IMPORT, SUPPORT_ACCESS, REQUIRE_ADMIN_TWO_FACTOR]
     PermissionsView:
       type: object
       required: [permissions]
@@ -4043,7 +4078,7 @@ components:
       properties:
         enabled: { type: boolean }
         enabledAt: { type: string, format: date-time, nullable: true, description: "Quando as duas etapas foram ativadas; vazio com elas desligadas." }
-        required: { type: boolean, description: "Verdadeiro para quem tem vínculo ativo de Coordenador; sem as duas etapas a sessão só alcança a configuração (403 TWO_FACTOR_SETUP_REQUIRED nas demais rotas)." }
+        required: { type: boolean, description: "Verdadeiro para quem tem vínculo ativo de Coordenador, ou de Administrador em organização que exige duas etapas dos Administradores (RN-ACE-24); sem as duas etapas a sessão só alcança a configuração (403 TWO_FACTOR_SETUP_REQUIRED nas demais rotas)." }
     SessionView:
       type: object
       required: [account, links, twoFactor]
@@ -4180,6 +4215,12 @@ components:
       properties:
         at: { type: string, format: date-time }
         by: { type: string, nullable: true }
+    AdminTwoFactorPolicy:
+      type: object
+      required: [required, lastChange]
+      properties:
+        required: { type: boolean, description: Exige duas etapas dos Administradores da organização (RN-ACE-24). Desligado por padrão. }
+        lastChange: { $ref: '#/components/schemas/LastChange' }
     OrganizationUpdateRequest:
       type: object
       required: [name]

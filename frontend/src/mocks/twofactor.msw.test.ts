@@ -47,6 +47,28 @@ describe("duas etapas x OpenAPI (CA25)", () => {
     expect(declared("/auth/two-factor", "delete")).toEqual(expect.arrayContaining(["204", "401", "403", "409", "429"]));
   });
 
+  it("#628: a exigência dos Administradores segue o contrato, obriga a sessão deles e recusa o desligamento", async () => {
+    const path = "/organization/admin-two-factor";
+    expect((await send("GET", path)).status).toBe(401);
+    await send("POST", "/auth/login", { email: "ana@exemplo.com", password: "x" });
+    const initial = await (await send("GET", path)).json();
+    expect(initial).toEqual({ required: false, lastChange: null });
+    for (const k of openapi.components.schemas.AdminTwoFactorPolicy.required) expect(initial).toHaveProperty(k);
+    expect((await send("PUT", path, { required: "true" })).status).toBe(400);
+    expect(declared(path, "put")).toEqual(["200", "400", "401", "403"]);
+    expect((await (await send("PUT", path, { required: true })).json()).lastChange.by).toBe("Ana");
+
+    const admin = await (await send("POST", "/auth/login", { email: "admin@exemplo.com", password: "x" })).json();
+    expect(admin.twoFactor).toMatchObject({ enabled: false, required: true });
+    expect((await (await send("GET", "/auth/session")).json()).twoFactor.required).toBe(true);
+    expect((await send("GET", path)).status).toBe(403);
+    expect((await send("PUT", path, { required: false })).status).toBe(403);
+    await send("POST", "/auth/two-factor/enable", { code: "123456" });
+    expect((await send("DELETE", "/auth/two-factor", { password: "x", code: "123456" })).status).toBe(403);
+    const teacher = await (await send("POST", "/auth/login", { email: "prof@exemplo.com", password: "x" })).json();
+    expect(teacher.twoFactor.required).toBe(false);
+  });
+
   it("quem não é obrigado desliga com senha e código; sem sessão tudo dá 401", async () => {
     expect((await send("POST", "/auth/two-factor/setup")).status).toBe(401);
     expect((await send("POST", "/auth/reauth", { action: "FULL_EXPORT", password: "x" })).status).toBe(401);

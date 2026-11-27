@@ -39,7 +39,7 @@ const list = async () => {
 };
 
 describe("SettingsIndexPage (R8, GMConfig)", () => {
-  it("CA17: o Coordenador vê os links permitidos, na ordem do menu, com Assinatura e Dados e segurança Em breve (#746)", async () => {
+  it("CA17: o Coordenador vê os links permitidos, na ordem do menu, com Assinatura Em breve (#746) e Dados e segurança com tela (#628)", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     const items = await list();
@@ -48,11 +48,10 @@ describe("SettingsIndexPage (R8, GMConfig)", () => {
     ]);
     expect(items.getByRole("link", { name: "Unidades" })).toHaveAttribute("href", "/configuracoes/unidades");
     expect(items.getByRole("link", { name: "Organização" })).toHaveAttribute("href", "/configuracoes/organizacao");
-    for (const name of ["Assinatura", "Dados e segurança"]) {
-      const soon = items.getByRole("link", { name });
-      expect(soon).toHaveAttribute("aria-disabled", "true");
-      await user.click(soon);
-    }
+    expect(items.getByRole("link", { name: "Dados e segurança" })).toHaveAttribute("href", "/configuracoes/dados-e-seguranca");
+    const soon = items.getByRole("link", { name: "Assinatura" });
+    expect(soon).toHaveAttribute("aria-disabled", "true");
+    await user.click(soon);
     expect(screen.getByRole("heading", { name: "Configurações", level: 1 })).toBeInTheDocument();
     expect(screen.queryByText("Assinatura e Unidades aparecem só para o Coordenador.")).not.toBeInTheDocument();
     await user.click(items.getByRole("link", { name: "Organização" }));

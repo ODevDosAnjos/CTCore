@@ -10,12 +10,14 @@ import { TwoFactorSetupDialog } from "./TwoFactorSetupDialog";
 // R16: configuração obrigatória das duas etapas; só sai ativando ou saindo da conta.
 export function TwoFactorRequiredPage() {
   const { t } = useTranslation();
-  const { refresh } = useSession();
+  const { state, refresh } = useSession();
+  // RN-ACE-24: sem vínculo de Coordenador, quem obriga é a organização.
+  const coordinator = state.status === "ready" && state.session.links.some((l) => l.role === "COORDINATOR");
   const { logout, pending, failed } = useLogout();
   const [open, setOpen] = useState(false);
 
   return (
-    <AuthShell title={t("twoFactor.required.title")} subtitle={t("twoFactor.required.text")}>
+    <AuthShell title={t("twoFactor.required.title")} subtitle={t(coordinator ? "twoFactor.required.text" : "twoFactor.required.organizationText")}>
       {failed && <ErrorState onRetry={logout} />}
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => setOpen(true)}>{t("twoFactor.required.activate")}</Button>

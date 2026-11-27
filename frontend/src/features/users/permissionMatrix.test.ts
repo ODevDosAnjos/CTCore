@@ -13,8 +13,8 @@ const csv = readFileSync(resolve(process.cwd(), "../backend/src/test/resources/p
 const rows = ptBR.permissionsTable.rows as Record<string, Record<string, string>>;
 
 describe("permissionMatrix", () => {
-  it("CA8: tem as 28 linhas do canvas, cada uma com os textos das três colunas", () => {
-    expect(MATRIX).toHaveLength(28);
+  it("CA8 e #628 CA13: tem as 28 linhas do canvas e a de duas etapas dos Administradores, cada uma com os textos das três colunas", () => {
+    expect(MATRIX).toHaveLength(29);
     for (const r of MATRIX) {
       for (const k of ["label", "COORDINATOR", "ADMINISTRATOR", "TEACHER"]) expect(rows[r.id]?.[k], `${r.id}.${k}`).toBeTruthy();
     }

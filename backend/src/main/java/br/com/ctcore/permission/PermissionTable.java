@@ -52,6 +52,7 @@ public final class PermissionTable {
         row(EXPORT_FULL, ALL_FULL, Grant.NONE, Grant.NONE);
         row(IMPORT, ALL_FULL, UNIT_FULL, Grant.NONE);
         row(SUPPORT_ACCESS, ALL_FULL, Grant.NONE, Grant.NONE);
+        row(REQUIRE_ADMIN_TWO_FACTOR, ALL_FULL, Grant.NONE, Grant.NONE);
     }
 
     private PermissionTable() {}
