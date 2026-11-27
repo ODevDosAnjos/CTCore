@@ -253,7 +253,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 745 | 625a · Limite de aulas experimentais por unidade e comprovante da graduação só por modalidade | issue #745 (parte da #625) | Sprint 10.5 | #611, #624 | agente | feito |
 | 746 | 625b · Menu de Configurações e Unidades abertas pela lista | issue #746 (parte da #625) | Sprint 10.5 | #745 | agente | feito |
 | 747 | 625c · Organização em abas | issue #747 (parte da #625) | Sprint 10.5 | #746 | agente | feito |
-| 748 | 625d · Abas Cobrança e Divulgação da unidade (fecha a #625) | issue #748 (parte da #625) | Sprint 10.5 | #747 | agente | a fazer |
+| 748 | 625d · Abas Cobrança e Divulgação da unidade (fecha a #625) | issue #748 (parte da #625) | Sprint 10.5 | #747 | agente | feito |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança (item-mãe: dividido em #745 a #748; fecha na #748; sem construção própria) | issue #625 | Sprint 10.5 | #748 | agente | dividido |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #748 | agente | a fazer |
 | 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #748 | agente | a fazer |

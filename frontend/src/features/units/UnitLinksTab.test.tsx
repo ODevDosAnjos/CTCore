@@ -27,7 +27,7 @@ describe("UnitLinksTab (R7)", () => {
     const user = userEvent.setup();
     const { draft } = renderTab(tab);
     const before = draft();
-    expect(screen.getAllByText("Em breve")).toHaveLength(6);
+    expect(screen.getAllByText("Em breve")).toHaveLength(7); // seis dos links e o diretório
     for (const name of ["Copiar link", "QR code PNG", "PDF para imprimir"]) {
       const items = screen.getAllByText(name).map((el) => el.closest("[aria-disabled]"));
       expect(items).toHaveLength(2);
@@ -36,6 +36,18 @@ describe("UnitLinksTab (R7)", () => {
         await user.click(el!);
       }
     }
+    expect(draft()).toEqual(before);
+  });
+
+  it("#748 CA3: o diretório fica no último cartão, desabilitado com Em breve; clicar não muda o rascunho", async () => {
+    const user = userEvent.setup();
+    const { draft } = renderTab(tab);
+    expect(screen.getAllByRole("heading", { level: 2 }).at(-1)).toHaveTextContent("Diretório de academias");
+    const before = draft();
+    const directory = screen.getByRole("switch", { name: "Aparecer no diretório ctcore.com.br/academias" });
+    expect(directory).toHaveAttribute("aria-disabled", "true");
+    await user.click(directory);
+    expect(directory).not.toBeChecked();
     expect(draft()).toEqual(before);
   });
 

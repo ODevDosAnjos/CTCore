@@ -11,6 +11,7 @@ import { useBelowSm } from "@/components/query/useBelowSm";
 import { SupportLink } from "@/features/auth/SupportContact";
 import { ALL, useUnitScope } from "@/features/units/UnitScopeProvider";
 import { formatCurrency } from "@/lib/format";
+import { hrefOf } from "@/routes";
 import { BlockCell, LastReminder, LateCell, OverdueCard, RowActions, Select, Student, Whatsapp, useOverdueReference, useReminderMessage } from "./OverdueRows";
 import { SendReminderDialog } from "./SendReminderDialog";
 import type { OverdueCharge } from "./types";
@@ -26,6 +27,9 @@ function Content() {
   // A unidade vem da barra: "todas" não filtra. A identidade de fetchPage muda só quando a unidade muda.
   const scope = useUnitScope();
   const unitId = scope.selected && scope.selected !== ALL ? scope.selected : undefined;
+  // "Configurar" abre a aba Lembretes da unidade escolhida (ou da única ao alcance); sem uma, a lista de Unidades.
+  const configId = unitId ?? (scope.units.length === 1 ? scope.units[0]?.id : undefined);
+  const configHref = configId ? `${hrefOf("unitSettings", { id: configId })}?aba=reminders` : hrefOf("units");
   // A seleção fica na tela (id -> linha, para o resultado citar o aluno) e vale entre páginas; recarregar a lista a zera.
   const [selected, setSelected] = useState<Map<string, OverdueCharge>>(new Map());
   const [pageRows, setPageRows] = useState<OverdueCharge[]>([]);
@@ -88,7 +92,7 @@ function Content() {
       <PageHeader title={t("charges.overdue.title")} />
       <Banner tone="info">
         {t("charges.overdue.notice")}{" "}
-        <Link to="/configuracoes/unidade" className="font-medium underline">
+        <Link to={configHref} className="font-medium underline">
           {t("charges.overdue.configure")}
         </Link>
       </Banner>

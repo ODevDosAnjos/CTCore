@@ -2311,9 +2311,9 @@
     "tabsLabel": "Seções da unidade",
     "tabs": {
       "data": "Dados",
-      "payments": "Pagamentos",
+      "payments": "Cobrança",
       "reminders": "Lembretes",
-      "links": "Links",
+      "links": "Divulgação",
       "teacher": "Permissões do Professor"
     },
     "tabError": "Há erro nesta aba",

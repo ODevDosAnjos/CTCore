@@ -9,10 +9,13 @@ import { ComingSoon } from "@/components/ui/coming-soon";
 import { Field, Select } from "@/components/ui/field";
 import { SummaryBox } from "@/components/ui/summary-box";
 import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { SwitchRow } from "./SwitchRow";
 import { Err, Text } from "./Text";
 import type { TabProps } from "./unitDraft";
 import type { FeeKey } from "./useUnitSettings";
 
+const DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 const EXAMPLE_CENTS = 18000; // mensalidade de exemplo do canvas (D3)
 const ONLINE: FeeKey[] = ["pix", "creditCard", "debitCard", "bankSlip", "automaticDebit"];
 const COUNTER: FeeKey[] = ["cash", "manualPix", "terminalCard", "transfer"];
@@ -27,10 +30,12 @@ function pixTypeOf(key: string): PixType {
   return onlyDigits(key).length === 14 ? "CNPJ" : "CPF";
 }
 
-// Aba Pagamentos (R4, D2 a D4): conexão do Mercado Pago ("Em breve"), taxas por meio com exemplo, outros meios e chave Pix.
-export function UnitPaymentsTab({ d, set, errors, connected }: TabProps & { connected: boolean }) {
+// Aba Cobrança (R4, D2 a D4): conexão do Mercado Pago ("Em breve"), taxas por meio com exemplo, outros meios, chave Pix,
+// dias de vencimento e taxa de matrícula.
+export function UnitPaymentsTab({ d, set, problems, errors, connected }: TabProps & { connected: boolean }) {
   const { t } = useTranslation();
   const [type, setType] = useState<PixType>(() => pixTypeOf(d.pixKey));
+  const toggleDay = (day: number) => set("dueDays")(d.dueDays.includes(day) ? d.dueDays.filter((x) => x !== day) : [...d.dueDays, day].sort((a, b) => a - b));
   const fee = (k: FeeKey) => d.fees[k] ?? 0;
   const setFee = (k: FeeKey) => (v: number | null) => set("fees")({ ...d.fees, [k]: v });
   const money = (k: FeeKey) => (
@@ -51,7 +56,7 @@ export function UnitPaymentsTab({ d, set, errors, connected }: TabProps & { conn
           <span aria-hidden className={`grid size-12 shrink-0 place-items-center rounded-md ${connected ? "bg-surface-soft" : "bg-danger text-danger-foreground"}`}>
             {connected ? <CreditCard className="size-5" /> : <OctagonAlert className="size-5" />}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-48 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base font-semibold">{t("unitSettings.mercadoPago")}</h2>
               <Badge tone={connected ? "ok" : "danger"}>{t(connected ? "unitSettings.connected" : "unitSettings.disconnected")}</Badge>
@@ -137,6 +142,40 @@ export function UnitPaymentsTab({ d, set, errors, connected }: TabProps & { conn
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">{t("unitSettings.pixKeyHelp")}</p>
+      </Card>
+
+      <Card heading="h2" title={t("unitSettings.sections.billing")}>
+        <div className="flex flex-col gap-3">
+          <fieldset>
+            <legend className="text-xs font-semibold text-muted-foreground">{t("unitSettings.dueDays")}</legend>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {DAYS.map((day) => {
+                const on = d.dueDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleDay(day)}
+                    className={cn(
+                      "min-h-11 rounded-full px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      on ? "bg-foreground text-background" : "bg-surface-soft text-muted-foreground",
+                    )}
+                  >
+                    {t("unitSettings.dueDay", { day })}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{t("unitSettings.dueDaysHelp")}</p>
+            <Err text={errors["settings.dueDays"] ?? problems.dueDays} />
+          </fieldset>
+          <SwitchRow label={t("unitSettings.enrollmentFee")} description={t("unitSettings.enrollmentFeeHelp")} checked={d.enrollmentFeeEnabled} onChange={set("enrollmentFeeEnabled")} />
+          <div>
+            <MoneyField label={t("unitSettings.enrollmentFeeValue")} initial={d.enrollmentFeeCents} onChange={set("enrollmentFeeCents")} disabled={!d.enrollmentFeeEnabled} />
+            <Err text={errors["settings.enrollmentFeeCents"]} />
+          </div>
+        </div>
       </Card>
     </div>
   );

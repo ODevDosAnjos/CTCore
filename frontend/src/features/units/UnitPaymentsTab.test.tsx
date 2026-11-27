@@ -9,6 +9,20 @@ import { renderTab, unitFixture } from "./unitTabKit";
 const tab = (connected: boolean) => (p: TabProps) => <UnitPaymentsTab {...p} connected={connected} />;
 
 describe("UnitPaymentsTab (R4)", () => {
+  it("#748 CA2: vencimento e taxa de matrícula ficam no último cartão, depois da chave Pix; o valor só é editável com a taxa ligada", async () => {
+    const user = userEvent.setup();
+    const { draft } = renderTab(tab(true));
+    const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(headings.at(-1)).toBe("Cobrança");
+    expect(headings).toHaveLength(5);
+    await user.click(screen.getByRole("button", { name: "Dia 20" }));
+    expect(draft().dueDays).toEqual([1, 5, 10, 15, 20]);
+    expect(screen.getByLabelText("Valor da taxa")).toBeDisabled();
+    await user.click(screen.getByRole("switch", { name: "Cobrar taxa de matrícula" }));
+    fireEvent.change(screen.getByLabelText("Valor da taxa"), { target: { value: "15000" } });
+    expect(draft()).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000 });
+  });
+
   it("CA9: desconectado mostra Desconectado, Reconectar desabilitado com Em breve e as quatro consequências", () => {
     renderTab(tab(false));
     expect(screen.getByText("Desconectado")).toBeInTheDocument();

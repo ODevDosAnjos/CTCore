@@ -12,7 +12,8 @@ const LINKS: { key: LinkKey; id: "trial" | "selfRegistration" }[] = [
   { key: "selfRegistrationLinkEnabled", id: "selfRegistration" },
 ];
 
-// Aba Links (R7): o interruptor liga e desliga o link público; endereço, QR e PDF chegam com a tela de links (issue 162).
+// Aba Divulgação (R7): o interruptor liga e desliga o link público (endereço, QR e PDF chegam com a tela de links, issue 162);
+// o diretório de academias é "Em breve".
 export function UnitLinksTab({ d, set, errors = {} }: { d: Draft; set: SetDraft; errors?: Record<string, string> }) {
   const { t } = useTranslation();
   return (
@@ -51,6 +52,10 @@ export function UnitLinksTab({ d, set, errors = {} }: { d: Draft; set: SetDraft;
         </Field>
       </Card>
       <p className="text-sm text-muted-foreground">{t("unitSettings.links.offNote")}</p>
+      <Card heading="h2" title={t("unitSettings.sections.directory")}>
+        <ComingSoon variant="switch" label={t("unitSettings.directory")} />
+        <p className="text-sm text-muted-foreground">{t("unitSettings.directoryHelp")}</p>
+      </Card>
     </div>
   );
 }

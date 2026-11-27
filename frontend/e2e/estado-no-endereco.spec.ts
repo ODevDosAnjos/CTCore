@@ -175,10 +175,10 @@ test("Abas: Minha conta e Unidade guardam a aba no endereço, sem histórico e c
   await expect(page.getByRole("tab", { name: "Sessões" })).toHaveAttribute("aria-selected", "true");
 
   await open(page, UNIT);
-  await page.getByRole("tab", { name: /^Pagamentos/ }).click();
+  await page.getByRole("tab", { name: /^Cobrança/ }).click();
   await expect(page).toHaveURL(/\/configuracoes\/unidades\/[\w-]+\?aba=payments$/);
   await page.reload();
-  await expect(page.getByRole("tab", { name: /^Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /^Cobrança/ })).toHaveAttribute("aria-selected", "true");
   await page.goBack(); // a troca de aba usou replace: o voltar sai da tela
   await expect(page).toHaveURL(/\/conta\?aba=sessoes$/);
 });

@@ -26,9 +26,12 @@ import { FEE_KEYS, TEACHER_KEYS, useUnitDetail, type UnitDetail } from "./useUni
 const TABS = ["data", "payments", "reminders", "links", "teacher"] as const;
 type TabId = (typeof TABS)[number];
 
-// Aba de cada erro do servidor; o que não é de Pagamentos, Lembretes nem Links (nome, vencimentos, taxa de matrícula...) é da aba Dados.
-const tabOfServerField = (field: string): TabId =>
-  field.startsWith("settings.feesCents") || field === "settings.pixKey" ? "payments" : field.startsWith("settings.reminder") ? "reminders" : field === "settings.trialLimit" ? "links" : "data";
+// Aba de cada erro do servidor; o que não é de Cobrança, Lembretes nem Divulgação (nome, endereço, contatos...) é da aba Dados.
+const tabOfServerField = (field: string): TabId => {
+  if (/^settings\.(dueDays|enrollmentFee|feesCents|pixKey)/.test(field)) return "payments";
+  if (field.startsWith("settings.reminder")) return "reminders";
+  return /^settings\.(directoryEnabled|trialLi|selfRegistrationLinkEnabled)/.test(field) ? "links" : "data";
+};
 
 function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useUnitDetail> }) {
   const { t } = useTranslation();
@@ -64,8 +67,9 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
   };
   const dirty = JSON.stringify(d) !== JSON.stringify(base);
   const blocked = Object.values(problems).some(Boolean);
-  // Abas com erro: o que foi digitado (todos os problemas locais são da aba Dados) e o que o servidor recusou.
-  const withError = new Set<TabId>([...(blocked ? (["data"] as const) : []), ...Object.keys(errors).map(tabOfServerField)]);
+  // Abas com erro: o que foi digitado (os dias de vencimento são de Cobrança; o resto, de Dados) e o que o servidor recusou.
+  const localErrors = new Set(Object.entries(problems).flatMap(([k, v]): TabId[] => (v ? [k === "dueDays" ? "payments" : "data"] : [])));
+  const withError = new Set<TabId>([...localErrors, ...Object.keys(errors).map(tabOfServerField)]);
 
   // Depois de abrir a aba com o erro, o foco vai ao primeiro campo inválido dela.
   useEffect(() => {
@@ -172,12 +176,13 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
         ref={form}
         className="flex flex-col gap-4"
         noValidate
-        // Com o botão desabilitado o Enter não envia: abre a aba com erro e leva o foco ao primeiro campo inválido (CA5).
+        // Com o botão desabilitado o Enter não envia: abre a primeira aba com erro; em Dados, o foco vai ao primeiro campo inválido (CA5).
         onKeyDown={(e) => {
           if (e.key !== "Enter" || !blocked || !(e.target instanceof HTMLInputElement)) return;
           e.preventDefault();
-          wantsFocus.current = true;
-          setTab("data");
+          const first = TABS.find((id) => localErrors.has(id))!;
+          wantsFocus.current = first === "data";
+          setTab(first);
           setFocusError((n) => n + 1);
         }}
         onSubmit={(e) => {

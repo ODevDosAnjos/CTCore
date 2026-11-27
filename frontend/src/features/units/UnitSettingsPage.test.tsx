@@ -114,19 +114,19 @@ const discard = () => screen.getByRole("button", { name: "Descartar" });
 const openTab = (user: ReturnType<typeof userEvent.setup>, name: string) => user.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
 
 describe("UnitSettingsPage (RF-ORG-04)", () => {
-  it("CA1: mostra o título sem subtítulo, a última alteração e as cinco abas na ordem do canvas", async () => {
+  it("CA1: mostra o título sem subtítulo, a última alteração e as cinco abas na ordem da especificação", async () => {
     setup("COORDINATOR", { units: [{ ...detail(A, "Tijuca"), lastChange: { at: "2026-05-20T15:30:00Z", by: "Bia" } }] });
     await ready("Unidade Tijuca");
     expect(screen.queryByText("tijuca · cada unidade tem seus dados, recebimentos e links")).not.toBeInTheDocument();
     expect(screen.getByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor"]);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Dados", "Cobrança", "Lembretes", "Divulgação", "Permissões do Professor"]);
   });
 
 
   it("CA8: a aba ativa vem de ?aba= (F5 mantém); aba inválida abre Dados sem erro", async () => {
     setup("COORDINATOR", { path: `/configuracoes/unidades/${A}?aba=payments` });
     await screen.findByRole("heading", { name: "Unidade A", level: 1 });
-    expect(await screen.findByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("tab", { name: /Cobrança/ })).toHaveAttribute("aria-selected", "true");
     cleanup();
     setup("COORDINATOR", { path: `/configuracoes/unidades/${A}?aba=nada` });
     await ready();
@@ -175,16 +175,18 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     setup("COORDINATOR");
     await ready();
     fireEvent.change(screen.getByLabelText("Telefone"), { target: { value: "21999998888" } });
+    await openTab(user, "Cobrança");
     await user.click(screen.getByRole("button", { name: "Dia 15" }));
     await user.click(screen.getByRole("button", { name: "Dia 20" }));
     await user.click(screen.getByRole("switch", { name: "Cobrar taxa de matrícula" }));
     fireEvent.change(screen.getByLabelText("Valor da taxa"), { target: { value: "15000" } });
     expect(screen.getByLabelText("Valor da taxa")).toHaveValue("R$ 150,00");
-    await openTab(user, "Pagamentos");
     fireEvent.change(screen.getByLabelText("Pix"), { target: { value: "199" } });
     await openTab(user, "Lembretes");
     await user.click(screen.getByRole("switch", { name: "3 dias depois" }));
-    await openTab(user, "Links");
+    await openTab(user, "Cobrança"); // os campos que mudaram de aba mantêm o valor ao voltar
+    expect(screen.getByLabelText("Valor da taxa")).toHaveValue("R$ 150,00");
+    await openTab(user, "Divulgação");
     await user.click(screen.getByRole("switch", { name: "Pedido de aula experimental" }));
     await user.selectOptions(screen.getByLabelText("Limite de aulas experimentais por pessoa"), "3");
     await openTab(user, "Permissões do Professor");
@@ -207,13 +209,13 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await openTab(user, "Pagamentos");
+    await openTab(user, "Cobrança");
     await user.selectOptions(screen.getByLabelText("Tipo"), "RANDOM");
     await user.type(screen.getByLabelText("Chave"), "recusada");
     await user.click(save());
     expect(await screen.findByText("chave recusada pelo servidor")).toBeInTheDocument();
     expect(screen.getByLabelText("Chave")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByRole("tab", { name: /Pagamentos/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
+    expect(screen.getByRole("tab", { name: /Cobrança/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
     expect(screen.getByRole("alert", { name: "" })).toHaveTextContent("Não foi possível salvar");
   });
 
@@ -221,16 +223,36 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
-    await openTab(user, "Pagamentos");
+    await openTab(user, "Cobrança");
     await user.selectOptions(screen.getByLabelText("Tipo"), "RANDOM");
     await user.type(screen.getByLabelText("Chave"), "recusada");
     await openTab(user, "Dados");
     await user.click(save());
     expect(await screen.findByText("chave recusada pelo servidor")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Cobrança/ })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("RN-AEX-02: a aba Links mostra o limite gravado, de 1 a 3, e o 400 nele, com outra aba aberta, abre Links com a mensagem no campo", async () => {
+  it.each([
+    ["settings.dueDays", "Cobrança", true],
+    ["settings.enrollmentFeeEnabled", "Cobrança", false],
+    ["settings.enrollmentFeeCents", "Cobrança", true],
+    ["settings.directoryEnabled", "Divulgação", false],
+    ["settings.trialLinkEnabled", "Divulgação", false],
+    ["settings.selfRegistrationLinkEnabled", "Divulgação", false],
+  ])("#748 CA4: a recusa de %s, com outra aba aberta, abre %s e marca a aba", async (field, tab, hasMessage) => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    server.use(http.put("/api/v1/units/:id", () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field, message: "recusado pelo servidor" }] }, { status: 400 })));
+    await openTab(user, "Lembretes");
+    await user.click(screen.getByRole("switch", { name: "3 dias depois" }));
+    await user.click(save());
+    await waitFor(() => expect(screen.getByRole("tab", { name: new RegExp(`^${tab}`) })).toHaveAttribute("aria-selected", "true"));
+    expect(screen.getByRole("tab", { name: new RegExp(`^${tab}`) })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
+    if (hasMessage) expect(screen.getByText("recusado pelo servidor")).toBeInTheDocument();
+  });
+
+  it("RN-AEX-02: a aba Divulgação mostra o limite gravado, de 1 a 3, e o 400 nele, com outra aba aberta, abre Divulgação com a mensagem no campo", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", { units: [{ ...detail(A, "Unidade A"), settings: { ...detail(A, "Unidade A").settings, trialLimit: 1 } }] });
     await ready();
@@ -239,7 +261,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
         HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "settings.trialLimit", message: "limite recusado pelo servidor" }] }, { status: 400 }),
       ),
     );
-    await openTab(user, "Links");
+    await openTab(user, "Divulgação");
     const limit = screen.getByLabelText("Limite de aulas experimentais por pessoa");
     expect(limit).toHaveValue("1");
     expect(within(limit).getAllByRole("option").map((o) => o.textContent)).toEqual(["1", "2", "3"]);
@@ -248,9 +270,9 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await openTab(user, "Dados");
     await user.click(save());
     expect(await screen.findByText("limite recusado pelo servidor")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Links/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Divulgação/ })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Limite de aulas experimentais por pessoa")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByRole("tab", { name: /Links/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
+    expect(screen.getByRole("tab", { name: /Divulgação/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
   });
 
   it("CA17: CEP novo vai sem coordenadas (o servidor busca)", async () => {
@@ -279,10 +301,14 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await user.clear(screen.getByLabelText("Nome"));
     expect(screen.getByText("Informe o nome da unidade.")).toBeInTheDocument();
     await user.type(screen.getByLabelText("Nome"), "N");
+    await openTab(user, "Cobrança");
     for (const day of [1, 5, 10, 15]) await user.click(screen.getByRole("button", { name: `Dia ${day}` }));
     expect(screen.getByText("Escolha ao menos um dia de vencimento.")).toBeInTheDocument();
     expect(save()).toBeDisabled();
+    // Só Cobrança fica marcada: o nome já foi corrigido.
+    expect(screen.getByRole("tab", { name: /Cobrança/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
     await user.click(screen.getByRole("button", { name: "Dia 7" }));
+    await openTab(user, "Dados");
     await user.click(screen.getByText("Ajustar latitude e longitude"));
     await user.type(screen.getByLabelText("Latitude"), "10");
     expect(screen.getByText(/Informe latitude e longitude juntas/)).toBeInTheDocument();
@@ -294,7 +320,8 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     setup("COORDINATOR");
     await ready();
     await user.type(screen.getByLabelText("E-mail"), "ruim");
-    await openTab(user, "Pagamentos");
+    await openTab(user, "Cobrança");
+    for (const day of [1, 5, 10, 15]) await user.click(screen.getByRole("button", { name: `Dia ${day}` })); // Dados vem antes de Cobrança
     await user.type(screen.getByLabelText("Chave"), "{Enter}");
     expect(screen.getByRole("tab", { name: /Dados/ })).toHaveAttribute("aria-selected", "true");
     await waitFor(() => expect(screen.getByLabelText("E-mail")).toHaveFocus());
@@ -304,10 +331,26 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     expect(screen.getByRole("tab", { name: /Lembretes/ })).toHaveAttribute("aria-selected", "true");
   });
 
+  it("#748 CA5: sem dia de vencimento, o Enter em outra aba abre Cobrança com a mensagem, sem gravar", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    await openTab(user, "Cobrança");
+    for (const day of [1, 5, 10, 15]) await user.click(screen.getByRole("button", { name: `Dia ${day}` }));
+    await openTab(user, "Dados");
+    expect(screen.getByRole("tab", { name: /Dados/ })).not.toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
+    await user.type(screen.getByLabelText("Nome"), "{Enter}");
+    expect(screen.getByRole("tab", { name: /Cobrança/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Escolha ao menos um dia de vencimento.")).toBeInTheDocument();
+    expect(save()).toBeDisabled();
+    expect(puts).toHaveLength(0);
+  });
+
   it("CA6: com a taxa de matrícula desligada o valor fica desabilitado; ligada e vazia, grava 0", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     await ready();
+    await openTab(user, "Cobrança");
     expect(screen.getByLabelText("Valor da taxa")).toBeDisabled();
     await user.click(screen.getByRole("switch", { name: "Cobrar taxa de matrícula" }));
     expect(screen.getByLabelText("Valor da taxa")).toBeEnabled();
@@ -323,14 +366,19 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     expect(await screen.findByRole("heading", { name: /^Modalidades oferecidas na / })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Judô" })).toBeChecked();
     expect(screen.getByRole("heading", { name: /^Modalidades oferecidas na / }).compareDocumentPosition(screen.getByRole("heading", { name: "Dados da unidade" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Fuso horário")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fuso horário")).toBeDisabled();
+    expect(screen.getByLabelText("Fuso horário")).toHaveDisplayValue("Brasília (UTC−3)");
+    // #748 CA2: vencimento, taxa de matrícula e diretório saíram de Dados.
+    expect(screen.queryByRole("button", { name: "Dia 1" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Cobrar taxa de matrícula" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /diretório/ })).not.toBeInTheDocument();
+    await openTab(user, "Divulgação");
     const directory = screen.getByRole("switch", { name: "Aparecer no diretório ctcore.com.br/academias" });
     expect(directory).toHaveAttribute("aria-disabled", "true");
     await user.click(directory);
     expect(directory).not.toBeChecked();
     expect(save()).toBeDisabled();
-    expect(screen.getByText("Fuso horário")).toBeInTheDocument();
-    expect(screen.getByLabelText("Fuso horário")).toBeDisabled();
-    expect(screen.getByLabelText("Fuso horário")).toHaveDisplayValue("Brasília (UTC−3)");
   });
 
   it("CA8: o valor salvo do diretório segue o mesmo no PUT", async () => {
@@ -412,7 +460,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await choose(user, "Unidade B");
     await screen.findByRole("heading", { name: "Unidade B", level: 1 });
     expect(address).toBe(`/configuracoes/unidades/${B}?aba=payments`);
-    expect(await screen.findByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("tab", { name: /Cobrança/ })).toHaveAttribute("aria-selected", "true");
     await choose(user, /^Todas as unidades/);
     await screen.findByRole("heading", { name: "Unidades", level: 1 });
     expect(address).toBe("/configuracoes/unidades");
@@ -432,6 +480,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     ["COORDINATOR", `/configuracoes/unidade?aba=payments&unidade=${B}`, `/configuracoes/unidades/${B}?aba=payments`],
     ["ADMINISTRATOR", "/configuracoes/unidade?aba=payments", `/configuracoes/unidades/${A}?aba=payments`],
     ["COORDINATOR", "/configuracoes/unidade?aba=payments", "/configuracoes/unidades"],
+    ["ADMINISTRATOR", "/configuracoes/unidade?aba=links", `/configuracoes/unidades/${A}?aba=links`],
   ])("#746 CA7: %s em %s vai para %s", async (role, path, target) => {
     // O Coordenador com duas unidades começa em "Todas as unidades"; o Administrador, na primeira dele.
     localStorage.clear();
@@ -442,7 +491,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
 
   // #519: um `it` por aba e tema (antes era um só com 6 rodadas do axe e estourava os 20 s com a máquina carregada).
   const axeCases = ([["claro", false], ["escuro", true]] as const).flatMap(([n, dark]) =>
-    ["Dados", "Pagamentos", "Lembretes", "Links", "Permissões do Professor", "Dados com erros"].map((tab) => [n, dark, tab] as const),
+    ["Dados", "Cobrança", "Lembretes", "Divulgação", "Permissões do Professor", "Dados com erros"].map((tab) => [n, dark, tab] as const),
   );
   it.each(axeCases)("CA18: a 360 px não tem violações no axe no tema %s, na aba %s", async (_n, dark, tab) => {
     const user = userEvent.setup();
