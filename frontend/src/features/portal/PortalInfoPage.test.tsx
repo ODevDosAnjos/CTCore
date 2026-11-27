@@ -71,7 +71,7 @@ function setup(path = "/portal/minhas-informacoes", reduced = false) {
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students/:id/requests", () => HttpResponse.json([])),
     http.get("/api/v1/auth/sessions", () => HttpResponse.json([])),
-    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced, unreadAnnouncements: 0 })),
+    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", logoUrl: null }, reduced, unreadAnnouncements: 0 })),
   );
   return render(
     <ThemeProvider>

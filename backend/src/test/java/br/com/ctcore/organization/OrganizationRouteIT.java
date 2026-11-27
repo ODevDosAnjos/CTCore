@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
  */
 class OrganizationRouteIT extends OrganizationBase {
     private List<MockHttpServletRequestBuilder> writes() throws Exception {
-        return List.of(patch("{\"name\":\"Hacked\",\"color\":\"#1a56db\",\"holderDocument\":\"52998224725\"}"),
+        return List.of(patch("{\"name\":\"Hacked\",\"holderDocument\":\"52998224725\"}"),
                 putLogo(LogoImageTest.image("png", 512, 512), "x.png"), deleteLogo());
     }
 

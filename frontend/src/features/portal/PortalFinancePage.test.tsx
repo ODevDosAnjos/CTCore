@@ -88,7 +88,7 @@ function setup(path = "/portal/financeiro", shell: Record<string, unknown> = {})
     http.get("/api/v1/auth/session", () => HttpResponse.json(session)),
     http.get("/api/v1/portal/term", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
-    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, ...shell })),
+    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 0, ...shell })),
   );
   return render(
     <ThemeProvider>

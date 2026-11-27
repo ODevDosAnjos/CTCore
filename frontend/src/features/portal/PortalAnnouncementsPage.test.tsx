@@ -65,7 +65,7 @@ function setup(path = "/portal/avisos") {
     http.get("/api/v1/auth/session", () => HttpResponse.json(session)),
     http.get("/api/v1/portal/term", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
-    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 2 })),
+    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 2 })),
   );
   return render(
     <ThemeProvider>
@@ -132,7 +132,7 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     server.use(
       http.get("/api/v1/portal/shell", () => {
         shells += 1;
-        return HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 1 });
+        return HttpResponse.json({ organization: { name: "Academia Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 1 });
       }),
     );
     await user.click(await screen.findByRole("button", { name: /Mudança de <b>horário<\/b>/ }));

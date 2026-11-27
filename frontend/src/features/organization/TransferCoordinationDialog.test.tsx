@@ -18,7 +18,6 @@ const session = (role: string, twoFactor: boolean): SessionView => ({
 });
 const view = {
   name: "Academia Alfa",
-  color: null,
   holderDocument: null,
   logoUrl: null,
   version: 0,

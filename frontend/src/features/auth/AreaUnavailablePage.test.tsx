@@ -70,7 +70,7 @@ describe("AreaUnavailablePage", () => {
   });
 
   it("CA5: Aluno vê o estado na casca do portal, sem o menu da gestão", async () => {
-    server.use(http.get("/api/v1/portal/term", () => HttpResponse.json([])), http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: null })));
+    server.use(http.get("/api/v1/portal/term", () => HttpResponse.json([])), http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: null })));
     setup({ account, links: [L("l3", "STUDENT")], activeLinkId: "l3", twoFactor: off });
     await screen.findByRole("heading", { name: TITLE });
     expect(screen.queryByRole("navigation", { name: "Menu principal" })).not.toBeInTheDocument();

@@ -59,7 +59,7 @@ const routes = [
     path: "/portal/carteirinha",
     url: "/api/v1/portal/card",
     empty: {
-      organization: { name: "Academia Alfa", color: null, logoUrl: null },
+      organization: { name: "Academia Alfa", logoUrl: null },
       student: { id: "s1", name: "Ana Souza", photoUrl: null },
       students,
       status: "ACTIVE",
@@ -111,7 +111,7 @@ function setup(path: string, main: (typeof routes)[number], response: () => Resp
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
     http.get("/api/v1/portal/students/:id/requests", () => HttpResponse.json([])), // o resumo de pedidos de Minhas informações
     http.get("/api/v1/portal/modality-confirmations", () => HttpResponse.json([])),
-    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0 })),
+    http.get("/api/v1/portal/shell", () => HttpResponse.json({ organization: { name: "Academia Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 0 })),
   );
   return render(
     <ThemeProvider>

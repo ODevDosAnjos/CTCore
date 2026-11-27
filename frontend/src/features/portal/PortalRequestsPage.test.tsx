@@ -36,7 +36,7 @@ function setup(over: { students?: () => Response; requests?: PortalRequest[]; op
   window.history.replaceState(null, "", "/portal/pedidos");
   server.use(
     http.get("/api/v1/portal/shell", () =>
-      HttpResponse.json({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: { name: "Centro", address: "Rua A, 1", whatsapp: "(21) 97000-1200" } }),
+      HttpResponse.json({ organization: { name: "Academia Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 0, unit: { name: "Centro", address: "Rua A, 1", whatsapp: "(21) 97000-1200" } }),
     ),
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(over.role ?? "STUDENT"))),
     http.get("/api/v1/portal/term", () => HttpResponse.json([])),
