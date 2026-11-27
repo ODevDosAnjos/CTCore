@@ -3,6 +3,7 @@ import { menuCatalog, type CatalogGroup } from "./menuCatalog";
 import type { PermissionMap } from "./types";
 
 // R7: só entram itens cujo nível não é NONE (disponíveis ou "Em breve", desabilitados), e grupos que ficarem com algum item; ordem do catálogo.
+// NOTICE (Administrador em Assinatura) é a faixa de aviso, não o item.
 export function buildMenu(
   permissions: PermissionMap,
   t: (key: string) => string,
@@ -14,7 +15,7 @@ export function buildMenu(
       label: t(`menu.groups.${g.id}`),
       icon: g.icon,
       items: g.items
-        .filter((i) => (i.available || i.soon) && permissions[i.permission] !== "NONE")
+        .filter((i) => (i.available || i.soon) && !["NONE", "NOTICE"].includes(permissions[i.permission]))
         .map((i) => ({ id: i.id, label: t(`menu.items.${i.id}`), href: i.href, icon: i.icon, ...(i.available ? {} : { disabled: true }) })),
     }))
     .filter((g) => g.items.length > 0);

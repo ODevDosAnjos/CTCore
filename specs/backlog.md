@@ -251,7 +251,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 564 | Teste visual instável: dia-sem-aula-novo reprova em HEAD limpo e passa em outras execuções | issue #564 | Manutenção · Dívida técnica | — | agente | feito |
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | feito |
 | 745 | 625a · Limite de aulas experimentais por unidade e comprovante da graduação só por modalidade | issue #745 (parte da #625) | Sprint 10.5 | #611, #624 | agente | feito |
-| 746 | 625b · Menu de Configurações e Unidades abertas pela lista | issue #746 (parte da #625) | Sprint 10.5 | #745 | agente | a fazer |
+| 746 | 625b · Menu de Configurações e Unidades abertas pela lista | issue #746 (parte da #625) | Sprint 10.5 | #745 | agente | feito |
 | 747 | 625c · Organização em abas | issue #747 (parte da #625) | Sprint 10.5 | #746 | agente | a fazer |
 | 748 | 625d · Abas Cobrança e Divulgação da unidade (fecha a #625) | issue #748 (parte da #625) | Sprint 10.5 | #747 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança (item-mãe: dividido em #745 a #748; fecha na #748; sem construção própria) | issue #625 | Sprint 10.5 | #748 | agente | dividido |

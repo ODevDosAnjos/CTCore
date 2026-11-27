@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.ctcore.identity.Role;
 import br.com.ctcore.isolation.Scopes;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,36 @@ class UnitListIT extends UnitBase {
         assertThat(units.findValues("activeStudents")).allMatch(n -> n.asInt() == 0);
         var empty = tenant();
         assertThat(body(call(list(), who(empty, Role.COORDINATOR)).getResponse()).get(0).path("administrators")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#746 CA8: o Administrador lista, lê e altera só a unidade dele; outra organização é 404; Professor e portal 403")
+    void administratorReach() throws Exception {
+        var a = tenant();
+        var b = tenant();
+        var other = addUnit(a, "Zeta", "zeta-" + a.orgId(), null);
+        addAdministrator(a, "Ana Admin", "ACTIVE", a.unitId());
+        addAdministrator(a, "Bia de Outra", "ACTIVE", other);
+        var admin = who(a, Role.ADMINISTRATOR);
+        var response = call(list(), admin).getResponse();
+        assertThat(response.getStatus()).isEqualTo(200);
+        assertThat(body(response).findValuesAsText("id")).containsExactly(a.unitId().toString());
+        assertThat(response.getContentAsString()).contains("Ana Admin").doesNotContain("Bia de Outra");
+        assertThat(call(read(a.unitId()), admin).getResponse().getStatus()).isEqualTo(200);
+        assertThat(call(read(other), admin).getResponse().getStatus()).isEqualTo(403);
+        assertThat(call(put(other, payload()), admin).getResponse().getStatus()).isEqualTo(403);
+        assertThat(call(read(b.unitId()), admin).getResponse().getStatus()).isEqualTo(404);
+        assertThat(call(put(b.unitId(), payload()), admin).getResponse().getStatus()).isEqualTo(404);
+        assertThat(call(create("{\"name\":\"Nova\"}"), admin).getResponse().getStatus()).isEqualTo(403);
+        assertThat(call(adjust(a.unitId(), "novo-" + a.orgId()), admin).getResponse().getStatus()).isEqualTo(403);
+        assertThat(call(MockMvcRequestBuilders.post("/api/v1/units/" + a.unitId() + "/deactivation")
+                .contentType("application/json").content("{\"confirmation\":\"DESATIVAR\"}"), admin).getResponse().getStatus()).isEqualTo(403);
+        for (Role role : new Role[] {Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) {
+            assertThat(call(list(), who(a, role)).getResponse().getStatus()).as(role.name()).isEqualTo(403);
+        }
+        assertThat(unitCount(a)).isEqualTo(2);
+        assertThat(unitRow(a.unitId()).get("short_name")).isEqualTo(a.orgId().toString());
+        assertThat(audit(a, "unit.update")).isEmpty();
     }
 
     @Test

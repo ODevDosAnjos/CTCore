@@ -9,8 +9,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { buildMenu } from "@/features/permissions/buildMenu";
 import { usePermissions } from "@/features/permissions/usePermissions";
 
-// Ordem e itens do canvas (GMConfig, D10); Assinatura e Unidades ficam só no menu lateral do Coordenador.
-const ORDER = ["organizationSettings", "unitSettings", "modalities", "ageRanges", "terms", "texts", "audit", "import"];
+// Mesmo conjunto e ordem do grupo Configurações do menu (RF-ORG-09).
+const ORDER = ["organizationSettings", "units", "modalities", "ageRanges", "terms", "texts", "subscription", "dataSecurity"];
 
 function Content() {
   const { t } = useTranslation();

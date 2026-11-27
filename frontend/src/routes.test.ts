@@ -40,7 +40,12 @@ describe("mapa de rotas (CA4)", () => {
     expect(activeItemOf(findRoute("/cobrancas/previa"))).toBe("collections");
     expect(activeItemOf(findRoute("/configuracoes"))).toBe("");
     expect(activeItemOf(findRoute("/agenda/aulas/3/alunos/4"))).toBe("agenda");
-    expect(findRoute("/configuracoes/unidade/permissoes")?.trail).toBe("permissionsTable.title");
+    expect(findRoute("/configuracoes/unidades/u1/permissoes")?.trail).toBe("permissionsTable.title");
+    expect(findRoute("/configuracoes/unidades/u1")?.id).toBe("unitSettings");
+    expect(findRoute("/configuracoes/unidades/nova")?.id).toBe("newUnit");
+    expect(activeItemOf(findRoute("/configuracoes/unidades/u1"))).toBe("units");
+    expect(findRoute("/configuracoes/unidade")?.id).toBe("unitLegacy");
+    expect(findRoute("/configuracoes/unidade/permissoes")?.id).toBe("permissionsTableLegacy");
     expect(findRoute("/nao-existe")).toBeUndefined();
     expect(hrefOf("students")).toBe("/alunos");
   });
@@ -62,7 +67,7 @@ const ALL = ["COORDINATOR", "ADMINISTRATOR", "TEACHER"];
 const GESTAO = ["COORDINATOR", "ADMINISTRATOR"];
 const legacy: Record<string, string[]> = {
   agenda: ALL, lesson: ALL, teacherRecord: ["TEACHER"], announcements: ALL, newAnnouncement: ALL,
-  units: ["COORDINATOR"], newUnit: ["COORDINATOR"], administrators: ["COORDINATOR"],
+  newUnit: ["COORDINATOR"], administrators: ["COORDINATOR"],
 };
 
 describe("equivalência do acesso por permissão com a lista de perfis de hoje (CA5, D1)", () => {

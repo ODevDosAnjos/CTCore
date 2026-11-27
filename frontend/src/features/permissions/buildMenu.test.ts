@@ -11,10 +11,11 @@ const groupIds = (role: string, catalog = allAvailable) => buildMenu(mockPermiss
 const itemIds = (role: string) => buildMenu(mockPermissions(role), t, allAvailable).flatMap((g) => g.items.map((i) => i.id));
 
 describe("buildMenu", () => {
-  it("CA11: Professor não vê Financeiro nem Configurações; Administrador não vê Unidades; Coordenador vê tudo", () => {
+  it("CA11: Professor não vê Financeiro nem Configurações; Administrador vê Unidades (#746); Coordenador vê tudo", () => {
     expect(groupIds("TEACHER")).toEqual(["home", "operation", "communication", "reports"]);
     expect(groupIds("TEACHER")).not.toContain("finance");
-    expect(itemIds("ADMINISTRATOR")).not.toContain("units");
+    expect(itemIds("ADMINISTRATOR")).toContain("units");
+    expect(itemIds("ADMINISTRATOR")).not.toContain("subscription");
     expect(itemIds("ADMINISTRATOR")).toContain("organizationSettings");
     expect(groupIds("COORDINATOR")).toEqual(menuCatalog.map((g) => g.id));
     expect(itemIds("COORDINATOR")).toContain("units");
@@ -27,7 +28,7 @@ describe("buildMenu", () => {
     expect(buildMenu(mockPermissions(undefined), t, allAvailable)).toEqual([]);
   });
 
-  it("CA12 / CA19 / CA16 (#29), CA21 (#31) e #37, #46, #49 e #53: com o catálogo real, o Coordenador vê Administradores, Unidade, Organização e Unidades, o Administrador Unidade e Organização e o Professor Início e Agenda", () => {
+  it("CA12 / CA19 / CA16 (#29), CA21 (#31) e #37, #46, #49 e #53: com o catálogo real, e #746 CA1 / CA2: Configurações na ordem do RF-ORG-09, com Assinatura só do Coordenador e Dados e segurança Em breve", () => {
     const home = { id: "home", label: "menu.groups.home", items: [{ id: "home", label: "menu.items.home", href: "/" }] };
     const it_ = (id: string, href: string, extra: object = {}) => ({ id, label: `menu.items.${id}`, href, ...extra });
     const grp = (id: string, items: object[]) => ({ id, label: `menu.groups.${id}`, items });
@@ -39,25 +40,26 @@ describe("buildMenu", () => {
     const people = grp("people", [it_("students", "/alunos"), it_("requests", "/pedidos"), it_("teachers", "/professores")]);
     const administrators = it_("administrators", "/administradores");
     const finance = grp("finance", [it_("collections", "/cobrancas"), it_("plans", "/planos"), it_("benefits", "/beneficios")]);
-    const soon = [it_("subscription", "/configuracoes/assinatura", { disabled: true }), it_("audit", "/configuracoes/auditoria", { disabled: true }), it_("import", "/configuracoes/importar", { disabled: true })];
+    const subscription = it_("subscription", "/configuracoes/assinatura", { disabled: true });
+    const dataSecurity = it_("dataSecurity", "/configuracoes/dados-e-seguranca", { disabled: true });
     const common = [
-      it_("unitSettings", "/configuracoes/unidade"), it_("modalities", "/configuracoes/modalidades"), it_("ageRanges", "/configuracoes/faixas-etarias"),
+      it_("modalities", "/configuracoes/modalidades"), it_("ageRanges", "/configuracoes/faixas-etarias"),
       it_("terms", "/configuracoes/termos"), it_("texts", "/configuracoes/textos"),
     ];
     const org = it_("organizationSettings", "/configuracoes/organizacao");
     const units = it_("units", "/configuracoes/unidades");
     const rest = [home, people, operation, finance, communication, reports];
     const coordinatorRest = [home, grp("people", [...people.items, administrators]), operation, finance, communication, reports];
-    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...coordinatorRest, grp("settings", [org, units, ...common, ...soon])]);
-    expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([...rest, grp("settings", [org, ...common, ...soon])]);
+    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...coordinatorRest, grp("settings", [org, units, ...common, subscription, dataSecurity])]);
+    expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([...rest, grp("settings", [org, units, ...common, dataSecurity])]);
   });
 
   it("T1: item \"Em breve\" só entra se o perfil tem a permissão e traz disabled; grupo traz o ícone", () => {
     const p = { ...mockPermissions("COORDINATOR"), AUDIT: "NONE" as const };
     const menu = buildMenu(p, t);
     const settings = menu.find((g) => g.id === "settings")!;
-    expect(settings.items.map((i) => i.id)).not.toContain("audit");
-    expect(settings.items.find((i) => i.id === "import")).toMatchObject({ disabled: true });
+    expect(settings.items.map((i) => i.id)).not.toContain("dataSecurity");
+    expect(settings.items.find((i) => i.id === "subscription")).toMatchObject({ disabled: true });
     expect(settings.items.find((i) => i.id === "units")!.disabled).toBeUndefined();
     expect(settings.icon).toBe("Settings");
   });

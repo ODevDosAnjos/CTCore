@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "react-router";
+import { Link, Navigate, useLocation } from "react-router";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
+import { useSession } from "@/features/auth/SessionProvider";
 import { formatDate } from "@/lib/format";
+import { hrefOf } from "@/routes";
 import { DeactivateUnitDialog } from "./DeactivateUnitDialog";
 import { MAX_UNITS, useUnits, type UnitSummary } from "./useUnits";
 
@@ -19,6 +21,10 @@ const CELL = "px-4 py-3 align-middle";
 function Content() {
   const { t } = useTranslation();
   const api = useUnits();
+  const { state } = useSession();
+  const session = state.status === "ready" ? state.session : undefined;
+  // RF-ORG-02: criar e desativar são só do Coordenador (a barreira é o servidor).
+  const coordinator = session?.links.find((l) => l.id === session.activeLinkId)?.role === "COORDINATOR";
   const [deactivating, setDeactivating] = useState<UnitSummary | null>(null);
   const [notice, setNotice] = useState(false);
   const created = (useLocation().state as { created?: string } | null)?.created;
@@ -27,16 +33,18 @@ function Content() {
   if (!api.units) return <ErrorState onRetry={api.retry} />;
 
   const units = api.units;
+  // Item 746 (D6): o Administrador de uma unidade só, e ativa, vai direto a ela, sem a lista no histórico.
+  if (!coordinator && units.length === 1 && units[0].active) return <Navigate to={hrefOf("unitSettings", { id: units[0].id })} replace />;
   const active = units.filter((u) => u.active);
   const sr = (u: UnitSummary) => <span className="sr-only"> {u.name}</span>;
-  const full = units.length >= MAX_UNITS;
+  const full = coordinator && units.length >= MAX_UNITS;
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("units.title")}
         actions={
-          full ? (
+          !coordinator ? undefined : full ? (
             <Button disabled aria-describedby="units-limit">
               <Plus aria-hidden />
               {t("units.newButton")}
@@ -115,7 +123,7 @@ function Content() {
                       <td className={`${CELL} text-right`}>
                         {u.active ? (
                           <Button asChild variant="secondary" size="sm">
-                            <Link to={`/configuracoes/unidade?unidade=${u.id}`}>
+                            <Link to={hrefOf("unitSettings", { id: u.id })}>
                               {t("units.open")}
                               {sr(u)}
                             </Link>
@@ -130,13 +138,15 @@ function Content() {
               </table>
             </div>
           </Card>
-          <div className="flex flex-wrap gap-2">
-            {active.map((u) => (
-              <Button key={u.id} variant="danger" size="sm" onClick={() => setDeactivating(u)}>
-                {t("units.deactivate.button", { name: u.name })}
-              </Button>
-            ))}
-          </div>
+          {coordinator && (
+            <div className="flex flex-wrap gap-2">
+              {active.map((u) => (
+                <Button key={u.id} variant="danger" size="sm" onClick={() => setDeactivating(u)}>
+                  {t("units.deactivate.button", { name: u.name })}
+                </Button>
+              ))}
+            </div>
+          )}
         </>
       )}
       <DeactivateUnitDialog
@@ -152,7 +162,7 @@ function Content() {
   );
 }
 
-// RF-ACE-06: só o Coordenador (a rota já nega os demais; a barreira de dados é o servidor).
+// RF-ORG-02: Coordenador vê todas; Administrador, só as dele (a rota já nega os demais; a barreira de dados é o servidor).
 export function UnitsPage() {
   return <Content />;
 }

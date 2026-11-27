@@ -64,7 +64,7 @@ describe("UnitsPage", () => {
     const tijuca = rowOf("Tijuca");
     expect(within(tijuca).getByText("Rio de Janeiro/RJ")).toBeInTheDocument();
     expect(within(tijuca).getByText("Ativa")).toBeInTheDocument();
-    expect(within(tijuca).getByRole("link", { name: /Abrir/ })).toHaveAttribute("href", "/configuracoes/unidade?unidade=u1");
+    expect(within(tijuca).getByRole("link", { name: /Abrir/ })).toHaveAttribute("href", "/configuracoes/unidades/u1");
     expect(within(rowOf("Barra")).getByText("Carla Mendes, Diego Alves")).toBeInTheDocument();
     const meierRow = rowOf("Méier");
     expect(within(meierRow).getByText("Desativada em 30/06/2026")).toBeInTheDocument();
@@ -107,10 +107,28 @@ describe("UnitsPage", () => {
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
   });
 
-  it("CA14: o Administrador não vê Unidades no menu e a rota mostra que a área não está disponível", async () => {
-    setup("ADMINISTRATOR");
-    expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+  it.each([
+    ["duas unidades", [unit(), barra]],
+    ["uma ativa e outra desativada", [unit(), meier]],
+  ])("#746 CA6: o Administrador com %s vê a lista, com Abrir e sem Nova unidade nem Desativar", async (_n, list) => {
+    setup("ADMINISTRATOR", () => HttpResponse.json(list));
+    await ready();
+    expect(screen.getByRole("link", { name: /Abrir.*Tijuca/ })).toHaveAttribute("href", "/configuracoes/unidades/u1");
+    expect(screen.queryByRole("link", { name: "Nova unidade" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Nova unidade|Desativar a/ })).toBeNull();
+  });
+
+  it("#746 CA6: o Administrador de uma unidade ativa cai direto na configuração dela", async () => {
+    server.use(http.get("/api/v1/units/:id", () => HttpResponse.json({ code: "NOT_FOUND" }, { status: 404 })));
+    setup("ADMINISTRATOR", () => HttpResponse.json([unit()]));
+    // A configuração (aqui sem leitura simulada) abre no lugar da lista.
+    expect(await screen.findByRole("heading", { name: "Configurações da unidade", level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Unidades", level: 1 })).toBeNull();
+  });
+
+  it("#746: o Professor não tem acesso à lista", async () => {
+    setup("TEACHER");
+    expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
   });
 
   it("com 10 unidades o botão Nova unidade fica desabilitado com o motivo", async () => {

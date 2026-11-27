@@ -298,7 +298,7 @@ const organizationAccess = (write: boolean) => {
   const allowed = role === "COORDINATOR" || (!write && role === "ADMINISTRATOR");
   return allowed ? null : error(403, "FORBIDDEN", "Sem permissão.");
 };
-// Unidades da organização (RF-ORG-02), em memória. Só o Coordenador lê e ajusta; nome "em-uso" simula nome de outra organização.
+// Unidades da organização (RF-ORG-02), em memória. Só o Coordenador cria, desativa e ajusta; nome "em-uso" simula nome de outra organização.
 const initialUnits = () => [
   { id: "00000000-0000-0000-0000-000000000021", name: "Unidade Centro", shortName: "alfa-centro", shortNameAdjusted: false, city: "Rio de Janeiro", activeStudents: 0, administrators: [{ name: "Bruno" }, { name: "Carla" }], active: true, deactivatedAt: null as string | null },
   { id: "00000000-0000-0000-0000-000000000022", name: "Unidade Norte", shortName: "alfa-norte", shortNameAdjusted: true, city: null as string | null, activeStudents: 0, administrators: [] as { name: string }[], active: false, deactivatedAt: "2026-06-30T15:00:00Z" as string | null },
@@ -2684,9 +2684,10 @@ export const routes: Route[] = [
     },
   },
   {
+    // RF-ORG-02: o Coordenador vê todas; o Administrador, só a dele (ADMIN_UNIT).
     method: "get",
     path: "/units",
-    resolver: () => unitsAccess() ?? HttpResponse.json(units),
+    resolver: () => unitSettingsRole() ?? HttpResponse.json(activeRole() === "COORDINATOR" ? units : units.filter((u) => u.id === ADMIN_UNIT)),
   },
   {
     // Limite de 10 (409 UNIT_LIMIT_REACHED); convite para "existente@exemplo.com" falha (invite FAILED); nome vazio ou longo é 400.

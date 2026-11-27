@@ -226,7 +226,7 @@ describe("NewUnitPage", () => {
     await next(user);
     await user.click(screen.getByRole("button", { name: "Criar unidade" }));
     expect(await screen.findByText(/não foi possível ligar todas as modalidades/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Abrir a unidade" })).toHaveAttribute("href", "/configuracoes/unidade?unidade=u99");
+    expect(screen.getByRole("link", { name: "Abrir a unidade" })).toHaveAttribute("href", "/configuracoes/unidades/u99");
   });
 
   it("com menos de 10 unidades o botão abre o assistente", async () => {

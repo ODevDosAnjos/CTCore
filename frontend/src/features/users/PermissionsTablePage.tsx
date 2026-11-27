@@ -1,6 +1,6 @@
 import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { useBelowSm } from "@/components/query/useBelowSm";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,6 +10,7 @@ import { MATRIX, PROFILES } from "./permissionMatrix";
 function Content() {
   const { t } = useTranslation();
   const narrow = useBelowSm();
+  const { id = "" } = useParams();
   const cell = (id: string, p: (typeof PROFILES)[number]) => t(`permissionsTable.rows.${id}.${p}`);
   const roleName = (p: (typeof PROFILES)[number]) => t(`layout.roles.${p}`);
 
@@ -19,7 +20,7 @@ function Content() {
         title={t("permissionsTable.title")}
         actions={
           <Button asChild variant="ghost">
-            <Link to={hrefOf("unitSettings")}>
+            <Link to={hrefOf("unitSettings", { id })}>
               <ChevronLeft aria-hidden="true" />
               {t("permissionsTable.back")}
             </Link>

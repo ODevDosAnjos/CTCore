@@ -435,11 +435,12 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
   /units:
     get:
-      summary: Lista as unidades da organização do vínculo ativo (RF-ORG-02). Só o Coordenador.
+      summary: Lista as unidades da organização do vínculo ativo (RF-ORG-02). Coordenador todas; Administrador só as suas.
       description: |
         A organização é sempre a do vínculo ativo. Sem paginação (no máximo 10 unidades, RN-ORG-05). `administrators` traz só os
         Administradores com vínculo ativo na unidade. `activeStudents` conta alunos distintos com modalidade ativa na unidade (RN-ORG-11).
-        Administrador, Professor e portal recebem 403.
+        O recorte segue a linha `UNIT_SETTINGS`: o Coordenador recebe todas, o Administrador só as unidades do seu vínculo.
+        Professor, portal e sessão sem organização recebem 403.
       security: [{ sessionCookie: [] }]
       responses:
         '200':

@@ -10,6 +10,7 @@ import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.isolation.OrganizationTransactions;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
+import br.com.ctcore.permission.PermissionTable;
 import br.com.ctcore.permission.Permissions;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,7 +26,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-/** RF-ORG-02: lista de unidades da organização do vínculo ativo e ajuste único do nome curto (RN-ORG-15). Só o Coordenador (FULL). */
+/**
+ * RF-ORG-02: lista de unidades da organização do vínculo ativo (linha UNIT_SETTINGS: todas para o Coordenador, só as suas para o
+ * Administrador) e ajuste único do nome curto (RN-ORG-15), só do Coordenador (linha UNITS).
+ */
 @Service
 public class UnitList {
     public record Administrator(String name) {}
@@ -55,12 +59,15 @@ public class UnitList {
     }
 
     public List<UnitSummary> list(AccountPrincipal who) {
-        requireFull(who);
+        if (who == null || who.organizationId() == null || PermissionTable.grant(who.role(), Permission.UNIT_SETTINGS).access() == Access.NONE) {
+            throw new AccessDeniedException("Permission denied");
+        }
+        List<Row> rows = transactions.execute(() -> jdbc.sql(COLUMNS + "where organization_id = :org order by name, id")
+                .param("org", who.organizationId()).query(UnitList::row).list());
+        List<Row> reachable = rows.stream().filter(r -> permissions.grant(who, Permission.UNIT_SETTINGS, r.id()) != Access.NONE).toList();
         return transactions.execute(() -> {
             Map<UUID, List<Administrator>> admins = administrators(who.organizationId());
-            return jdbc.sql(COLUMNS + "where organization_id = :org order by name, id")
-                    .param("org", who.organizationId()).query(UnitList::row).list().stream()
-                    .map(r -> summary(r, admins)).toList();
+            return reachable.stream().map(r -> summary(r, admins)).toList();
         });
     }
 
