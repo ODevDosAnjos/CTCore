@@ -110,7 +110,6 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
           body: {
             ...base,
             name: "Academia Leão",
-            color: "#c8462c",
             holderDocument: "11222333000181",
             version: 3,
             lastChange: { at: "2026-10-02T17:12:00Z", by: "Marcos Leão" },
