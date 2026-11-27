@@ -41,7 +41,7 @@ export function AccountMenuList({ sessionCount }: { sessionCount: number | null 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 rounded-card border bg-card p-4">
-        <Avatar name={account.name || account.email} decorative />
+        <Avatar name={account.name || account.email} decorative photoUrl={account.photoUrl} />
         <div className="min-w-0">
           <p className="truncate font-semibold">{account.name || account.email}</p>
           <p className="truncate text-sm text-muted-foreground">{account.email}</p>

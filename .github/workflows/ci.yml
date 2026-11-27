@@ -40,8 +40,26 @@ jobs:
           java-version: "21"
           cache: maven
       # build + *Test + *IT (Testcontainers) + contrato OpenAPI + cobertura JaCoCo (80% / 100%)
-      - run: ./mvnw -B verify
+      # Limite do passo abaixo do limite do job, para os envios abaixo rodarem se o Maven travar (#763).
+      # shell: bash liga o pipefail (o tee não esconde a falha). A cada 30 s, memória, disco e contêineres vão para o mesmo log.
+      - name: ./mvnw -B verify
+        timeout-minutes: 13
+        shell: bash
         working-directory: backend
+        run: |
+          (while sleep 30; do date -u +%T; free -m; df -h /; docker stats --no-stream --format '{{.Image}} {{.MemUsage}}'; done) 2>&1 | tee resources.log &
+          trap 'kill $! 2>/dev/null || true' EXIT
+          ./mvnw -B verify 2>&1 | tee verify.log
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: backend-test-evidence
+          path: |
+            backend/verify.log
+            backend/resources.log
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:

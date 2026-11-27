@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, useLocation } from "react-router";
@@ -510,6 +510,35 @@ describe("AccountPage: lista do celular (CA12, #762 CA2)", () => {
   });
 });
 
+describe("foto da conta no avatar (#763 CA6)", () => {
+  const withPhoto = (role: string, url: string) => ({ ...session(role), account: { ...session(role).account, photoUrl: url } });
+  const srcs = (root: ParentNode) => Array.from(root.querySelectorAll("img[src^='https://arquivos.test']"), (i) => i.getAttribute("src"));
+
+  it.each(["COORDINATOR", "STUDENT"])("%s: o topo mostra a foto", async (role) => {
+    await setup(role, OFF, "/conta", [http.get("/api/v1/auth/session", () => HttpResponse.json(withPhoto(role, "https://arquivos.test/a.png")))]);
+    await ready();
+    await waitFor(() => expect(srcs(screen.getAllByRole("banner")[0])).toEqual(["https://arquivos.test/a.png"]));
+  });
+
+  it("a imagem que falha vira iniciais e a sessão é relida uma só vez, também na lista do celular", async () => {
+    setDeviceNarrow(true);
+    window.innerWidth = 390;
+    let reads = 0;
+    await setup("COORDINATOR", OFF, "/conta", [http.get("/api/v1/auth/session", () => HttpResponse.json(withPhoto("COORDINATOR", `https://arquivos.test/${++reads}.png`)))]);
+    await ready();
+    const main = screen.getByRole("main");
+    expect(srcs(main)).toEqual(["https://arquivos.test/1.png"]);
+    const fail = () => document.querySelectorAll("img[src^='https://arquivos.test']").forEach((i) => fireEvent.error(i));
+    fail();
+    await waitFor(() => expect(srcs(main)).toEqual(["https://arquivos.test/2.png"]));
+    fail();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(reads).toBe(2);
+    expect(srcs(document)).toEqual([]);
+    expect(within(main).getByText("X", { selector: "span" })).toBeInTheDocument();
+  });
+});
+
 describe("AccountPage: acessibilidade em 360 px (CA13, #762 CA10)", () => {
   it.each((["ADMINISTRATOR", "STUDENT"] as const).flatMap((role) => IDS.flatMap((id, i) => [false, true].map((dark) => [role, id, dark, i] as const))))(
     "%s na aba %s sem violações no axe (escuro: %s)",
@@ -558,7 +587,7 @@ describe("AccountPage: Perfil, Meus vínculos (#762 CA5)", () => {
     const user = userEvent.setup();
     await setup("ADMINISTRATOR", OFF, "/conta", [many()]);
     await ready();
-    const panel = screen.getByRole("tabpanel");
+    const panel = screen.getByRole("region", { name: "Meus vínculos" });
     const items = within(within(panel).getByRole("list", { name: "Meus vínculos" })).getAllByRole("listitem");
     expect(items.map((i) => i.querySelector("p")?.textContent)).toEqual(["Alfa", "Beta", "Gama", "Delta", "Épsilon"]);
     expect(items.map(fields)).toEqual([

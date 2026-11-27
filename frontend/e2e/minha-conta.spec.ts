@@ -72,3 +72,35 @@ for (const [area, email, conteudo] of [
     }
   });
 }
+
+// #763: Perfil dentro da moldura da gestão. PNG fictício de 1 pixel, gerado aqui.
+test("Perfil: salva nome e telefone, envia a foto, vê no topo e remove, também a 360 px", async ({ page }) => {
+  await login(page, "ana@exemplo.com");
+  await page.getByRole("button", { name: /Menu da conta/ }).click();
+  await page.getByRole("menuitem", { name: "Minha conta" }).click();
+  const main = page.getByRole("main");
+  const top = page.getByRole("banner").first();
+  await main.getByRole("tab", { name: "Perfil" }).click();
+
+  await main.getByRole("textbox", { name: /^Nome/ }).fill("Ana Fictícia");
+  await main.getByRole("textbox", { name: "Telefone/WhatsApp" }).fill("21999990000");
+  await main.getByRole("button", { name: "Salvar" }).click();
+  await expect(main.getByText("Dados salvos.")).toBeVisible();
+  await expect(top.getByText("Ana Fictícia")).toBeVisible();
+
+  await main.getByLabel("Arquivo da foto").setInputFiles({
+    name: "foto.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg==", "base64"),
+  });
+  await page.getByRole("dialog", { name: "Cortar a foto" }).getByRole("button", { name: "Usar este corte" }).click();
+  await expect(main.getByText("Foto salva.")).toBeVisible();
+  await expect(top.locator("img[src^='data:image/png']")).toBeVisible();
+
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")).toBeLessThanOrEqual(0);
+
+  await main.getByRole("button", { name: "Remover foto" }).click();
+  await expect(main.getByText("Foto removida.")).toBeVisible();
+  await expect(top.locator("img[src^='data:image/png']")).toHaveCount(0);
+});

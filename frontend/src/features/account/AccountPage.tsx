@@ -15,6 +15,7 @@ import { AccountMenuList } from "./AccountMenuList";
 import { MyLinks } from "./MyLinks";
 import { NotificationsTab, PortalNotifications } from "./NotificationsTab";
 import { PrivacyTab } from "./PrivacyTab";
+import { ProfileTab } from "./ProfileTab";
 import { SessionsSection } from "./SessionsSection";
 import { TwoFactorSection } from "./TwoFactorSection";
 import { useAccountSessions } from "./useAccount";
@@ -51,7 +52,14 @@ export function AccountPage() {
   const twoFactor = <TwoFactorSection portal={portal} />;
   const sessionList = <SessionsSection {...sessions} portal={portal} />;
   const content = {
-    perfil: <MyLinks portal={portal} />,
+    perfil: portal ? (
+      <MyLinks portal />
+    ) : (
+      <div className="space-y-4">
+        <ProfileTab />
+        <MyLinks portal={false} />
+      </div>
+    ),
     // D5: no portal, o arranjo do canvas PortalConta; na gestão, o do MinhaConta (duas colunas só em tela larga).
     seguranca: portal ? (
       <div className="flex flex-col gap-4">

@@ -54,6 +54,62 @@ paths:
           description: Sessão válida.
           content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/profile:
+    put:
+      summary: Altera o nome e o telefone da própria conta (RF-ACE-04).
+      description: |
+        Age só sobre a conta da sessão e exige vínculo de gestão ativo (portal ou sessão sem vínculo: 403). Os valores são da conta e
+        valem em todas as organizações; os cadastros de professor, responsável e aluno não mudam. `name` é obrigatório, de 1 a 120
+        caracteres sem os espaços das pontas. `phone` é um telefone brasileiro com DDD, guardado só com dígitos; vazio ou ausente apaga.
+        Valor inválido responde 422 com o campo (`name` ou `phone`) e nada muda. Mudança grava `account.profile_updated` na organização
+        do vínculo ativo, com o telefone só como "alterado"; sem mudança, não audita.
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AccountProfileRequest' } } }
+      responses:
+        '200':
+          description: Perfil salvo; devolve a sessão com os novos valores.
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: 'name ou phone inválido (UNPROCESSABLE, com `fields`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/profile/photo:
+    put:
+      summary: Envia ou troca a foto da própria conta (RF-ACE-04).
+      description: |
+        Campo `file` com PNG, JPEG ou WebP, exatamente 512 x 512 px e até 5 MB, conferido pelo conteúdo. A foto é da conta e vale em
+        todas as organizações. Exige vínculo de gestão ativo. Arquivo ausente ou inválido responde 422 (campo `file`) e a foto anterior
+        permanece. O arquivo antigo é apagado. Grava `account.photo_updated` na organização do vínculo ativo, sem nome de arquivo nem URL.
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Foto trocada; `account.photoUrl` traz a URL temporária.
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { description: 'Arquivo ausente, vazio, de outro tipo, corrompido, acima de 5 MB ou fora de 512 x 512 (UNPROCESSABLE, campo `file`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      summary: Remove a foto da própria conta (RF-ACE-04). Idempotente.
+      description: Exige vínculo de gestão ativo. Apaga o arquivo e grava `account.photo_removed`; sem foto, responde 200 sem auditar.
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        '200':
+          description: Foto removida (`account.photoUrl` nula).
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /auth/session/link:
     put:
       summary: Escolhe o vínculo ativo da sessão (RN-ACE-03).
@@ -3977,10 +4033,18 @@ components:
       required: [message]
       properties:
         message: { type: string }
+    AccountProfileRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        phone: { type: string, nullable: true, description: "Telefone brasileiro com DDD, com ou sem máscara; vazio apaga." }
     AccountView:
       type: object
       required: [id, email]
       properties:
+        phone: { type: string, nullable: true, description: "Telefone da conta, só dígitos com DDD; vazio se não informado." }
+        photoUrl: { type: string, nullable: true, description: "URL temporária assinada da foto da conta (RN-ORG-03); nula sem foto." }
         id: { type: string, format: uuid }
         email: { type: string }
         name: { type: string, nullable: true }

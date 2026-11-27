@@ -262,7 +262,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 758 | 755b · Retirar o campo de cor da API, do contrato, do MSW e do banco (fecha a #755 e a #626) | issue #758 (parte da #755) | Sprint 10.5 | #757 | agente | feito |
 | 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #748 | agente | feito |
 | 762 | 630a · Minha conta em quatro abas, com Meus vínculos | issue #762 (parte da #630) | Sprint 10.5 | #608 | agente | feito |
-| 763 | 630b · Minha conta › Perfil: nome, telefone e foto da conta | issue #763 (parte da #630) | Sprint 10.5 | #762 | agente | a fazer |
+| 763 | 630b · Minha conta › Perfil: nome, telefone e foto da conta | issue #763 (parte da #630) | Sprint 10.5 | #762 | agente | feito |
 | 764 | 630c · Trocar de aparelho, códigos de reserva e Baixar meus dados (fecha a #630) | issue #764 (parte da #630) | Sprint 10.5 | #763 | agente | a fazer |
 | 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade (item-mãe: dividido em #762 a #764, P18; fecha na #764; sem construção própria) | issue #630 | Sprint 10.5 | #608 | agente | dividido |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) | issue #636 | Sprint 10.5 | — | agente | a fazer |

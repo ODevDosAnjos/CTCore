@@ -1,6 +1,6 @@
 import { http, HttpResponse, type HttpResponseResolver } from "msw";
 import { isStrongPassword } from "@/features/auth/PasswordRules";
-import { isValidCpf, isValidCpfOrCnpj, onlyDigits } from "@/components/fields/masks";
+import { isValidCpf, isValidCpfOrCnpj, isValidPhone, normalizePhone, onlyDigits } from "@/components/fields/masks";
 import { nextHolidays, validateDay, type DayBody } from "./noClassDays";
 import { mockPermissions } from "./permissions";
 import { comEstadoForcado } from "./cenarios/estado";
@@ -95,7 +95,8 @@ const accounts: Record<string, ReturnType<typeof withTwoFactor>> = {
 };
 const VALID_CODES = ["123456", "RESERVA001"];
 const backupCodes = () => ({ backupCodes: Array.from({ length: 10 }, (_, i) => `RES${String(i + 1).padStart(2, "0")}A7K${String(i + 1).padStart(2, "0")}`) });
-let current: typeof session = session;
+// phone e photoUrl só existem depois que o Perfil grava; a mudança troca o objeto, sem alterar os iniciais.
+let current: typeof session & { account: { phone?: string | null; photoUrl?: string | null } } = session;
 
 const initialSessions = () => [
   { id: "00000000-0000-0000-0000-000000000031", device: "Chrome em Windows", city: null as string | null, createdAt: "2026-10-17T12:00:00Z", lastUsedAt: "2026-10-18T09:00:00Z", current: true },
@@ -417,6 +418,15 @@ const checkAgeRange = (body: AgeRangeInput, id: string | null): MockAgeRange | R
 };
 export const TRANSFER_TARGET = "admin@alfa.test";
 const unauthenticated = () => error(401, "UNAUTHENTICATED", "Sem sessão.");
+const profileAccess = () => {
+  if (!loggedIn) return unauthenticated();
+  return !activeRole() || isPortal() ? error(403, "FORBIDDEN", "Sem permissão.") : null;
+};
+const profileInvalid = (field: string, message: string) => error(422, "UNPROCESSABLE", "Não foi possível processar.", [{ field, message }]);
+const saveAccount = (changes: { name?: string; phone?: string | null; photoUrl?: string | null }) => {
+  current = { ...current, account: { ...current.account, ...changes } };
+  return HttpResponse.json(sessionView(current));
+};
 
 // Configurações da unidade (RF-ORG-04), em memória. Coordenador: qualquer unidade; Administrador: só a primeira (ADMIN_UNIT);
 // Professor e portal: 403. Unidade que não existe: 404.
@@ -2298,6 +2308,38 @@ export const routes: Route[] = [
     method: "get",
     path: "/auth/session",
     resolver: () => (loggedIn ? HttpResponse.json(sessionView(current)) : error(401, "UNAUTHENTICATED", "Sem sessão.")),
+  },
+  // Perfil da própria conta (RF-ACE-04): só com vínculo de gestão ativo.
+  {
+    method: "put",
+    path: "/auth/profile",
+    resolver: async ({ request }) => {
+      const denied = profileAccess();
+      if (denied) return denied;
+      const body = (await request.json()) as { name?: string | null; phone?: string | null };
+      const name = body.name?.trim() ?? "";
+      if (!name || [...name].length > 120) return profileInvalid("name", "de 1 a 120 caracteres");
+      const phone = body.phone?.trim() ?? "";
+      if (phone && !isValidPhone(phone)) return profileInvalid("phone", "telefone inválido");
+      return saveAccount({ name, phone: phone ? normalizePhone(phone) : null });
+    },
+  },
+  {
+    // O corpo multipart é lido como texto (como na foto do professor); o mock só guarda que existe uma foto.
+    method: "put",
+    path: "/auth/profile/photo",
+    resolver: async ({ request }) => {
+      const denied = profileAccess();
+      if (denied) return denied;
+      const raw = await request.text();
+      if (!raw.includes('name="file"') || raw.length > 5 * 1024 * 1024) return profileInvalid("file", "arquivo inválido");
+      return saveAccount({ photoUrl: MOCK_LOGO });
+    },
+  },
+  {
+    method: "delete",
+    path: "/auth/profile/photo",
+    resolver: () => profileAccess() ?? saveAccount({ photoUrl: null }),
   },
   {
     method: "put",

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api, ApiError, setSessionReplacedHandler } from "@/lib/api";
 
 export interface SessionView {
-  account: { id: string; email: string; name?: string | null; passwordChangedAt?: string | null };
+  account: { id: string; email: string; name?: string | null; passwordChangedAt?: string | null; phone?: string | null; photoUrl?: string | null };
   links: { id: string; organizationId: string; organizationName: string; role: string; unitIds: string[]; unitNames?: string[]; startsOn?: string | null; studentNames?: string[]; lastAccessAt?: string | null }[];
   activeLinkId?: string | null;
   twoFactor: { enabled: boolean; required: boolean; enabledAt?: string | null };
