@@ -105,6 +105,6 @@ public abstract class OrganizationBase extends PostgresIT {
     }
 
     protected String row(Tenant t) {
-        return adminJdbc().queryForList("select name, color, holder_document, logo_url from organization where id = ?", t.orgId()).toString();
+        return adminJdbc().queryForList("select name, holder_document, logo_url from organization where id = ?", t.orgId()).toString();
     }
 }

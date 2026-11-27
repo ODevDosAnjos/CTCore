@@ -14,7 +14,7 @@ export interface CardModality {
   belt: CardBelt | null;
 }
 export interface PortalCardData {
-  organization: { name: string; color: string | null; logoUrl: string | null };
+  organization: { name: string; logoUrl: string | null };
   student: { id: string; name: string; photoUrl: string | null };
   students: { id: string; name: string; self: boolean }[];
   status: "ACTIVE" | "INACTIVE";

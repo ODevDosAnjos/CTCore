@@ -19,7 +19,6 @@ export interface Coordinator {
 // Espelha OrganizationView do OpenAPI (docs/openapi.yaml). `logoUrl` é a URL temporária assinada.
 export interface OrganizationView {
   name: string;
-  color: string | null;
   holderDocument: string | null;
   logoUrl: string | null;
   version: number;

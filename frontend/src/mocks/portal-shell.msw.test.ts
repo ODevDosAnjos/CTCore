@@ -14,7 +14,7 @@ describe("moldura do portal x OpenAPI (#88)", () => {
     const schema = openapi.components.schemas.PortalShell;
     expect(schema.required).toEqual(["organization", "reduced", "unreadAnnouncements", "unit"]);
     expect(Object.keys(schema.properties.unit.properties)).toEqual(["name", "address", "whatsapp", "email"]);
-    expect(Object.keys(schema.properties.organization.properties)).toEqual(["name", "color", "logoUrl"]);
+    expect(Object.keys(schema.properties.organization.properties)).toEqual(["name", "logoUrl"]);
   });
 
   it("sem sessão 401; gestão 403", async () => {
@@ -32,6 +32,7 @@ describe("moldura do portal x OpenAPI (#88)", () => {
 
   it("conta reduzida: reduced verdadeiro e contador 0", async () => {
     await login("reduzido@exemplo.com");
+    expect(Object.keys((await (await send("GET", "/portal/shell")).json()).organization)).toEqual(["name", "logoUrl"]);
     expect(await (await send("GET", "/portal/shell")).json()).toMatchObject({ reduced: true, unreadAnnouncements: 0, unit: { name: "Unidade Centro", email: "contato@unidade.example" }, organization: { name: "Academia Alfa", logoUrl: null } });
     expect((await send("GET", "/portal/term")).status).toBe(200);
     expect(await (await send("GET", "/portal/term")).json()).toEqual([]);

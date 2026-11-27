@@ -57,6 +57,7 @@ class PortalCardIT extends PortalTermBase {
         assertThat(c.get("status").asText()).isEqualTo("ACTIVE");
         assertThat(c.get("student").get("name").asText()).isEqualTo("Aluno Um");
         assertThat(c.get("organization").get("name").asText()).isNotBlank();
+        assertThat(c.get("organization").has("color")).isFalse();
         assertThat(c.get("modalities")).hasSize(2);
         for (JsonNode m : c.get("modalities")) {
             assertThat(m.get("unit").get("id").asText()).isEqualTo(t.unitId().toString());

@@ -49,6 +49,31 @@ class MigrationIT extends PostgresIT {
     }
 
     @Test
+    @DisplayName("#758 CA4: a V59 tira a coluna color e a restrição, sem mudar o resto da linha")
+    void v59DropsOrganizationColor() {
+        jdbc.execute("drop schema if exists v59_check cascade");
+        var config = Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas("v59_check").createSchemas(true)
+                .locations("classpath:db/migration");
+        config.target("58").load().migrate();
+        UUID id = UUID.randomUUID();
+        jdbc.update("insert into v59_check.organization (id, name, color, holder_document, logo_url) "
+                + "values (?, 'Academia Fictícia', '#1a56db', '11222333000181', 'logo-ficticia.png')", id);
+        String before = jdbc.queryForObject("select (to_jsonb(o) - 'color')::text from v59_check.organization o where id = ?", String.class, id);
+
+        config.target("59").load().migrate();
+
+        assertThat(jdbc.queryForObject("select to_jsonb(o)::text from v59_check.organization o where id = ?", String.class, id))
+                .isEqualTo(before);
+        assertThat(jdbc.queryForList("select column_name from information_schema.columns "
+                + "where table_schema = 'v59_check' and table_name = 'organization'", String.class))
+                .contains("name", "holder_document", "logo_url").doesNotContain("color");
+        assertThat(jdbc.queryForList("select conname from pg_constraint where conrelid = 'v59_check.organization'::regclass", String.class))
+                .contains("organization_holder_format").doesNotContain("organization_color_format");
+    }
+
+    @Test
     @DisplayName("CA4: id uuid gerado pelo banco volta como UUID, diferente a cada linha")
     void uuidGeneratedByDatabase() {
         jdbc.execute("create table it_uuid (id uuid primary key default gen_random_uuid(), n int)");
