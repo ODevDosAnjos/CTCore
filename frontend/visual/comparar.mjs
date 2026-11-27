@@ -7,7 +7,8 @@ import { PNG } from "pngjs";
 const here = dirname(fileURLToPath(import.meta.url));
 
 // Limite padrão de diferença (fração de blocos) e limiar de cor (0 a 255, maior canal). Calibrados na #435 (ver specs/itens/435).
-export const LIMITE_PADRAO = 0.30;
+// Desde a #714 o limite é rede de erro grosseiro e de regressão: passar nele não prova fidelidade ao canvas.
+export const LIMITE_PADRAO = 0.15;
 export const LIMIAR_COR = 40;
 export const BLOCO = 32;
 
@@ -52,4 +53,4 @@ export function diferenca(bufA, bufB, { bloco = BLOCO, limiar = LIMIAR_COR, nome
   return total ? difere / total : 0;
 }
 
-export const limiteDoCaso = (c) => c.limiteCanvas?.valor ?? LIMITE_PADRAO;
+export const limiteDoCaso = (c, largura) => c.limiteCanvas?.[largura] ?? LIMITE_PADRAO;

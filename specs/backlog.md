@@ -249,7 +249,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (item-mãe: dividido em #732 e #733; fecha na #733; sem construção própria) | issue #721 (parte da #646) | Sprint 10.5 | #733 | agente | dividido |
 | 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna (item-mãe: dividido em #717 a #721; fecha na #721; sem construção própria) | issue #646 | Sprint 10.5 | #721 | agente | dividido |
 | 564 | Teste visual instável: dia-sem-aula-novo reprova em HEAD limpo e passa em outras execuções | issue #564 | Manutenção · Dívida técnica | — | agente | feito |
-| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | a fazer |
+| 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | feito |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
 | 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #625 | agente | a fazer |
@@ -341,6 +341,9 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 622 | Financeiro do portal: janela Pix na chave e tabelas iguais ao canvas, sem limiteCanvas | issue #622 | Atualizações · Polimento | — | agente | a fazer |
 | 642 | Identidade visual Portal: fundo dos casos de janela (Trocar e-mail e Revogar uso de imagem) igual ao canvas, sem limiteCanvas | issue #642 | Atualizações · Polimento | — | agente | a fazer |
 | 674 | Pedidos do portal no celular: janelas de pedido como gaveta de baixo iguais ao canvas, sem limiteCanvas | issue #674 | Atualizações · Polimento | — | agente | a fazer |
+| 739 | Ficha do aluno e janelas da ficha iguais ao canvas, sem limiteCanvas | issue #739 | Atualizações · Polimento | — | agente | a fazer |
+| 740 | Sem acesso no celular: igual ao canvas SemAcessoM, sem limiteCanvas | issue #740 | Atualizações · Polimento | — | agente | a fazer |
+| 741 | Carteirinha do portal no celular: igual ao canvas, sem limiteCanvas | issue #741 | Atualizações · Polimento | — | agente | a fazer |
 | 735 | RNF-45 · Seletor de destino do comunicado no celular repete "Unidade · Unidade …" | issue #735 | Atualizações · Polimento | — | agente | a fazer |
 | 172 | RF-AJU-01 · Central de ajuda | issue #172 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 173 | RF-AJU-02 · Ícones "?" de ajuda nas telas | issue #173 | Atualizações · Funcionalidades | — | agente | a fazer |
@@ -428,7 +431,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 26/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|

@@ -34,13 +34,13 @@ const img = async (from, to, alt) => {
 const resultado = [];
 let rows = "";
 for (const c of ligados) {
-  const limite = limiteDoCaso(c);
   const variantes = [
     [1440, "claro", c.canvas],
     ...(c.canvasEscuro ? [[1440, "escuro", c.canvasEscuro]] : []),
     ...(c.canvasCelular ? [[390, "claro", c.canvasCelular]] : []),
   ];
   for (const [largura, tema, tela] of variantes) {
+    const limite = limiteDoCaso(c, largura);
     const refSis = join(refs, `${c.nome}-${largura}-${tema}.png`);
     const refCan = join(prints, `${tela}.png`);
     let dif = null;
