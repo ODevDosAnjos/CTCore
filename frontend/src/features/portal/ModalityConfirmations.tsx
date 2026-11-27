@@ -65,7 +65,6 @@ export function ModalityConfirmations() {
       open
       onOpenChange={(o) => !o && setDismissed(true)}
       title={t("portalConfirm.title")}
-      subtitle={t("portalConfirm.subtitle")}
       size="sm"
       scrim="canvas"
       className="max-sm:bottom-0 max-sm:left-0 max-sm:top-auto max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none"

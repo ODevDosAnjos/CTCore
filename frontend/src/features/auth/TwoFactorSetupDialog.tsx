@@ -127,7 +127,7 @@ export function TwoFactorSetupDialog({ open, onClose, onEnabled, required = fals
   }
 
   return (
-    <Modal open={open} onOpenChange={(o) => !o && !inCodes && onClose()} title={t("twoFactor.setup.title")} subtitle={t("twoFactor.setup.subtitle")} size="md" scrim="canvas" dismissible={!inCodes} footer={footer}>
+    <Modal open={open} onOpenChange={(o) => !o && !inCodes && onClose()} title={t("twoFactor.setup.title")} size="md" scrim="canvas" dismissible={!inCodes} footer={footer}>
       <div className="space-y-4">
         <WindowSteps steps={steps} current={inCodes ? 3 : code ? 2 : 1} />
         {body}

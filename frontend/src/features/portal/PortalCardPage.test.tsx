@@ -143,7 +143,7 @@ describe("PortalCardPage (RF-POR-03)", () => {
     await screen.findByRole("article");
     expect(screen.getByText("Minhas informações", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByText(/Mostre na recepção quando pedirem. Não tem QR code/)).toBeInTheDocument();
-    expect(screen.getByText(/No app instalado, a carteirinha abre mesmo sem internet/)).toBeInTheDocument();
+    expect(screen.queryByText(/No app instalado, a carteirinha abre mesmo sem internet/)).not.toBeInTheDocument();
     const download = screen.getByRole("button", { name: "Baixar imagem" });
     expect(download).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText("Em breve")).toBeInTheDocument();
@@ -178,9 +178,9 @@ describe("PortalCardPage (RF-POR-03)", () => {
     const { unmount } = setup();
     expect(await screen.findByRole("heading", { name: "Carteirinhas" })).toBeInTheDocument();
     expect(screen.getByText("Responsável", { selector: "p" })).toBeInTheDocument();
-    expect(screen.getByText(/Você vê a carteirinha de cada filho/)).toBeInTheDocument();
     await screen.findByRole("article", { name: "Carteirinha de Ana Souza" });
     await screen.findByRole("article", { name: "Carteirinha de Beto Souza" });
+    expect(screen.queryByText(/Você vê a carteirinha de cada filho/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Baixar imagem" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Beto Souza" }));
     await waitFor(() => expect(screen.queryByRole("article", { name: "Carteirinha de Ana Souza" })).not.toBeInTheDocument());

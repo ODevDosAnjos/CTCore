@@ -3,13 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { App } from "@/App";
+import i18n from "@/i18n";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { requestDeadline } from "./RequestSummary";
+import { requestDeadline, requestDetail, requestSummary } from "./RequestSummary";
 import type { PortalRequest } from "./types";
 
 const session = (role: string): SessionView => ({
@@ -116,9 +117,16 @@ describe("PortalRequestsPage (RF-MAT-04)", () => {
     expect(within(closure).getByText("faltam 6 dias")).toBeInTheDocument();
     expect(within(closure).queryByRole("button", { name: /^Aprovar/ })).toBeNull();
     expect(within(closure).getByRole("link", { name: "Ver ficha de Aluno Menor Fictício" })).toHaveAttribute("href", "/alunos/s2");
-    expect(screen.getByText("Pedidos sem resposta expiram em 30 dias e o aluno é avisado. Ao recusar, você escreve a mensagem que o aluno vai ver.")).toBeInTheDocument();
+    expect(screen.queryByText("Pedidos sem resposta expiram em 30 dias e o aluno é avisado. Ao recusar, você escreve a mensagem que o aluno vai ver.")).toBeNull();
     expect(calls.at(-1)!.get("status")).toBeNull();
     expect(screen.queryByLabelText("Situação")).toBeNull();
+  });
+
+  it("CA8: aniversário e pedido de nova modalidade não repetem \"Unidade\" no nome da unidade", () => {
+    const r = request({ kind: "NEW_MODALITY", targetUnit: "Unidade Norte" });
+    for (const text of [requestSummary(i18n.t, r), requestDetail(i18n.t, r)]) expect(text).toBe("Judô na unidade Norte");
+    for (const key of ["birthdays.messageStudent", "birthdays.messageGuardian"]) expect(i18n.t(key, { unit: "Unidade Norte", name: "Ana", contact: "Bia" })).toContain("A equipe da unidade Norte ");
+    expect(i18n.t("announcements.targetList.UNIT", { name: "Unidade Norte" })).toBe("Unidade · Norte");
   });
 
   it("CA4: prazo no último dia vira expira hoje, no encerramento e nos demais", () => {

@@ -108,10 +108,10 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     expect(screen.getByText("Da academia")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Avisos" })).toBeInTheDocument();
     expect(screen.getByText("Marcar lidos")).toBeInTheDocument();
-    expect(screen.getByText('Abrir um aviso marca como lido. "Marcar todos como lidos" limpa a lista.')).toBeInTheDocument();
+    expect(screen.queryByText('Abrir um aviso marca como lido. "Marcar todos como lidos" limpa a lista.')).not.toBeInTheDocument();
   });
 
-  it("aviso aberto (CA5, CA8): clicar abre a página própria com tipo, apoio, data e hora, autor, texto puro e nota; grava a leitura; Voltar mantém o filtro", async () => {
+  it("aviso aberto (CA5, CA8): clicar abre a página própria com tipo, apoio, data e hora, autor e texto puro, sem nota; grava a leitura; Voltar mantém o filtro", async () => {
     let opens = 0;
     let reads = 0;
     let shells = 0;
@@ -146,7 +146,7 @@ describe("PortalAnnouncementsPage (RF-POR-06)", () => {
     expect(screen.getByText("BT")).toBeInTheDocument();
     expect(screen.getByText(/Linha um/)).toHaveTextContent("Linha <i>dois</i>");
     expect(screen.getByRole("img", { name: "Imagem do aviso" })).toHaveAttribute("src", "https://files.example/aviso.png");
-    expect(screen.getByText("Ao abrir, o aviso conta como lido para a academia.")).toBeInTheDocument();
+    expect(screen.queryByText("Ao abrir, o aviso conta como lido para a academia.")).not.toBeInTheDocument();
     await waitFor(() => expect(reads).toBe(2));
     await waitFor(() => expect(shells).toBeGreaterThan(0));
     expect(opens).toBe(1);

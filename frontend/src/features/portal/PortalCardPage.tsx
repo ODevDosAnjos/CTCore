@@ -57,7 +57,6 @@ export function PortalCardPage() {
       <PortalHeading
         label={t(family ? "portalCard.familyLabel" : "portalCard.label")}
         title={t(family ? "portalCard.familyTitle" : "portalCard.title")}
-        subtitle={family ? t("portalCard.familyText") : undefined}
         className="mb-4"
       />
       {family && (
@@ -92,7 +91,6 @@ export function PortalCardPage() {
           <PortalMemberCard data={data} />
           <div className="flex flex-col items-start gap-4">
             <p className="max-w-sm">{offline ? t("portalCard.offlineText") : t(narrow ? "portalCard.receptionMobile" : "portalCard.reception")}</p>
-            {!narrow && !offline && <p className="max-w-sm text-sm text-muted-foreground">{t("portalCard.installedNote")}</p>}
             <div className="flex items-center gap-2">
               <ComingSoon variant="button" label={t("portalCard.download")} />
               {!narrow && back}

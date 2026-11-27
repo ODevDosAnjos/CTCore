@@ -61,7 +61,6 @@ export function TwoFactorSection({ portal = false }: { portal?: boolean }) {
             </Button>
           )}
         </div>
-        {!portal && <p className="text-sm text-muted-foreground">{t("account.twoFactor.note")}</p>}
       </div>
       {dialog === "setup" && (
         <TwoFactorSetupDialog

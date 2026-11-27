@@ -20,7 +20,7 @@ describe("ModalityConfirmations (RN-MAT-13, CA9)", () => {
     );
     render(<ModalityConfirmations />);
     const dialog = await screen.findByRole("dialog", { name: "Nova modalidade" });
-    expect(within(dialog).getByText("Não bloqueia o portal e não tem prazo.")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Não bloqueia o portal e não tem prazo.")).not.toBeInTheDocument();
     expect(within(dialog).getByRole("columnheader", { name: "Mensalidade" })).toBeInTheDocument();
     expect(within(dialog).getByText("Judô Mensal")).toBeInTheDocument();
     expect(await axeViolations(dialog)).toEqual([]);

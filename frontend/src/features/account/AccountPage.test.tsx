@@ -55,14 +55,14 @@ const DUAS = "/conta?aba=duas-etapas";
 const SESSOES = "/conta?aba=sessoes";
 
 describe("AccountPage: abas (CA1, CA2)", () => {
-  it("o Administrador vê quatro abas com Acesso ativa e o subtítulo; clicar muda a aba e a URL", async () => {
+  it("o Administrador vê quatro abas com Acesso ativa e sem subtítulo; clicar muda a aba e a URL", async () => {
     const user = userEvent.setup();
     await setup("ADMINISTRATOR");
     await ready();
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual(["Acesso", "Duas etapas", "Sessões", "Notificações"]);
     expect(screen.getByRole("tab", { name: "Acesso", selected: true })).toBeInTheDocument();
-    expect(screen.getByText("X · Administrador da Centro")).toBeInTheDocument();
+    expect(screen.queryByText("X · Administrador da Centro")).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Notificações" }));
     expect(screen.getByTestId("where")).toHaveTextContent("/conta?aba=notificacoes");
     expect(await screen.findByText("Sino da gestão")).toBeInTheDocument();
@@ -92,7 +92,8 @@ describe("AccountPage: abas (CA1, CA2)", () => {
     expect(screen.getByRole("link", { name: "Voltar" })).toHaveAttribute("href", "/portal/minhas-informacoes");
     for (const name of ["Acesso", "Verificação em duas etapas", "Sessões ativas", "Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     expect(screen.getByText("Opcional para alunos")).toBeInTheDocument();
-    expect(await screen.findByText("No portal, a sessão dura 30 dias.")).toBeInTheDocument();
+    expect(await screen.findByText("Este aparelho")).toBeInTheDocument();
+    expect(screen.queryByText("No portal, a sessão dura 30 dias.")).not.toBeInTheDocument();
     for (const name of ["Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("button", { name })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getAllByText("Em breve").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();
@@ -105,7 +106,7 @@ describe("AccountPage: cartão Acesso (CA3)", () => {
     await ready();
     expect(screen.getByText("x@x.com")).toBeInTheDocument();
     expect(screen.getByText("alterada em 12/08/2026")).toBeInTheDocument();
-    expect(screen.getByText(/O novo e-mail só vale depois de confirmado pelo link \(24 horas\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/O novo e-mail só vale depois de confirmado pelo link \(24 horas\)/)).not.toBeInTheDocument();
     first.unmount();
     await setup("COORDINATOR", { enabled: false, required: false }, "/conta", [], null);
     await ready();
@@ -281,7 +282,7 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
     await ready();
     expect(screen.getByText("Ativa")).toBeInTheDocument();
     expect(screen.getByText("app autenticador · ativada em 12/08/2026")).toBeInTheDocument();
-    expect(screen.getByText("Opcional para Administradores. Obrigatória para o Coordenador.")).toBeInTheDocument();
+    expect(screen.queryByText("Opcional para Administradores. Obrigatória para o Coordenador.")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Desligar" })).not.toBeInTheDocument();
     server.use(http.post("/api/v1/auth/two-factor/backup-codes", () => HttpResponse.json({ backupCodes: Array.from({ length: 10 }, (_, i) => `ABCDE0000${i}`) })));
     await user.click(screen.getByRole("button", { name: "Ver códigos de reserva novos" }));
@@ -302,6 +303,7 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
 
     await user.click(screen.getByRole("button", { name: "Ativar duas etapas" }));
     await user.type(await screen.findByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    expect(screen.queryByText("Obrigatória para o Coordenador · configurada no primeiro acesso")).not.toBeInTheDocument();
     setSession(session("ADMINISTRATOR", { enabled: true, required: false, enabledAt: "2026-11-18T15:00:00Z" }));
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(within(await screen.findByRole("list", { name: "Seus códigos de reserva" })).getAllByRole("listitem")).toHaveLength(10);
@@ -356,7 +358,7 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Aparelho", "Local", "Último uso", "Ações"]);
     expect(screen.getAllByText("Este aparelho")).toHaveLength(1);
-    expect(screen.getByText("Sessões da gestão duram 12 horas; do portal, 30 dias.")).toBeInTheDocument();
+    expect(screen.queryByText("Sessões da gestão duram 12 horas; do portal, 30 dias.")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Encerrar a sessão em/ })).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "Encerrar a sessão em Safari em iOS" }));
     await waitFor(() => expect(screen.queryByText("Safari em iOS")).not.toBeInTheDocument());

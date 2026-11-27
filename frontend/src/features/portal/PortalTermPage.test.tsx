@@ -81,7 +81,7 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
     await heading();
     expect(screen.getByText("Antes de começar")).toBeInTheDocument();
     expect(screen.getByTestId("term-bar")).toHaveClass("md:hidden"); // barra só no celular (R1)
-    expect(screen.getByText("Leia e aceite o termo de matrícula da Alfa para liberar o portal. Você aceita uma vez.")).toBeInTheDocument();
+    expect(screen.getByText("Leia e aceite o termo de matrícula da Alfa para liberar o portal.")).toBeInTheDocument();
     const region = await screen.findByRole("region", { name: "Termo de matrícula · versão 1" });
     expect(region).toHaveAttribute("tabindex", "0");
     expect(screen.getByText("Versão 1")).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
 
   it("responsável com um aluno recebe a abertura personalizada", async () => {
     setup({ role: "GUARDIAN", name: "Juliana Souza", initial: [{ ...pending, name: "Theo" }] });
-    expect(await screen.findByText("Olá, Juliana! Para liberar o portal de Theo, leia e aceite o termo de matrícula da Alfa. Você aceita uma vez, por Theo.")).toBeInTheDocument();
+    expect(await screen.findByText("Olá, Juliana! Para liberar o portal de Theo, leia e aceite o termo de matrícula da Alfa.")).toBeInTheDocument();
   });
 
   it("Sair encerra a sessão e leva ao login", async () => {

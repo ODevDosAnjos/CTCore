@@ -149,7 +149,6 @@ export function SessionsSection({
             </table>
           )}
           {others.length === 0 && <p className="mt-2 text-sm text-muted-foreground">{t("account.sessions.empty")}</p>}
-          <p className="mt-3 text-sm text-muted-foreground">{t(portal ? "account.sessions.notePortal" : "account.sessions.note")}</p>
           {rows && others.length > 0 && (
             <Button variant="danger" className="mt-3 w-full" onClick={() => setConfirmAll(true)}>
               {t("account.sessions.endAll")}
