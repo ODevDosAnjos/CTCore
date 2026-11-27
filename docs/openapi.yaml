@@ -444,8 +444,8 @@ paths:
     patch:
       summary: Altera nome, titular e regras (RF-ORG-01). Só o Coordenador.
       description: |
-        Nome e titular são enviados juntos e `rules` é opcional (mudança de regra grava antes e depois na auditoria); `holderDocument` vazio ou nulo volta ao padrão. CPF/CNPJ inválido ou nome fora de 1 a 120 caracteres respondem 400 VALIDATION_ERROR com o campo
-        apontado e nada é salvo. Grava `organization.update` na auditoria quando algum valor muda.
+        Nome, nome e documento do titular são enviados juntos e `rules` é opcional (mudança de regra grava antes e depois na auditoria); `holderName` (aparado, até 160 caracteres) e `holderDocument` são independentes e, vazios, nulos ou omitidos, apagam o valor (RN-MAT-21). CPF/CNPJ inválido, `holderName` acima de 160 ou nome fora de 1 a 120 caracteres respondem 400 VALIDATION_ERROR com o campo
+        apontado e nada é salvo. Grava `organization.update` na auditoria quando algum valor muda, com antes e depois (o documento do titular mascarado).
         Exige `If-Match` com o `version` lido (RNF-15): versão diferente da atual responde 409 `EDIT_CONFLICT` e nada é gravado; cabeçalho
         ausente ou não numérico responde 428 `PRECONDITION_REQUIRED`. A permissão é conferida antes da versão. A versão só sobe quando algum
         valor muda.
@@ -663,6 +663,7 @@ paths:
       description: |
         Substituição completa: campo opcional omitido apaga o valor (a tela sempre envia tudo). `organizationId`, `shortName` e
         `paymentAccount` enviados são ignorados. `name` obrigatório (até 120). `cnpj` com dígito verificador, guardado só com dígitos.
+        `legalName` (razão social, RN-MAT-21) é aparada, tem até 160 caracteres e não exige CNPJ; vazia, nula ou omitida apaga.
         `latitude` e `longitude` vêm juntas; com CEP novo e sem coordenadas a porta de localização as obtém (RN-ORG-14).
         `dueDays`: de 1 a 28, sem repetição, ao menos um (guardados em ordem crescente). Taxa de matrícula desligada grava 0.
         Taxas por meio: centavos de 0 a 100000. `pixKey`: CPF, CNPJ, e-mail, telefone (+55) ou UUID; em branco apaga.
@@ -4400,12 +4401,13 @@ components:
         traceId: { type: string }
     OrganizationView:
       type: object
-      required: [name, holderDocument, logoUrl, version, lastChange, rules, coordinator]
+      required: [name, holderDocument, holderName, logoUrl, version, lastChange, rules, coordinator]
       properties:
         version: { type: integer, minimum: 0, description: 'Versão para o If-Match da próxima gravação (RNF-15).' }
         lastChange: { $ref: '#/components/schemas/LastChange' }
         name: { type: string, minLength: 1, maxLength: 120 }
         holderDocument: { type: string, nullable: true, pattern: '^([0-9]{11}|[0-9]{14})$', description: 'CPF ou CNPJ do titular, só dígitos.' }
+        holderName: { type: string, nullable: true, maxLength: 160, description: 'Razão social ou nome do titular (RN-MAT-21).' }
         logoUrl: { type: string, nullable: true, description: 'URL temporária assinada da logo (512 x 512); nula sem logo.' }
         rules: { $ref: '#/components/schemas/OrganizationRules' }
         coordinator: { $ref: '#/components/schemas/Coordinator' }
@@ -4447,6 +4449,7 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
         holderDocument: { type: string, nullable: true, description: 'CPF ou CNPJ, com ou sem máscara; vazio ou nulo limpa.' }
+        holderName: { type: string, nullable: true, maxLength: 160, description: 'Razão social ou nome do titular, aparado; vazio, nulo ou omitido limpa.' }
         rules: { allOf: [{ $ref: '#/components/schemas/OrganizationRules' }], description: 'Opcional; omitido, as regras ficam como estão. Valor fora da faixa responde 400 com o campo `rules.<campo>`.' }
     UnitDeactivationCheck:
       type: object
@@ -5694,7 +5697,7 @@ components:
         trialLimit: { type: integer, minimum: 1, maximum: 3, description: Limite de aulas experimentais por pessoa nesta unidade (RN-AEX-02). }
     UnitDetail:
       type: object
-      required: [id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, active, timezone, settings, version, lastChange]
+      required: [id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, legalName, active, timezone, settings, version, lastChange]
       properties:
         version: { type: integer, minimum: 0, description: 'Versão para o If-Match da próxima gravação (RNF-15).' }
         lastChange: { $ref: '#/components/schemas/LastChange' }
@@ -5710,6 +5713,7 @@ components:
         email: { type: string, nullable: true }
         whatsapp: { type: string, nullable: true }
         cnpj: { type: string, nullable: true, description: 14 dígitos. }
+        legalName: { type: string, nullable: true, maxLength: 160, description: 'Razão social da unidade (RN-MAT-21).' }
         active: { type: boolean }
         timezone: { type: string, description: "Fuso horário IANA da unidade, somente leitura (o PUT o ignora).", example: America/Sao_Paulo }
         settings: { $ref: '#/components/schemas/UnitSettingsView' }
@@ -5745,6 +5749,7 @@ components:
         email: { type: string, nullable: true, format: email, maxLength: 254 }
         whatsapp: { type: string, nullable: true }
         cnpj: { type: string, nullable: true }
+        legalName: { type: string, nullable: true, maxLength: 160, description: 'Razão social, aparada; vazia, nula ou omitida apaga.' }
         settings: { $ref: '#/components/schemas/UnitUpdateSettings' }
     UnitShortNameRequest:
       type: object

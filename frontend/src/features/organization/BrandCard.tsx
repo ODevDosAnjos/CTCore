@@ -21,6 +21,9 @@ export function BrandCard({
   name,
   onName,
   nameError,
+  holderName,
+  onHolderName,
+  holderNameError,
   holder,
   onHolder,
   onHolderBlur,
@@ -34,6 +37,9 @@ export function BrandCard({
   name: string;
   onName: (value: string) => void;
   nameError?: string;
+  holderName: string;
+  onHolderName: (value: string) => void;
+  holderNameError?: string;
   holder: string;
   onHolder: (value: string) => void;
   onHolderBlur: () => void;
@@ -66,7 +72,10 @@ export function BrandCard({
           <Field label={t("organization.name")} required error={nameError}>
             {(c) => <Input {...c} ref={nameRef} value={name} disabled={!canEdit} maxLength={120} onChange={(e) => onName(e.target.value)} />}
           </Field>
-          <Field label={t("organization.holder")} error={holderError}>
+          <Field label={t("organization.holder")} error={holderNameError}>
+            {(c) => <Input {...c} autoComplete="off" value={holderName} disabled={!canEdit} maxLength={160} onChange={(e) => onHolderName(e.target.value)} />}
+          </Field>
+          <Field label={t("organization.holderDocument")} error={holderError}>
             {(c) => (
               <Input {...c} inputMode="numeric" autoComplete="off" value={holder} disabled={!canEdit} onChange={(e) => onHolder(e.target.value)} onBlur={onHolderBlur} />
             )}

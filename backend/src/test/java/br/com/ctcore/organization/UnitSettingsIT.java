@@ -39,7 +39,7 @@ class UnitSettingsIT extends UnitBase {
         var a = tenant();
         var unit = get(a, a.unitId(), coordinator(a));
         assertThat(fieldNames(unit)).containsExactlyInAnyOrder("id", "name", "shortName", "postalCode", "address", "city", "latitude", "longitude",
-                "phone", "email", "whatsapp", "cnpj", "active", "timezone", "settings", "version", "lastChange");
+                "phone", "email", "whatsapp", "cnpj", "legalName", "active", "timezone", "settings", "version", "lastChange");
         var s = unit.path("settings");
         assertThat(fieldNames(s)).containsExactlyInAnyOrder("dueDays", "enrollmentFeeEnabled", "enrollmentFeeCents", "feesCents", "pixKey",
                 "paymentAccount", "reminderDays", "teacherPermissions", "directoryEnabled", "trialLinkEnabled", "selfRegistrationLinkEnabled", "remindersEnabled", "remindersHour", "trialLimit");
@@ -314,6 +314,65 @@ class UnitSettingsIT extends UnitBase {
     private static void migrateTrialSchema(String target) {
         Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()).schemas("trial_backfill")
                 .createSchemas(true).locations("classpath:db/migration").target(target).load().migrate();
+    }
+
+    @Test
+    @DisplayName("RN-MAT-21: razão social grava aparada, é relida e audita antes e depois; vazio, espaços, nulo e omitido apagam; igual não audita")
+    void legalName() throws Exception {
+        var a = tenant();
+        assertThat(get(a, a.unitId(), coordinator(a)).path("legalName").isNull()).isTrue();
+        assertThat(call(put(a.unitId(), payload()), coordinator(a)).getResponse().getStatus()).isEqualTo(200); // baseline: o nome muda
+        for (Consumer<ObjectNode> erase : List.<Consumer<ObjectNode>>of(n -> n.put("legalName", ""), n -> n.put("legalName", "   "),
+                n -> n.putNull("legalName"), n -> n.remove("legalName"))) {
+            var saved = call(put(a.unitId(), payload().put("legalName", "  Dojo Ltda.  ")), coordinator(a)).getResponse();
+            assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(200);
+            assertThat(body(saved).path("legalName").asText()).isEqualTo("Dojo Ltda.");
+            assertThat(get(a, a.unitId(), coordinator(a)).path("legalName").asText()).isEqualTo("Dojo Ltda.");
+            assertThat(lastLegalName(a)).isEqualTo("null>Dojo Ltda.");
+            ObjectNode gone = payload();
+            erase.accept(gone);
+            assertThat(call(put(a.unitId(), gone), coordinator(a)).getResponse().getStatus()).isEqualTo(200);
+            assertThat(get(a, a.unitId(), coordinator(a)).path("legalName").isNull()).isTrue();
+            assertThat(lastLegalName(a)).isEqualTo("Dojo Ltda.>null");
+        }
+        var long160 = payload().put("legalName", "x".repeat(160));
+        assertThat(call(put(a.unitId(), long160), coordinator(a)).getResponse().getStatus()).isEqualTo(200);
+        int audits = audit(a, "unit.update").size();
+        assertThat(call(put(a.unitId(), long160), coordinator(a)).getResponse().getStatus()).isEqualTo(200);
+        assertThat(audit(a, "unit.update")).hasSize(audits);
+        String before = unitSnapshot(a);
+        var refused = call(put(a.unitId(), payload().put("legalName", "x".repeat(161))), coordinator(a)).getResponse();
+        assertThat(refused.getStatus()).isEqualTo(400);
+        assertThat(refused.getContentAsString()).contains("VALIDATION_ERROR").contains("\"field\":\"legalName\"");
+        assertThat(unitSnapshot(a)).isEqualTo(before);
+        assertThat(audit(a, "unit.update")).hasSize(audits);
+        for (String bad : new String[] {"", "x".repeat(161)}) {
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> adminJdbc().update("update unit set legal_name = ? where id = ?", bad, a.unitId()));
+        }
+    }
+
+    // Antes e depois da razão social no último unit.update, como "antes>depois".
+    private String lastLegalName(Tenant t) {
+        return adminJdbc().queryForObject("select coalesce(before_data->>'legalName', 'null') || '>' || coalesce(after_data->>'legalName', 'null') "
+                + "from audit_log where organization_id = ? and action = 'unit.update' order by occurred_at desc limit 1", String.class, t.orgId());
+    }
+
+    @Test
+    @DisplayName("RN-MAT-21 / RNF-26: Professor, portal, Administrador de outra unidade (403) e outra organização (404) não gravam razão social")
+    void legalNameRefused() throws Exception {
+        var a = tenant();
+        var b = tenant();
+        String before = unitSnapshot(a);
+        var body = payload().put("legalName", "Invasora Ltda.");
+        var otherAdmin = new AccountPrincipal(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), a.orgId(), Role.ADMINISTRATOR,
+                Set.of(UUID.randomUUID()));
+        for (var who : List.of(who(a, Role.TEACHER), who(a, Role.STUDENT), otherAdmin)) {
+            assertThat(call(put(a.unitId(), body), who).getResponse().getStatus()).as(who.role().name()).isEqualTo(403);
+        }
+        assertThat(call(put(a.unitId(), body), coordinator(b)).getResponse().getStatus()).isEqualTo(404);
+        assertThat(unitSnapshot(a)).isEqualTo(before);
+        assertThat(audit(a, "unit.update")).isEmpty();
     }
 
     @Test

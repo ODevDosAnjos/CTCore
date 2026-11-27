@@ -27,11 +27,26 @@ class UnitUpdateValidationTest {
     }
 
     private static UnitUpdate valid(UnaryOperator<Settings> change) {
-        return new UnitUpdate("Unidade", null, null, null, null, null, null, null, null, null, change.apply(settings()));
+        return new UnitUpdate("Unidade", null, null, null, null, null, null, null, null, null, null, change.apply(settings()));
     }
 
     private static UnitUpdate data(String name, String cep, Double lat, Double lon, String phone, String email, String cnpj) {
-        return new UnitUpdate(name, cep, null, null, lat, lon, phone, email, null, cnpj, settings());
+        return new UnitUpdate(name, cep, null, null, lat, lon, phone, email, null, cnpj, null, settings());
+    }
+
+    private static UnitUpdate legal(String legalName) {
+        return new UnitUpdate("A", null, null, null, null, null, null, null, null, null, legalName, settings());
+    }
+
+    @Test
+    @DisplayName("RN-MAT-21: razão social é aparada; vazia, só espaços ou ausente vira nulo; 160 passa e 161 aponta legalName")
+    void legalName() {
+        assertThat(legal("  Dojo Ltda.  ").validated().legalName()).isEqualTo("Dojo Ltda.");
+        for (String blank : new String[] {"", "   ", null}) {
+            assertThat(legal(blank).validated().legalName()).isNull();
+        }
+        assertThat(legal("x".repeat(160)).validated().legalName()).hasSize(160);
+        refuses(legal("x".repeat(161)), "legalName");
     }
 
     private static void refuses(UnitUpdate update, String field) {
@@ -57,7 +72,7 @@ class UnitUpdateValidationTest {
         refuses(data("A", null, 1.0, null, null, null, null), "longitude");
         refuses(data("A", null, 91.0, 0.0, null, null, null), "latitude");
         assertThat(data("A", null, null, null, null, null, "11.222.333/0001-81").validated().cnpj()).isEqualTo("11222333000181");
-        refuses(new UnitUpdate("A", null, null, null, null, null, null, null, null, null, null), "settings");
+        refuses(new UnitUpdate("A", null, null, null, null, null, null, null, null, null, null, null), "settings");
     }
 
     @Test

@@ -21,7 +21,7 @@ const session = (role: string): SessionView => ({
 });
 const rules: OrganizationView["rules"] = { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" };
 const coordinator = { name: "Marcos Leão", email: "marcos@academialeao.example", twoFactorEnabled: true };
-const empty: OrganizationView = { name: "Academia Alfa", holderDocument: null, logoUrl: null, version: 0, lastChange: null, rules, coordinator };
+const empty: OrganizationView = { name: "Academia Alfa", holderDocument: null, holderName: null, logoUrl: null, version: 0, lastChange: null, rules, coordinator };
 const full: OrganizationView = { ...empty, holderDocument: "11222333000181", logoUrl: "data:image/png;base64,AAAA" };
 
 let writes: { method: string; body?: unknown }[];
@@ -83,15 +83,16 @@ describe("OrganizationSettingsPage", () => {
     expect(screen.queryByLabelText("Cor principal")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Usar a cor/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Prévia no portal|Contraste/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("11.222.333/0001-81");
+    expect(screen.getByLabelText("CNPJ ou CPF do titular")).toHaveValue("11.222.333/0001-81");
+    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), " Leão Ltda. ");
     await user.clear(screen.getByLabelText(/^Nome da organização/));
     await user.type(screen.getByLabelText(/^Nome da organização/), "Dojo Novo");
-    await user.clear(screen.getByLabelText("Titular (razão social ou nome)"));
-    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "52998224725");
-    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("529.982.247-25");
+    await user.clear(screen.getByLabelText("CNPJ ou CPF do titular"));
+    await user.type(screen.getByLabelText("CNPJ ou CPF do titular"), "52998224725");
+    expect(screen.getByLabelText("CNPJ ou CPF do titular")).toHaveValue("529.982.247-25");
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
-    expect(writes).toEqual([{ method: "PATCH", body: { name: "Dojo Novo", holderDocument: "52998224725", rules } }]);
+    expect(writes).toEqual([{ method: "PATCH", body: { name: "Dojo Novo", holderName: "Leão Ltda.", holderDocument: "52998224725", rules } }]);
     expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Dojo Novo");
   });
 
@@ -114,7 +115,7 @@ describe("OrganizationSettingsPage", () => {
     expect(screen.getByText("Informe o nome da organização.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
     await user.type(screen.getByLabelText(/^Nome da organização/), "Dojo");
-    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "52998224726");
+    await user.type(screen.getByLabelText("CNPJ ou CPF do titular"), "52998224726");
     await user.tab();
     expect(screen.getByText(/o CPF ou CNPJ digitado não é válido/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
@@ -188,7 +189,7 @@ describe("OrganizationSettingsPage", () => {
     setup("ADMINISTRATOR", full);
     await ready();
     expect(screen.getByText("Você pode ver estes dados, mas só o Coordenador altera.")).toBeInTheDocument();
-    for (const label of [/^Nome da organização/, "Titular (razão social ou nome)", "Prazo para bloquear por atraso"]) {
+    for (const label of [/^Nome da organização/, "Titular (razão social ou nome)", "CNPJ ou CPF do titular", "Prazo para bloquear por atraso"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
     expect(screen.getByRole("radio", { name: "Sim" })).toBeDisabled();
@@ -197,6 +198,23 @@ describe("OrganizationSettingsPage", () => {
     }
     expect(screen.queryByLabelText("Arquivo da logo")).not.toBeInTheDocument();
     expect(screen.queryByText(/\bcor\b/i)).not.toBeInTheDocument();
+  });
+
+  it("issue 768, CA5: o 400 do servidor em holderName aparece no campo, e apagar o nome manda nulo", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { ...full, holderName: "Leão Ltda." });
+    await ready();
+    await user.clear(screen.getByLabelText("Titular (razão social ou nome)"));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
+    expect(writes[0]?.body).toMatchObject({ holderName: null, holderDocument: "11222333000181" });
+    server.use(
+      http.patch("/api/v1/organization", () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "holderName", message: "no máximo 160 caracteres" }] }, { status: 400 })),
+    );
+    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "x");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByText("no máximo 160 caracteres")).toBeInTheDocument();
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("CA18: carregando, erro com Tentar de novo e Professor veem os estados certos", async () => {
@@ -313,12 +331,16 @@ describe("OrganizationSettingsPage: última alteração e edição simultânea (
     await ready();
     await user.clear(screen.getByLabelText(/^Nome da organização/));
     await user.type(screen.getByLabelText(/^Nome da organização/), "Meu nome");
+    await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "Minha Ltda.");
+    await user.clear(screen.getByLabelText("CNPJ ou CPF do titular"));
     await user.click(saveButton());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     expect(await within(dialog).findByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
     const item = within(dialog).getByText("Nome da organização").closest("li")!;
     expect(item).toHaveTextContent("Seu valor: Meu nome");
     expect(item).toHaveTextContent("Valor atual: Nome da outra pessoa");
+    expect(within(dialog).getByText("Titular (razão social ou nome)").closest("li")).toHaveTextContent("Seu valor: Minha Ltda.");
+    expect(within(dialog).getByText("CNPJ ou CPF do titular").closest("li")).toHaveTextContent("Valor atual: 11.222.333/0001-81");
     expect(within(dialog).queryByText("Cor principal")).not.toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Recarregar" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Sobrescrever" })).toBeInTheDocument();
@@ -445,7 +467,7 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
     const next = { deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, crossUnitTraining: "denied" };
-    expect(writes).toEqual([{ method: "PATCH", body: { name: "Academia Alfa", holderDocument: "11222333000181", rules: next } }]);
+    expect(writes).toEqual([{ method: "PATCH", body: { name: "Academia Alfa", holderName: null, holderDocument: "11222333000181", rules: next } }]);
     expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("45");
     expect(screen.getByRole("radio", { name: "Não" })).toBeChecked();
   });

@@ -5,6 +5,7 @@ import { FEE_KEYS, type FeeKey, type TeacherKey, type UnitDetail, type UnitUpdat
 export type Draft = {
   name: string;
   cnpj: string;
+  legalName: string;
   postalCode: string;
   address: string;
   city: string;
@@ -45,6 +46,7 @@ export function toDraft(d: UnitDetail): Draft {
   return {
     name: d.name,
     cnpj: d.cnpj ? formatCpfCnpj(d.cnpj) : "",
+    legalName: d.legalName ?? "",
     postalCode: d.postalCode ? formatCep(d.postalCode) : "",
     address: d.address ?? "",
     city: d.city ?? "",
@@ -80,6 +82,7 @@ export function toBody(d: Draft, base: Draft): UnitUpdate {
   return {
     name: d.name.trim(),
     cnpj: blankToNull(onlyDigits(d.cnpj)),
+    legalName: blankToNull(d.legalName),
     postalCode: blankToNull(onlyDigits(d.postalCode)),
     address: blankToNull(d.address),
     city: blankToNull(d.city),

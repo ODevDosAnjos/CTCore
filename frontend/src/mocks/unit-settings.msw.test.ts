@@ -20,7 +20,7 @@ const put = async (id: string, body: unknown, ifMatch?: string | null) => {
 const declared = (path: string, method: string) => Object.keys(openapi.paths[path][method].responses);
 const keys = (name: string) => Object.keys(openapi.components.schemas[name].properties).sort();
 
-type Body = { name: string; cnpj?: string; settings: { dueDays: number[]; enrollmentFeeEnabled: boolean; enrollmentFeeCents: number; feesCents: Record<string, number>; pixKey: string | null; reminderDays: number[]; remindersEnabled?: boolean; remindersHour?: number; trialLimit?: number } };
+type Body = { name: string; cnpj?: string; legalName?: string | null; settings: { dueDays: number[]; enrollmentFeeEnabled: boolean; enrollmentFeeCents: number; feesCents: Record<string, number>; pixKey: string | null; reminderDays: number[]; remindersEnabled?: boolean; remindersHour?: number; trialLimit?: number } };
 const body = (change: (b: Body & Record<string, unknown>) => void = () => {}) => {
   const b = {
     name: "Unidade Centro",
@@ -125,6 +125,23 @@ describe("configurações da unidade x OpenAPI (CA22)", () => {
       for (const res of [await mine(), await read(FIRST), await put(FIRST, body())]) expect(res.status).toBe(403);
     }
     expect(declared("/units/mine", "get")).toContain("403");
+  });
+});
+
+describe("razão social da unidade x OpenAPI (RN-MAT-21)", () => {
+  it("issue 768, CA7: o PUT apara, grava e devolve; vazio, nulo ou omitido apagam; 161 é recusado no campo", async () => {
+    await login("ana@exemplo.com");
+    for (const schema of ["UnitDetail", "UnitUpdate"]) expect(openapi.components.schemas[schema].properties.legalName).toMatchObject({ nullable: true, maxLength: 160 });
+    for (const erase of ["", "   ", null, undefined]) {
+      expect((await (await put(FIRST, body((b) => (b.legalName = "  Dojo Ltda.  ")))).json()).legalName).toBe("Dojo Ltda.");
+      expect((await (await read(FIRST)).json()).legalName).toBe("Dojo Ltda.");
+      expect((await (await put(FIRST, body((b) => (b.legalName = erase)))).json()).legalName).toBeNull();
+    }
+    expect((await put(FIRST, body((b) => (b.legalName = "x".repeat(160))))).status).toBe(200);
+    const refused = await put(FIRST, body((b) => (b.legalName = "x".repeat(161))));
+    expect(refused.status).toBe(400);
+    expect((await refused.json()).fields.map((f: { field: string }) => f.field)).toContain("legalName");
+    expect((await (await read(FIRST)).json()).legalName).toBe("x".repeat(160));
   });
 });
 

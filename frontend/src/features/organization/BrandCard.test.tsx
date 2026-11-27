@@ -6,6 +6,7 @@ import type { OrganizationView } from "./useOrganization";
 const view: OrganizationView = {
   name: "Academia Leão",
   holderDocument: null,
+  holderName: null,
   logoUrl: null,
   version: 0,
   lastChange: null,
@@ -19,6 +20,8 @@ const show = (v: OrganizationView, canEdit = true) =>
       canEdit={canEdit}
       name={v.name}
       onName={vi.fn()}
+      holderName={v.holderName ?? ""}
+      onHolderName={vi.fn()}
       holder=""
       onHolder={vi.fn()}
       onHolderBlur={vi.fn()}
@@ -42,6 +45,14 @@ describe("BrandCard (R2)", () => {
     expect(screen.getByRole("img", { name: "Logo da organização" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Trocar logo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remover logo" })).toBeInTheDocument();
+  });
+
+  it("issue 768, CA5: o titular tem nome (até 160) e documento em campos separados; em leitura, os dois desabilitados", () => {
+    show({ ...view, holderName: "Leão Ltda." }, false);
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("Leão Ltda.");
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveAttribute("maxlength", "160");
+    expect(screen.getByLabelText("Titular (razão social ou nome)")).toBeDisabled();
+    expect(screen.getByLabelText("CNPJ ou CPF do titular")).toBeDisabled();
   });
 
   it("o nome é obrigatório e, somente leitura, não há botões de logo", () => {

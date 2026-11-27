@@ -105,6 +105,30 @@ describe("organização x OpenAPI (CA21)", () => {
   });
 });
 
+describe("nome do titular x OpenAPI (RN-MAT-21)", () => {
+  it("issue 768, CA7: o PATCH apara, grava, sobe a versão só quando muda; vazio, nulo ou omitido apagam; 161 é recusado no campo", async () => {
+    await login("ana@exemplo.com");
+    for (const schema of ["OrganizationView", "OrganizationUpdateRequest"]) {
+      expect(openapi.components.schemas[schema].properties.holderName).toMatchObject({ nullable: true, maxLength: 160 });
+    }
+    let version = 0;
+    for (const erase of [{ holderName: "" }, { holderName: "   " }, { holderName: null }, {}]) {
+      const saved = await (await patch({ name: "Dojo", holderName: "  Dojo Ltda.  " })).json();
+      expect(saved).toMatchObject({ holderName: "Dojo Ltda.", holderDocument: null });
+      expect(saved.version).toBe(++version);
+      expect((await (await patch({ name: "Dojo", holderName: "Dojo Ltda." })).json()).version).toBe(version);
+      const cleared = await (await patch({ name: "Dojo", ...erase })).json();
+      expect(cleared.holderName).toBeNull();
+      expect(cleared.version).toBe(++version);
+    }
+    expect((await patch({ name: "Dojo", holderName: "x".repeat(160) })).status).toBe(200);
+    const refused = await patch({ name: "Dojo", holderName: "x".repeat(161) });
+    expect(refused.status).toBe(400);
+    expect((await refused.json()).fields.map((f: { field: string }) => f.field)).toContain("holderName");
+    expect((await (await get()).json()).holderName).toBe("x".repeat(160));
+  });
+});
+
 describe("regras e Coordenador x OpenAPI (RF-ORG-01, RN-ORG-13, CA13)", () => {
   const rules = (over: Record<string, unknown> = {}) => ({ deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, crossUnitTraining: "denied", ...over });
 

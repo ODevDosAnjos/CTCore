@@ -120,6 +120,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
     const fields: [string, unknown, unknown, (v: unknown) => string][] = [
       [t("unitSettings.name"), d.name.trim(), c.name, text],
       [t("unitSettings.cnpj"), d.cnpj, c.cnpj, text],
+      [t("unitSettings.legalName"), d.legalName.trim(), c.legalName, text],
       [t("unitSettings.postalCode"), d.postalCode, c.postalCode, text],
       [t("unitSettings.address"), d.address, c.address, text],
       [t("unitSettings.city"), d.city, c.city, text],

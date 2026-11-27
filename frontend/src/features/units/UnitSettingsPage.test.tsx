@@ -33,6 +33,7 @@ const detail = (id: string, name: string): UnitDetail => ({
   email: null,
   whatsapp: null,
   cnpj: null,
+  legalName: null,
   active: true,
   timezone: "America/Sao_Paulo",
   version: 0,
@@ -535,6 +536,33 @@ function conflicting(putStatuses: number[] = [409]) {
   return { sent, reads };
 }
 
+describe("UnitSettingsPage: razão social (RN-MAT-21)", () => {
+  it("issue 768, CA5: grava a razão social, reabre com o valor, apagar manda nulo e o 400 aparece no campo", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { units: [{ ...detail(A, "Unidade A"), legalName: "Dojo Antigo Ltda." }] });
+    await ready();
+    const field = () => screen.getByLabelText("Razão social (opcional)");
+    expect(field()).toHaveValue("Dojo Antigo Ltda.");
+    expect(field()).toHaveAttribute("maxlength", "160");
+    await user.clear(field());
+    await user.type(field(), "  Dojo Novo Ltda. ");
+    await user.click(save());
+    expect(await screen.findByText("Salvo")).toBeInTheDocument();
+    expect(puts[0]!.body.legalName).toBe("Dojo Novo Ltda.");
+    await user.clear(field());
+    await user.click(save());
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(puts[1]!.body.legalName).toBeNull();
+    server.use(
+      http.put("/api/v1/units/:id", () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "legalName", message: "no máximo 160 caracteres" }] }, { status: 400 })),
+    );
+    await user.type(field(), "x");
+    await user.click(save());
+    expect(await screen.findByText("no máximo 160 caracteres")).toBeInTheDocument();
+    expect(field()).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
 describe("UnitSettingsPage: nome curto (RN-ORG-15, D3 da #484)", () => {
   it("a aba Dados ajusta o nome curto uma vez: PATCH, valor novo na tela e o botão some; 409 mostra a mensagem", async () => {
     const user = userEvent.setup();
@@ -575,11 +603,14 @@ describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-0
     await ready("Unidade Nome da outra pessoa");
     await user.clear(screen.getByLabelText("Nome"));
     await user.type(screen.getByLabelText("Nome"), "Meu nome");
+    await user.type(screen.getByLabelText("Razão social (opcional)"), "Minha Ltda.");
     await openTab(user, "Permissões do Professor");
     await user.click(await screen.findByRole("switch", { name: "Editar e cancelar aulas" }));
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
     expect(sent[0]?.version).toBe("3");
+    const legal = (await within(dialog).findByText("Razão social (opcional)")).closest("li")!;
+    expect(legal).toHaveTextContent("Seu valor: Minha Ltda.");
     expect(await within(dialog).findByText("Última alteração em 20/05/2026 12h30 por Bia")).toBeInTheDocument();
     const nome = within(dialog).getByText("Nome").closest("li")!;
     expect(nome).toHaveTextContent("Seu valor: Meu nome");
@@ -587,7 +618,7 @@ describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-0
     const agenda = within(dialog).getByText("Editar e cancelar aulas").closest("li")!;
     expect(agenda).toHaveTextContent("Seu valor: Não");
     expect(agenda).toHaveTextContent("Valor atual: Sim");
-    expect(within(dialog).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(dialog).getAllByRole("listitem")).toHaveLength(3);
     expect(within(dialog).getByRole("button", { name: "Recarregar" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Sobrescrever" })).toBeInTheDocument();
   });
