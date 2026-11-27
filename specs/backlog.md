@@ -341,6 +341,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 622 | Financeiro do portal: janela Pix na chave e tabelas iguais ao canvas, sem limiteCanvas | issue #622 | Atualizações · Polimento | — | agente | a fazer |
 | 642 | Identidade visual Portal: fundo dos casos de janela (Trocar e-mail e Revogar uso de imagem) igual ao canvas, sem limiteCanvas | issue #642 | Atualizações · Polimento | — | agente | a fazer |
 | 674 | Pedidos do portal no celular: janelas de pedido como gaveta de baixo iguais ao canvas, sem limiteCanvas | issue #674 | Atualizações · Polimento | — | agente | a fazer |
+| 735 | RNF-45 · Seletor de destino do comunicado no celular repete "Unidade · Unidade …" | issue #735 | Atualizações · Polimento | — | agente | a fazer |
 | 172 | RF-AJU-01 · Central de ajuda | issue #172 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 173 | RF-AJU-02 · Ícones "?" de ajuda nas telas | issue #173 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 174 | RF-AJU-03 · Tour do primeiro acesso | issue #174 | Atualizações · Funcionalidades | — | agente | a fazer |
@@ -419,6 +420,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 667 | Teste instável: EmailServiceIT.retries falha na regressão completa e passa isolado | issue #667 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 701 | Técnica · Migrar ITs com limpeza por delete para truncate em cascata (medição da #690) | issue #701 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 702 | Técnica · S3FileStorageIT falha com Connection refused em execução local do verify | issue #702 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 736 | Teste instável: e2e portal-minhas-informacoes (portal reduzido a 1024 px) falha sob carga | issue #736 | Manutenção · Dívida técnica | — | agente | a fazer |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 
