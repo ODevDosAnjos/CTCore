@@ -2423,22 +2423,35 @@
     },
     "pixKey": "Chave",
     "pixKeyHelp": "Usada quando o Mercado Pago está desconectado ou fora do ar: o aluno paga direto na chave e envia o comprovante, que fica \"Em conferência\".",
-    "reminders": "Dias de lembrete",
     "remindersEnabled": "Enviar lembretes automáticos",
     "remindersEnabledField": "Lembretes automáticos",
     "remindersEnabledHelp": "Liga e desliga todos os lembretes automáticos de cobrança desta unidade.",
     "remindersHour": "Horário de envio",
     "hourOption": "{{hour}}h",
     "remindersOff": "Lembretes automáticos desligados. O aviso de bloqueio e o envio manual de lembretes continuam funcionando.",
-    "reminderBefore": "{{count}} dias antes do vencimento",
+    "reminderBefore_one": "{{count}} dia antes do vencimento",
+    "reminderBefore_other": "{{count}} dias antes do vencimento",
     "reminderOnDue": "No dia do vencimento",
-    "reminderAfter": "{{count}} dias depois",
+    "reminderAfter_one": "{{count}} dia depois",
+    "reminderAfter_other": "{{count}} dias depois",
+    "reminderName": {
+      "before": "Lembrete antes do vencimento",
+      "due": "Lembrete no dia do vencimento",
+      "afterFirst": "1º lembrete depois do vencimento",
+      "afterSecond": "2º lembrete depois do vencimento"
+    },
+    "reminderDaysLabel": {
+      "before": "Dias antes do vencimento",
+      "afterFirst": "Dias depois no 1º lembrete",
+      "afterSecond": "Dias depois no 2º lembrete"
+    },
+    "reminderDaysInvalid": "Informe um número de 1 a {{max}}.",
+    "reminderDaysRepeated": "Use um dia diferente do 1º lembrete depois.",
     "reminderHelp": {
-      "0": "Com o link de pagamento",
-      "3": "Tom cordial, sem ameaça",
-      "10": "Informa a data de bloqueio",
-      "-3": "Com o link de pagamento",
-      "custom": "Dia salvo antes, fora do padrão"
+      "before": "Com o link de pagamento",
+      "due": "Com o link de pagamento",
+      "afterFirst": "Tom cordial, sem ameaça",
+      "afterSecond": "Informa a data de bloqueio"
     },
     "channelEmail": "E-mail",
     "channelPush": "Push",

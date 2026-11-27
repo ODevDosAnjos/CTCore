@@ -9,24 +9,39 @@ const tab = UnitRemindersTab;
 const days = ["3 dias antes do vencimento", "No dia do vencimento", "3 dias depois", "10 dias depois"];
 
 describe("UnitRemindersTab (R5, RN-COB-17)", () => {
-  it("CA12: os dias salvos -3, 0, 3 e 10 aparecem ligados; desligar um tira o dia da lista", async () => {
+  it("#638 CA7: desligar mantém o dia na tela e no rascunho; mudar o dia desligado e religar guarda o novo, e o título acompanha", async () => {
     const user = userEvent.setup();
     const { draft } = renderTab(tab);
     for (const name of days) expect(screen.getByRole("switch", { name })).toBeChecked();
-    await user.click(screen.getByRole("switch", { name: "3 dias antes do vencimento" }));
-    expect(draft().reminderDays).toEqual([0, 3, 10]);
-    expect(screen.getByRole("switch", { name: "3 dias antes do vencimento" })).not.toBeChecked();
-    await user.click(screen.getByRole("switch", { name: "3 dias antes do vencimento" }));
-    expect(draft().reminderDays).toEqual([-3, 0, 3, 10]);
+    const before = screen.getByRole("switch", { name: "3 dias antes do vencimento" });
+    await user.click(before);
+    expect(before).not.toBeChecked();
+    expect(screen.getByLabelText("Dias antes do vencimento")).toHaveValue(3);
+    expect(screen.getByLabelText("Dias antes do vencimento")).toBeEnabled();
+    expect(draft().reminders.before).toEqual({ enabled: false, days: "3" });
+    await user.clear(screen.getByLabelText("Dias antes do vencimento"));
+    expect(screen.getByRole("switch", { name: "Lembrete antes do vencimento" })).not.toBeChecked();
+    await user.type(screen.getByLabelText("Dias antes do vencimento"), "1");
+    await user.click(screen.getByRole("switch", { name: "1 dia antes do vencimento" }));
+    expect(draft().reminders.before).toEqual({ enabled: true, days: "1" });
   });
 
-  it("CA12: dia salvo fora dos quatro padrões aparece como linha própria e é mantido", async () => {
+  it("#638 R2: são quatro linhas, com o dia guardado do desligado; o do dia do vencimento não tem campo de dia", async () => {
     const user = userEvent.setup();
-    const { draft } = renderTab(tab, unitFixture({ reminderDays: [-3, 5] }));
-    expect(screen.getByRole("switch", { name: "5 dias depois" })).toBeChecked();
-    expect(screen.getByRole("switch", { name: "No dia do vencimento" })).not.toBeChecked();
-    await user.click(screen.getByRole("switch", { name: "3 dias depois" }));
-    expect(draft().reminderDays).toEqual([-3, 3, 5]);
+    const { draft } = renderTab(tab, unitFixture({ reminders: { ...unitFixture().settings.reminders, afterFirst: { enabled: false, days: 5 } } }));
+    expect(screen.getByRole("switch", { name: "5 dias depois" })).not.toBeChecked();
+    expect(screen.getByLabelText("Dias depois no 1º lembrete")).toHaveValue(5);
+    expect(screen.getByLabelText("Dias depois no 2º lembrete")).toHaveValue(10);
+    expect(screen.getAllByRole("spinbutton")).toHaveLength(3);
+    await user.click(screen.getByRole("switch", { name: "No dia do vencimento" }));
+    expect(draft().reminders.due).toEqual({ enabled: false });
+  });
+
+  it("#638 CA8: o problema do campo aparece ligado a ele", () => {
+    renderTab(tab, unitFixture(), {}, { "reminders.afterSecond": "Use um dia diferente do 1º lembrete depois." });
+    const field = screen.getByLabelText("Dias depois no 2º lembrete");
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAccessibleDescription("Use um dia diferente do 1º lembrete depois.");
   });
 
   it("CA12: Push é desabilitado com Em breve, E-mail é o canal e o aviso de bloqueio é fixo", () => {
@@ -58,17 +73,12 @@ describe("UnitRemindersTab (R5, RN-COB-17)", () => {
     expect(screen.getByRole("switch", { name: "Enviar lembretes automáticos" })).toBeChecked();
     await user.click(screen.getByRole("switch", { name: "Enviar lembretes automáticos" }));
     for (const name of days) expect(screen.getByRole("switch", { name })).toBeDisabled();
+    for (const field of screen.getAllByRole("spinbutton")) expect(field).toBeDisabled();
     expect(screen.getByLabelText("Horário de envio")).toBeDisabled();
     expect(screen.getByText(/Lembretes automáticos desligados/)).toBeInTheDocument();
     await user.click(screen.getByRole("switch", { name: "Enviar lembretes automáticos" }));
     expect(screen.getByLabelText("Horário de envio")).toBeEnabled();
     expect(screen.queryByText(/Lembretes automáticos desligados/)).not.toBeInTheDocument();
-  });
-
-  it("CA13: no limite de oito dias não dá para ligar outro", () => {
-    renderTab(tab, unitFixture({ reminderDays: [-3, 1, 2, 4, 5, 6, 7, 8] }));
-    expect(screen.getByRole("switch", { name: "No dia do vencimento" })).toBeDisabled();
-    expect(screen.getByRole("switch", { name: "3 dias antes do vencimento" })).toBeEnabled();
   });
 
   it("CA14: Editar textos leva à aba Textos de Organização", () => {
@@ -77,9 +87,10 @@ describe("UnitRemindersTab (R5, RN-COB-17)", () => {
     expect(screen.getByRole("link", { name: "Editar textos" })).toHaveAttribute("href", "/configuracoes/organizacao?aba=textos");
   });
 
-  it("o erro do servidor no horário aparece na aba", () => {
-    renderTab(tab, unitFixture(), { "settings.reminderDays": "valores entre -30 e 60" });
-    expect(screen.getByText("valores entre -30 e 60")).toBeInTheDocument();
+  it("o erro do servidor nos lembretes aparece na aba e no campo do dia", () => {
+    renderTab(tab, unitFixture(), { "settings.reminders": "obrigatório", "settings.reminders.before.days": "valores entre 1 e 30" });
+    expect(screen.getByText("obrigatório")).toBeInTheDocument();
+    expect(screen.getByLabelText("Dias antes do vencimento")).toHaveAccessibleDescription("valores entre 1 e 30");
   });
 
   it.each([

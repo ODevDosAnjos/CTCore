@@ -67,8 +67,10 @@ class OrganizationsIT extends PostgresIT {
                 .containsEntry("trial_link_enabled", true).containsEntry("self_registration_link_enabled", true);
         assertThat(jdbc.queryForObject("select due_days::text from unit_settings where unit_id = ?", String.class, first.unitId()))
                 .isEqualTo("{1,5,10,15}");
-        assertThat(jdbc.queryForObject("select reminder_days::text from unit_settings where unit_id = ?", String.class, first.unitId()))
-                .isEqualTo("{-3,0,3,10}");
+        assertThat(jdbc.queryForObject("select concat_ws(',', reminder_before_enabled, reminder_before_days, reminder_due_enabled, "
+                + "reminder_after_first_enabled, reminder_after_first_days, reminder_after_second_enabled, reminder_after_second_days) "
+                + "from unit_settings where unit_id = ?", String.class, first.unitId()))
+                .isEqualTo("t,3,t,t,3,t,10");
         assertThat(jdbc.queryForObject("select teacher_permissions::text from unit_settings where unit_id = ?", String.class, first.unitId()))
                 .isEqualTo("{t,t,t,t,f}");
         assertThat(jdbc.queryForMap("select active, timezone from unit where id = ?", first.unitId()))

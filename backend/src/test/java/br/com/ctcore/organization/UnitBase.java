@@ -45,7 +45,11 @@ abstract class UnitBase extends OrganizationBase {
         for (String key : new String[] {"cash", "pix", "bankSlip", "creditCard", "debitCard", "automaticDebit", "manualPix", "terminalCard", "transfer"}) {
             fees.put(key, 0);
         }
-        s.putArray("reminderDays").add(-3).add(0).add(3).add(10);
+        ObjectNode r = s.putObject("reminders");
+        r.putObject("before").put("enabled", true).put("days", 3);
+        r.putObject("due").put("enabled", true);
+        r.putObject("afterFirst").put("enabled", true).put("days", 3);
+        r.putObject("afterSecond").put("enabled", true).put("days", 10);
         s.putObject("teacherPermissions").put("announcements", true).put("agendaEdit", true).put("studentContacts", true).put("trialClasses", true).put("studentRecord", false);
         s.put("directoryEnabled", false).put("trialLinkEnabled", true).put("selfRegistrationLinkEnabled", true);
         s.put("remindersEnabled", true).put("remindersHour", 9);

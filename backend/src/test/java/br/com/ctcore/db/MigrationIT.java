@@ -74,6 +74,46 @@ class MigrationIT extends PostgresIT {
     }
 
     @Test
+    @DisplayName("#638 CA6: a V66 converte reminder_days em quatro chaves e dias, tira a coluna e o banco recusa dia inválido ou repetido")
+    void v66ReminderSwitches() {
+        jdbc.execute("drop schema if exists v66_check cascade");
+        var config = Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas("v66_check").createSchemas(true)
+                .locations("classpath:db/migration");
+        config.target("65").load().migrate();
+        UUID org = UUID.randomUUID();
+        jdbc.update("insert into v66_check.organization (id, name) values (?, 'Academia Fictícia')", org);
+        // lista antiga -> antes (chave, dia), no dia, 1º depois (chave, dia), 2º depois (chave, dia)
+        var cases = new java.util.LinkedHashMap<String, String>();
+        cases.put("{-3,0,3,10}", "t,3,t,t,3,t,10");
+        cases.put("{0,10}", "f,3,t,f,3,t,10");
+        cases.put("{}", "f,3,f,f,3,f,10");
+        cases.put("{-1,5}", "t,1,f,t,5,f,10");
+        cases.put("{-5,-3,3,7,15}", "t,3,f,t,3,t,7");
+        var units = new java.util.LinkedHashMap<String, UUID>();
+        cases.keySet().forEach(list -> {
+            UUID unit = UUID.randomUUID();
+            units.put(list, unit);
+            jdbc.update("insert into v66_check.unit (id, organization_id, name, short_name) values (?, ?, 'Unidade', ?)", unit, org, "u-" + unit);
+            jdbc.update("insert into v66_check.unit_settings (organization_id, unit_id, reminder_days) values (?, ?, cast(? as integer[]))", org, unit, list);
+        });
+
+        config.target("66").load().migrate();
+
+        cases.forEach((list, expected) -> assertThat(jdbc.queryForObject("select concat_ws(',', reminder_before_enabled, reminder_before_days, "
+                + "reminder_due_enabled, reminder_after_first_enabled, reminder_after_first_days, reminder_after_second_enabled, "
+                + "reminder_after_second_days) from v66_check.unit_settings where unit_id = ?", String.class, units.get(list))).as(list).isEqualTo(expected));
+        assertThat(jdbc.queryForList("select column_name from information_schema.columns "
+                + "where table_schema = 'v66_check' and table_name = 'unit_settings'", String.class)).doesNotContain("reminder_days");
+        for (String bad : new String[] {"reminder_before_days = 0", "reminder_before_days = 31", "reminder_after_first_days = 61",
+                "reminder_after_second_days = 0", "reminder_after_first_days = 10"}) {
+            assertThatThrownBy(() -> jdbc.update("update v66_check.unit_settings set " + bad + " where unit_id = ?", units.get("{}"))).as(bad)
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        }
+    }
+
+    @Test
     @DisplayName("CA4: id uuid gerado pelo banco volta como UUID, diferente a cada linha")
     void uuidGeneratedByDatabase() {
         jdbc.execute("create table it_uuid (id uuid primary key default gen_random_uuid(), n int)");

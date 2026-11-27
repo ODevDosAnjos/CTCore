@@ -45,7 +45,12 @@ const detail = (id: string, name: string): UnitDetail => ({
     feesCents: { cash: 0, pix: 0, bankSlip: 0, creditCard: 0, debitCard: 0, automaticDebit: 0, manualPix: 0, terminalCard: 0, transfer: 0 },
     pixKey: null,
     paymentAccount: "NOT_CONNECTED",
-    reminderDays: [-3, 0, 3, 10],
+    reminders: {
+      before: { enabled: true, days: 3 },
+      due: { enabled: true },
+      afterFirst: { enabled: true, days: 3 },
+      afterSecond: { enabled: true, days: 10 },
+    },
     remindersEnabled: true,
     remindersHour: 9,
     teacherPermissions: { announcements: true, agendaEdit: true, studentContacts: true, trialClasses: true, studentRecord: false },
@@ -199,11 +204,72 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     const { settings, ...data } = puts[0]!.body;
     expect(data).toMatchObject({ name: "Unidade A", phone: "21999998888", cnpj: null, latitude: null });
     expect(settings.dueDays).toEqual([1, 5, 10, 20]);
-    expect(settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000, reminderDays: [-3, 0, 10], trialLinkEnabled: false, directoryEnabled: false, trialLimit: 3 });
+    expect(settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000, trialLinkEnabled: false, directoryEnabled: false, trialLimit: 3 });
+    expect(settings.reminders).toEqual({
+      before: { enabled: true, days: 3 },
+      due: { enabled: true },
+      afterFirst: { enabled: false, days: 3 },
+      afterSecond: { enabled: true, days: 10 },
+    });
     expect((settings.feesCents as Record<string, number>).pix).toBe(199);
     expect(settings.teacherPermissions).toEqual({ announcements: true, agendaEdit: false, studentContacts: true, trialClasses: true, studentRecord: true });
     await openTab(user, "Dados");
     expect(screen.getByLabelText("Telefone")).toHaveValue("(21) 99999-8888");
+  });
+
+  it("#638 CA7: desligar, mudar o dia, religar, salvar e reabrir mostra o que foi salvo, com os quatro no PUT", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { path: `/configuracoes/unidades/${A}?aba=reminders` });
+    await user.click(await screen.findByRole("switch", { name: "3 dias depois" }));
+    const field = screen.getByLabelText("Dias depois no 1º lembrete");
+    await user.clear(field);
+    await user.type(field, "5");
+    await user.click(screen.getByRole("switch", { name: "5 dias depois" }));
+    await user.click(screen.getByRole("switch", { name: "No dia do vencimento" }));
+    await user.click(save());
+    expect(await screen.findByText("Salvo")).toBeInTheDocument();
+    expect(puts[0]!.body.settings.reminders).toEqual({
+      before: { enabled: true, days: 3 },
+      due: { enabled: false },
+      afterFirst: { enabled: true, days: 5 },
+      afterSecond: { enabled: true, days: 10 },
+    });
+    await openTab(user, "Dados");
+    await openTab(user, "Lembretes");
+    expect(screen.getByRole("switch", { name: "5 dias depois" })).toBeChecked();
+    expect(screen.getByRole("switch", { name: "No dia do vencimento" })).not.toBeChecked();
+    expect(screen.getByLabelText("Dias depois no 1º lembrete")).toHaveValue(5);
+  });
+
+  it.each([
+    ["Dias antes do vencimento", "", "Informe um número de 1 a 30."],
+    ["Dias antes do vencimento", "31", "Informe um número de 1 a 30."],
+    ["Dias depois no 1º lembrete", "0", "Informe um número de 1 a 60."],
+    ["Dias depois no 2º lembrete", "61", "Informe um número de 1 a 60."],
+    ["Dias depois no 2º lembrete", "3", "Use um dia diferente do 1º lembrete depois."],
+  ])("#638 CA8: %s com '%s' mostra a mensagem, marca a aba e não envia", async (label, value, message) => {
+    setup("COORDINATOR", { path: `/configuracoes/unidades/${A}?aba=reminders` });
+    fireEvent.change(await screen.findByLabelText(label), { target: { value } });
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Lembretes/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
+    expect(save()).toBeDisabled();
+    fireEvent.submit(save().closest("form")!);
+    expect(puts).toHaveLength(0);
+  });
+
+  it("#638 CA8: erro 400 do servidor em settings.reminders abre a aba Lembretes", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR");
+    await ready();
+    server.use(
+      http.put("/api/v1/units/:id", () =>
+        HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "settings.reminders.before.days", message: "dia recusado" }] }, { status: 400 }),
+      ),
+    );
+    await user.type(screen.getByLabelText("Nome"), "!");
+    await user.click(save());
+    expect(await screen.findByText("dia recusado")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Lembretes/ })).toHaveAttribute("aria-selected", "true");
   });
 
   it("CA17: erro 400 do servidor abre a aba do campo, marca a aba e aparece junto do campo", async () => {

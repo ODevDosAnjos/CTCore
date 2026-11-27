@@ -4,7 +4,7 @@
 // D4 (#419): passos antes do print, para chegar a janelas e estados. `preencher`: [rótulo exato, valor]; `clicar`: início do nome do botão.
 // seExistir: o botão só aparece em parte das larguras (ex.: "Filtros" abaixo de 640 px)
 // escolher: [rótulo exato do select, trecho do texto da opção] (select não aceita `fill`); papel "radio" marca o seletor segmentado (#469)
-export type Passo = { preencher: [string, string] } | { escolher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" | "radio" | "checkbox" };
+export type Passo = { preencher: [string, string] } | { escolher: [string, string] } | { clicar: string, seExistir?: boolean, papel?: "tab" | "radio" | "checkbox" | "switch" };
 export type Caso = {
   nome: string;
   rota: string;
@@ -135,6 +135,8 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-pagamentos", rota: UNIDADE, perfil: ana, canvas: "ConfigPagamentos", unidadeCanvas: "conectada", passos: [{ clicar: "Cobrança", papel: "tab" }] },
   { nome: "configuracoes-unidade-pagamentos-desconectado", rota: UNIDADE, perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Cobrança", papel: "tab" }] },
   { nome: "configuracoes-unidade-lembretes", rota: UNIDADE, perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
+  // issue 638: um lembrete desligado, com o dia guardado no campo; o canvas não tem esse estado (sem comparação)
+  { nome: "configuracoes-unidade-lembretes-desligado", rota: UNIDADE, perfil: ana, unidadeCanvas: "conectada", fullPage: true, passos: [{ clicar: "Lembretes", papel: "tab" }, { clicar: "3 dias depois", papel: "switch" }] },
   { nome: "configuracoes-unidade-links", rota: UNIDADE, perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Divulgação", papel: "tab" }] },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/organizacao?aba=modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/organizacao?aba=faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },

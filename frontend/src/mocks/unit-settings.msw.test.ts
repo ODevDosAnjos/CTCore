@@ -1,3 +1,4 @@
+import type { UnitReminders } from "@/features/units/useUnitSettings";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
@@ -20,7 +21,7 @@ const put = async (id: string, body: unknown, ifMatch?: string | null) => {
 const declared = (path: string, method: string) => Object.keys(openapi.paths[path][method].responses);
 const keys = (name: string) => Object.keys(openapi.components.schemas[name].properties).sort();
 
-type Body = { name: string; cnpj?: string; legalName?: string | null; settings: { dueDays: number[]; enrollmentFeeEnabled: boolean; enrollmentFeeCents: number; feesCents: Record<string, number>; pixKey: string | null; reminderDays: number[]; remindersEnabled?: boolean; remindersHour?: number; trialLimit?: number } };
+type Body = { name: string; cnpj?: string; legalName?: string | null; settings: { dueDays: number[]; enrollmentFeeEnabled: boolean; enrollmentFeeCents: number; feesCents: Record<string, number>; pixKey: string | null; reminders: UnitReminders; remindersEnabled?: boolean; remindersHour?: number; trialLimit?: number } };
 const body = (change: (b: Body & Record<string, unknown>) => void = () => {}) => {
   const b = {
     name: "Unidade Centro",
@@ -30,7 +31,12 @@ const body = (change: (b: Body & Record<string, unknown>) => void = () => {}) =>
       enrollmentFeeCents: 15000,
       feesCents: { cash: 0, pix: 199, bankSlip: 0, creditCard: 0, debitCard: 0, automaticDebit: 0, manualPix: 0, terminalCard: 0, transfer: 0 },
       pixKey: null,
-      reminderDays: [3, -3],
+      reminders: {
+        before: { enabled: false, days: 7 },
+        due: { enabled: true },
+        afterFirst: { enabled: true, days: 3 },
+        afterSecond: { enabled: false, days: 15 },
+      },
       remindersEnabled: true,
       remindersHour: 9,
       trialLimit: 2,
@@ -69,13 +75,26 @@ describe("configurações da unidade x OpenAPI (CA22)", () => {
     expect(next.cnpj).toBe("11222333000181");
     expect(next.latitude).toBe(-23.5505);
     expect(next.settings.dueDays).toEqual([5, 15]);
-    expect(next.settings.reminderDays).toEqual([-3, 3]);
+    expect(next.settings.reminders).toEqual(body().settings.reminders);
+    expect(Object.keys(next.settings.reminders).sort()).toEqual(keys("UnitReminders"));
     expect(next.settings.paymentAccount).toBe("NOT_CONNECTED");
     expect(await (await read(FIRST)).json()).toEqual(next);
     expect((await (await put(FIRST, body((b) => (b.settings.enrollmentFeeEnabled = false)))).json()).settings.enrollmentFeeCents).toBe(0);
     // RN-AEX-02: o limite é de cada unidade.
     expect((await (await put(FIRST, body((b) => (b.settings.trialLimit = 3)))).json()).settings.trialLimit).toBe(3);
     expect((await (await read(SECOND)).json()).settings.trialLimit).toBe(2);
+  });
+
+  it("#638 CA4: os limites 1, 30 e 60 passam", async () => {
+    await login("ana@exemplo.com");
+    for (const [before, first, second] of [[1, 1, 60], [30, 60, 1]] as const) {
+      const res = await put(FIRST, body((b) => {
+        b.settings.reminders.before.days = before;
+        b.settings.reminders.afterFirst.days = first;
+        b.settings.reminders.afterSecond.days = second;
+      }));
+      expect(res.status).toBe(200);
+    }
   });
 
   it("400 com o campo, 404 para unidade que não existe; ambos estão no contrato", async () => {
@@ -86,7 +105,15 @@ describe("configurações da unidade x OpenAPI (CA22)", () => {
       [(b) => (b.settings.dueDays = []), "settings.dueDays"],
       [(b) => (b.settings.feesCents.pix = -1), "settings.feesCents.pix"],
       [(b) => (b.settings.pixKey = "abc"), "settings.pixKey"],
-      [(b) => (b.settings.reminderDays = [1, 1]), "settings.reminderDays"],
+      [(b) => delete (b.settings as Partial<Body["settings"]>).reminders, "settings.reminders"],
+      [(b) => delete (b.settings.reminders as Partial<UnitReminders>).due, "settings.reminders.due"],
+      [(b) => delete (b.settings.reminders.due as Partial<UnitReminders["due"]>).enabled, "settings.reminders.due.enabled"],
+      [(b) => delete (b.settings.reminders.afterFirst as Partial<UnitReminders["before"]>).days, "settings.reminders.afterFirst.days"],
+      [(b) => (b.settings.reminders.before.days = 0), "settings.reminders.before.days"],
+      [(b) => (b.settings.reminders.before.days = 31), "settings.reminders.before.days"],
+      [(b) => (b.settings.reminders.afterFirst.days = 0), "settings.reminders.afterFirst.days"],
+      [(b) => (b.settings.reminders.afterSecond.days = 61), "settings.reminders.afterSecond.days"],
+      [(b) => (b.settings.reminders.afterSecond.days = 3), "settings.reminders.afterSecond.days"],
       [(b) => (b.settings.remindersHour = 24), "settings.remindersHour"],
       [(b) => (b.settings.remindersHour = -1), "settings.remindersHour"],
       [(b) => delete b.settings.remindersHour, "settings.remindersHour"],

@@ -31,7 +31,12 @@ export const unitFixture = (settings: Partial<UnitDetail["settings"]> = {}): Uni
     feesCents: { cash: 0, pix: 0, bankSlip: 0, creditCard: 0, debitCard: 0, automaticDebit: 0, manualPix: 0, terminalCard: 0, transfer: 0 },
     pixKey: null,
     paymentAccount: "NOT_CONNECTED",
-    reminderDays: [-3, 0, 3, 10],
+    reminders: {
+      before: { enabled: true, days: 3 },
+      due: { enabled: true },
+      afterFirst: { enabled: true, days: 3 },
+      afterSecond: { enabled: true, days: 10 },
+    },
     remindersEnabled: true,
     remindersHour: 9,
     teacherPermissions: { announcements: true, agendaEdit: true, studentContacts: true, trialClasses: true, studentRecord: false },
@@ -43,13 +48,13 @@ export const unitFixture = (settings: Partial<UnitDetail["settings"]> = {}): Uni
   },
 });
 
-export function renderTab(tab: (p: TabProps) => ReactNode, unit: UnitDetail = unitFixture(), errors: Record<string, string> = {}) {
+export function renderTab(tab: (p: TabProps) => ReactNode, unit: UnitDetail = unitFixture(), errors: Record<string, string> = {}, problems: TabProps["problems"] = {}) {
   let current: Draft = toDraft(unit);
   function Harness() {
     const [d, setD] = useState(current);
     current = d;
     const set: SetDraft = (k) => (v) => setD((p) => ({ ...p, [k]: v }));
-    return <>{tab({ d, set, problems: {}, errors })}</>;
+    return <>{tab({ d, set, problems, errors })}</>;
   }
   const view = render(
     <ThemeProvider>

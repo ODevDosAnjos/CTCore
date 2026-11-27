@@ -42,8 +42,9 @@ class UnitSettingsIT extends UnitBase {
                 "phone", "email", "whatsapp", "cnpj", "legalName", "active", "timezone", "settings", "version", "lastChange");
         var s = unit.path("settings");
         assertThat(fieldNames(s)).containsExactlyInAnyOrder("dueDays", "enrollmentFeeEnabled", "enrollmentFeeCents", "feesCents", "pixKey",
-                "paymentAccount", "reminderDays", "teacherPermissions", "directoryEnabled", "trialLinkEnabled", "selfRegistrationLinkEnabled", "remindersEnabled", "remindersHour", "trialLimit");
+                "paymentAccount", "reminders", "teacherPermissions", "directoryEnabled", "trialLinkEnabled", "selfRegistrationLinkEnabled", "remindersEnabled", "remindersHour", "trialLimit");
         assertThat(s.path("dueDays")).hasSize(4);
+        assertThat(s.path("reminders")).isEqualTo(json.readTree(STANDARD_REMINDERS));
         assertThat(fieldNames(s.path("feesCents"))).containsExactlyInAnyOrder("cash", "pix", "bankSlip", "creditCard", "debitCard",
                 "automaticDebit", "manualPix", "terminalCard", "transfer");
         assertThat(fieldNames(s.path("teacherPermissions"))).containsExactlyInAnyOrder("announcements", "agendaEdit", "studentContacts", "trialClasses", "studentRecord");
@@ -92,7 +93,6 @@ class UnitSettingsIT extends UnitBase {
         s.putArray("dueDays").add(15).add(5).add(1);
         s.put("enrollmentFeeEnabled", true).put("enrollmentFeeCents", 15000).put("pixKey", "Ana@Exemplo.com");
         ((ObjectNode) s.path("feesCents")).put("pix", 199).put("creditCard", 450);
-        s.putArray("reminderDays").add(-3).add(0).add(3).add(10);
         ((ObjectNode) s.path("teacherPermissions")).put("announcements", false).put("agendaEdit", true).put("studentContacts", false)
                 .put("trialClasses", true).put("studentRecord", true);
         s.put("directoryEnabled", true).put("trialLinkEnabled", false).put("selfRegistrationLinkEnabled", false);
@@ -110,7 +110,7 @@ class UnitSettingsIT extends UnitBase {
         assertThat(rs.path("pixKey").asText()).isEqualTo("ana@exemplo.com");
         assertThat(rs.path("feesCents").path("pix").asInt()).isEqualTo(199);
         assertThat(rs.path("feesCents").path("creditCard").asInt()).isEqualTo(450);
-        assertThat(rs.path("reminderDays").toString()).isEqualTo("[-3,0,3,10]");
+        assertThat(rs.path("reminders")).isEqualTo(json.readTree(STANDARD_REMINDERS));
         assertThat(rs.path("directoryEnabled").asBoolean()).isTrue();
         assertThat(rs.path("trialLinkEnabled").asBoolean()).isFalse();
         assertThat(adminJdbc().queryForObject("select organization_id from unit where id = ?", UUID.class, a.unitId())).isEqualTo(a.orgId());
@@ -129,10 +129,6 @@ class UnitSettingsIT extends UnitBase {
         assertThat(adminJdbc().queryForObject("select enrollment_fee_cents from unit_settings where unit_id = ?", Long.class, a.unitId())).isZero();
         // CA11: chave em branco apaga.
         assertThat(adminJdbc().queryForObject("select pix_key from unit_settings where unit_id = ?", String.class, a.unitId())).isNull();
-        // CA13: lembretes vazios.
-        ObjectNode none = payload();
-        ((ObjectNode) none.path("settings")).putArray("reminderDays");
-        assertThat(call(put(a.unitId(), none), coordinator(a)).getResponse().getStatus()).isEqualTo(200);
     }
 
     @Test
@@ -147,7 +143,12 @@ class UnitSettingsIT extends UnitBase {
                 Map.entry("longitude", n -> n.put("latitude", 1.0)),
                 Map.entry("settings.dueDays", n -> ((ObjectNode) n.path("settings")).putArray("dueDays").add(0)),
                 Map.entry("settings.feesCents.pix", n -> ((ObjectNode) n.path("settings").path("feesCents")).put("pix", -1)),
-                Map.entry("settings.pixKey", n -> ((ObjectNode) n.path("settings")).put("pixKey", "abc")))) {
+                Map.entry("settings.pixKey", n -> ((ObjectNode) n.path("settings")).put("pixKey", "abc")),
+                Map.entry("settings.reminders", n -> ((ObjectNode) n.path("settings")).remove("reminders")),
+                Map.entry("settings.reminders.due", n -> reminders(n).remove("due")),
+                Map.entry("settings.reminders.before.days", n -> ((ObjectNode) reminders(n).path("before")).put("days", 31)),
+                Map.entry("settings.reminders.afterFirst.enabled", n -> ((ObjectNode) reminders(n).path("afterFirst")).remove("enabled")),
+                Map.entry("settings.reminders.afterSecond.days", n -> ((ObjectNode) reminders(n).path("afterSecond")).put("days", 3)))) {
             ObjectNode body = payload();
             change.getValue().accept(body);
             var response = call(put(a.unitId(), body), coordinator(a)).getResponse();
@@ -156,6 +157,34 @@ class UnitSettingsIT extends UnitBase {
         }
         assertThat(unitSnapshot(a)).isEqualTo(before);
         assertThat(audit(a, "unit.update")).isEmpty();
+    }
+
+    private static final String STANDARD_REMINDERS = """
+            {"before":{"enabled":true,"days":3},"due":{"enabled":true},"afterFirst":{"enabled":true,"days":3},"afterSecond":{"enabled":true,"days":10}}""";
+
+    private static ObjectNode reminders(ObjectNode body) {
+        return (ObjectNode) body.path("settings").path("reminders");
+    }
+
+    @Test
+    @DisplayName("#638 CA5: desligar um lembrete e mudar o dia de outro audita só o que mudou, com antes e depois")
+    void reminderAudit() throws Exception {
+        var a = tenant();
+        assertThat(call(put(a.unitId(), payload()), coordinator(a)).getResponse().getStatus()).isEqualTo(200); // baseline: o nome muda
+        int audits = audit(a, "unit.update").size();
+        ObjectNode body = payload();
+        ((ObjectNode) reminders(body).path("before")).put("enabled", false);
+        ((ObjectNode) reminders(body).path("afterFirst")).put("days", 5);
+        var response = call(put(a.unitId(), body), coordinator(a)).getResponse();
+        assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
+        assertThat(body(response).path("settings").path("reminders").path("before")).isEqualTo(json.readTree("{\"enabled\":false,\"days\":3}"));
+        assertThat(audit(a, "unit.update")).hasSize(audits + 1);
+        var row = adminJdbc().queryForMap("select before_data::text as was, after_data::text as now from audit_log "
+                + "where organization_id = ? and action = 'unit.update' order by occurred_at desc limit 1", a.orgId());
+        assertThat(json.readTree(row.get("was").toString()))
+                .isEqualTo(json.readTree("{\"reminders.before.enabled\":true,\"reminders.afterFirst.days\":3}"));
+        assertThat(json.readTree(row.get("now").toString()))
+                .isEqualTo(json.readTree("{\"reminders.before.enabled\":false,\"reminders.afterFirst.days\":5}"));
     }
 
     private String unitSnapshot(Tenant t) {
@@ -391,7 +420,7 @@ class UnitSettingsIT extends UnitBase {
         var s = get(a, a.unitId(), coordinator(a)).path("settings");
         assertThat(s.path("remindersEnabled").asBoolean()).isTrue();
         assertThat(s.path("remindersHour").asInt()).isEqualTo(9);
-        assertThat(s.path("reminderDays").toString()).isEqualTo("[-3,0,3,10]");
+        assertThat(s.path("reminders")).isEqualTo(json.readTree(STANDARD_REMINDERS));
         assertThat(call(put(a.unitId(), payload()), coordinator(a)).getResponse().getStatus()).isEqualTo(200); // baseline: o nome muda
         int version = get(a, a.unitId(), coordinator(a)).path("version").asInt();
         ObjectNode body = payload();
@@ -411,12 +440,12 @@ class UnitSettingsIT extends UnitBase {
         int audits = audit(a, "unit.update").size();
         assertThat(call(put(a.unitId(), body), coordinator(a)).getResponse().getStatus()).isEqualTo(200);
         assertThat(audit(a, "unit.update")).hasSize(audits);
-        // CA4: só dias; os dois campos do corpo valem (padrão volta).
+        // CA4: só um dia muda; os dois campos do corpo valem (padrão volta).
         ObjectNode days = payload();
-        ((ObjectNode) days.path("settings")).putArray("reminderDays").add(1);
+        ((ObjectNode) reminders(days).path("before")).put("days", 1);
         assertThat(call(put(a.unitId(), days), coordinator(a)).getResponse().getStatus()).isEqualTo(200);
-        assertThat(adminJdbc().queryForMap("select reminders_enabled, reminders_hour, reminder_days::text as d from unit_settings where unit_id = ?", a.unitId()))
-                .containsEntry("reminders_enabled", true).containsEntry("reminders_hour", 9).containsEntry("d", "{1}");
+        assertThat(adminJdbc().queryForMap("select reminders_enabled, reminders_hour, reminder_before_days::text as d from unit_settings where unit_id = ?", a.unitId()))
+                .containsEntry("reminders_enabled", true).containsEntry("reminders_hour", 9).containsEntry("d", "1");
         // CA3: inválidos.
         String before = unitSnapshot(a);
         for (var change : List.<Consumer<ObjectNode>>of(n -> ((ObjectNode) n.path("settings")).put("remindersHour", 24),

@@ -1,5 +1,5 @@
 import { formatCep, formatCpfCnpj, onlyDigits } from "@/components/fields/masks";
-import { FEE_KEYS, type FeeKey, type TeacherKey, type UnitDetail, type UnitUpdate } from "./useUnitSettings";
+import { FEE_KEYS, type FeeKey, type TeacherKey, type UnitDetail, type UnitReminders, type UnitUpdate } from "./useUnitSettings";
 
 // Rascunho único das cinco abas: textos como o usuário vê; a conversão para o corpo do PUT fica em toBody.
 export type Draft = {
@@ -19,7 +19,7 @@ export type Draft = {
   enrollmentFeeCents: number | null;
   fees: Record<FeeKey, number | null>;
   pixKey: string;
-  reminderDays: number[];
+  reminders: ReminderDrafts;
   remindersEnabled: boolean;
   remindersHour: number;
   teacher: Record<TeacherKey, boolean>;
@@ -29,15 +29,31 @@ export type Draft = {
   trialLimit: number;
 };
 
+/** Lembretes com dia ajustável e o maior dia de cada um (RN-COB-17); o do dia do vencimento só liga e desliga. */
+export const REMINDER_MAX = { before: 30, afterFirst: 60, afterSecond: 60 } as const;
+export type ReminderDayKey = keyof typeof REMINDER_MAX;
+export type ReminderDrafts = Record<ReminderDayKey, { enabled: boolean; days: string }> & { due: { enabled: boolean } };
+
+const draftReminders = (r: UnitReminders): ReminderDrafts => ({
+  before: { enabled: r.before.enabled, days: String(r.before.days) },
+  due: r.due,
+  afterFirst: { enabled: r.afterFirst.enabled, days: String(r.afterFirst.days) },
+  afterSecond: { enabled: r.afterSecond.enabled, days: String(r.afterSecond.days) },
+});
+const bodyReminders = (r: ReminderDrafts): UnitReminders => ({
+  before: { enabled: r.before.enabled, days: Number(r.before.days) },
+  due: r.due,
+  afterFirst: { enabled: r.afterFirst.enabled, days: Number(r.afterFirst.days) },
+  afterSecond: { enabled: r.afterSecond.enabled, days: Number(r.afterSecond.days) },
+});
+export const isReminderDay = (key: ReminderDayKey, text: string) => /^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= REMINDER_MAX[key];
+
 export type SetDraft = <K extends keyof Draft>(key: K) => (value: Draft[K]) => void;
 /** Erros por campo: do que o usuário digitou (`problems`) ou da resposta 400 (`errors`, pela chave do servidor). */
-export type Problems = Partial<Record<"name" | "cnpj" | "postalCode" | "coordinates" | "phone" | "whatsapp" | "email" | "dueDays", string>>;
+export type Problems = Partial<Record<"name" | "cnpj" | "postalCode" | "coordinates" | "phone" | "whatsapp" | "email" | "dueDays" | `reminders.${ReminderDayKey}`, string>>;
 export type TabProps = { d: Draft; set: SetDraft; problems: Problems; errors: Record<string, string> };
 
 export const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-export const MAX_REMINDERS = 8;
-// Dias de lembrete que têm interruptor próprio (RN-COB-17): negativo é antes, positivo é depois do vencimento.
-export const STANDARD_REMINDER_DAYS = [-3, 0, 3, 10] as const;
 
 const KEY_DIGITS = /^\d{11}$|^\d{14}$/;
 
@@ -60,7 +76,7 @@ export function toDraft(d: UnitDetail): Draft {
     enrollmentFeeCents: s.enrollmentFeeCents,
     fees: s.feesCents,
     pixKey: s.pixKey && KEY_DIGITS.test(s.pixKey) ? formatCpfCnpj(s.pixKey) : (s.pixKey ?? ""),
-    reminderDays: s.reminderDays,
+    reminders: draftReminders(s.reminders),
     remindersEnabled: s.remindersEnabled,
     remindersHour: s.remindersHour,
     teacher: s.teacherPermissions,
@@ -97,7 +113,7 @@ export function toBody(d: Draft, base: Draft): UnitUpdate {
       enrollmentFeeCents: d.enrollmentFeeEnabled ? (d.enrollmentFeeCents ?? 0) : 0,
       feesCents: Object.fromEntries(FEE_KEYS.map((k) => [k, d.fees[k] ?? 0])) as Record<FeeKey, number>,
       pixKey: blankToNull(d.pixKey),
-      reminderDays: d.reminderDays,
+      reminders: bodyReminders(d.reminders),
       remindersEnabled: d.remindersEnabled,
       remindersHour: d.remindersHour,
       teacherPermissions: d.teacher,

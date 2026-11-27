@@ -268,7 +268,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 768 | 636a · Razão social da unidade e nome do titular | issue #768 (parte da #636) | Sprint 10.5 | #764 | agente | feito |
 | 769 | 636b · Campos automáticos no termo de matrícula (fecha a #636) | issue #769 (parte da #636) | Sprint 10.5 | #768 | agente | feito |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) (item-mãe: dividido em #768 e #769, P19; fecha na #769; sem construção própria) | issue #636 | Sprint 10.5 | #769 | agente | dividido |
-| 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |
+| 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | feito |
 | 645 | RNF-44 · Movimento e retorno: avisos no canto, carregamento e transições | issue #645 | Sprint 10.5 | #624, #643 | agente | a fazer |
 | 647 | RNF-48 a 50 · Campos de valor e número, campos dependentes e validação | issue #647 | Sprint 10.5 | — | agente | a fazer |
 | 648 | RNF-47 · Motivos em lista com "Outro" em todo o sistema | issue #648 | Sprint 10.5 | — | agente | a fazer |

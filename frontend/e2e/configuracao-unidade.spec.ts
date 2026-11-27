@@ -63,3 +63,43 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await open(page, UNIT);
   await expect(page.getByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeVisible();
 });
+
+// RN-COB-17 (issue 638): desligar mantém o dia, que volta como salvo; a 390 px o texto de cada linha tem largura e não se sobrepõe.
+test("@critical lembretes da unidade: desligar, ajustar o dia, religar, salvar e reabrir; texto legível a 390 px", async ({ page }) => {
+  await loginAs(page, "ana@exemplo.com");
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, `${UNIT}?aba=reminders`);
+  await expect(page.getByRole("navigation").first()).toBeVisible();
+
+  await page.getByRole("switch", { name: "3 dias depois" }).click();
+  await expect(page.getByRole("switch", { name: "3 dias depois" })).not.toBeChecked();
+  await page.getByLabel("Dias depois no 1º lembrete").fill("5");
+  await page.getByRole("switch", { name: "5 dias depois" }).click();
+  await page.getByRole("switch", { name: "No dia do vencimento" }).click();
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(page.getByText("Salvo", { exact: true })).toBeVisible();
+
+  await open(page, "/");
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await open(page, `${UNIT}?aba=reminders`);
+  await expect(page.getByRole("switch", { name: "5 dias depois" })).toBeChecked();
+  await expect(page.getByLabel("Dias depois no 1º lembrete")).toHaveValue("5");
+  await expect(page.getByRole("switch", { name: "No dia do vencimento" })).not.toBeChecked();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const rows = page.getByRole("listitem").filter({ has: page.getByRole("switch") });
+  await expect(rows).toHaveCount(5);
+  for (const row of await rows.all()) {
+    const text = row.locator(":scope > div").first();
+    const box = (await text.boundingBox())!;
+    const title = await text.locator("p").first().innerText();
+    expect(box.width, title).toBeGreaterThanOrEqual(150);
+    // A chave, o "E-mail", o "Push" e o "Sempre ligado": tudo o que não é o bloco de texto.
+    for (const other of await row.locator(":scope > :not(:nth-child(2))").all()) {
+      const o = (await other.boundingBox())!;
+      const overlaps = o.x < box.x + box.width && box.x < o.x + o.width && o.y < box.y + box.height && box.y < o.y + o.height;
+      expect(overlaps, title).toBe(false);
+    }
+  }
+  expect(await page.evaluate("document.documentElement.scrollWidth")).toBeLessThanOrEqual(390);
+});

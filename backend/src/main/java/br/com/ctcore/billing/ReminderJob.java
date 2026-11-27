@@ -18,8 +18,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * RN-COB-17 (D1 a D4): lembretes automáticos por e-mail no dia exato {@code vencimento + dia} de {@code unit_settings.reminder_days}, depois da hora da
- * unidade, uma vez por cobrança e dia; e o aviso fixo 5 dias antes do bloqueio (só mensalidade, parcela e diferença de reajuste, em unidade com conta
+ * RN-COB-17 (D1 a D4): lembretes automáticos por e-mail no dia exato {@code vencimento + dia} de cada lembrete ligado em
+ * {@code unit_settings} (antes, no dia e os dois de depois), depois da hora da unidade, uma vez por cobrança e dia; e o aviso fixo 5 dias antes do bloqueio (só mensalidade, parcela e diferença de reajuste, em unidade com conta
  * conectada), que ainda manda SMS. Uma transação por cobrança, com a linha travada: pagamento confirmado antes impede o envio (RN-COB-19). Sem auditoria
  * própria (D9); o erro de uma cobrança vai ao log só com a classe da exceção e não impede as outras.
  * ponytail: dia perdido (sistema parado o dia inteiro) não é recuperado (D2); periodicidade fixa em 15 minutos.
@@ -35,6 +35,11 @@ public class ReminderJob {
             + "join unit_settings us on us.organization_id = c.organization_id and us.unit_id = c.unit_id "
             + "join organization_settings os on os.organization_id = c.organization_id where c.organization_id = :org and c.status = 'OPEN' "
             + "and extract(hour from cast(:now as timestamptz) at time zone u.timezone) >= us.reminders_hour ";
+
+    /** Deslocamentos dos lembretes ligados; o desligado vira nulo e não casa com dia nenhum. */
+    private static final String ENABLED_OFFSETS = "array[case when us.reminder_before_enabled then -us.reminder_before_days end, "
+            + "case when us.reminder_due_enabled then 0 end, case when us.reminder_after_first_enabled then us.reminder_after_first_days end, "
+            + "case when us.reminder_after_second_enabled then us.reminder_after_second_days end]";
 
     private final OrganizationTransactions transactions;
     private final JdbcClient jdbc;
@@ -76,9 +81,9 @@ public class ReminderJob {
     private List<Candidate> candidates(UUID org, OffsetDateTime now) {
         String day = Charges.today("u") + " - c.due_on";
         List<Candidate> list = new ArrayList<>(jdbc.sql("select c.id, " + day + ", u.timezone " + BASE + "and us.reminders_enabled and (" + day
-                + ") = any(us.reminder_days) order by c.id").param("org", org).param("now", now)
+                + ") = any(" + ENABLED_OFFSETS + ") order by c.id").param("org", org).param("now", now)
                 .query((rs, n) -> new Candidate(rs.getObject(1, UUID.class), "SCHEDULED", rs.getInt(2), rs.getString(3))).list());
-        // R3: o aviso de bloqueio é fixo; não depende de reminder_days nem de reminders_enabled.
+        // R3: o aviso de bloqueio é fixo; não depende das chaves dos lembretes nem de reminders_enabled.
         list.addAll(jdbc.sql("select c.id, u.timezone " + BASE
                 + "and c.type in ('MONTHLY', 'INSTALLMENT', 'READJUSTMENT_DIFF') and us.payment_account_reference is not null "
                 + "and " + Charges.BLOCK_DATE + " - " + BLOCK_WARNING_DAYS + " = " + Charges.today("u") + " order by c.id").param("org", org).param("now", now)

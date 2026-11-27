@@ -20,7 +20,7 @@ import { UnitLinksTab } from "./UnitLinksTab";
 import { UnitPaymentsTab } from "./UnitPaymentsTab";
 import { UnitRemindersTab } from "./UnitRemindersTab";
 import { UnitTeacherTab } from "./UnitTeacherTab";
-import { EMAIL, coordinate, toBody, toDraft, type Draft, type Problems } from "./unitDraft";
+import { EMAIL, REMINDER_MAX, coordinate, isReminderDay, toBody, toDraft, type Draft, type Problems, type ReminderDayKey } from "./unitDraft";
 import { FEE_KEYS, TEACHER_KEYS, useUnitDetail, type UnitDetail } from "./useUnitSettings";
 
 const TABS = ["data", "payments", "reminders", "links", "teacher"] as const;
@@ -52,7 +52,15 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
 
   const lat = coordinate(d.latitude);
   const lon = coordinate(d.longitude);
+  const reminderProblem = (key: ReminderDayKey) => {
+    const { days } = d.reminders[key];
+    if (!isReminderDay(key, days)) return t("unitSettings.reminderDaysInvalid", { max: REMINDER_MAX[key] });
+    return key === "afterSecond" && Number(days) === Number(d.reminders.afterFirst.days) ? t("unitSettings.reminderDaysRepeated") : undefined;
+  };
   const problems: Problems = {
+    "reminders.before": reminderProblem("before"),
+    "reminders.afterFirst": reminderProblem("afterFirst"),
+    "reminders.afterSecond": reminderProblem("afterSecond"),
     name: d.name.trim() === "" ? t("unitSettings.nameRequired") : d.name.trim().length > 120 ? t("unitSettings.nameTooLong") : undefined,
     cnpj: d.cnpj !== "" && !isValidCnpj(d.cnpj) ? t("unitSettings.cnpjInvalid") : undefined,
     postalCode: d.postalCode !== "" && onlyDigits(d.postalCode).length !== 8 ? t("unitSettings.postalCodeInvalid") : undefined,
@@ -67,8 +75,9 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
   };
   const dirty = JSON.stringify(d) !== JSON.stringify(base);
   const blocked = Object.values(problems).some(Boolean);
-  // Abas com erro: o que foi digitado (os dias de vencimento são de Cobrança; o resto, de Dados) e o que o servidor recusou.
-  const localErrors = new Set(Object.entries(problems).flatMap(([k, v]): TabId[] => (v ? [k === "dueDays" ? "payments" : "data"] : [])));
+  // Abas com erro: o que foi digitado (dias de vencimento são de Cobrança, os dos lembretes são de Lembretes, o resto é de Dados) e o que o servidor recusou.
+  const tabOfProblem = (key: string): TabId => (key.startsWith("reminders.") ? "reminders" : key === "dueDays" ? "payments" : "data");
+  const localErrors = new Set(Object.entries(problems).flatMap(([k, v]): TabId[] => (v ? [tabOfProblem(k)] : [])));
   const withError = new Set<TabId>([...localErrors, ...Object.keys(errors).map(tabOfServerField)]);
 
   // Depois de abrir a aba com o erro, o foco vai ao primeiro campo inválido dela.
@@ -136,7 +145,18 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
       [t("unitSettings.pixKey"), d.pixKey, c.pixKey, text],
       [t("unitSettings.remindersEnabledField"), d.remindersEnabled, c.remindersEnabled, text],
       [t("unitSettings.remindersHour"), d.remindersHour, c.remindersHour, text],
-      [t("unitSettings.reminders"), d.reminderDays, c.reminderDays, text],
+      ...(["before", "due", "afterFirst", "afterSecond"] as const).map((k): [string, unknown, unknown, (v: unknown) => string] => [
+        t(`unitSettings.reminderName.${k}`),
+        d.reminders[k].enabled,
+        c.reminders[k].enabled,
+        text,
+      ]),
+      ...(["before", "afterFirst", "afterSecond"] as const).map((k): [string, unknown, unknown, (v: unknown) => string] => [
+        t(`unitSettings.reminderDaysLabel.${k}`),
+        d.reminders[k].days,
+        c.reminders[k].days,
+        text,
+      ]),
       ...TEACHER_KEYS.map((k): [string, unknown, unknown, (v: unknown) => string] => [t(`unitSettings.teacher.${k}`), d.teacher[k], c.teacher[k], text]),
       [t("unitSettings.directory"), d.directoryEnabled, c.directoryEnabled, text],
       [t("unitSettings.trialLink"), d.trialLinkEnabled, c.trialLinkEnabled, text],
