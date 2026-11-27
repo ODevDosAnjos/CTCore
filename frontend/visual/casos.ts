@@ -178,6 +178,9 @@ export const casos: Caso[] = [
   // #762: abas sem tela no canvas (decisão 24); o caso só guarda a referência do teste visual
   { nome: "conta-perfil", rota: "/conta?aba=perfil", perfil: ana },
   { nome: "conta-privacidade", rota: "/conta?aba=privacidade", perfil: ana },
+  // issue 764: duas etapas ligadas (contagem e "Trocar de aparelho") e a janela no passo de senha e código; o canvas não tem nenhum dos dois (D11)
+  { nome: "conta-seguranca-ligada", rota: "/conta?aba=seguranca", perfil: "duas@exemplo.com" },
+  { nome: "conta-trocar-aparelho", rota: "/conta?aba=seguranca", perfil: "duas@exemplo.com", passos: [{ clicar: "Trocar de aparelho" }], aguardar: "#two-factor-replace" },
   { nome: "conta-aluno-perfil", rota: "/conta?aba=perfil", perfil: aluno },
   { nome: "conta-aluno-notificacoes", rota: "/conta?aba=notificacoes", perfil: aluno, aguardar: '[role="switch"]' },
   { nome: "conta-aluno-privacidade", rota: "/conta?aba=privacidade", perfil: aluno },

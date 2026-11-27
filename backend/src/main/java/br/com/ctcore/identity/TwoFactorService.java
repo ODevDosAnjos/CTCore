@@ -7,6 +7,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -30,6 +31,10 @@ public class TwoFactorService {
     /** No 0/O, 1/I/L: easy to read aloud and to type. */
     private static final String BACKUP_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
+    /** How long a new secret waits for its first code when replacing the device (issue 764, D1). */
+    private static final Duration REPLACE_VALIDITY = Duration.ofMinutes(10);
+
+    private record Pending(String secret, OffsetDateTime expiresAt) {}
 
     public record Setup(String secret, String otpauthUri) {}
 
@@ -108,6 +113,10 @@ public class TwoFactorService {
             }
             return jdbc.sql("select email from account where id = :a").param("a", accountId).query(String.class).single();
         });
+        return setupOf(email, secret);
+    }
+
+    private static Setup setupOf(String email, byte[] secret) {
         String base32 = Base32.encode(secret);
         String label = URLEncoder.encode("CTCore:" + email, StandardCharsets.UTF_8).replace("+", "%20");
         return new Setup(base32, "otpauth://totp/" + label + "?secret=" + base32
@@ -153,6 +162,48 @@ public class TwoFactorService {
         List<String> codes = accountTx.forAccount(accountId, () -> newBackupCodes(accountId));
         audit.record(accountId, actor(accountId), ip, "account.backup_codes_regenerated");
         return codes;
+    }
+
+    /**
+     * New device (RF-ACE-04): password and current code, then a secret that waits for {@link #confirmReplace}; the active one
+     * keeps working until then. Whoever is required to have two-step may replace it too.
+     */
+    public Setup replace(UUID accountId, String password, String code, String ip) {
+        requireEnabled(accountId);
+        confirm(accountId, password, code, ip);
+        byte[] secret = Totp.newSecret();
+        String email = accountTx.forAccount(accountId, () -> {
+            int saved = jdbc.sql("update account_two_factor set pending_secret_encrypted = :s, pending_expires_at = :exp "
+                    + "where account_id = :a and enabled_at is not null").param("a", accountId)
+                    .param("s", cipher.encrypt(secret)).param("exp", now().plus(REPLACE_VALIDITY)).update();
+            if (saved == 0) {
+                throw new IdentityException(Code.TWO_FACTOR_STATE, "NOT_ENABLED");
+            }
+            return jdbc.sql("select email from account where id = :a").param("a", accountId).query(String.class).single();
+        });
+        return setupOf(email, secret);
+    }
+
+    /** A code of the new app makes its secret the active one; the backup codes and the activation date stay. */
+    public void confirmReplace(UUID accountId, String code, String ip) {
+        accountTx.forAccount(accountId, () -> {
+            Pending pending = jdbc.sql("select pending_secret_encrypted, pending_expires_at from account_two_factor "
+                    + "where account_id = :a and enabled_at is not null for update").param("a", accountId)
+                    .query((rs, n) -> new Pending(rs.getString(1), rs.getObject(2, OffsetDateTime.class))).optional()
+                    .orElseThrow(() -> new IdentityException(Code.TWO_FACTOR_STATE, "NOT_ENABLED"));
+            if (pending.secret() == null || !pending.expiresAt().isAfter(now())) {
+                throw new IdentityException(Code.TWO_FACTOR_STATE, "NO_SETUP");
+            }
+            OptionalLong step = isTotpShape(clean(code))
+                    ? Totp.match(cipher.decrypt(pending.secret()), clean(code), clock.instant()) : OptionalLong.empty();
+            if (step.isEmpty()) {
+                throw new IdentityException(Code.INVALID_TWO_FACTOR_CODE, null);
+            }
+            return jdbc.sql("update account_two_factor set secret_encrypted = pending_secret_encrypted, last_used_step = :s, "
+                    + "pending_secret_encrypted = null, pending_expires_at = null where account_id = :a")
+                    .param("s", step.getAsLong()).param("a", accountId).update();
+        });
+        audit.record(accountId, actor(accountId), ip, "account.two_factor_replaced");
     }
 
     private void requireEnabled(UUID accountId) {

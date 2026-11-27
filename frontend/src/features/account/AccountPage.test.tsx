@@ -11,7 +11,7 @@ import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { portalShellOk } from "@/test/portalShell";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 
-type TwoFactor = { enabled: boolean; required: boolean; enabledAt?: string | null };
+type TwoFactor = { enabled: boolean; required: boolean; enabledAt?: string | null; backupCodesRemaining?: number };
 const session = (role: string, twoFactor: TwoFactor = { enabled: false, required: false }, passwordChangedAt: string | null = "2026-08-12T15:00:00Z"): SessionView => ({
   account: { id: "a", email: "x@x.com", name: "X", passwordChangedAt },
   links: [{ id: "l1", organizationId: "o", organizationName: "Alfa", role, unitIds: [], unitNames: ["Centro"] }],
@@ -342,6 +342,44 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
     await user.click(screen.getByLabelText("Guardei os códigos em lugar seguro"));
     await user.click(screen.getByRole("button", { name: "Concluir" }));
     expect(await screen.findByText("Ativa")).toBeInTheDocument();
+  });
+
+  it.each(["ADMINISTRATOR", "STUDENT"])("issue 764 CA6: %s ligada vê a contagem e Trocar de aparelho; a troca avisa e relê a sessão; fechar os códigos novos volta a 10", async (role) => {
+    const user = userEvent.setup();
+    const on = { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" };
+    const routes = [
+      http.post("/api/v1/auth/two-factor/replace", () => HttpResponse.json({ secret: "ABCD", otpauthUri: "otpauth://totp/x?secret=ABCD" })),
+      http.post("/api/v1/auth/two-factor/replace/confirm", () => new HttpResponse(null, { status: 204 })),
+      http.post("/api/v1/auth/two-factor/backup-codes", () => HttpResponse.json({ backupCodes: ["ABCDE00000"] })),
+    ];
+    const { setSession } = await setup(role, { ...on, backupCodesRemaining: 9 }, SEGURANCA, routes);
+    await ready();
+    expect(screen.getByText("códigos de reserva: 9 de 10")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Trocar de aparelho" }));
+    const dialog = await screen.findByRole("dialog", { name: "Trocar de aparelho" });
+    await user.type(within(dialog).getByLabelText("Senha"), "Atual12345");
+    await user.type(within(dialog).getByLabelText("Código do app ou de reserva"), "RESERVA001");
+    await user.click(within(dialog).getByRole("button", { name: "Continuar" }));
+    await user.type(await within(dialog).findByLabelText("Digite o código de 6 números que aparece no app"), "123456");
+    setSession(session(role, { ...on, backupCodesRemaining: 8 }));
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText("Aparelho trocado. Use o app novo no próximo acesso.")).toBeInTheDocument();
+    expect(await screen.findByText("códigos de reserva: 8 de 10")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ver códigos de reserva novos" }));
+    await screen.findByText("ABCDE-00000");
+    setSession(session(role, { ...on, backupCodesRemaining: 10 }));
+    await user.click(screen.getByLabelText("Guardei os códigos em lugar seguro"));
+    await user.click(screen.getByRole("button", { name: "Concluir" }));
+    expect(await screen.findByText("códigos de reserva: 10 de 10")).toBeInTheDocument();
+  });
+
+  it("issue 764 CA6: desligadas, sem contagem e sem Trocar de aparelho", async () => {
+    await setup("ADMINISTRATOR", { enabled: false, required: false, backupCodesRemaining: 0 }, SEGURANCA);
+    await ready();
+    expect(screen.queryByText(/códigos de reserva:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Trocar de aparelho" })).not.toBeInTheDocument();
   });
 
   it("desliga com senha e código; erros aparecem nos campos", async () => {
@@ -679,7 +717,6 @@ describe("AccountPage: Notificações do portal (#762 CA8)", () => {
 describe("AccountPage: Privacidade (#762 CA9)", () => {
   it.each([
     ["STUDENT", false, ["Baixar meus dados", "Excluir minha conta"]],
-    ["ADMINISTRATOR", false, ["Baixar meus dados"]],
     ["GUARDIAN", true, ["Baixar meus dados", "Excluir minha conta"]],
   ])("%s (abaixo de 640 px: %s): Em breve, desabilitado e sem requisição ao clicar", async (role, narrow, names) => {
     setDeviceNarrow(narrow);

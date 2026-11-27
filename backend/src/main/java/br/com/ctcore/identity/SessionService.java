@@ -28,7 +28,7 @@ public class SessionService {
     public record AccountView(UUID id, String email, String name, OffsetDateTime passwordChangedAt, String phone, String photoUrl) {}
     public record LinkView(UUID id, UUID organizationId, String organizationName, String role, Set<UUID> unitIds,
             List<String> unitNames, OffsetDateTime lastAccessAt, LocalDate startsOn, List<String> studentNames) {}
-    public record TwoFactorView(boolean enabled, boolean required, OffsetDateTime enabledAt) {}
+    public record TwoFactorView(boolean enabled, boolean required, OffsetDateTime enabledAt, int backupCodesRemaining) {}
     public record SessionView(AccountView account, List<LinkView> links, UUID activeLinkId, TwoFactorView twoFactor) {}
 
     record Link(UUID id, UUID organizationId, Role role) {}
@@ -206,7 +206,8 @@ public class SessionService {
                             unitNames(l.id()), lastAccessAt(l.id()), startsOn(l.id()),
                             l.role() == Role.GUARDIAN ? studentNames(accountId, l.id()) : List.of())).toList();
             return new SessionView(account, links, activeLinkId,
-                    new TwoFactorView(enabledAt != null, twoFactor.requiredFor(accountId), enabledAt));
+                    new TwoFactorView(enabledAt != null, twoFactor.requiredFor(accountId), enabledAt,
+                            enabledAt == null ? 0 : twoFactor.backupCodesRemaining(accountId)));
         });
     }
 

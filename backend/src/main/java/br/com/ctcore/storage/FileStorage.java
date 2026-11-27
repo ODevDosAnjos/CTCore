@@ -33,6 +33,9 @@ public interface FileStorage {
      */
     void putAccountFile(UUID accountId, String name, byte[] content, String contentType);
 
+    /** Conteúdo do arquivo da conta; NotFound se não existir. */
+    byte[] getAccountFile(UUID accountId, String name);
+
     /** URL de leitura assinada e temporária; só assina, sem consultar o armazenamento (a leitura da sessão não depende dele). */
     String accountFileUrl(UUID accountId, String name);
 

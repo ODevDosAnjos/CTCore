@@ -249,6 +249,61 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { description: "Muitas tentativas (TOO_MANY_REQUESTS).", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/data-export:
+    get:
+      summary: Baixa os dados da própria conta (RF-LGP-01).
+      description: |
+        Arquivo JSON, como anexo, com a conta, os vínculos (todos, com a situação), os consentimentos e os acessos registrados, de todas
+        as organizações da conta. Age só sobre a conta da sessão, não recebe id e exige vínculo de gestão ativo (portal ou sessão sem
+        vínculo: 403). Não leva senha, hash, segredo, token, código, URL assinada, dado de aluno nem IP inteiro (RN-ACE-25). Das
+        tentativas de acesso entram só as do e-mail atual, a partir da criação da conta e da última troca de e-mail confirmada.
+        Grava `account.data_downloaded` na organização do vínculo ativo, sem o conteúdo.
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Arquivo `meus-dados-ctcore.json`.
+          headers:
+            Content-Disposition: { schema: { type: string }, description: "attachment; filename=\"meus-dados-ctcore.json\"" }
+          content: { application/json: { schema: { $ref: '#/components/schemas/AccountDataExport' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /auth/two-factor/replace:
+    post:
+      summary: Começa a trocar o aparelho das duas etapas (RF-ACE-04).
+      description: |
+        Exige a senha e o código atual (do app ou de reserva, que é gasto); erro conta na trava da RN-ACE-10. Gera o segredo do app
+        novo, pendente por 10 minutos; um pedido novo substitui o pendente. O segredo anterior vale até
+        `POST /auth/two-factor/replace/confirm` e os códigos de reserva não são trocados. Com as duas etapas desligadas responde 409.
+        Vale também para quem é obrigado a tê-las (RN-ACE-17, RN-ACE-24).
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PasswordAndCode' } } }
+      responses:
+        '200':
+          description: Segredo em base32 e endereço `otpauth://` do app novo; mostrados só agora.
+          content: { application/json: { schema: { $ref: '#/components/schemas/TwoFactorSetup' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { description: "Senha ou código incorretos (INVALID_CREDENTIALS, INVALID_TWO_FACTOR_CODE) ou sem sessão.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { description: "Muitas tentativas (TOO_MANY_REQUESTS).", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/two-factor/replace/confirm:
+    post:
+      summary: Conclui a troca do aparelho com um código do app novo (RF-ACE-04).
+      description: |
+        O segredo pendente passa a ser o ativo e o anterior deixa de valer. A data de ativação e os códigos de reserva não mudam.
+        Sem pedido pendente, com o pedido vencido ou com as duas etapas desligadas responde 409. Grava `account.two_factor_replaced`.
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TwoFactorCode' } } }
+      responses:
+        '204': { description: Aparelho trocado. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { description: "Código inválido (INVALID_TWO_FACTOR_CODE) ou sem sessão.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /auth/two-factor/backup-codes:
     post:
       summary: Gera 10 códigos de reserva novos, só com a sessão (RN-ACE-18).
@@ -4138,11 +4193,110 @@ components:
       properties:
         reauthToken: { type: string }
         expiresAt: { type: string, format: date-time }
+    AccountDataExport:
+      type: object
+      required: [generatedAt, account, links, consents, access]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        account:
+          type: object
+          required: [name, email]
+          properties:
+            name: { type: string, nullable: true }
+            email: { type: string }
+            phone: { type: string, nullable: true }
+            photo:
+              type: object
+              nullable: true
+              description: "Foto embutida; nulo sem foto ou quando o arquivo não existe."
+              required: [contentType, base64]
+              properties:
+                contentType: { type: string }
+                base64: { type: string, format: byte }
+        links:
+          type: array
+          items:
+            type: object
+            required: [organization, role, status, units]
+            properties:
+              organization: { type: string }
+              role: { type: string, enum: [COORDINATOR, ADMINISTRATOR, TEACHER, STUDENT, GUARDIAN] }
+              status: { type: string, enum: [PENDING, ACTIVE, ENDED] }
+              startsOn: { type: string, format: date, nullable: true }
+              endsOn: { type: string, format: date, nullable: true }
+              units: { type: array, items: { type: string } }
+        consents:
+          type: object
+          required: [termAcceptances, modalityConfirmations, emailPreferences, teacherDirectory]
+          properties:
+            termAcceptances:
+              type: array
+              items:
+                type: object
+                required: [organization, kind, event, version, at]
+                properties:
+                  organization: { type: string }
+                  kind: { type: string, enum: [ENROLLMENT, IMAGE_USE] }
+                  event: { type: string, enum: [ACCEPTED, REVOKED] }
+                  version: { type: integer }
+                  at: { type: string, format: date-time }
+            modalityConfirmations:
+              type: array
+              items:
+                type: object
+                required: [organization, at]
+                properties:
+                  organization: { type: string }
+                  at: { type: string, format: date-time }
+            emailPreferences:
+              type: array
+              description: Comunicados por e-mail dos vínculos de Aluno e Responsável.
+              items:
+                type: object
+                required: [organization, role, announcements]
+                properties:
+                  organization: { type: string }
+                  role: { type: string, enum: [STUDENT, GUARDIAN] }
+                  announcements: { type: boolean }
+            teacherDirectory:
+              type: array
+              items:
+                type: object
+                required: [organization, consent, declaredByManagement]
+                properties:
+                  organization: { type: string }
+                  consent: { type: boolean }
+                  declaredByManagement: { type: boolean }
+        access:
+          type: object
+          required: [attempts, sessions]
+          properties:
+            attempts:
+              type: array
+              items:
+                type: object
+                required: [at, result]
+                properties:
+                  at: { type: string, format: date-time }
+                  result: { type: string, enum: [SUCCESS, WRONG_PASSWORD, LOCKED, IP_LIMITED, CHALLENGE_FAILED, RESET_REQUEST, WRONG_CODE] }
+                  ip: { type: string, nullable: true, description: "Mascarado: IPv4 sem o último número; IPv6 só com o prefixo /48." }
+            sessions:
+              type: array
+              items:
+                type: object
+                required: [device, createdAt, lastUsedAt]
+                properties:
+                  device: { type: string }
+                  createdAt: { type: string, format: date-time }
+                  lastUsedAt: { type: string, format: date-time }
+                  endedAt: { type: string, format: date-time, nullable: true }
+                  ip: { type: string, nullable: true, description: "Mascarado como nas tentativas." }
     TwoFactorState:
       type: object
-      required: [enabled, required]
+      required: [enabled, required, backupCodesRemaining]
       properties:
         enabled: { type: boolean }
+        backupCodesRemaining: { type: integer, minimum: 0, maximum: 10, description: "Códigos de reserva ainda não usados; 0 com as duas etapas desligadas." }
         enabledAt: { type: string, format: date-time, nullable: true, description: "Quando as duas etapas foram ativadas; vazio com elas desligadas." }
         required: { type: boolean, description: "Verdadeiro para quem tem vínculo ativo de Coordenador, ou de Administrador em organização que exige duas etapas dos Administradores (RN-ACE-24); sem as duas etapas a sessão só alcança a configuração (403 TWO_FACTOR_SETUP_REQUIRED nas demais rotas)." }
     SessionView:

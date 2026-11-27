@@ -132,6 +132,24 @@ png ficticio
   });
 });
 
+describe("baixar meus dados x OpenAPI (issue 764)", () => {
+  it("sem sessão 401, no portal 403; na gestão o anexo tem os campos obrigatórios do contrato", async () => {
+    expect((await send("GET", "/auth/data-export")).status).toBe(401);
+    await send("POST", "/auth/login", { email: "aluno@exemplo.com", password: "x" });
+    expect((await send("GET", "/auth/data-export")).status).toBe(403);
+    expect(declared("/auth/data-export", "get")).toEqual(["200", "401", "403"]);
+    await send("POST", "/auth/login", { email: "a@b.c", password: "x" });
+    const response = await send("GET", "/auth/data-export");
+    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="meus-dados-ctcore.json"');
+    const file = await response.json();
+    const schema = openapi.components.schemas.AccountDataExport;
+    for (const k of schema.required) expect(file).toHaveProperty(k);
+    for (const k of schema.properties.consents.required) expect(file.consents).toHaveProperty(k);
+    for (const k of schema.properties.access.required) expect(file.access).toHaveProperty(k);
+    for (const k of schema.properties.links.items.required) expect(file.links[0]).toHaveProperty(k);
+  });
+});
+
 describe("vínculos da sessão x OpenAPI (#762)", () => {
   it("cada vínculo traz os campos obrigatórios, a data de início e os alunos só para Responsável", async () => {
     const required: string[] = openapi.components.schemas.LinkView.required;

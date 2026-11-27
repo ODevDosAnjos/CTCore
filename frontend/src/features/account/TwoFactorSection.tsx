@@ -15,7 +15,7 @@ import { ApiError, api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useReloadSession } from "./useAccount";
 
-type Dialog = "setup" | "codes" | "disable" | null;
+type Dialog = "setup" | "replace" | "codes" | "disable" | null;
 
 // RN-ACE-17: quem é obrigado (Coordenador) não vê "Desligar"; o servidor também recusa (403).
 export function TwoFactorSection({ portal = false }: { portal?: boolean }) {
@@ -24,12 +24,14 @@ export function TwoFactorSection({ portal = false }: { portal?: boolean }) {
   const reload = useReloadSession();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [failed, setFailed] = useState(false);
+  const [replaced, setReplaced] = useState(false);
   if (state.status !== "ready") return null;
-  const { enabled, required, enabledAt } = state.session.twoFactor;
+  const { enabled, required, enabledAt, backupCodesRemaining } = state.session.twoFactor;
 
   async function changed() {
     setDialog(null);
     setFailed(false);
+    setReplaced(false);
     try {
       await reload();
     } catch {
@@ -47,9 +49,16 @@ export function TwoFactorSection({ portal = false }: { portal?: boolean }) {
             {portal ? t(enabled ? "account.twoFactor.portalOn" : "account.twoFactor.portalOff") : enabled && enabledAt ? t("account.twoFactor.detailOn", { date: formatDate(enabledAt) }) : enabled ? "" : t("account.twoFactor.detailOff")}
           </span>
         </div>
+        {enabled && backupCodesRemaining !== undefined && <p className="text-sm text-muted-foreground">{t("account.twoFactor.codesLeft", { n: backupCodesRemaining })}</p>}
+        {replaced && <Banner tone="ok">{t("account.twoFactor.replaced")}</Banner>}
         {failed && <ErrorState onRetry={() => void changed()} />}
         <div className={portal ? "flex flex-col gap-2" : "flex flex-wrap gap-2"}>
           {!enabled && <Button variant={portal ? "secondary" : "primary"} onClick={() => setDialog("setup")}>{t(portal ? "account.twoFactor.enableShort" : "account.twoFactor.enable")}</Button>}
+          {enabled && (
+            <Button variant="secondary" onClick={() => setDialog("replace")}>
+              {t("account.twoFactor.replace")}
+            </Button>
+          )}
           {enabled && (
             <Button variant="secondary" onClick={() => setDialog("codes")}>
               {t("account.twoFactor.newCodes")}
@@ -70,8 +79,20 @@ export function TwoFactorSection({ portal = false }: { portal?: boolean }) {
           onEnabled={() => void changed()}
         />
       )}
+      {dialog === "replace" && (
+        <TwoFactorSetupDialog
+          open
+          replace
+          onClose={() => setDialog(null)}
+          onEnabled={() => {
+            void changed();
+            setReplaced(true); // depois de changed(), que limpa o aviso anterior
+          }}
+        />
+      )}
+      {/* Fechar relê a sessão: a contagem volta a 10. */}
       {dialog === "codes" && (
-        <BackupCodesDialog open onClose={() => setDialog(null)} />
+        <BackupCodesDialog open onClose={() => void changed()} />
       )}
       {dialog === "disable" && (
         <DisableDialog

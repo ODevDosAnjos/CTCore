@@ -158,6 +158,90 @@ describe("TwoFactorSetupDialog (CA22)", () => {
   });
 });
 
+describe("TwoFactorSetupDialog: trocar de aparelho (issue 764 CA6)", () => {
+  // A conta "duas@exemplo.com" já tem as duas etapas ligadas no MSW.
+  beforeEach(async () => {
+    const post = (path: string, body: unknown) => fetch(`/api/v1${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const { ticket } = (await (await post("/auth/login", { email: "duas@exemplo.com", password: "x" })).json()) as { ticket: string };
+    await post("/auth/login/two-factor", { ticket, code: "123456" });
+  });
+  const NEW_CODE = "Digite o código de 6 números que aparece no app";
+  async function fill(user: ReturnType<typeof userEvent.setup>, password: string, code: string) {
+    await user.clear(screen.getByLabelText("Senha"));
+    await user.type(screen.getByLabelText("Senha"), password);
+    await user.clear(screen.getByLabelText("Código do app ou de reserva"));
+    await user.type(screen.getByLabelText("Código do app ou de reserva"), code);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+  }
+
+  it("pede senha e código sem chamar o setup, mostra erros sem fechar, depois QR, chave e código novo, e conclui sem códigos de reserva", async () => {
+    const user = userEvent.setup();
+    const onEnabled = vi.fn();
+    const setupCalls = vi.fn();
+    server.use(http.post("/api/v1/auth/two-factor/setup", () => (setupCalls(), err(409, "CONFLICT"))));
+    wrap(<TwoFactorSetupDialog open replace onClose={() => {}} onEnabled={onEnabled} />);
+    expect(screen.getByRole("dialog", { name: "Trocar de aparelho" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByText("Preencha a senha e o código.")).toBeInTheDocument();
+    await fill(user, "errada", "123456");
+    expect(await screen.findByText("Senha incorreta.")).toBeInTheDocument();
+    await fill(user, "certa", "000000");
+    expect(await screen.findByText("Código incorreto.")).toBeInTheDocument();
+    await fill(user, "limite", "123456");
+    expect(await screen.findByText(/Muitas tentativas/)).toBeInTheDocument();
+    await fill(user, "certa", "123456");
+
+    expect(await screen.findByAltText("QR code para o aparelho novo")).toHaveAttribute("src", expect.stringContaining("data:image/png"));
+    expect(screen.getByText("KRSX G5CT MVRX EZLU")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Etapas" }).textContent).not.toContain("Guardar códigos");
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText(NEW_CODE), "111111");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText("Código incorreto. Confira o app e tente de novo.")).toBeInTheDocument();
+    server.use(http.post("/api/v1/auth/two-factor/replace/confirm", () => err(429, "TOO_MANY_REQUESTS"), { once: true }));
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText(/Muitas tentativas/)).toBeInTheDocument();
+    await user.clear(screen.getByLabelText(NEW_CODE));
+    await user.type(screen.getByLabelText(NEW_CODE), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    await waitFor(() => expect(onEnabled).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("list", { name: "Seus códigos de reserva" })).toBeNull();
+    expect(setupCalls).not.toHaveBeenCalled();
+  });
+
+  it("409 ao confirmar volta ao passo da senha com aviso; falha e 403 têm estado próprio", async () => {
+    const user = userEvent.setup();
+    server.use(http.post("/api/v1/auth/two-factor/replace/confirm", () => err(409, "CONFLICT"), { once: true }));
+    wrap(<TwoFactorSetupDialog open replace onClose={() => {}} onEnabled={() => {}} />);
+    await fill(user, "certa", "123456");
+    await user.type(await screen.findByLabelText(NEW_CODE), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText("O pedido de troca venceu. Confirme a senha e o código de novo.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Código do app ou de reserva")).toHaveValue("");
+
+    server.use(http.post("/api/v1/auth/two-factor/replace", () => err(500, "INTERNAL_ERROR"), { once: true }));
+    await fill(user, "certa", "123456");
+    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    server.use(http.post("/api/v1/auth/two-factor/replace", () => err(403, "FORBIDDEN")));
+    await fill(user, "certa", "123456");
+    expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("axe a 360 px no tema %s (senha e QR)", async (_n, dark) => {
+    setDevicePrefersDark(dark);
+    window.innerWidth = 360;
+    const user = userEvent.setup();
+    wrap(<TwoFactorSetupDialog open replace onClose={() => {}} onEnabled={() => {}} />);
+    expect(await axeViolations(document.body)).toEqual([]);
+    await fill(user, "certa", "123456");
+    await screen.findByAltText("QR code para o aparelho novo");
+    expect(await axeViolations(document.body)).toEqual([]);
+  });
+});
+
 describe("BackupCodesDialog (CA22)", () => {
   beforeEach(login);
 

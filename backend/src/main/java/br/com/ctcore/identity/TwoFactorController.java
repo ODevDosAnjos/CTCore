@@ -55,6 +55,19 @@ class TwoFactorController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/two-factor/replace")
+    TwoFactorService.Setup replace(@AuthenticationPrincipal AccountPrincipal principal, @Valid @RequestBody PasswordCodeRequest r,
+            HttpServletRequest request) {
+        return twoFactor.replace(require(principal).accountId(), r.password(), r.code(), request.getRemoteAddr());
+    }
+
+    @PostMapping("/two-factor/replace/confirm")
+    ResponseEntity<Void> confirmReplace(@AuthenticationPrincipal AccountPrincipal principal, @Valid @RequestBody CodeRequest r,
+            HttpServletRequest request) {
+        twoFactor.confirmReplace(require(principal).accountId(), r.code(), request.getRemoteAddr());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/two-factor/backup-codes")
     Map<String, List<String>> backupCodes(@AuthenticationPrincipal AccountPrincipal principal, HttpServletRequest request) {
         return Map.of("backupCodes", twoFactor.regenerate(require(principal).accountId(), request.getRemoteAddr()));
