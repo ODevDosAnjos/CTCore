@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import br.com.ctcore.api.error.ApiValidationException;
+import br.com.ctcore.organization.UnitUpdate.DueReminder;
+import br.com.ctcore.organization.UnitUpdate.Reminder;
+import br.com.ctcore.organization.UnitUpdate.Reminders;
 import br.com.ctcore.organization.UnitUpdate.Settings;
 import br.com.ctcore.organization.UnitUpdate.TeacherPermissions;
 import java.util.LinkedHashMap;
@@ -21,8 +24,12 @@ class UnitUpdateValidationTest {
         return m;
     }
 
+    private static Reminders four(boolean enabled, Integer before, Integer first, Integer second) {
+        return new Reminders(new Reminder(enabled, before), new DueReminder(enabled), new Reminder(enabled, first), new Reminder(enabled, second));
+    }
+
     private static Settings settings() {
-        return new Settings(List.of(1, 5, 10, 15), false, 0L, fees(), null, List.of(-3, 0, 3, 10), new TeacherPermissions(true, true, true, true, false),
+        return new Settings(List.of(1, 5, 10, 15), false, 0L, fees(), null, four(true, 3, 3, 10), new TeacherPermissions(true, true, true, true, false),
                 false, true, true, true, 9, 2);
     }
 
@@ -54,7 +61,7 @@ class UnitUpdateValidationTest {
                 e -> assertThat(e.fields.get(0).field()).isEqualTo(field));
     }
 
-    private static Settings with(Settings s, List<Integer> due, boolean feeOn, Long fee, Map<String, Long> fees, String pix, List<Integer> reminders,
+    private static Settings with(Settings s, List<Integer> due, boolean feeOn, Long fee, Map<String, Long> fees, String pix, Reminders reminders,
             TeacherPermissions teacher, Boolean directory) {
         return new Settings(due, feeOn, fee, fees, pix, reminders, teacher, directory, true, true, true, 9, 2);
     }
@@ -80,23 +87,23 @@ class UnitUpdateValidationTest {
     void dueDays() {
         List<List<Integer>> bad = List.of(List.of(), List.of(0), List.of(29), List.of(5, 5));
         for (List<Integer> days : bad) {
-            refuses(valid(s -> with(s, days, false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false)), "settings.dueDays");
+            refuses(valid(s -> with(s, days, false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false)), "settings.dueDays");
         }
-        refuses(valid(s -> with(s, null, false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false)), "settings.dueDays");
-        var ok = valid(s -> with(s, List.of(15, 5, 1), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false));
+        refuses(valid(s -> with(s, null, false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false)), "settings.dueDays");
+        var ok = valid(s -> with(s, List.of(15, 5, 1), false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false));
         assertThat(ok.validated().settings().dueDays()).containsExactly(1, 5, 15);
     }
 
     @Test
     @DisplayName("CA9: taxa de matrícula desligada salva 0; ligada com -1 é recusada; ligada com 15000 salva")
     void enrollmentFee() {
-        var off = valid(s -> with(s, s.dueDays(), false, 500L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false));
+        var off = valid(s -> with(s, s.dueDays(), false, 500L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false));
         assertThat(off.validated().settings().enrollmentFeeCents()).isZero();
-        refuses(valid(s -> with(s, s.dueDays(), true, -1L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false)),
+        refuses(valid(s -> with(s, s.dueDays(), true, -1L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false)),
                 "settings.enrollmentFeeCents");
-        refuses(valid(s -> with(s, s.dueDays(), true, null, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false)),
+        refuses(valid(s -> with(s, s.dueDays(), true, null, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false)),
                 "settings.enrollmentFeeCents");
-        var on = valid(s -> with(s, s.dueDays(), true, 15000L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false));
+        var on = valid(s -> with(s, s.dueDays(), true, 15000L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false));
         assertThat(on.validated().settings().enrollmentFeeCents()).isEqualTo(15000);
     }
 
@@ -106,46 +113,66 @@ class UnitUpdateValidationTest {
         for (long bad : new long[] {-1, UnitUpdate.MAX_FEE_CENTS + 1}) {
             Map<String, Long> m = fees();
             m.put("pix", bad);
-            refuses(valid(s -> with(s, s.dueDays(), false, 0L, m, null, s.reminderDays(), s.teacherPermissions(), false)), "settings.feesCents.pix");
+            refuses(valid(s -> with(s, s.dueDays(), false, 0L, m, null, s.reminders(), s.teacherPermissions(), false)), "settings.feesCents.pix");
         }
         Map<String, Long> missing = fees();
         missing.remove("transfer");
-        refuses(valid(s -> with(s, s.dueDays(), false, 0L, missing, null, s.reminderDays(), s.teacherPermissions(), false)),
+        refuses(valid(s -> with(s, s.dueDays(), false, 0L, missing, null, s.reminders(), s.teacherPermissions(), false)),
                 "settings.feesCents.transfer");
         Map<String, Long> ok = fees();
         ok.put("creditCard", UnitUpdate.MAX_FEE_CENTS);
-        var result = valid(s -> with(s, s.dueDays(), false, 0L, ok, null, s.reminderDays(), s.teacherPermissions(), false));
+        var result = valid(s -> with(s, s.dueDays(), false, 0L, ok, null, s.reminders(), s.teacherPermissions(), false));
         assertThat(result.validated().settings().feesCents()).isEqualTo(ok);
     }
 
     @Test
     @DisplayName("CA11: chave Pix inválida é recusada com o campo; em branco apaga")
     void pixKey() {
-        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), "abc", s.reminderDays(), s.teacherPermissions(), false)), "settings.pixKey");
-        var blank = valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), "  ", s.reminderDays(), s.teacherPermissions(), false));
+        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), "abc", s.reminders(), s.teacherPermissions(), false)), "settings.pixKey");
+        var blank = valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), "  ", s.reminders(), s.teacherPermissions(), false));
         assertThat(blank.validated().settings().pixKey()).isNull();
     }
 
     @Test
-    @DisplayName("CA13: lembretes [-3, 0, 3, 10] e vazio passam; repetido, fora de -30..60 ou mais de 8 são recusados")
+    @DisplayName("#638 CA4: limites 1, 30 e 60 passam; fora da faixa, depois iguais (mesmo desligados) e campo ausente apontam o campo")
     void reminders() {
-        for (List<Integer> bad : List.of(List.of(1, 1), List.of(-31), List.of(61), List.of(1, 2, 3, 4, 5, 6, 7, 8, 9))) {
-            refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, bad, s.teacherPermissions(), false)), "settings.reminderDays");
+        for (Reminders ok : List.of(four(true, 1, 1, 60), four(false, 30, 60, 1))) {
+            assertThat(valid(s -> reminding(s, ok)).validated().settings().reminders()).isEqualTo(ok);
         }
-        var empty = valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, List.of(), s.teacherPermissions(), false));
-        assertThat(empty.validated().settings().reminderDays()).isEmpty();
-        assertThat(valid(s -> s).validated().settings().reminderDays()).containsExactly(-3, 0, 3, 10);
+        Reminder on = new Reminder(true, 3), other = new Reminder(true, 10);
+        DueReminder due = new DueReminder(true);
+        Map<Reminders, String> bad = new LinkedHashMap<>();
+        for (int d : new int[] {0, 31}) bad.put(four(true, d, 3, 10), "before.days");
+        for (int d : new int[] {0, 61}) {
+            bad.put(four(true, 3, d, 10), "afterFirst.days");
+            bad.put(four(true, 3, 3, d), "afterSecond.days");
+        }
+        bad.put(four(true, 3, 7, 7), "afterSecond.days");
+        bad.put(four(false, 3, 7, 7), "afterSecond.days");
+        bad.put(new Reminders(null, due, on, other), "before");
+        bad.put(new Reminders(on, null, on, other), "due");
+        bad.put(new Reminders(on, due, null, other), "afterFirst");
+        bad.put(new Reminders(on, due, on, null), "afterSecond");
+        bad.put(new Reminders(new Reminder(null, 3), due, on, other), "before.enabled");
+        bad.put(new Reminders(on, new DueReminder(null), on, other), "due.enabled");
+        bad.put(new Reminders(on, due, on, new Reminder(true, null)), "afterSecond.days");
+        bad.forEach((reminders, field) -> refuses(valid(s -> reminding(s, reminders)), "settings.reminders." + field));
+        refuses(valid(s -> reminding(s, null)), "settings.reminders");
+    }
+
+    private static Settings reminding(Settings s, Reminders reminders) {
+        return with(s, s.dueDays(), false, 0L, s.feesCents(), null, reminders, s.teacherPermissions(), false);
     }
 
     @Test
     @DisplayName("CA14: permissões do Professor nulas ou incompletas e liga/desliga ausentes são recusados")
     void flags() {
-        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), null, false)), "settings.teacherPermissions");
-        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), new TeacherPermissions(true, null, true, true, false), false)),
+        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), null, false)), "settings.teacherPermissions");
+        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), new TeacherPermissions(true, null, true, true, false), false)),
                 "settings.teacherPermissions.agendaEdit");
-        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), new TeacherPermissions(true, true, true, true, null), false)),
+        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), new TeacherPermissions(true, true, true, true, null), false)),
                 "settings.teacherPermissions.studentRecord");
-        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), null)),
+        refuses(valid(s -> with(s, s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), null)),
                 "settings.directoryEnabled");
     }
 
@@ -153,14 +180,14 @@ class UnitUpdateValidationTest {
     @DisplayName("RF-COB-09: hora de lembrete 0 e 23 passam; 24, -1 e ausente, ou interruptor ausente, apontam o campo")
     void reminderSwitch() {
         for (int ok : new int[] {0, 23}) {
-            assertThat(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true,
+            assertThat(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false, true, true,
                     false, ok, 2)).validated().settings().remindersHour()).isEqualTo(ok);
         }
         for (Integer bad : new Integer[] {24, -1, null}) {
-            refuses(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true,
+            refuses(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false, true, true,
                     true, bad, 2)), "settings.remindersHour");
         }
-        refuses(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true,
+        refuses(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false, true, true,
                 null, 9, 2)), "settings.remindersEnabled");
     }
 
@@ -176,6 +203,6 @@ class UnitUpdateValidationTest {
     }
 
     private static Settings limited(Settings s, Integer limit) {
-        return new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true, true, 9, limit);
+        return new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminders(), s.teacherPermissions(), false, true, true, true, 9, limit);
     }
 }

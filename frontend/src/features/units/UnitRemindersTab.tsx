@@ -6,51 +6,76 @@ import { Banner } from "@/components/ui/banner";
 import { buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ComingSoon } from "@/components/ui/coming-soon";
-import { Field, Select } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { hrefOf } from "@/routes";
 import { Err, Text } from "./Text";
-import { MAX_REMINDERS, STANDARD_REMINDER_DAYS, type TabProps } from "./unitDraft";
+import { REMINDER_MAX, isReminderDay, type ReminderDayKey, type TabProps } from "./unitDraft";
 import { SwitchRow } from "./SwitchRow";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const REMINDERS = ["before", "due", "afterFirst", "afterSecond"] as const;
+// issue 638: o texto tem largura mínima; sem espaço, os canais descem de linha em vez de espremer as palavras a 390 px.
+const TEXT_BLOCK = "min-w-0 flex-[1_1_12rem]";
 
-// Aba Lembretes (R5, RN-COB-17): um interruptor por dia (desligar tira o dia da lista), o geral, a hora cheia e o aviso fixo.
-export function UnitRemindersTab({ d, set, errors }: TabProps) {
+// Aba Lembretes (RN-COB-17): quatro lembretes fixos, cada um com a chave e, fora o do dia, o campo do dia; o geral, a hora e o aviso fixo.
+export function UnitRemindersTab({ d, set, problems, errors }: TabProps) {
   const { t } = useTranslation();
-  // Dia salvo fora dos quatro padrões continua na tela, como linha própria.
-  const days = [...new Set([...STANDARD_REMINDER_DAYS, ...d.reminderDays])].sort((a, b) => a - b);
-  const toggle = (day: number, on: boolean) => set("reminderDays")(on ? [...d.reminderDays, day].sort((a, b) => a - b) : d.reminderDays.filter((x) => x !== day));
-  const title = (day: number) => (day === 0 ? t("unitSettings.reminderOnDue") : t(day < 0 ? "unitSettings.reminderBefore" : "unitSettings.reminderAfter", { count: Math.abs(day) }));
-  const help = (day: number) => t((STANDARD_REMINDER_DAYS as readonly number[]).includes(day) ? `unitSettings.reminderHelp.${day}` : "unitSettings.reminderHelp.custom");
+  const toggle = (key: (typeof REMINDERS)[number], enabled: boolean) => set("reminders")({ ...d.reminders, [key]: { ...d.reminders[key], enabled } });
+  const setDays = (key: ReminderDayKey, days: string) => set("reminders")({ ...d.reminders, [key]: { ...d.reminders[key], days } });
+  // Com o dia inválido, o título usa o nome do lembrete.
+  const title = (key: (typeof REMINDERS)[number]) => {
+    if (key === "due") return t("unitSettings.reminderOnDue");
+    const { days } = d.reminders[key];
+    if (!isReminderDay(key, days)) return t(`unitSettings.reminderName.${key}`);
+    return t(key === "before" ? "unitSettings.reminderBefore" : "unitSettings.reminderAfter", { count: Number(days) });
+  };
   return (
     <div className="flex flex-col gap-4">
       <Card heading="h2" title={t("unitSettings.sections.reminders")}>
         <div className="flex flex-col gap-2">
           <SwitchRow label={t("unitSettings.remindersEnabled")} description={t("unitSettings.remindersEnabledHelp")} checked={d.remindersEnabled} onChange={set("remindersEnabled")} />
           {!d.remindersEnabled && <p className="text-sm">{t("unitSettings.remindersOff")}</p>}
-          <Err text={errors["settings.reminderDays"]} />
+          <Err text={errors["settings.reminders"]} />
           <ul className="flex flex-col divide-y">
-            {days.map((day) => {
-              const on = d.reminderDays.includes(day);
-              return (
-                <li key={day} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
-                  <Switch label={title(day)} checked={on} onCheckedChange={(v) => toggle(day, v)} disabled={!d.remindersEnabled || (!on && d.reminderDays.length >= MAX_REMINDERS)} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{title(day)}</p>
-                    <p className="text-xs text-muted-foreground">{help(day)}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Checkbox label={t("unitSettings.channelEmail")} checked disabled readOnly />
-                    <ComingSoon variant="switch" label={t("unitSettings.channelPush")} />
-                  </div>
-                </li>
-              );
-            })}
+            {REMINDERS.map((key) => (
+              <li key={key} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+                <Switch label={title(key)} checked={d.reminders[key].enabled} onCheckedChange={(v) => toggle(key, v)} disabled={!d.remindersEnabled} />
+                <div className={TEXT_BLOCK}>
+                  <p className="text-sm font-medium">{title(key)}</p>
+                  <p className="text-xs text-muted-foreground">{t(`unitSettings.reminderHelp.${key}`)}</p>
+                  {key !== "due" && (
+                    <Field
+                      className="mt-2"
+                      label={t(`unitSettings.reminderDaysLabel.${key}`)}
+                      error={problems[`reminders.${key}`] ?? errors[`settings.reminders.${key}.days`]}
+                    >
+                      {(control) => (
+                        <Input
+                          {...control}
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={REMINDER_MAX[key]}
+                          className="w-24"
+                          value={d.reminders[key].days}
+                          disabled={!d.remindersEnabled}
+                          onChange={(event) => setDays(key, event.target.value)}
+                        />
+                      )}
+                    </Field>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <Checkbox label={t("unitSettings.channelEmail")} checked disabled readOnly />
+                  <ComingSoon variant="switch" label={t("unitSettings.channelPush")} />
+                </div>
+              </li>
+            ))}
             <li className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
               <Switch label={t("unitSettings.blockNoticeTitle")} checked disabled onCheckedChange={() => undefined} />
-              <div className="min-w-0 flex-1">
+              <div className={TEXT_BLOCK}>
                 <p className="text-sm font-medium">{t("unitSettings.blockNoticeTitle")}</p>
                 <p className="text-xs text-muted-foreground">{t("unitSettings.blockNoticeText")}</p>
               </div>

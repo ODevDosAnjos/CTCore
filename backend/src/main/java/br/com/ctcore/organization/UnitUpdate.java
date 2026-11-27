@@ -17,15 +17,44 @@ public record UnitUpdate(String name, String postalCode, String address, String 
     public record TeacherPermissions(Boolean announcements, Boolean agendaEdit, Boolean studentContacts, Boolean trialClasses,
             Boolean studentRecord) {}
 
+    /** RN-COB-17: lembrete com dia ajustável; o dia fica guardado mesmo desligado. */
+    public record Reminder(Boolean enabled, Integer days) {
+        private static Reminder validated(String path, Reminder r, int max) {
+            required(path, r);
+            boolean on = required(path + ".enabled", r.enabled());
+            int day = required(path + ".days", r.days());
+            if (day < 1 || day > max) throw new ApiValidationException(path + ".days", "valores entre 1 e " + max);
+            return new Reminder(on, day);
+        }
+    }
+
+    /** O lembrete do dia do vencimento só liga e desliga. */
+    public record DueReminder(Boolean enabled) {}
+
+    public record Reminders(Reminder before, DueReminder due, Reminder afterFirst, Reminder afterSecond) {
+        private static Reminders validated(Reminders r) {
+            String path = "settings.reminders";
+            required(path, r);
+            Reminder before = Reminder.validated(path + ".before", r.before(), 30);
+            DueReminder due = new DueReminder(required(path + ".due.enabled", required(path + ".due", r.due()).enabled()));
+            Reminder first = Reminder.validated(path + ".afterFirst", r.afterFirst(), 60);
+            Reminder second = Reminder.validated(path + ".afterSecond", r.afterSecond(), 60);
+            if (first.days().equals(second.days())) {
+                throw new ApiValidationException(path + ".afterSecond.days", "use um dia diferente do primeiro lembrete depois");
+            }
+            return new Reminders(before, due, first, second);
+        }
+    }
+
     public record Settings(List<Integer> dueDays, Boolean enrollmentFeeEnabled, Long enrollmentFeeCents, Map<String, Long> feesCents,
-            String pixKey, List<Integer> reminderDays, TeacherPermissions teacherPermissions, Boolean directoryEnabled,
+            String pixKey, Reminders reminders, TeacherPermissions teacherPermissions, Boolean directoryEnabled,
             Boolean trialLinkEnabled, Boolean selfRegistrationLinkEnabled, Boolean remindersEnabled, Integer remindersHour, Integer trialLimit) {
 
         Settings validated() {
             boolean remindersOn = required("settings.remindersEnabled", remindersEnabled);
             int hour = required("settings.remindersHour", remindersHour);
             if (hour < 0 || hour > 23) throw new ApiValidationException("settings.remindersHour", "valor entre 0 e 23");
-            List<Integer> due = days("settings.dueDays", dueDays, 1, 28, 28, false);
+            List<Integer> due = days("settings.dueDays", dueDays, 1, 28);
             boolean feeOn = required("settings.enrollmentFeeEnabled", enrollmentFeeEnabled);
             long enrollment = 0;
             if (feeOn) {
@@ -41,7 +70,7 @@ public record UnitUpdate(String name, String postalCode, String address, String 
                 fees.put(key, cents);
             }
             String pix = field("settings.pixKey", () -> PixKey.normalize(pixKey));
-            List<Integer> reminders = days("settings.reminderDays", reminderDays, -30, 60, MAX_REMINDERS, true);
+            Reminders checked = Reminders.validated(reminders);
             TeacherPermissions t = required("settings.teacherPermissions", teacherPermissions);
             TeacherPermissions teacher = new TeacherPermissions(required("settings.teacherPermissions.announcements", t.announcements()),
                     required("settings.teacherPermissions.agendaEdit", t.agendaEdit()),
@@ -50,7 +79,7 @@ public record UnitUpdate(String name, String postalCode, String address, String 
                     required("settings.teacherPermissions.studentRecord", t.studentRecord()));
             int limit = required("settings.trialLimit", trialLimit);
             if (limit < 1 || limit > 3) throw new ApiValidationException("settings.trialLimit", "use um valor de 1 a 3");
-            return new Settings(due, feeOn, enrollment, fees, pix, reminders, teacher, required("settings.directoryEnabled", directoryEnabled),
+            return new Settings(due, feeOn, enrollment, fees, pix, checked, teacher, required("settings.directoryEnabled", directoryEnabled),
                     required("settings.trialLinkEnabled", trialLinkEnabled),
                     required("settings.selfRegistrationLinkEnabled", selfRegistrationLinkEnabled), remindersOn, hour, limit);
         }
@@ -73,7 +102,6 @@ public record UnitUpdate(String name, String postalCode, String address, String 
 
     static final long MAX_FEE_CENTS = 100_000; // D5: teto de R$ 1.000,00 por meio
     static final long MAX_ENROLLMENT_CENTS = 100_000_000; // R$ 1.000.000,00, só para barrar erro de digitação
-    static final int MAX_REMINDERS = 8;
     static final int MAX_LEGAL_NAME = 160; // RN-MAT-21: o mesmo limite do check da V64
 
     public UnitUpdate validated() {
@@ -98,10 +126,10 @@ public record UnitUpdate(String name, String postalCode, String address, String 
     }
 
     /** Lista de inteiros sem repetição dentro da faixa, em ordem crescente. */
-    private static List<Integer> days(String field, List<Integer> raw, int min, int max, int maxSize, boolean allowEmpty) {
+    private static List<Integer> days(String field, List<Integer> raw, int min, int max) {
         if (raw == null) throw new ApiValidationException(field, "obrigatório");
-        if (raw.isEmpty() && !allowEmpty) throw new ApiValidationException(field, "informe ao menos um dia");
-        if (raw.size() > maxSize) throw new ApiValidationException(field, "no máximo " + maxSize + " itens");
+        if (raw.isEmpty()) throw new ApiValidationException(field, "informe ao menos um dia");
+        if (raw.size() > max) throw new ApiValidationException(field, "no máximo " + max + " itens");
         List<Integer> sorted = new ArrayList<>();
         for (Integer d : raw) {
             if (d == null || d < min || d > max) throw new ApiValidationException(field, "valores entre " + min + " e " + max);

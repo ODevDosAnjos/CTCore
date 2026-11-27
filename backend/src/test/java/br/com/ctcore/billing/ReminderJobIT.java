@@ -44,16 +44,32 @@ class ReminderJobIT extends ReminderBase {
     }
 
     @Test
-    @DisplayName("CA3: reminder_days {-1, 5} no lugar dos padrões")
+    @DisplayName("#638 CA2: desligado não sai e o dia fica guardado; religado, sai no dia configurado")
+    void switchedOff() {
+        var t = tenant();
+        UUID five = charge(t, adult(t, "rem-chave@example.com"), "2026-09-30", "OPEN");
+        adminJdbc().update("update unit_settings set reminder_after_first_days = 5, reminder_after_first_enabled = false where unit_id = ?", t.unitId());
+        assertThat(job().runOnce()).isZero();
+        assertThat(history(five)).isEmpty();
+        assertThat(adminJdbc().queryForObject("select reminder_after_first_days from unit_settings where unit_id = ?", Integer.class, t.unitId())).isEqualTo(5);
+        adminJdbc().update("update unit_settings set reminder_after_first_enabled = true where unit_id = ?", t.unitId());
+        assertThat(job().runOnce()).isEqualTo(1);
+        assertThat(history(five)).singleElement().satisfies(h -> assertThat(h).containsEntry("kind", "SCHEDULED").containsEntry("offset_days", 5));
+    }
+
+    @Test
+    @DisplayName("#638 CA3: dias ajustados valem no lugar dos padrões; com o do dia desligado, nada sai no vencimento")
     void customDays() {
         var t = tenant();
         UUID s = adult(t, "rem-custom@example.com");
-        adminJdbc().update("update unit_settings set reminder_days = '{-1,5}' where unit_id = ?", t.unitId());
-        UUID minusOne = charge(t, s, "2026-10-06", "OPEN"), five = charge(t, s, "2026-09-30", "OPEN"), standard = charge(t, s, "2026-10-08", "OPEN");
-        job().runOnce();
+        adminJdbc().update("update unit_settings set reminder_before_days = 1, reminder_after_first_days = 5, reminder_due_enabled = false where unit_id = ?",
+                t.unitId());
+        UUID minusOne = charge(t, s, "2026-10-06", "OPEN"), five = charge(t, s, "2026-09-30", "OPEN"), due = charge(t, s, "2026-10-05", "OPEN");
+        UUID standardBefore = charge(t, s, "2026-10-08", "OPEN"), standardAfter = charge(t, s, "2026-10-02", "OPEN");
+        assertThat(job().runOnce()).isEqualTo(2);
         assertThat(history(minusOne)).hasSize(1);
         assertThat(history(five)).hasSize(1);
-        assertThat(history(standard)).isEmpty();
+        for (UUID none : new UUID[] {due, standardBefore, standardAfter}) assertThat(history(none)).isEmpty();
     }
 
     @Test

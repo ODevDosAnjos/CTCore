@@ -15,6 +15,14 @@ export type FeeKey = (typeof FEE_KEYS)[number];
 export const TEACHER_KEYS = ["announcements", "agendaEdit", "studentContacts", "trialClasses", "studentRecord"] as const;
 export type TeacherKey = (typeof TEACHER_KEYS)[number];
 
+/** Os quatro lembretes de cobrança (RN-COB-17); o dia fica guardado mesmo desligado. */
+export interface UnitReminders {
+  before: { enabled: boolean; days: number };
+  due: { enabled: boolean };
+  afterFirst: { enabled: boolean; days: number };
+  afterSecond: { enabled: boolean; days: number };
+}
+
 export interface UnitSettingsData {
   dueDays: number[];
   enrollmentFeeEnabled: boolean;
@@ -22,7 +30,7 @@ export interface UnitSettingsData {
   feesCents: Record<FeeKey, number>;
   pixKey: string | null;
   paymentAccount: "CONNECTED" | "NOT_CONNECTED";
-  reminderDays: number[];
+  reminders: UnitReminders;
   remindersEnabled: boolean;
   remindersHour: number;
   trialLimit: number;

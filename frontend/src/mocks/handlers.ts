@@ -570,7 +570,12 @@ const defaultUnitSettings = () => ({
   feesCents: { cash: 0, pix: 0, bankSlip: 0, creditCard: 0, debitCard: 0, automaticDebit: 0, manualPix: 0, terminalCard: 0, transfer: 0 },
   pixKey: null as string | null,
   paymentAccount: "NOT_CONNECTED" as "CONNECTED" | "NOT_CONNECTED",
-  reminderDays: [-3, 0, 3, 10],
+  reminders: {
+    before: { enabled: true, days: 3 },
+    due: { enabled: true },
+    afterFirst: { enabled: true, days: 3 },
+    afterSecond: { enabled: true, days: 10 },
+  },
   remindersEnabled: true,
   remindersHour: 9,
   trialLimit: 2,
@@ -579,6 +584,18 @@ const defaultUnitSettings = () => ({
   trialLinkEnabled: true,
   selfRegistrationLinkEnabled: true,
 });
+/** RN-COB-17: mesma ordem e mesmos campos de erro do servidor (UnitUpdate.Reminders). */
+const unitReminderError = (r: any): { field: string; message: string } | undefined => { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const error = (path: string, message = "obrigatório") => ({ field: `settings.reminders${path}`, message });
+  if (!r) return error("");
+  for (const [key, max] of [["before", 30], ["due", 0], ["afterFirst", 60], ["afterSecond", 60]] as const) {
+    const one = r[key];
+    if (!one) return error(`.${key}`);
+    if (typeof one.enabled !== "boolean") return error(`.${key}.enabled`);
+    if (max && !(Number.isInteger(one.days) && one.days >= 1 && one.days <= max)) return error(`.${key}.days`, `valores entre 1 e ${max}`);
+  }
+  return r.afterFirst.days === r.afterSecond.days ? error(".afterSecond.days", "use um dia diferente do primeiro lembrete depois") : undefined;
+};
 type UnitDetailMock = ReturnType<typeof makeUnitDetail>;
 const makeUnitDetail = (u: (typeof units)[number]) => ({
   id: u.id,
@@ -2998,10 +3015,10 @@ export const routes: Route[] = [
       for (const [key, cents] of Object.entries((s.feesCents ?? {}) as Record<string, number>)) {
         if (!(cents >= 0 && cents <= 100000)) bad.push({ field: `settings.feesCents.${key}`, message: "entre 0 e R$ 1.000,00" });
       }
-      const reminders: number[] = s.reminderDays ?? [];
       if (typeof s.remindersEnabled !== "boolean") bad.push({ field: "settings.remindersEnabled", message: "obrigatório" });
       if (!Number.isInteger(s.remindersHour) || s.remindersHour < 0 || s.remindersHour > 23) bad.push({ field: "settings.remindersHour", message: "valor entre 0 e 23" });
-      if (new Set(reminders).size !== reminders.length || reminders.length > 8 || reminders.some((d) => d < -30 || d > 60)) bad.push({ field: "settings.reminderDays", message: "valores entre -30 e 60" });
+      const reminderError = unitReminderError(s.reminders);
+      if (reminderError) bad.push(reminderError);
       if (!Number.isInteger(s.trialLimit) || s.trialLimit < 1 || s.trialLimit > 3) bad.push({ field: "settings.trialLimit", message: "use um valor de 1 a 3" });
       if (bad.length) return error(400, "VALIDATION_ERROR", "Dados inválidos.", bad);
       const stale = precondition(request, unitDetail(id).version);
@@ -3027,7 +3044,6 @@ export const routes: Route[] = [
           dueDays: [...days].sort((x, y) => x - y),
           enrollmentFeeCents: s.enrollmentFeeEnabled ? s.enrollmentFeeCents : 0,
           pixKey: s.pixKey || null,
-          reminderDays: [...reminders].sort((x, y) => x - y),
           paymentAccount: current.settings.paymentAccount,
         },
       };

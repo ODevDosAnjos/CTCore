@@ -8,6 +8,9 @@ import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.integration.MapLocator;
 import br.com.ctcore.isolation.OrganizationTransactions;
+import br.com.ctcore.organization.UnitUpdate.DueReminder;
+import br.com.ctcore.organization.UnitUpdate.Reminder;
+import br.com.ctcore.organization.UnitUpdate.Reminders;
 import br.com.ctcore.organization.UnitUpdate.TeacherPermissions;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
@@ -41,7 +44,7 @@ public class UnitSettings {
     public enum PaymentAccount { CONNECTED, NOT_CONNECTED }
 
     public record Settings(List<Integer> dueDays, boolean enrollmentFeeEnabled, long enrollmentFeeCents, Map<String, Long> feesCents,
-            String pixKey, PaymentAccount paymentAccount, List<Integer> reminderDays, TeacherPermissions teacherPermissions,
+            String pixKey, PaymentAccount paymentAccount, Reminders reminders, TeacherPermissions teacherPermissions,
             boolean directoryEnabled, boolean trialLinkEnabled, boolean selfRegistrationLinkEnabled, boolean remindersEnabled,
             int remindersHour, int trialLimit) {}
 
@@ -61,8 +64,10 @@ public class UnitSettings {
     private static final String SELECT = """
             select u.id, u.name, u.short_name, u.postal_code, u.address, u.city, u.latitude, u.longitude, u.phone, u.email, u.whatsapp,
                    u.cnpj, u.active, s.due_days, s.enrollment_fee_enabled, s.enrollment_fee_cents, %s, s.pix_key,
-                   s.payment_account_reference is not null, s.reminder_days, s.teacher_permissions, s.directory_enabled,
-                   s.trial_link_enabled, s.self_registration_link_enabled, u.version, s.reminders_enabled, s.reminders_hour, u.timezone, s.trial_limit, u.legal_name
+                   s.payment_account_reference is not null, s.reminder_before_enabled, s.teacher_permissions, s.directory_enabled,
+                   s.trial_link_enabled, s.self_registration_link_enabled, u.version, s.reminders_enabled, s.reminders_hour, u.timezone, s.trial_limit, u.legal_name,
+                   s.reminder_before_days, s.reminder_due_enabled, s.reminder_after_first_enabled, s.reminder_after_first_days,
+                   s.reminder_after_second_enabled, s.reminder_after_second_days
             from unit u join unit_settings s on s.unit_id = u.id and s.organization_id = u.organization_id
             """.formatted(String.join(", ", UnitUpdate.FEE_COLUMNS.values().stream().map(c -> "s." + c).toList()));
 
@@ -133,12 +138,19 @@ public class UnitSettings {
             UnitUpdate.FEE_COLUMNS.forEach((key, column) -> fees.append(", ").append(column).append(" = :").append(key));
             var statement = jdbc.sql("""
                     update unit_settings set due_days = cast(:due as integer[]), enrollment_fee_enabled = :feeOn, enrollment_fee_cents = :fee,
-                        pix_key = :pixKey, reminder_days = cast(:reminders as integer[]), teacher_permissions = cast(:teacher as boolean[]),
+                        pix_key = :pixKey, teacher_permissions = cast(:teacher as boolean[]),
+                        reminder_before_enabled = :beforeOn, reminder_before_days = :beforeDays, reminder_due_enabled = :dueOn,
+                        reminder_after_first_enabled = :firstOn, reminder_after_first_days = :firstDays,
+                        reminder_after_second_enabled = :secondOn, reminder_after_second_days = :secondDays,
                         directory_enabled = :directory, trial_link_enabled = :trial, self_registration_link_enabled = :self,
                         reminders_enabled = :remOn, reminders_hour = :remHour, trial_limit = :trialLimit"""
                     + fees + " where unit_id = :id")
                     .param("due", literal(s.dueDays())).param("feeOn", s.enrollmentFeeEnabled()).param("fee", s.enrollmentFeeCents())
-                    .param("pixKey", s.pixKey()).param("reminders", literal(s.reminderDays())).param("teacher", literal(teacher(s.teacherPermissions())))
+                    .param("pixKey", s.pixKey()).param("beforeOn", s.reminders().before().enabled()).param("beforeDays", s.reminders().before().days())
+                    .param("dueOn", s.reminders().due().enabled())
+                    .param("firstOn", s.reminders().afterFirst().enabled()).param("firstDays", s.reminders().afterFirst().days())
+                    .param("secondOn", s.reminders().afterSecond().enabled()).param("secondDays", s.reminders().afterSecond().days())
+                    .param("teacher", literal(teacher(s.teacherPermissions())))
                     .param("directory", s.directoryEnabled()).param("trial", s.trialLinkEnabled())
                     .param("self", s.selfRegistrationLinkEnabled()).param("remOn", s.remindersEnabled()).param("remHour", s.remindersHour()).param("trialLimit", s.trialLimit()).param("id", unitId);
             for (var fee : s.feesCents().entrySet()) statement = statement.param(fee.getKey(), fee.getValue());
@@ -198,7 +210,7 @@ public class UnitSettings {
         for (String key : UnitUpdate.FEE_COLUMNS.keySet()) fees.put(key, rs.getLong(column++));
         Boolean[] teacher = (Boolean[]) rs.getArray(29).getArray();
         Settings settings = new Settings(ints(rs.getArray(14)), rs.getBoolean(15), rs.getLong(16), fees, rs.getString(26),
-                rs.getBoolean(27) ? PaymentAccount.CONNECTED : PaymentAccount.NOT_CONNECTED, ints(rs.getArray(28)),
+                rs.getBoolean(27) ? PaymentAccount.CONNECTED : PaymentAccount.NOT_CONNECTED, reminders(rs),
                 new TeacherPermissions(teacher[PermissionTable.teacherFlag(Permission.ANNOUNCEMENTS)],
                         teacher[PermissionTable.teacherFlag(Permission.AGENDA_EDIT)],
                         teacher[PermissionTable.teacherFlag(Permission.STUDENT_CONTACTS)],
@@ -208,6 +220,15 @@ public class UnitSettings {
         return new UnitDetail(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6),
                 number(rs.getBigDecimal(7)), number(rs.getBigDecimal(8)), rs.getString(9), rs.getString(10), rs.getString(11),
                 rs.getString(12), rs.getString(38), rs.getBoolean(13), rs.getString(36), settings, rs.getInt(33), null);
+    }
+
+    private static Reminders reminders(ResultSet rs) throws SQLException {
+        return new Reminders(reminder(rs, "before"), new DueReminder(rs.getBoolean("reminder_due_enabled")), reminder(rs, "after_first"),
+                reminder(rs, "after_second"));
+    }
+
+    private static Reminder reminder(ResultSet rs, String name) throws SQLException {
+        return new Reminder(rs.getBoolean("reminder_" + name + "_enabled"), rs.getInt("reminder_" + name + "_days"));
     }
 
     private static Double number(BigDecimal value) {
@@ -251,7 +272,14 @@ public class UnitSettings {
         m.put("enrollmentFeeCents", s.enrollmentFeeCents());
         s.feesCents().forEach((key, cents) -> m.put("fee." + key, cents));
         m.put("pixKey", s.pixKey());
-        m.put("reminderDays", s.reminderDays());
+        Reminders r = s.reminders();
+        m.put("reminders.before.enabled", r.before().enabled());
+        m.put("reminders.before.days", r.before().days());
+        m.put("reminders.due.enabled", r.due().enabled());
+        m.put("reminders.afterFirst.enabled", r.afterFirst().enabled());
+        m.put("reminders.afterFirst.days", r.afterFirst().days());
+        m.put("reminders.afterSecond.enabled", r.afterSecond().enabled());
+        m.put("reminders.afterSecond.days", r.afterSecond().days());
         TeacherPermissions t = s.teacherPermissions();
         m.put("teacher.announcements", t.announcements());
         m.put("teacher.agendaEdit", t.agendaEdit());

@@ -667,7 +667,9 @@ paths:
         `latitude` e `longitude` vêm juntas; com CEP novo e sem coordenadas a porta de localização as obtém (RN-ORG-14).
         `dueDays`: de 1 a 28, sem repetição, ao menos um (guardados em ordem crescente). Taxa de matrícula desligada grava 0.
         Taxas por meio: centavos de 0 a 100000. `pixKey`: CPF, CNPJ, e-mail, telefone (+55) ou UUID; em branco apaga.
-        `reminderDays`: de -30 a 60, sem repetição, até 8, podendo ficar vazio. `trialLimit`: de 1 a 3 (RN-AEX-02). Grava `unit.update` na auditoria com antes e depois
+        `reminders` (RN-COB-17): os quatro lembretes, todos obrigatórios, cada um com `enabled`; `before.days` de 1 a 30, `afterFirst.days` e
+        `afterSecond.days` de 1 a 60 e diferentes entre si, mesmo desligados (o erro vem em `settings.reminders.afterSecond.days`). Desligar
+        mantém o dia. `trialLimit`: de 1 a 3 (RN-AEX-02). Grava `unit.update` na auditoria com antes e depois
         dos campos mudados (chave Pix e CNPJ só como alterados, sem o valor); chamada sem mudança não grava.
         Exige `If-Match` com o `version` lido (RNF-15): versão diferente da atual responde 409 `EDIT_CONFLICT` e nada é gravado; cabeçalho
         ausente ou não numérico responde 428 `PRECONDITION_REQUIRED`. A permissão é conferida antes da versão. A versão só sobe quando algum
@@ -5698,9 +5700,35 @@ components:
         studentContacts: { type: boolean }
         trialClasses: { type: boolean }
         studentRecord: { type: boolean }
+    UnitReminderBefore:
+      type: object
+      required: [enabled, days]
+      properties:
+        enabled: { type: boolean }
+        days: { type: integer, minimum: 1, maximum: 30, description: Dias antes do vencimento; guardado mesmo desligado. }
+    UnitReminderDue:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    UnitReminderAfter:
+      type: object
+      required: [enabled, days]
+      properties:
+        enabled: { type: boolean }
+        days: { type: integer, minimum: 1, maximum: 60, description: Dias depois do vencimento; guardado mesmo desligado. }
+    UnitReminders:
+      type: object
+      description: Os quatro lembretes de cobrança da unidade (RN-COB-17). Os dois de depois não podem ter o mesmo dia.
+      required: [before, due, afterFirst, afterSecond]
+      properties:
+        before: { $ref: '#/components/schemas/UnitReminderBefore' }
+        due: { $ref: '#/components/schemas/UnitReminderDue' }
+        afterFirst: { $ref: '#/components/schemas/UnitReminderAfter' }
+        afterSecond: { $ref: '#/components/schemas/UnitReminderAfter' }
     UnitSettingsView:
       type: object
-      required: [dueDays, enrollmentFeeEnabled, enrollmentFeeCents, feesCents, pixKey, paymentAccount, reminderDays, teacherPermissions,
+      required: [dueDays, enrollmentFeeEnabled, enrollmentFeeCents, feesCents, pixKey, paymentAccount, reminders, teacherPermissions,
         directoryEnabled, trialLinkEnabled, selfRegistrationLinkEnabled, remindersEnabled, remindersHour, trialLimit]
       properties:
         dueDays: { type: array, items: { type: integer, minimum: 1, maximum: 28 }, minItems: 1, uniqueItems: true }
@@ -5709,7 +5737,7 @@ components:
         feesCents: { $ref: '#/components/schemas/FeesCents' }
         pixKey: { type: string, nullable: true }
         paymentAccount: { type: string, enum: [CONNECTED, NOT_CONNECTED], description: Só leitura; o PUT não altera. }
-        reminderDays: { type: array, items: { type: integer, minimum: -30, maximum: 60 }, maxItems: 8, uniqueItems: true }
+        reminders: { $ref: '#/components/schemas/UnitReminders' }
         teacherPermissions: { $ref: '#/components/schemas/TeacherPermissions' }
         directoryEnabled: { type: boolean }
         trialLinkEnabled: { type: boolean }
@@ -5741,7 +5769,7 @@ components:
         settings: { $ref: '#/components/schemas/UnitSettingsView' }
     UnitUpdateSettings:
       type: object
-      required: [dueDays, enrollmentFeeEnabled, feesCents, reminderDays, teacherPermissions, directoryEnabled, trialLinkEnabled,
+      required: [dueDays, enrollmentFeeEnabled, feesCents, reminders, teacherPermissions, directoryEnabled, trialLinkEnabled,
         selfRegistrationLinkEnabled, remindersEnabled, remindersHour, trialLimit]
       properties:
         dueDays: { type: array, items: { type: integer, minimum: 1, maximum: 28 }, minItems: 1, uniqueItems: true }
@@ -5749,7 +5777,7 @@ components:
         enrollmentFeeCents: { type: integer, format: int64, minimum: 0, nullable: true, description: Obrigatório quando a taxa está ligada. }
         feesCents: { $ref: '#/components/schemas/FeesCents' }
         pixKey: { type: string, nullable: true }
-        reminderDays: { type: array, items: { type: integer, minimum: -30, maximum: 60 }, maxItems: 8, uniqueItems: true }
+        reminders: { $ref: '#/components/schemas/UnitReminders' }
         teacherPermissions: { $ref: '#/components/schemas/TeacherPermissions' }
         directoryEnabled: { type: boolean }
         trialLinkEnabled: { type: boolean }
