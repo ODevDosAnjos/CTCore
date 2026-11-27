@@ -248,6 +248,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 733 | 721b · Cabeçalhos sem subtítulo: conta, duas etapas, convite e portal (conferência final; fecha a #721 e a #646) | issue #733 (parte da #721) | Sprint 10.5 | #732 | agente | a fazer |
 | 721 | 646e · Cabeçalhos sem subtítulo: Configurações, conta e portal (item-mãe: dividido em #732 e #733; fecha na #733; sem construção própria) | issue #721 (parte da #646) | Sprint 10.5 | #733 | agente | dividido |
 | 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna (item-mãe: dividido em #717 a #721; fecha na #721; sem construção própria) | issue #646 | Sprint 10.5 | #721 | agente | dividido |
+| 564 | Teste visual instável: dia-sem-aula-novo reprova em HEAD limpo e passa em outras execuções | issue #564 | Manutenção · Dívida técnica | — | agente | feito |
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
@@ -410,7 +411,6 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 725 | Técnica: ajuste do processo, kit e AGENTS.md (junta #535, #557 e #620) | issue #725 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 407 | Suíte test:cov do front estoura 20 s em vários arquivos com paralelismo padrão: medir e estabilizar | issue #407 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 413 | Teste SimulatedMessagingTest.infoLogHasTypeAndIdButNotTheText instável: o UUID sorteado do log pode conter o número do cartão usado como isca | issue #413 | Manutenção · Dívida técnica | — | agente | a fazer |
-| 564 | Teste visual instável: dia-sem-aula-novo reprova em HEAD limpo e passa em outras execuções | issue #564 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 581 | Teste instável: LoginPage 'trava com horário (#445)' falha na suíte completa | issue #581 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 587 | Remover exceção do picomatch (GHSA-fc5q-39xc-vjpf) quando sair a correção | issue #587 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 590 | Testes de comunicados falham no CI: AnnouncementSendJobIT e SeedDataIT.announcementsSeed | issue #590 | Manutenção · Dívida técnica | — | agente | a fazer |
