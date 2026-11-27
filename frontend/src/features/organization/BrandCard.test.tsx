@@ -10,7 +10,7 @@ const view: OrganizationView = {
   logoUrl: null,
   version: 0,
   lastChange: null,
-  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" },
+  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" },
   coordinator: null,
 };
 const show = (v: OrganizationView, canEdit = true) =>

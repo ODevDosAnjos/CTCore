@@ -51,7 +51,7 @@ class OrganizationsIT extends PostgresIT {
                 .containsEntry("adult_name", "Adulto").containsEntry("adult_min_age", 18)
                 .containsEntry("adult_max_age", null).containsEntry("deactivation_days", 30)
                 .containsEntry("former_student_retention_months", 12).containsEntry("trial_retention_months", 6)
-                .containsEntry("trial_limit", 2).containsEntry("cross_unit_training", "plan");
+                .doesNotContainKey("trial_limit").containsEntry("cross_unit_training", "plan");
         for (String field : new String[]{"graduation_requirements", "modality_settings", "terms_versions"}) {
             assertThat(settings.get(field).toString()).isEqualTo("{}");
         }
@@ -60,7 +60,7 @@ class OrganizationsIT extends PostgresIT {
         assertThat(unit).containsEntry("enrollment_fee_enabled", false).containsEntry("enrollment_fee_cents", 0L)
                 .containsEntry("cash_fee_cents", 0L).containsEntry("pix_fee_cents", 0L)
                 .containsEntry("bank_slip_fee_cents", 0L).containsEntry("credit_card_fee_cents", 0L)
-                .containsEntry("debit_card_fee_cents", 0L).containsEntry("pix_key", null)
+                .containsEntry("debit_card_fee_cents", 0L).containsEntry("pix_key", null).containsEntry("trial_limit", 2)
                 .containsEntry("automatic_debit_fee_cents", 0L).containsEntry("manual_pix_fee_cents", 0L)
                 .containsEntry("terminal_card_fee_cents", 0L).containsEntry("transfer_fee_cents", 0L)
                 .containsEntry("payment_account_reference", null).containsEntry("directory_enabled", false)
@@ -132,7 +132,7 @@ class OrganizationsIT extends PostgresIT {
         organizations.initialize(other, Organizations.Defaults.standard());
         assertThatThrownBy(() -> jdbc.update("update unit_settings set organization_id = ? where unit_id = ?", other.id(), unit2))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
-        for (String assignment : new String[]{"deactivation_days = 14", "deactivation_days = 91", "trial_limit = 0", "trial_limit = 4",
+        for (String assignment : new String[]{"deactivation_days = 14", "deactivation_days = 91",
                 "child_min_age = -1", "child_max_age = 2", "youth_min_age = 10", "youth_max_age = 1", "adult_min_age = 15",
                 "adult_max_age = 1", "former_student_retention_months = 0", "trial_retention_months = 0",
                 "cross_unit_training = 'invalid'", "graduation_requirements = '[]'", "modality_settings = '[]'", "terms_versions = '[]'"}) {
@@ -142,7 +142,8 @@ class OrganizationsIT extends PostgresIT {
         for (String assignment : new String[]{"due_days = '{0}'", "due_days = '{29}'", "due_days = '{}'", "due_days = '{1,NULL}'",
                 "enrollment_fee_cents = -1", "cash_fee_cents = -1", "pix_fee_cents = -1", "bank_slip_fee_cents = -1",
                 "credit_card_fee_cents = -1", "debit_card_fee_cents = -1", "automatic_debit_fee_cents = -1",
-                "manual_pix_fee_cents = -1", "terminal_card_fee_cents = -1", "transfer_fee_cents = -1", "teacher_permissions = '{true}'"}) {
+                "manual_pix_fee_cents = -1", "terminal_card_fee_cents = -1", "transfer_fee_cents = -1", "teacher_permissions = '{true}'",
+                "trial_limit = 0", "trial_limit = 4"}) {
             assertThatThrownBy(() -> jdbc.update("update unit_settings set " + assignment + " where unit_id = ?", org.unitId()))
                     .as(assignment).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         }

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/ui/badge";
 import { ComingSoon } from "@/components/ui/coming-soon";
+import { Field, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import type { Draft, SetDraft } from "./unitDraft";
 
@@ -12,7 +13,7 @@ const LINKS: { key: LinkKey; id: "trial" | "selfRegistration" }[] = [
 ];
 
 // Aba Links (R7): o interruptor liga e desliga o link público; endereço, QR e PDF chegam com a tela de links (issue 162).
-export function UnitLinksTab({ d, set }: { d: Draft; set: SetDraft }) {
+export function UnitLinksTab({ d, set, errors = {} }: { d: Draft; set: SetDraft; errors?: Record<string, string> }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-4">
@@ -35,6 +36,20 @@ export function UnitLinksTab({ d, set }: { d: Draft; set: SetDraft }) {
           </div>
         </Card>
       ))}
+      <Card>
+        {/* RN-AEX-02: limite por unidade. */}
+        <Field label={t("unitSettings.links.trialLimit")} hint={errors["settings.trialLimit"] ? undefined : t("unitSettings.links.trialLimitHint")} error={errors["settings.trialLimit"]}>
+          {(c) => (
+            <Select {...c} value={d.trialLimit} onChange={(e) => set("trialLimit")(Number(e.target.value))}>
+              {[1, 2, 3].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </Card>
       <p className="text-sm text-muted-foreground">{t("unitSettings.links.offNote")}</p>
     </div>
   );

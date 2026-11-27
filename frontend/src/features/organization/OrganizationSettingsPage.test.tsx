@@ -18,7 +18,7 @@ const session = (role: string): SessionView => ({
   activeLinkId: "l1",
   twoFactor: { enabled: false, required: false },
 });
-const rules: OrganizationView["rules"] = { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" };
+const rules: OrganizationView["rules"] = { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" };
 const coordinator = { name: "Marcos Leão", email: "marcos@academialeao.example", twoFactorEnabled: true };
 const empty: OrganizationView = { name: "Academia Alfa", color: null, holderDocument: null, logoUrl: null, version: 0, lastChange: null, rules, coordinator };
 const full: OrganizationView = { ...empty, color: "#1a56db", holderDocument: "11222333000181", logoUrl: "data:image/png;base64,AAAA" };
@@ -199,7 +199,7 @@ describe("OrganizationSettingsPage", () => {
     setup("ADMINISTRATOR", full);
     await ready();
     expect(screen.getByText("Você pode ver estes dados, mas só o Coordenador altera.")).toBeInTheDocument();
-    for (const label of [/^Nome da organização/, "Cor principal", "Titular (razão social ou nome)", "Prazo para bloquear por atraso", "Experimentais por telefone, por unidade", "Usar a cor #C8462C"]) {
+    for (const label of [/^Nome da organização/, "Cor principal", "Titular (razão social ou nome)", "Prazo para bloquear por atraso", "Usar a cor #C8462C"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
     expect(screen.getByRole("radio", { name: "Sim" })).toBeDisabled();
@@ -440,7 +440,6 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     setup("COORDINATOR", full);
     await ready();
     expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("30");
-    expect(screen.getByLabelText("Experimentais por telefone, por unidade")).toHaveValue("2");
     expect(screen.getByRole("radio", { name: "Depende do plano" })).toBeChecked();
     await user.clear(screen.getByLabelText("Prazo para bloquear por atraso"));
     await user.type(screen.getByLabelText("Prazo para bloquear por atraso"), "45");
@@ -448,11 +447,10 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     await user.type(screen.getByLabelText("Acesso de ex-aluno ao histórico"), "24");
     await user.clear(screen.getByLabelText("Guardar aulas experimentais sem matrícula"));
     await user.type(screen.getByLabelText("Guardar aulas experimentais sem matrícula"), "3");
-    await user.selectOptions(screen.getByLabelText("Experimentais por telefone, por unidade"), "3");
     await user.click(screen.getByRole("radio", { name: "Não" }));
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
-    const next = { deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, trialLimit: 3, crossUnitTraining: "denied" };
+    const next = { deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, crossUnitTraining: "denied" };
     expect(writes).toEqual([{ method: "PATCH", body: { name: "Academia Alfa", color: "#1a56db", holderDocument: "11222333000181", rules: next } }]);
     expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("45");
     expect(screen.getByRole("radio", { name: "Não" })).toBeChecked();
@@ -486,26 +484,22 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     await ready();
     server.use(
       http.patch("/api/v1/organization", () =>
-        HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "rules.trialLimit", message: "limite recusado pelo servidor" }] }, { status: 400 }),
+        HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "rules.trialRetentionMonths", message: "limite recusado pelo servidor" }] }, { status: 400 }),
       ),
     );
-    await user.selectOptions(screen.getByLabelText("Experimentais por telefone, por unidade"), "1");
+    await user.clear(screen.getByLabelText("Guardar aulas experimentais sem matrícula"));
+    await user.type(screen.getByLabelText("Guardar aulas experimentais sem matrícula"), "1");
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("limite recusado pelo servidor")).toBeInTheDocument();
-    expect(screen.getByLabelText("Experimentais por telefone, por unidade")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Guardar aulas experimentais sem matrícula")).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("CA6: o interruptor do comprovante está desabilitado, rotulado Em breve, e não faz chamada", async () => {
-    const user = userEvent.setup();
+  it("RF-MOD-02: as regras gerais não têm comprovante da graduação de origem nem limite de experimentais (RN-AEX-02)", async () => {
     setup("COORDINATOR", full);
     await ready();
-    const toggle = screen.getByRole("switch", { name: "Exigir comprovante da graduação de origem" });
-    expect(toggle).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByText("Em breve")).toBeInTheDocument();
-    expect(screen.getByText("Pode ser ligado por modalidade")).toBeInTheDocument();
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(writes).toEqual([]);
+    expect(screen.queryByRole("switch", { name: /comprovante/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pode ser ligado por modalidade")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Experimentais por telefone|Limite de aulas experimentais/)).not.toBeInTheDocument();
   });
 
   it("CA8: Salvar e Descartar só ficam ativos com alteração; Descartar restaura todos os valores", async () => {

@@ -268,7 +268,7 @@ const initialOrganization = {
   logoUrl: null as string | null,
   version: 0,
   lastChange: null as MockLastChange,
-  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" as string },
+  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" as string },
   coordinator: { name: "Ana", email: "ana@exemplo.com", twoFactorEnabled: true } as { name: string | null; email: string; twoFactorEnabled: boolean } | null,
 };
 // RF-ORG-01: faixas das regras da organização (as mesmas do servidor).
@@ -276,7 +276,6 @@ const ruleRanges: [string, number, number][] = [
   ["deactivationDays", 15, 90],
   ["formerStudentRetentionMonths", 1, 60],
   ["trialRetentionMonths", 1, 60],
-  ["trialLimit", 1, 3],
 ];
 // RNF-15: If-Match com a versão lida; ausente ou não numérico é 428, versão diferente da atual é 409.
 // Sem `version`, só o formato é conferido (a versão é conferida depois da validação do corpo).
@@ -524,6 +523,7 @@ const defaultUnitSettings = () => ({
   reminderDays: [-3, 0, 3, 10],
   remindersEnabled: true,
   remindersHour: 9,
+  trialLimit: 2,
   teacherPermissions: { announcements: true, agendaEdit: true, studentContacts: true, trialClasses: true, studentRecord: false },
   directoryEnabled: false,
   trialLinkEnabled: true,
@@ -2827,6 +2827,7 @@ export const routes: Route[] = [
       if (typeof s.remindersEnabled !== "boolean") bad.push({ field: "settings.remindersEnabled", message: "obrigatório" });
       if (!Number.isInteger(s.remindersHour) || s.remindersHour < 0 || s.remindersHour > 23) bad.push({ field: "settings.remindersHour", message: "valor entre 0 e 23" });
       if (new Set(reminders).size !== reminders.length || reminders.length > 8 || reminders.some((d) => d < -30 || d > 60)) bad.push({ field: "settings.reminderDays", message: "valores entre -30 e 60" });
+      if (!Number.isInteger(s.trialLimit) || s.trialLimit < 1 || s.trialLimit > 3) bad.push({ field: "settings.trialLimit", message: "use um valor de 1 a 3" });
       if (bad.length) return error(400, "VALIDATION_ERROR", "Dados inválidos.", bad);
       const stale = precondition(request, unitDetail(id).version);
       if (stale) return stale;

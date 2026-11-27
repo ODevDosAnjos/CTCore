@@ -49,6 +49,7 @@ abstract class UnitBase extends OrganizationBase {
         s.putObject("teacherPermissions").put("announcements", true).put("agendaEdit", true).put("studentContacts", true).put("trialClasses", true).put("studentRecord", false);
         s.put("directoryEnabled", false).put("trialLinkEnabled", true).put("selfRegistrationLinkEnabled", true);
         s.put("remindersEnabled", true).put("remindersHour", 9);
+        s.put("trialLimit", 2);
         return n;
     }
 

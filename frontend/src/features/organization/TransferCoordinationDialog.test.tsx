@@ -23,7 +23,7 @@ const view = {
   logoUrl: null,
   version: 0,
   lastChange: null,
-  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" },
+  rules: { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" },
   coordinator: { name: "Marcos Leão", email: "marcos@academialeao.example", twoFactorEnabled: true },
 };
 const staff = (over: Record<string, unknown>) => ({

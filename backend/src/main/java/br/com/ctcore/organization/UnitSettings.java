@@ -43,7 +43,7 @@ public class UnitSettings {
     public record Settings(List<Integer> dueDays, boolean enrollmentFeeEnabled, long enrollmentFeeCents, Map<String, Long> feesCents,
             String pixKey, PaymentAccount paymentAccount, List<Integer> reminderDays, TeacherPermissions teacherPermissions,
             boolean directoryEnabled, boolean trialLinkEnabled, boolean selfRegistrationLinkEnabled, boolean remindersEnabled,
-            int remindersHour) {}
+            int remindersHour, int trialLimit) {}
 
     public record UnitDetail(UUID id, String name, String shortName, String postalCode, String address, String city, Double latitude,
             Double longitude, String phone, String email, String whatsapp, String cnpj, boolean active, String timezone, Settings settings, int version,
@@ -62,7 +62,7 @@ public class UnitSettings {
             select u.id, u.name, u.short_name, u.postal_code, u.address, u.city, u.latitude, u.longitude, u.phone, u.email, u.whatsapp,
                    u.cnpj, u.active, s.due_days, s.enrollment_fee_enabled, s.enrollment_fee_cents, %s, s.pix_key,
                    s.payment_account_reference is not null, s.reminder_days, s.teacher_permissions, s.directory_enabled,
-                   s.trial_link_enabled, s.self_registration_link_enabled, u.version, s.reminders_enabled, s.reminders_hour, u.timezone
+                   s.trial_link_enabled, s.self_registration_link_enabled, u.version, s.reminders_enabled, s.reminders_hour, u.timezone, s.trial_limit
             from unit u join unit_settings s on s.unit_id = u.id and s.organization_id = u.organization_id
             """.formatted(String.join(", ", UnitUpdate.FEE_COLUMNS.values().stream().map(c -> "s." + c).toList()));
 
@@ -133,12 +133,12 @@ public class UnitSettings {
                     update unit_settings set due_days = cast(:due as integer[]), enrollment_fee_enabled = :feeOn, enrollment_fee_cents = :fee,
                         pix_key = :pixKey, reminder_days = cast(:reminders as integer[]), teacher_permissions = cast(:teacher as boolean[]),
                         directory_enabled = :directory, trial_link_enabled = :trial, self_registration_link_enabled = :self,
-                        reminders_enabled = :remOn, reminders_hour = :remHour"""
+                        reminders_enabled = :remOn, reminders_hour = :remHour, trial_limit = :trialLimit"""
                     + fees + " where unit_id = :id")
                     .param("due", literal(s.dueDays())).param("feeOn", s.enrollmentFeeEnabled()).param("fee", s.enrollmentFeeCents())
                     .param("pixKey", s.pixKey()).param("reminders", literal(s.reminderDays())).param("teacher", literal(teacher(s.teacherPermissions())))
                     .param("directory", s.directoryEnabled()).param("trial", s.trialLinkEnabled())
-                    .param("self", s.selfRegistrationLinkEnabled()).param("remOn", s.remindersEnabled()).param("remHour", s.remindersHour()).param("id", unitId);
+                    .param("self", s.selfRegistrationLinkEnabled()).param("remOn", s.remindersEnabled()).param("remHour", s.remindersHour()).param("trialLimit", s.trialLimit()).param("id", unitId);
             for (var fee : s.feesCents().entrySet()) statement = statement.param(fee.getKey(), fee.getValue());
             statement.update();
             UnitDetail after = load(unitId).orElseThrow();
@@ -202,7 +202,7 @@ public class UnitSettings {
                         teacher[PermissionTable.teacherFlag(Permission.STUDENT_CONTACTS)],
                         teacher[PermissionTable.teacherFlag(Permission.TRIAL_CLASSES)],
                         teacher[PermissionTable.teacherFlag(Permission.STUDENT_RECORD)]),
-                rs.getBoolean(30), rs.getBoolean(31), rs.getBoolean(32), rs.getBoolean(34), rs.getInt(35));
+                rs.getBoolean(30), rs.getBoolean(31), rs.getBoolean(32), rs.getBoolean(34), rs.getInt(35), rs.getInt(37));
         return new UnitDetail(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6),
                 number(rs.getBigDecimal(7)), number(rs.getBigDecimal(8)), rs.getString(9), rs.getString(10), rs.getString(11),
                 rs.getString(12), rs.getBoolean(13), rs.getString(36), settings, rs.getInt(33), null);
@@ -260,6 +260,7 @@ public class UnitSettings {
         m.put("directoryEnabled", s.directoryEnabled());
         m.put("trialLinkEnabled", s.trialLinkEnabled());
         m.put("selfRegistrationLinkEnabled", s.selfRegistrationLinkEnabled());
+        m.put("trialLimit", s.trialLimit());
         return m;
     }
 }

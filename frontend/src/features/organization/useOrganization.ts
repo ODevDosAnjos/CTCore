@@ -3,12 +3,11 @@ import type { LastChangeValue } from "@/components/LastChange";
 import { api, ApiError } from "@/lib/api";
 
 export type CrossUnitTraining = "plan" | "allowed" | "denied";
-// RF-ORG-01 / RN-ORG-13: as cinco regras da organização (OrganizationRules do OpenAPI).
+// RF-ORG-01 / RN-ORG-13: as quatro regras da organização (OrganizationRules do OpenAPI).
 export interface OrganizationRules {
   deactivationDays: number;
   formerStudentRetentionMonths: number;
   trialRetentionMonths: number;
-  trialLimit: number;
   crossUnitTraining: CrossUnitTraining;
 }
 export interface Coordinator {

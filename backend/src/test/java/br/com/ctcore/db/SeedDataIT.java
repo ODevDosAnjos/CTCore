@@ -137,8 +137,8 @@ public class SeedDataIT extends PostgresIT {
                 .isEqualTo("Academia Maré Alta");
         assertThat(jdbc.queryForObject("select count(*) from unit u join unit_settings s on (s.organization_id, s.unit_id) = (u.organization_id, u.id) join organization_settings o on o.organization_id = u.organization_id join organization_limits l on l.organization_id = u.organization_id", Integer.class))
                 .isEqualTo(4);
-        jdbc.update("update organization_settings set deactivation_days = 60, trial_limit = 3 where organization_id = md5('ctcore-seed-org-1')::uuid");
-        jdbc.update("update unit_settings set due_days = '{2,28}', pix_key = 'synthetic-key' where organization_id = md5('ctcore-seed-org-1')::uuid");
+        jdbc.update("update organization_settings set deactivation_days = 60 where organization_id = md5('ctcore-seed-org-1')::uuid");
+        jdbc.update("update unit_settings set due_days = '{2,28}', pix_key = 'synthetic-key', trial_limit = 3 where organization_id = md5('ctcore-seed-org-1')::uuid");
         jdbc.update("update organization_limits set students = 1 where organization_id = md5('ctcore-seed-org-1')::uuid");
         Map<String, List<String>> before = new java.util.HashMap<>();
         for (String table : new String[]{"organization", "unit", "organization_settings", "unit_settings", "organization_limits"}) {

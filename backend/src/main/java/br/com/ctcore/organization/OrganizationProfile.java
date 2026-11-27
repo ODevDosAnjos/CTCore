@@ -100,9 +100,9 @@ public class OrganizationProfile {
                 Map<String, Object> newAudit = auditValues(next);
                 if (rulesChanged) {
                     jdbc.sql("update organization_settings set deactivation_days = :d, former_student_retention_months = :f, "
-                            + "trial_retention_months = :t, trial_limit = :l, cross_unit_training = :c where organization_id = :id")
+                            + "trial_retention_months = :t, cross_unit_training = :c where organization_id = :id")
                             .param("d", nextRules.deactivationDays()).param("f", nextRules.formerStudentRetentionMonths())
-                            .param("t", nextRules.trialRetentionMonths()).param("l", nextRules.trialLimit())
+                            .param("t", nextRules.trialRetentionMonths())
                             .param("c", nextRules.crossUnitTraining()).param("id", who.organizationId()).update();
                     oldAudit.put("rules", oldRules.auditValues());
                     newAudit.put("rules", nextRules.auditValues());
@@ -183,9 +183,9 @@ public class OrganizationProfile {
     }
 
     private OrganizationRules rules(UUID organizationId) {
-        return jdbc.sql("select deactivation_days, former_student_retention_months, trial_retention_months, trial_limit, cross_unit_training "
+        return jdbc.sql("select deactivation_days, former_student_retention_months, trial_retention_months, cross_unit_training "
                 + "from organization_settings where organization_id = :id").param("id", organizationId)
-                .query((rs, i) -> new OrganizationRules(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getString(5))).single();
+                .query((rs, i) -> new OrganizationRules(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getString(4))).single();
     }
 
     private CoordinatorRow coordinator(UUID organizationId) {

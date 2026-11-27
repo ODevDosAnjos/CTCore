@@ -23,6 +23,10 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await page.getByRole("switch", { name: "Cobrar taxa de matrícula" }).click();
   await page.getByLabel("Valor da taxa").fill("");
   await page.getByLabel("Valor da taxa").pressSequentially("15000");
+  // RNF-56: a tela abre dentro da moldura; RN-AEX-02: o limite é salvo na unidade.
+  await expect(page.getByRole("navigation").first()).toBeVisible();
+  await page.getByRole("tab", { name: "Links" }).click();
+  await page.getByLabel("Limite de aulas experimentais por pessoa").selectOption("3");
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page.getByText("Salvo", { exact: true })).toBeVisible();
 
@@ -31,6 +35,8 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await open(page, "/configuracoes/unidade");
   await expect(page.getByLabel("Telefone")).toHaveValue("(21) 99999-8888");
   await expect(page.getByLabel("Valor da taxa")).toHaveValue("R$ 150,00");
+  await page.getByRole("tab", { name: "Links" }).click();
+  await expect(page.getByLabel("Limite de aulas experimentais por pessoa")).toHaveValue("3");
 
   await page.evaluate('fetch("/api/v1/auth/logout", { method: "POST" })');
   await page.goto("/entrar");

@@ -25,9 +25,9 @@ import { FEE_KEYS, TEACHER_KEYS, useUnitDetail, type UnitDetail } from "./useUni
 const TABS = ["data", "payments", "reminders", "links", "teacher"] as const;
 type TabId = (typeof TABS)[number];
 
-// Aba de cada erro do servidor; o que não é de Pagamentos nem de Lembretes (nome, vencimentos, taxa de matrícula...) é da aba Dados.
+// Aba de cada erro do servidor; o que não é de Pagamentos, Lembretes nem Links (nome, vencimentos, taxa de matrícula...) é da aba Dados.
 const tabOfServerField = (field: string): TabId =>
-  field.startsWith("settings.feesCents") || field === "settings.pixKey" ? "payments" : field.startsWith("settings.reminder") ? "reminders" : "data";
+  field.startsWith("settings.feesCents") || field === "settings.pixKey" ? "payments" : field.startsWith("settings.reminder") ? "reminders" : field === "settings.trialLimit" ? "links" : "data";
 
 function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useUnitDetail> }) {
   const { t } = useTranslation();
@@ -135,6 +135,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
       [t("unitSettings.directory"), d.directoryEnabled, c.directoryEnabled, text],
       [t("unitSettings.trialLink"), d.trialLinkEnabled, c.trialLinkEnabled, text],
       [t("unitSettings.selfRegistrationLink"), d.selfRegistrationLinkEnabled, c.selfRegistrationLinkEnabled, text],
+      [t("unitSettings.links.trialLimit"), d.trialLimit, c.trialLimit, text],
     ];
     return fields
       .filter(([, mine, now]) => JSON.stringify(mine) !== JSON.stringify(now))
@@ -159,7 +160,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
     { id: "data", content: <UnitDataTab {...shared} unitId={detail.id} unitName={detail.name} shortName={detail.shortName} timezone={detail.timezone} /> },
     { id: "payments", content: <UnitPaymentsTab {...shared} connected={detail.settings.paymentAccount === "CONNECTED"} /> },
     { id: "reminders", content: <UnitRemindersTab {...shared} /> },
-    { id: "links", content: <UnitLinksTab d={d} set={set} /> },
+    { id: "links", content: <UnitLinksTab d={d} set={set} errors={errors} /> },
     { id: "teacher", content: <UnitTeacherTab d={d} set={set} unitName={detail.name} /> },
   ].map((item) => ({ ...item, label: t(`unitSettings.tabs.${item.id}`), badge: flag(item.id as TabId) }));
 
