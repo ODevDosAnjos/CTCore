@@ -1,7 +1,7 @@
 # 714 — Técnica · Recalibrar o critério do visual:canvas depois da moldura
 
 Origem: issue #714 (base: relatório da #568, `docs/auditoria/568-medicao-visual-canvas.md`). Branch: `item/714-recalibrar-visual-canvas`.
-Tempos: especificar 9 (2 rodadas) · construir 7 · verificar 12 (regressão 9; 1 rodada) · entregar 5 (estimativa; hora inicial não anotada)
+Tempos: especificar 9 (2 rodadas) · construir 7 · verificar 22 (regressão 18; 2 rodadas) · entregar 5 (estimativa; hora inicial não anotada)
 
 ## 1. Objetivo
 
@@ -191,12 +191,38 @@ Achados:
 - sugestão, especificação, `specs/projeto.md`, `specs/backlog.md` e D1 deste arquivo — a decisão P12 está datada de 27/11/2026, e a especificação que a abriu e esta verificação são de 26/11/2026; conferir a data.
 - sugestão, código, `frontend/visual/casos.ts`, `ficha-aluno-financeiro` (e `-graduacoes`, `-responsaveis`, `-historico`) — o motivo, já assim antes do item, repete trechos ("a lista atrás tem outro conteúdo" duas vezes); pode ser enxugado quando a #739 for feita.
 
+### Rodada 2 — OK — 26/11/2026, estado 5d0963a241f0fbd77e4c247e3dbc0faee7e66fb7
+
+Nova rodada depois do commit do item (6365ce15) e do merge da `dev` (a9ddf057, base 7fe8b4af). Sem achado obrigatório na rodada 1. Desde o estado dela só mudaram `specs/backlog.md`, `specs/projeto.md` e este arquivo (rodada 1, "Entrega", data); código, testes e `AGENTS.md` são os mesmos.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 | PASSOU | Mantido da rodada 1; no arquivo, depois dela, só mudaram a data da D1, os tempos, a rodada e "Entrega". |
+| CA2, CA3 | PASSOU | 175 testes do item passam. |
+| CA4 | PASSOU | `casos.test.ts` verde nesta rodada; mutações mantidas da rodada 1. |
+| CA5 | PASSOU | `npm run visual:canvas -- --exige` saiu 0: 165 comparadas, 0 reprovadas. |
+| CA6 | PASSOU | `resultado.json` desta rodada: 44 variantes com limite diferente de 0,15 (as mesmas 44 acima de 15%), folga de 1,03 a 1,99 ponto, 0 frouxas. |
+| CA7 | PASSOU | As 13 removedoras seguem abertas, autor `ODevDosAnjos` (`gh issue view`); corpo e "Pronto quando" mantidos da rodada 1. |
+| CA8, CA9 | PASSOU | Mantidos da rodada 1 (`AGENTS.md` sem mudança). |
+
+Merge: `git diff origin/dev HEAD -- specs/backlog.md` mostra só a linha da #714 (`feito`), as três linhas #739 a #741 e a linha da P12; as da #735 e #736 continuam; sem marcador de conflito nem número repetido. A data da P12 agora é 26/11/2026 em `backlog.md`, `projeto.md` e D1 (resolve a primeira sugestão da rodada 1).
+
+Comandos (em `frontend/`): `npx vitest run visual/comparar.test.ts visual/casos.test.ts` → 175 passam; `npm run lint`, `npm run typecheck`, `npm run build` → 0; `npm test` → 277 arquivos, 3051 testes, todos passam; `npm run visual:canvas -- --exige` → 0. e2e: nenhuma tela criada ou mudada. Back-end não tocado. Visual: no CI do PR.
+
+Capturas: as seis de `.capturas/714/` têm o mesmo hash das geradas nesta rodada; abertas, e os motivos de `sem-acesso`, `portal-carteirinha` e `portal-pix-chave` a 390 batem com o que se vê.
+
+Instáveis: nenhum.
+
+Achados:
+- sugestão, código (texto do PR), seção "Entrega", item "Resultado" — "todas com `limiteCanvas` por largura (...) ou sem removedora ainda" contradiz a R4 e o observado: as 44 têm `limiteCanvas` e removedora aberta; tirar "ou sem removedora ainda" da descrição do PR.
+- sugestão, código, motivos repetidos em `casos.ts` — mantida da rodada 1.
+
 ## Entrega
 
 Recalibra o `npm run visual:canvas` depois da moldura (#624) e dos cabeçalhos (#646). O limite padrão passa de 30% para 15% e vale como rede de erro grosseiro e de regressão. `limiteCanvas` passa a ser por largura (1440 ou 390), com valor no máximo 3 pontos acima do medido, motivo e issue aberta que o remove. Remove a regra temporária de conferência lado a lado do `AGENTS.md` e reescreve a Autonomia 4. A fidelidade fina segue com a regra permanente "Canvas e decisões do dono".
 
 - Medição nova (relatório na seção 1): nenhum candidato (bloco 8 ou 16, regiões, bordas) separa os casos conhecidos dos demais; por isso o critério é o limite por largura com folga curta.
-- Resultado: `npm run visual:canvas -- --exige` sai 0, 165 comparadas e 0 reprovadas. São 44 variantes acima de 15%, todas com `limiteCanvas` por largura (folga de 1,03 a 1,99 ponto) ou sem removedora ainda; nenhuma do tema escuro.
+- Resultado: `npm run visual:canvas -- --exige` sai 0, 165 comparadas e 0 reprovadas. São 44 variantes acima de 15%, todas com `limiteCanvas` por largura (folga de 1,03 a 1,99 ponto) e issue aberta que o remove; nenhuma do tema escuro.
 - Issues novas, marco "Atualizações · Polimento" (não liberado para o loop): #739 (os 12 casos da ficha do aluno), #740 (`sem-acesso` 390) e #741 (`portal-carteirinha` 390). Comentário de padrão de 15% nas #553, #556, #558 e #560.
 - Decisões: D1 a D6 da seção 6 (opção a do dono, P12).
 - Testes: `npx vitest run visual/comparar.test.ts visual/casos.test.ts` (175 passam), `lint`, `typecheck`, `build` e `npm test` verdes na verificação.
