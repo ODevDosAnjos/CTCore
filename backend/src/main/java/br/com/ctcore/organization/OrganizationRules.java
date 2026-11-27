@@ -5,13 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** RF-ORG-01: as cinco regras da organização (colunas de {@code organization_settings}) e as faixas aceitas. */
-public record OrganizationRules(int deactivationDays, int formerStudentRetentionMonths, int trialRetentionMonths, int trialLimit,
+/** RF-ORG-01: as quatro regras da organização (colunas de {@code organization_settings}) e as faixas aceitas. */
+public record OrganizationRules(int deactivationDays, int formerStudentRetentionMonths, int trialRetentionMonths,
         String crossUnitTraining) {
     static final Set<String> CROSS_UNIT = Set.of("plan", "allowed", "denied");
 
     /** Corpo do PATCH: campo ausente vira nulo e é recusado com o campo apontado ({@code rules.<campo>}). */
-    public record Request(Integer deactivationDays, Integer formerStudentRetentionMonths, Integer trialRetentionMonths, Integer trialLimit,
+    public record Request(Integer deactivationDays, Integer formerStudentRetentionMonths, Integer trialRetentionMonths,
             String crossUnitTraining) {}
 
     public static OrganizationRules validate(Request r) {
@@ -19,7 +19,6 @@ public record OrganizationRules(int deactivationDays, int formerStudentRetention
                 range("deactivationDays", r.deactivationDays(), 15, 90),
                 range("formerStudentRetentionMonths", r.formerStudentRetentionMonths(), 1, 60),
                 range("trialRetentionMonths", r.trialRetentionMonths(), 1, 60),
-                range("trialLimit", r.trialLimit(), 1, 3),
                 crossUnit(r.crossUnitTraining()));
     }
 
@@ -39,7 +38,6 @@ public record OrganizationRules(int deactivationDays, int formerStudentRetention
         m.put("deactivationDays", deactivationDays);
         m.put("formerStudentRetentionMonths", formerStudentRetentionMonths);
         m.put("trialRetentionMonths", trialRetentionMonths);
-        m.put("trialLimit", trialLimit);
         m.put("crossUnitTraining", crossUnitTraining);
         return m;
     }

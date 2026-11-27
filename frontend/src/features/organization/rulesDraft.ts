@@ -5,7 +5,6 @@ export const RANGES = {
   deactivationDays: [15, 90],
   formerStudentRetentionMonths: [1, 60],
   trialRetentionMonths: [1, 60],
-  trialLimit: [1, 3],
 } as const;
 export type NumericRule = keyof typeof RANGES;
 
@@ -14,7 +13,6 @@ export interface RulesDraft {
   deactivationDays: string;
   formerStudentRetentionMonths: string;
   trialRetentionMonths: string;
-  trialLimit: string;
   crossUnitTraining: CrossUnitTraining;
 }
 
@@ -22,7 +20,6 @@ export const toDraft = (r: OrganizationRules): RulesDraft => ({
   deactivationDays: String(r.deactivationDays),
   formerStudentRetentionMonths: String(r.formerStudentRetentionMonths),
   trialRetentionMonths: String(r.trialRetentionMonths),
-  trialLimit: String(r.trialLimit),
   crossUnitTraining: r.crossUnitTraining,
 });
 
@@ -30,7 +27,6 @@ export const toRules = (d: RulesDraft): OrganizationRules => ({
   deactivationDays: Number(d.deactivationDays),
   formerStudentRetentionMonths: Number(d.formerStudentRetentionMonths),
   trialRetentionMonths: Number(d.trialRetentionMonths),
-  trialLimit: Number(d.trialLimit),
   crossUnitTraining: d.crossUnitTraining,
 });
 

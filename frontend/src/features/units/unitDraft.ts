@@ -25,6 +25,7 @@ export type Draft = {
   directoryEnabled: boolean;
   trialLinkEnabled: boolean;
   selfRegistrationLinkEnabled: boolean;
+  trialLimit: number;
 };
 
 export type SetDraft = <K extends keyof Draft>(key: K) => (value: Draft[K]) => void;
@@ -64,6 +65,7 @@ export function toDraft(d: UnitDetail): Draft {
     directoryEnabled: s.directoryEnabled,
     trialLinkEnabled: s.trialLinkEnabled,
     selfRegistrationLinkEnabled: s.selfRegistrationLinkEnabled,
+    trialLimit: s.trialLimit,
   };
 }
 
@@ -99,6 +101,7 @@ export function toBody(d: Draft, base: Draft): UnitUpdate {
       directoryEnabled: d.directoryEnabled,
       trialLinkEnabled: d.trialLinkEnabled,
       selfRegistrationLinkEnabled: d.selfRegistrationLinkEnabled,
+      trialLimit: d.trialLimit,
     },
   };
 }

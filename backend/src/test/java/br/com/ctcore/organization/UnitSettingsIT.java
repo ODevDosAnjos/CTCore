@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,7 @@ class UnitSettingsIT extends UnitBase {
                 "phone", "email", "whatsapp", "cnpj", "active", "timezone", "settings", "version", "lastChange");
         var s = unit.path("settings");
         assertThat(fieldNames(s)).containsExactlyInAnyOrder("dueDays", "enrollmentFeeEnabled", "enrollmentFeeCents", "feesCents", "pixKey",
-                "paymentAccount", "reminderDays", "teacherPermissions", "directoryEnabled", "trialLinkEnabled", "selfRegistrationLinkEnabled", "remindersEnabled", "remindersHour");
+                "paymentAccount", "reminderDays", "teacherPermissions", "directoryEnabled", "trialLinkEnabled", "selfRegistrationLinkEnabled", "remindersEnabled", "remindersHour", "trialLimit");
         assertThat(s.path("dueDays")).hasSize(4);
         assertThat(fieldNames(s.path("feesCents"))).containsExactlyInAnyOrder("cash", "pix", "bankSlip", "creditCard", "debitCard",
                 "automaticDebit", "manualPix", "terminalCard", "transfer");
@@ -232,6 +233,87 @@ class UnitSettingsIT extends UnitBase {
             db.execute("drop function fail_audit_unit()");
         }
         assertThat(unitSnapshot(a)).isEqualTo(before);
+    }
+
+    private ObjectNode limited(Integer limit) {
+        ObjectNode body = payload();
+        ObjectNode s = (ObjectNode) body.path("settings");
+        if (limit == null) s.remove("trialLimit");
+        else s.put("trialLimit", limit);
+        return body;
+    }
+
+    @Test
+    @DisplayName("RN-AEX-02 / RF-ORG-08: o limite é de cada unidade, sobe a versão, audita antes e depois e atualiza a última alteração; unidade nova nasce com 2")
+    void trialLimitPerUnit() throws Exception {
+        var a = tenant();
+        UUID second = addUnit(a, "Segunda", "segunda-" + a.orgId(), null);
+        assertThat(get(a, a.unitId(), coordinator(a)).path("settings").path("trialLimit").asInt()).isEqualTo(2);
+        assertThat(get(a, second, coordinator(a)).path("settings").path("trialLimit").asInt()).isEqualTo(2);
+        assertThat(call(put(a.unitId(), payload()), coordinator(a)).getResponse().getStatus()).isEqualTo(200); // baseline: o nome muda
+        int version = get(a, a.unitId(), coordinator(a)).path("version").asInt();
+        var response = call(put(a.unitId(), limited(3)), coordinator(a)).getResponse();
+        assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
+        var changed = body(response);
+        assertThat(changed.path("settings").path("trialLimit").asInt()).isEqualTo(3);
+        assertThat(changed.path("version").asInt()).isEqualTo(version + 1);
+        assertThat(changed.path("lastChange").isNull()).isFalse();
+        assertThat(get(a, a.unitId(), coordinator(a))).isEqualTo(changed);
+        assertThat(get(a, second, coordinator(a)).path("settings").path("trialLimit").asInt()).isEqualTo(2);
+        var row = audit(a, "unit.update").stream().filter(r -> r.get("a").toString().contains("trialLimit")).findFirst().orElseThrow();
+        assertThat(row.get("entity_id").toString()).isEqualTo(a.unitId().toString());
+        assertThat(row.get("b")).hasToString("{\"trialLimit\": 2}");
+        assertThat(row.get("a")).hasToString("{\"trialLimit\": 3}");
+    }
+
+    @Test
+    @DisplayName("RN-AEX-02: limite 0, 4 ou ausente responde 400 com o campo; sem If-Match 428 e versão velha 409; nada é gravado")
+    void trialLimitRefused() throws Exception {
+        var a = tenant();
+        String before = unitSnapshot(a);
+        for (Integer bad : new Integer[] {0, 4, null}) {
+            ObjectNode body = limited(bad);
+            body.put("name", "Outro nome");
+            var response = call(put(a.unitId(), body), coordinator(a)).getResponse();
+            assertThat(response.getStatus()).as(String.valueOf(bad)).isEqualTo(400);
+            assertThat(response.getContentAsString()).contains("\"field\":\"settings.trialLimit\"");
+        }
+        assertThat(raw(put(a.unitId(), limited(3)), coordinator(a)).getResponse().getStatus()).isEqualTo(428);
+        assertThat(call(put(a.unitId(), limited(3)).header("If-Match", "99"), coordinator(a)).getResponse().getStatus()).isEqualTo(409);
+        assertThat(unitSnapshot(a)).isEqualTo(before);
+        assertThat(audit(a, "unit.update")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RN-AEX-02: a V58 copia o limite de cada organização para as unidades dela e remove a coluna antiga; o banco recusa 0 e 4")
+    void migrationCopiesTrialLimit() {
+        var admin = adminJdbc();
+        admin.execute("drop schema if exists trial_backfill cascade");
+        migrateTrialSchema("57");
+        for (int[] org : new int[][] {{3, 2}, {1, 1}}) { // limite e quantidade de unidades
+            UUID id = UUID.randomUUID();
+            admin.update("insert into trial_backfill.organization (id, name) values (?, 'Org')", id);
+            admin.update("insert into trial_backfill.organization_settings (organization_id, trial_limit) values (?, ?)", id, org[0]);
+            for (int i = 0; i < org[1]; i++) {
+                UUID unit = UUID.randomUUID();
+                admin.update("insert into trial_backfill.unit (id, organization_id, name, short_name) values (?, ?, 'U', ?)", unit, id, unit.toString());
+                admin.update("insert into trial_backfill.unit_settings (organization_id, unit_id) values (?, ?)", id, unit);
+            }
+        }
+        migrateTrialSchema("latest");
+        assertThat(admin.queryForList("select trial_limit from trial_backfill.unit_settings order by 1 desc", Integer.class)).containsExactly(3, 3, 1);
+        assertThat(admin.queryForObject("select count(*) from information_schema.columns where table_schema = 'trial_backfill' "
+                + "and table_name = 'organization_settings' and column_name = 'trial_limit'", Integer.class)).isZero();
+        for (int bad : new int[] {0, 4}) {
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> admin.update("update trial_backfill.unit_settings set trial_limit = ?", bad));
+        }
+        admin.execute("drop schema trial_backfill cascade");
+    }
+
+    private static void migrateTrialSchema(String target) {
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()).schemas("trial_backfill")
+                .createSchemas(true).locations("classpath:db/migration").target(target).load().migrate();
     }
 
     @Test

@@ -312,7 +312,6 @@
       "formerStudentRetentionMonths": "Acesso de ex-aluno ao histórico",
       "trialRetentionMonths": "Guardar aulas experimentais sem matrícula",
       "trialRetentionMonthsHint": "Depois, os dados são anonimizados",
-      "trialLimit": "Experimentais por telefone, por unidade",
       "crossUnitTraining": "Treinar em outra unidade",
       "crossUnit": {
         "allowed": "Sim",
@@ -321,9 +320,7 @@
       },
       "days": "dias",
       "months": "meses",
-      "range": "Use um número inteiro de {{min}} a {{max}}.",
-      "proof": "Exigir comprovante da graduação de origem",
-      "proofNote": "Pode ser ligado por modalidade"
+      "range": "Use um número inteiro de {{min}} a {{max}}."
     },
     "coordination": {
       "title": "Coordenação",
@@ -2465,6 +2462,8 @@
       "copy": "Copiar link",
       "qr": "QR code PNG",
       "pdf": "PDF para imprimir",
+      "trialLimit": "Limite de aulas experimentais por pessoa",
+      "trialLimitHint": "Contado pelo telefone, somando as modalidades.",
       "offNote": "Desligado, o link mostra \"Esta unidade não está recebendo pedidos por aqui\" com o contato da unidade."
     },
     "discard": "Descartar",

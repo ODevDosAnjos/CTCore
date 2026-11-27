@@ -250,9 +250,13 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 646 | RNF-45 · Cabeçalhos sem subtítulo de unidade e sem notas de regra interna (item-mãe: dividido em #717 a #721; fecha na #721; sem construção própria) | issue #646 | Sprint 10.5 | #721 | agente | dividido |
 | 564 | Teste visual instável: dia-sem-aula-novo reprova em HEAD limpo e passa em outras execuções | issue #564 | Manutenção · Dívida técnica | — | agente | feito |
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | feito |
-| 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança | issue #625 | Sprint 10.5 | #611, #624 | agente | a fazer |
-| 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #625 | agente | a fazer |
-| 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #625 | agente | a fazer |
+| 745 | 625a · Limite de aulas experimentais por unidade e comprovante da graduação só por modalidade | issue #745 (parte da #625) | Sprint 10.5 | #611, #624 | agente | feito |
+| 746 | 625b · Menu de Configurações e Unidades abertas pela lista | issue #746 (parte da #625) | Sprint 10.5 | #745 | agente | a fazer |
+| 747 | 625c · Organização em abas | issue #747 (parte da #625) | Sprint 10.5 | #746 | agente | a fazer |
+| 748 | 625d · Abas Cobrança e Divulgação da unidade (fecha a #625) | issue #748 (parte da #625) | Sprint 10.5 | #747 | agente | a fazer |
+| 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança (item-mãe: dividido em #745 a #748; fecha na #748; sem construção própria) | issue #625 | Sprint 10.5 | #748 | agente | dividido |
+| 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #748 | agente | a fazer |
+| 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #748 | agente | a fazer |
 | 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade | issue #630 | Sprint 10.5 | #608 | agente | a fazer |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) | issue #636 | Sprint 10.5 | — | agente | a fazer |
 | 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |
@@ -350,12 +354,12 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 174 | RF-AJU-03 · Tour do primeiro acesso | issue #174 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 149 | RF-CAD-04 · Assistente de boas-vindas | issue #149 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 150 | RF-CAD-05 · Checklist "Primeiros passos" | issue #150 | Atualizações · Funcionalidades | — | agente | a fazer |
-| 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Atualizações · Funcionalidades | #625 | agente | a fazer |
-| 633 | RF-MOD-01 a 03 · Modalidades e graduação mais claras: cartões, janela, editor de níveis e modalidades da unidade | issue #633 | Atualizações · Funcionalidades | #625 | agente | a fazer |
-| 634 | RF-ACE-09 · Tabela de permissões com selos em texto, por área e com o estado das chaves da unidade | issue #634 | Atualizações · Funcionalidades | #611, #625 | agente | a fazer |
-| 635 | RF-ORG-04 · Bloco "Vale para todas as unidades" nas abas da unidade | issue #635 | Atualizações · Funcionalidades | #625 | agente | a fazer |
-| 639 | RN-MAT-16a · Chaves dos pedidos pelo portal por unidade | issue #639 | Atualizações · Funcionalidades | #625 | agente | a fazer |
-| 640 | RF-ORG-10 · Configurações › Visão geral: quadros por unidade e por pessoa | issue #640 | Atualizações · Funcionalidades | #625, #627, #628, #638, #639 | agente | a fazer |
+| 627 | Dados novos: redes da organização; fotos, horário, apresentação e Instagram da unidade | issue #627 | Atualizações · Funcionalidades | #748 | agente | a fazer |
+| 633 | RF-MOD-01 a 03 · Modalidades e graduação mais claras: cartões, janela, editor de níveis e modalidades da unidade | issue #633 | Atualizações · Funcionalidades | #748 | agente | a fazer |
+| 634 | RF-ACE-09 · Tabela de permissões com selos em texto, por área e com o estado das chaves da unidade | issue #634 | Atualizações · Funcionalidades | #611, #748 | agente | a fazer |
+| 635 | RF-ORG-04 · Bloco "Vale para todas as unidades" nas abas da unidade | issue #635 | Atualizações · Funcionalidades | #748 | agente | a fazer |
+| 639 | RN-MAT-16a · Chaves dos pedidos pelo portal por unidade | issue #639 | Atualizações · Funcionalidades | #748 | agente | a fazer |
+| 640 | RF-ORG-10 · Configurações › Visão geral: quadros por unidade e por pessoa | issue #640 | Atualizações · Funcionalidades | #748, #627, #628, #638, #639 | agente | a fazer |
 | 658 | RF-COM-01/02 · Comunicados: tela única, destino por escopo, tipos novos, agendamento e imagem | issue #658 | Atualizações · Funcionalidades | #646, #647, #650 | agente | a fazer |
 | 655 | RF-AGE-01/04 · Agenda de domingo a sábado, filtros da unidade e aula avulsa | issue #655 | Atualizações · Funcionalidades | #647, #658 | agente | a fazer |
 | 657 | RN-AGE-09 · Feriados e recessos: feriados automáticos e aviso com 24 h | issue #657 | Atualizações · Funcionalidades | #648 | agente | a fazer |
@@ -431,7 +435,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 26/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P13 (aberta em 26/11/2026, na especificação da #625: divisão em partes; aprovada pelo dono no mesmo dia: issues #745 a #748). Antes: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 26/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|

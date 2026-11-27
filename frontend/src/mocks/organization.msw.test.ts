@@ -99,7 +99,7 @@ describe("organização x OpenAPI (CA21)", () => {
 });
 
 describe("regras e Coordenador x OpenAPI (RF-ORG-01, RN-ORG-13, CA13)", () => {
-  const rules = (over: Record<string, unknown> = {}) => ({ deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, trialLimit: 3, crossUnitTraining: "denied", ...over });
+  const rules = (over: Record<string, unknown> = {}) => ({ deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, crossUnitTraining: "denied", ...over });
 
   it("a leitura traz rules e coordinator do contrato e o PATCH com rules grava, valida a faixa e, sem rules, mantém", async () => {
     await login("ana@exemplo.com");
@@ -119,7 +119,6 @@ describe("regras e Coordenador x OpenAPI (RF-ORG-01, RN-ORG-13, CA13)", () => {
       [{ deactivationDays: 91 }, "rules.deactivationDays"],
       [{ formerStudentRetentionMonths: 0 }, "rules.formerStudentRetentionMonths"],
       [{ trialRetentionMonths: 61 }, "rules.trialRetentionMonths"],
-      [{ trialLimit: 4 }, "rules.trialLimit"],
       [{ crossUnitTraining: "x" }, "rules.crossUnitTraining"],
     ] as const) {
       const res = await patch({ name: "Dojo", rules: rules(over) });
@@ -135,6 +134,23 @@ describe("regras e Coordenador x OpenAPI (RF-ORG-01, RN-ORG-13, CA13)", () => {
     expect(read.rules.deactivationDays).toBe(30);
     expect(read.coordinator.email).toBeTruthy();
     expect((await patch({ name: "Hack", rules: rules() })).status).toBe(403);
+  });
+});
+
+describe("comprovante da graduação de origem é por modalidade (RF-MOD-01, RF-MOD-02, RN-GRA-09)", () => {
+  it("ligar numa modalidade não muda outra", async () => {
+    await login("ana@exemplo.com");
+    const items: { id: string; name: string }[] = await (await fetch("/api/v1/modalities")).json();
+    const ids = ["Jiu-Jitsu", "Judô"].map((name) => items.find((m) => m.name === name)!.id);
+    const url = (id: string) => `/api/v1/modalities/${id}/graduation`;
+    for (const id of ids) await fetch(`/api/v1/modalities/${id}/activation`, { method: "PUT", headers: json, body: JSON.stringify({ active: true }) });
+    const [bjj, judo] = ids as [string, string];
+    const other = await (await fetch(url(judo))).json();
+    const saved = await fetch(url(bjj), { method: "PUT", headers: json, body: JSON.stringify({ enabled: false, requireOriginProof: true, levels: [] }) });
+    expect(saved.status).toBe(200);
+    expect((await (await fetch(url(bjj))).json()).requireOriginProof).toBe(true);
+    expect(await (await fetch(url(judo))).json()).toEqual(other);
+    expect(other.requireOriginProof).toBe(false);
   });
 });
 

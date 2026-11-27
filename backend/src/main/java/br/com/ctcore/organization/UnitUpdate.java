@@ -19,7 +19,7 @@ public record UnitUpdate(String name, String postalCode, String address, String 
 
     public record Settings(List<Integer> dueDays, Boolean enrollmentFeeEnabled, Long enrollmentFeeCents, Map<String, Long> feesCents,
             String pixKey, List<Integer> reminderDays, TeacherPermissions teacherPermissions, Boolean directoryEnabled,
-            Boolean trialLinkEnabled, Boolean selfRegistrationLinkEnabled, Boolean remindersEnabled, Integer remindersHour) {
+            Boolean trialLinkEnabled, Boolean selfRegistrationLinkEnabled, Boolean remindersEnabled, Integer remindersHour, Integer trialLimit) {
 
         Settings validated() {
             boolean remindersOn = required("settings.remindersEnabled", remindersEnabled);
@@ -48,9 +48,11 @@ public record UnitUpdate(String name, String postalCode, String address, String 
                     required("settings.teacherPermissions.studentContacts", t.studentContacts()),
                     required("settings.teacherPermissions.trialClasses", t.trialClasses()),
                     required("settings.teacherPermissions.studentRecord", t.studentRecord()));
+            int limit = required("settings.trialLimit", trialLimit);
+            if (limit < 1 || limit > 3) throw new ApiValidationException("settings.trialLimit", "use um valor de 1 a 3");
             return new Settings(due, feeOn, enrollment, fees, pix, reminders, teacher, required("settings.directoryEnabled", directoryEnabled),
                     required("settings.trialLinkEnabled", trialLinkEnabled),
-                    required("settings.selfRegistrationLinkEnabled", selfRegistrationLinkEnabled), remindersOn, hour);
+                    required("settings.selfRegistrationLinkEnabled", selfRegistrationLinkEnabled), remindersOn, hour, limit);
         }
     }
 

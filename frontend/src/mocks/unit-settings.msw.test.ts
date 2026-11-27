@@ -20,7 +20,7 @@ const put = async (id: string, body: unknown, ifMatch?: string | null) => {
 const declared = (path: string, method: string) => Object.keys(openapi.paths[path][method].responses);
 const keys = (name: string) => Object.keys(openapi.components.schemas[name].properties).sort();
 
-type Body = { name: string; cnpj?: string; settings: { dueDays: number[]; enrollmentFeeEnabled: boolean; enrollmentFeeCents: number; feesCents: Record<string, number>; pixKey: string | null; reminderDays: number[]; remindersEnabled?: boolean; remindersHour?: number } };
+type Body = { name: string; cnpj?: string; settings: { dueDays: number[]; enrollmentFeeEnabled: boolean; enrollmentFeeCents: number; feesCents: Record<string, number>; pixKey: string | null; reminderDays: number[]; remindersEnabled?: boolean; remindersHour?: number; trialLimit?: number } };
 const body = (change: (b: Body & Record<string, unknown>) => void = () => {}) => {
   const b = {
     name: "Unidade Centro",
@@ -33,6 +33,7 @@ const body = (change: (b: Body & Record<string, unknown>) => void = () => {}) =>
       reminderDays: [3, -3],
       remindersEnabled: true,
       remindersHour: 9,
+      trialLimit: 2,
       teacherPermissions: { announcements: true, agendaEdit: false, studentContacts: true, trialClasses: true, studentRecord: true },
       directoryEnabled: true,
       trialLinkEnabled: true,
@@ -72,6 +73,9 @@ describe("configurações da unidade x OpenAPI (CA22)", () => {
     expect(next.settings.paymentAccount).toBe("NOT_CONNECTED");
     expect(await (await read(FIRST)).json()).toEqual(next);
     expect((await (await put(FIRST, body((b) => (b.settings.enrollmentFeeEnabled = false)))).json()).settings.enrollmentFeeCents).toBe(0);
+    // RN-AEX-02: o limite é de cada unidade.
+    expect((await (await put(FIRST, body((b) => (b.settings.trialLimit = 3)))).json()).settings.trialLimit).toBe(3);
+    expect((await (await read(SECOND)).json()).settings.trialLimit).toBe(2);
   });
 
   it("400 com o campo, 404 para unidade que não existe; ambos estão no contrato", async () => {
@@ -87,6 +91,10 @@ describe("configurações da unidade x OpenAPI (CA22)", () => {
       [(b) => (b.settings.remindersHour = -1), "settings.remindersHour"],
       [(b) => delete b.settings.remindersHour, "settings.remindersHour"],
       [(b) => delete b.settings.remindersEnabled, "settings.remindersEnabled"],
+      [(b) => (b.settings.trialLimit = 0), "settings.trialLimit"],
+      [(b) => (b.settings.trialLimit = 4), "settings.trialLimit"],
+      [(b) => (b.settings.trialLimit = 1.5), "settings.trialLimit"],
+      [(b) => delete b.settings.trialLimit, "settings.trialLimit"],
     ];
     for (const [change, field] of cases) {
       const res = await put(FIRST, body(change));
@@ -95,6 +103,7 @@ describe("configurações da unidade x OpenAPI (CA22)", () => {
       expect(err.code).toBe("VALIDATION_ERROR");
       expect(err.fields.map((f: { field: string }) => f.field)).toContain(field);
     }
+    expect((await (await read(FIRST)).json()).version).toBe(0);
     expect(declared("/units/{id}", "put")).toEqual(expect.arrayContaining(["400", "404"]));
     expect((await read("00000000-0000-0000-0000-0000000000ff")).status).toBe(404);
     expect((await put("00000000-0000-0000-0000-0000000000ff", body())).status).toBe(404);

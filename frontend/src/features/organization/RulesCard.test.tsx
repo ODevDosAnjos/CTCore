@@ -4,7 +4,7 @@ import { useState } from "react";
 import { RulesCard } from "./RulesCard";
 import { toDraft, type RulesDraft } from "./rulesDraft";
 
-const base = toDraft({ deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, trialLimit: 2, crossUnitTraining: "plan" });
+const base = toDraft({ deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" });
 
 function Harness({ canEdit = true, onChange }: { canEdit?: boolean; onChange?: (d: RulesDraft) => void }) {
   const [draft, setDraft] = useState(base);
@@ -22,16 +22,18 @@ function Harness({ canEdit = true, onChange }: { canEdit?: boolean; onChange?: (
 }
 
 describe("RulesCard (R5, R6, RN-ORG-13)", () => {
-  it("mostra as cinco regras com unidades e dicas e o interruptor Em breve", () => {
+  it("mostra as quatro regras com unidades e dicas, sem limite de experimentais nem comprovante (RN-AEX-02, RF-MOD-02)", () => {
     render(<Harness />);
     expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("30");
     expect(screen.getByText("15 a 90 dias")).toBeInTheDocument();
     expect(screen.getByLabelText("Acesso de ex-aluno ao histórico")).toHaveValue("12");
     expect(screen.getByLabelText("Guardar aulas experimentais sem matrícula")).toHaveValue("6");
     expect(screen.getByText("Depois, os dados são anonimizados")).toBeInTheDocument();
-    expect(screen.getByLabelText("Experimentais por telefone, por unidade")).toHaveValue("2");
+    expect(screen.queryByLabelText(/Experimentais por telefone|Limite de aulas experimentais/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.getAllByRole("radio").map((r) => r.closest("label")!.textContent)).toEqual(["Sim", "Não", "Depende do plano"]);
-    expect(screen.getByRole("switch", { name: "Exigir comprovante da graduação de origem" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    expect(screen.queryByText(/comprovante|Pode ser ligado por modalidade/)).not.toBeInTheDocument();
   });
 
   it("digitar, escolher e marcar devolvem o rascunho com texto nos números e o valor técnico do treino em outra unidade", async () => {
@@ -40,16 +42,15 @@ describe("RulesCard (R5, R6, RN-ORG-13)", () => {
     render(<Harness onChange={(d) => seen.push(d)} />);
     await user.clear(screen.getByLabelText("Prazo para bloquear por atraso"));
     await user.type(screen.getByLabelText("Prazo para bloquear por atraso"), "45");
-    await user.selectOptions(screen.getByLabelText("Experimentais por telefone, por unidade"), "3");
     await user.click(screen.getByRole("radio", { name: "Sim" }));
-    expect(seen.at(-1)).toEqual({ ...base, deactivationDays: "45", trialLimit: "3", crossUnitTraining: "allowed" });
+    expect(seen.at(-1)).toEqual({ ...base, deactivationDays: "45", crossUnitTraining: "allowed" });
     await user.click(screen.getByRole("radio", { name: "Não" }));
     expect(seen.at(-1)?.crossUnitTraining).toBe("denied");
   });
 
   it("somente leitura: tudo desabilitado", () => {
     render(<Harness canEdit={false} />);
-    for (const label of ["Prazo para bloquear por atraso", "Acesso de ex-aluno ao histórico", "Experimentais por telefone, por unidade"]) expect(screen.getByLabelText(label)).toBeDisabled();
+    for (const label of ["Prazo para bloquear por atraso", "Acesso de ex-aluno ao histórico", "Guardar aulas experimentais sem matrícula"]) expect(screen.getByLabelText(label)).toBeDisabled();
     for (const r of screen.getAllByRole("radio")) expect(r).toBeDisabled();
   });
 });

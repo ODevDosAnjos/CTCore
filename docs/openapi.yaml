@@ -520,7 +520,7 @@ paths:
         `latitude` e `longitude` vêm juntas; com CEP novo e sem coordenadas a porta de localização as obtém (RN-ORG-14).
         `dueDays`: de 1 a 28, sem repetição, ao menos um (guardados em ordem crescente). Taxa de matrícula desligada grava 0.
         Taxas por meio: centavos de 0 a 100000. `pixKey`: CPF, CNPJ, e-mail, telefone (+55) ou UUID; em branco apaga.
-        `reminderDays`: de -30 a 60, sem repetição, até 8, podendo ficar vazio. Grava `unit.update` na auditoria com antes e depois
+        `reminderDays`: de -30 a 60, sem repetição, até 8, podendo ficar vazio. `trialLimit`: de 1 a 3 (RN-AEX-02). Grava `unit.update` na auditoria com antes e depois
         dos campos mudados (chave Pix e CNPJ só como alterados, sem o valor); chamada sem mudança não grava.
         Exige `If-Match` com o `version` lido (RNF-15): versão diferente da atual responde 409 `EDIT_CONFLICT` e nada é gravado; cabeçalho
         ausente ou não numérico responde 428 `PRECONDITION_REQUIRED`. A permissão é conferida antes da versão. A versão só sobe quando algum
@@ -4158,12 +4158,11 @@ components:
     OrganizationRules:
       type: object
       description: 'Regras da organização (RF-ORG-01, RN-ORG-13).'
-      required: [deactivationDays, formerStudentRetentionMonths, trialRetentionMonths, trialLimit, crossUnitTraining]
+      required: [deactivationDays, formerStudentRetentionMonths, trialRetentionMonths, crossUnitTraining]
       properties:
         deactivationDays: { type: integer, minimum: 15, maximum: 90 }
         formerStudentRetentionMonths: { type: integer, minimum: 1, maximum: 60 }
         trialRetentionMonths: { type: integer, minimum: 1, maximum: 60 }
-        trialLimit: { type: integer, minimum: 1, maximum: 3 }
         crossUnitTraining: { type: string, enum: [plan, allowed, denied] }
     Coordinator:
       type: object
@@ -5418,7 +5417,7 @@ components:
     UnitSettingsView:
       type: object
       required: [dueDays, enrollmentFeeEnabled, enrollmentFeeCents, feesCents, pixKey, paymentAccount, reminderDays, teacherPermissions,
-        directoryEnabled, trialLinkEnabled, selfRegistrationLinkEnabled, remindersEnabled, remindersHour]
+        directoryEnabled, trialLinkEnabled, selfRegistrationLinkEnabled, remindersEnabled, remindersHour, trialLimit]
       properties:
         dueDays: { type: array, items: { type: integer, minimum: 1, maximum: 28 }, minItems: 1, uniqueItems: true }
         enrollmentFeeEnabled: { type: boolean }
@@ -5433,6 +5432,7 @@ components:
         selfRegistrationLinkEnabled: { type: boolean }
         remindersEnabled: { type: boolean }
         remindersHour: { type: integer, minimum: 0, maximum: 23, description: Hora cheia de envio dos lembretes (hora da unidade). }
+        trialLimit: { type: integer, minimum: 1, maximum: 3, description: Limite de aulas experimentais por pessoa nesta unidade (RN-AEX-02). }
     UnitDetail:
       type: object
       required: [id, name, shortName, postalCode, address, city, latitude, longitude, phone, email, whatsapp, cnpj, active, timezone, settings, version, lastChange]
@@ -5457,7 +5457,7 @@ components:
     UnitUpdateSettings:
       type: object
       required: [dueDays, enrollmentFeeEnabled, feesCents, reminderDays, teacherPermissions, directoryEnabled, trialLinkEnabled,
-        selfRegistrationLinkEnabled, remindersEnabled, remindersHour]
+        selfRegistrationLinkEnabled, remindersEnabled, remindersHour, trialLimit]
       properties:
         dueDays: { type: array, items: { type: integer, minimum: 1, maximum: 28 }, minItems: 1, uniqueItems: true }
         enrollmentFeeEnabled: { type: boolean }
@@ -5471,6 +5471,7 @@ components:
         selfRegistrationLinkEnabled: { type: boolean }
         remindersEnabled: { type: boolean }
         remindersHour: { type: integer, minimum: 0, maximum: 23, description: Hora cheia de envio dos lembretes (hora da unidade). }
+        trialLimit: { type: integer, minimum: 1, maximum: 3, description: Limite de aulas experimentais por pessoa nesta unidade (RN-AEX-02). }
     UnitUpdate:
       type: object
       required: [name, settings]

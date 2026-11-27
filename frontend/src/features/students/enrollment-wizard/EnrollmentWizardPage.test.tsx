@@ -313,6 +313,7 @@ describe("assistente Nova matrícula (RF-MAT-01, #67)", () => {
           directoryEnabled: true,
           trialLinkEnabled: true,
           selfRegistrationLinkEnabled: true,
+          trialLimit: 2,
         },
       }),
     });

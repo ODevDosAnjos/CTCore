@@ -25,6 +25,7 @@ export interface UnitSettingsData {
   reminderDays: number[];
   remindersEnabled: boolean;
   remindersHour: number;
+  trialLimit: number;
   teacherPermissions: Record<TeacherKey, boolean>;
   directoryEnabled: boolean;
   trialLinkEnabled: boolean;

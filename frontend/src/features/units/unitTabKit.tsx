@@ -37,6 +37,7 @@ export const unitFixture = (settings: Partial<UnitDetail["settings"]> = {}): Uni
     directoryEnabled: false,
     trialLinkEnabled: true,
     selfRegistrationLinkEnabled: true,
+    trialLimit: 2,
     ...settings,
   },
 });

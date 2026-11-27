@@ -50,6 +50,7 @@ const detail = (id: string, name: string): UnitDetail => ({
     directoryEnabled: false,
     trialLinkEnabled: true,
     selfRegistrationLinkEnabled: true,
+    trialLimit: 2,
   },
 });
 const reach = (d: UnitDetail) => ({ id: d.id, name: d.name, shortName: d.shortName });
@@ -174,6 +175,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await user.click(screen.getByRole("switch", { name: "3 dias depois" }));
     await openTab(user, "Links");
     await user.click(screen.getByRole("switch", { name: "Pedido de aula experimental" }));
+    await user.selectOptions(screen.getByLabelText("Limite de aulas experimentais por pessoa"), "3");
     await openTab(user, "Permissões do Professor");
     await user.click(screen.getByRole("switch", { name: "Editar e cancelar aulas" }));
     await user.click(screen.getByRole("switch", { name: "Ver ficha do aluno" }));
@@ -183,7 +185,7 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     const { settings, ...data } = puts[0]!.body;
     expect(data).toMatchObject({ name: "Unidade A", phone: "21999998888", cnpj: null, latitude: null });
     expect(settings.dueDays).toEqual([1, 5, 10, 20]);
-    expect(settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000, reminderDays: [-3, 0, 10], trialLinkEnabled: false, directoryEnabled: false });
+    expect(settings).toMatchObject({ enrollmentFeeEnabled: true, enrollmentFeeCents: 15000, reminderDays: [-3, 0, 10], trialLinkEnabled: false, directoryEnabled: false, trialLimit: 3 });
     expect((settings.feesCents as Record<string, number>).pix).toBe(199);
     expect(settings.teacherPermissions).toEqual({ announcements: true, agendaEdit: false, studentContacts: true, trialClasses: true, studentRecord: true });
     await openTab(user, "Dados");
@@ -215,6 +217,29 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     await user.click(save());
     expect(await screen.findByText("chave recusada pelo servidor")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("RN-AEX-02: a aba Links mostra o limite gravado, de 1 a 3, e o 400 nele, com outra aba aberta, abre Links com a mensagem no campo", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { units: [{ ...detail(A, "Unidade A"), settings: { ...detail(A, "Unidade A").settings, trialLimit: 1 } }] });
+    await ready();
+    server.use(
+      http.put("/api/v1/units/:id", () =>
+        HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "settings.trialLimit", message: "limite recusado pelo servidor" }] }, { status: 400 }),
+      ),
+    );
+    await openTab(user, "Links");
+    const limit = screen.getByLabelText("Limite de aulas experimentais por pessoa");
+    expect(limit).toHaveValue("1");
+    expect(within(limit).getAllByRole("option").map((o) => o.textContent)).toEqual(["1", "2", "3"]);
+    expect(screen.getByText("Contado pelo telefone, somando as modalidades.")).toBeInTheDocument();
+    await user.selectOptions(limit, "2");
+    await openTab(user, "Dados");
+    await user.click(save());
+    expect(await screen.findByText("limite recusado pelo servidor")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Links/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText("Limite de aulas experimentais por pessoa")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("tab", { name: /Links/ })).toContainElement(screen.getByRole("img", { name: "Há erro nesta aba" }));
   });
 
   it("CA17: CEP novo vai sem coordenadas (o servidor busca)", async () => {
@@ -533,7 +558,7 @@ describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-0
     const user = userEvent.setup();
     conflicting();
     await ready("Unidade Nome da outra pessoa");
-    stored[A] = { ...stored[A]!, settings: { ...stored[A]!.settings, remindersEnabled: false, remindersHour: 14 } };
+    stored[A] = { ...stored[A]!, settings: { ...stored[A]!.settings, remindersEnabled: false, remindersHour: 14, trialLimit: 3 } };
     await user.type(screen.getByLabelText("Nome"), "!");
     await user.click(save());
     const dialog = await screen.findByRole("dialog", { name: DIALOG });
@@ -541,6 +566,9 @@ describe("UnitSettingsPage: última alteração e edição simultânea (RF-ORG-0
     expect(on).toHaveTextContent("Seu valor: Sim");
     expect(on).toHaveTextContent("Valor atual: Não");
     expect(within(dialog).getByText("Horário de envio").closest("li")).toHaveTextContent("Valor atual: 14");
+    const limit = within(dialog).getByText("Limite de aulas experimentais por pessoa").closest("li");
+    expect(limit).toHaveTextContent("Seu valor: 2");
+    expect(limit).toHaveTextContent("Valor atual: 3");
   });
 
   it.each([

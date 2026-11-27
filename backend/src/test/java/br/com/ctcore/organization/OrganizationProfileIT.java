@@ -70,11 +70,11 @@ class OrganizationProfileIT extends OrganizationBase {
         }
     }
 
-    static final String RULES_DEFAULT = "{\"deactivationDays\":30,\"formerStudentRetentionMonths\":12,\"trialRetentionMonths\":6,\"trialLimit\":2,\"crossUnitTraining\":\"plan\"}";
+    static final String RULES_DEFAULT = "{\"deactivationDays\":30,\"formerStudentRetentionMonths\":12,\"trialRetentionMonths\":6,\"crossUnitTraining\":\"plan\"}";
 
-    static String rules(int days, int former, int trial, int limit, String cross) {
+    static String rules(int days, int former, int trial, String cross) {
         return "{\"deactivationDays\":" + days + ",\"formerStudentRetentionMonths\":" + former + ",\"trialRetentionMonths\":" + trial
-                + ",\"trialLimit\":" + limit + ",\"crossUnitTraining\":\"" + cross + "\"}";
+                + ",\"crossUnitTraining\":\"" + cross + "\"}";
     }
 
     @Test
@@ -91,26 +91,26 @@ class OrganizationProfileIT extends OrganizationBase {
     }
 
     @Test
-    @DisplayName("CA13 / RF-ORG-01 / RN-ORG-13: PATCH com rules grava as cinco regras, sobe a versão e audita antes e depois; sem rules mantém")
+    @DisplayName("CA13 / RF-ORG-01 / RN-ORG-13: PATCH com rules grava as quatro regras, sobe a versão e audita antes e depois; sem rules mantém")
     void rulesUpdate() throws Exception {
         var a = tenant();
         var coordinator = who(a, Role.COORDINATOR);
-        var view = ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, 3, "denied") + "}"), a, Role.COORDINATOR);
-        assertThat(view.path("rules").toString()).isEqualTo(rules(45, 24, 3, 3, "denied"));
+        var view = ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, "denied") + "}"), a, Role.COORDINATOR);
+        assertThat(view.path("rules").toString()).isEqualTo(rules(45, 24, 3, "denied"));
         assertThat(view.path("version").asInt()).isEqualTo(1);
-        assertThat(adminJdbc().queryForObject("select deactivation_days || '/' || trial_limit || '/' || cross_unit_training from organization_settings where organization_id = ?",
+        assertThat(adminJdbc().queryForObject("select deactivation_days || '/' || trial_retention_months || '/' || cross_unit_training from organization_settings where organization_id = ?",
                 String.class, a.orgId())).isEqualTo("45/3/denied");
         var rows = audit(a, "organization.update");
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).get("b").toString()).contains("\"deactivationDays\": 30", "\"crossUnitTraining\": \"plan\"");
         assertThat(rows.get(0).get("a").toString()).contains("\"deactivationDays\": 45", "\"crossUnitTraining\": \"denied\"");
         // omitido: as regras ficam; igual: nada muda
-        assertThat(ok(patch("{\"name\":\"Dojo\"}"), a, Role.COORDINATOR).path("rules").toString()).isEqualTo(rules(45, 24, 3, 3, "denied"));
-        var same = ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, 3, "denied") + "}"), a, Role.COORDINATOR);
+        assertThat(ok(patch("{\"name\":\"Dojo\"}"), a, Role.COORDINATOR).path("rules").toString()).isEqualTo(rules(45, 24, 3, "denied"));
+        var same = ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, "denied") + "}"), a, Role.COORDINATOR);
         assertThat(same.path("version").asInt()).isEqualTo(1);
         assertThat(audit(a, "organization.update")).hasSize(1);
         // só regra mudou: a versão sobe e a auditoria traz as regras
-        assertThat(ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 3, 1, "denied") + "}"), a, Role.COORDINATOR).path("version").asInt()).isEqualTo(2);
+        assertThat(ok(patch("{\"name\":\"Dojo\",\"rules\":" + rules(45, 24, 4, "denied") + "}"), a, Role.COORDINATOR).path("version").asInt()).isEqualTo(2);
         assertThat(audit(a, "organization.update")).hasSize(2);
     }
 
@@ -119,15 +119,15 @@ class OrganizationProfileIT extends OrganizationBase {
     void rulesValidation() throws Exception {
         var a = tenant();
         String[][] bad = {
-            {"deactivationDays", rules(14, 12, 6, 2, "plan")}, {"deactivationDays", rules(91, 12, 6, 2, "plan")},
-            {"formerStudentRetentionMonths", rules(30, 0, 6, 2, "plan")}, {"formerStudentRetentionMonths", rules(30, 61, 6, 2, "plan")},
-            {"trialRetentionMonths", rules(30, 12, 0, 2, "plan")}, {"trialLimit", rules(30, 12, 6, 4, "plan")},
-            {"trialLimit", rules(30, 12, 6, 0, "plan")}, {"crossUnitTraining", rules(30, 12, 6, 2, "x")},
-            {"deactivationDays", "{\"formerStudentRetentionMonths\":12,\"trialRetentionMonths\":6,\"trialLimit\":2,\"crossUnitTraining\":\"plan\"}"}};
+            {"deactivationDays", rules(14, 12, 6, "plan")}, {"deactivationDays", rules(91, 12, 6, "plan")},
+            {"formerStudentRetentionMonths", rules(30, 0, 6, "plan")}, {"formerStudentRetentionMonths", rules(30, 61, 6, "plan")},
+            {"trialRetentionMonths", rules(30, 12, 0, "plan")},
+            {"crossUnitTraining", rules(30, 12, 6, "x")},
+            {"deactivationDays", "{\"formerStudentRetentionMonths\":12,\"trialRetentionMonths\":6,\"crossUnitTraining\":\"plan\"}"}};
         for (String[] b : bad) invalid(patch("{\"name\":\"Outro\",\"rules\":" + b[1] + "}"), a, "rules." + b[0]);
         assertThat(adminJdbc().queryForObject("select name || version from organization where id = ?", String.class, a.orgId())).isEqualTo("Synthetic " + a.orgId() + "0");
-        ok(patch("{\"name\":\"Faixa\",\"rules\":" + rules(15, 1, 60, 3, "allowed") + "}"), a, Role.COORDINATOR);
-        ok(patch("{\"name\":\"Faixa\",\"rules\":" + rules(90, 60, 1, 1, "plan") + "}"), a, Role.COORDINATOR);
+        ok(patch("{\"name\":\"Faixa\",\"rules\":" + rules(15, 1, 60, "allowed") + "}"), a, Role.COORDINATOR);
+        ok(patch("{\"name\":\"Faixa\",\"rules\":" + rules(90, 60, 1, "plan") + "}"), a, Role.COORDINATOR);
     }
 
     @Test
@@ -135,8 +135,8 @@ class OrganizationProfileIT extends OrganizationBase {
     void rulesIsolated() throws Exception {
         var a = tenant();
         var b = tenant();
-        assertThat(call(patch("{\"name\":\"Hack\",\"rules\":" + rules(60, 12, 6, 3, "denied") + "}"), who(a, Role.ADMINISTRATOR)).getResponse().getStatus()).isEqualTo(403);
-        ok(patch("{\"name\":\"A\",\"rules\":" + rules(60, 12, 6, 3, "denied") + "}"), a, Role.COORDINATOR);
+        assertThat(call(patch("{\"name\":\"Hack\",\"rules\":" + rules(60, 12, 6, "denied") + "}"), who(a, Role.ADMINISTRATOR)).getResponse().getStatus()).isEqualTo(403);
+        ok(patch("{\"name\":\"A\",\"rules\":" + rules(60, 12, 6, "denied") + "}"), a, Role.COORDINATOR);
         assertThat(ok(get(), b, Role.COORDINATOR).path("rules").toString()).isEqualTo(RULES_DEFAULT);
         assertThat(adminJdbc().queryForObject("select deactivation_days from organization_settings where organization_id = ?", Integer.class, b.orgId())).isEqualTo(30);
         assertThat(call(get(), who(a, Role.TEACHER)).getResponse().getStatus()).isEqualTo(403);

@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/Card";
-import { ComingSoon } from "@/components/ui/coming-soon";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
 import { RadioCard } from "@/components/ui/radio-card";
 import type { NumericRule, RulesDraft } from "./rulesDraft";
 import type { CrossUnitTraining } from "./useOrganization";
@@ -39,17 +38,6 @@ export function RulesCard({ draft, onChange, canEdit, errors }: { draft: RulesDr
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <NumberRule rule="trialRetentionMonths" unit="months" hint error={errors.trialRetentionMonths} {...shared} />
-          <Field label={t("organization.rules.trialLimit")} error={errors.trialLimit}>
-            {(c) => (
-              <Select {...c} disabled={!canEdit} value={draft.trialLimit} onChange={(e) => set("trialLimit", e.target.value)}>
-                {[1, 2, 3].map((n) => (
-                  <option key={n} value={String(n)}>
-                    {n}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
         </div>
         <fieldset className="flex flex-col gap-1.5">
           <legend className="mb-1.5 text-sm font-medium">{t("organization.rules.crossUnitTraining")}</legend>
@@ -71,10 +59,6 @@ export function RulesCard({ draft, onChange, canEdit, errors }: { draft: RulesDr
             </p>
           )}
         </fieldset>
-        <div className="flex flex-col gap-0.5">
-          <ComingSoon variant="switch" label={t("organization.rules.proof")} />
-          <span className="text-[13px] text-muted-foreground">{t("organization.rules.proofNote")}</span>
-        </div>
       </div>
     </Card>
   );

@@ -23,7 +23,7 @@ class UnitUpdateValidationTest {
 
     private static Settings settings() {
         return new Settings(List.of(1, 5, 10, 15), false, 0L, fees(), null, List.of(-3, 0, 3, 10), new TeacherPermissions(true, true, true, true, false),
-                false, true, true, true, 9);
+                false, true, true, true, 9, 2);
     }
 
     private static UnitUpdate valid(UnaryOperator<Settings> change) {
@@ -41,7 +41,7 @@ class UnitUpdateValidationTest {
 
     private static Settings with(Settings s, List<Integer> due, boolean feeOn, Long fee, Map<String, Long> fees, String pix, List<Integer> reminders,
             TeacherPermissions teacher, Boolean directory) {
-        return new Settings(due, feeOn, fee, fees, pix, reminders, teacher, directory, true, true, true, 9);
+        return new Settings(due, feeOn, fee, fees, pix, reminders, teacher, directory, true, true, true, 9, 2);
     }
 
     @Test
@@ -139,13 +139,28 @@ class UnitUpdateValidationTest {
     void reminderSwitch() {
         for (int ok : new int[] {0, 23}) {
             assertThat(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true,
-                    false, ok)).validated().settings().remindersHour()).isEqualTo(ok);
+                    false, ok, 2)).validated().settings().remindersHour()).isEqualTo(ok);
         }
         for (Integer bad : new Integer[] {24, -1, null}) {
             refuses(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true,
-                    true, bad)), "settings.remindersHour");
+                    true, bad, 2)), "settings.remindersHour");
         }
         refuses(valid(s -> new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true,
-                null, 9)), "settings.remindersEnabled");
+                null, 9, 2)), "settings.remindersEnabled");
+    }
+
+    @Test
+    @DisplayName("RN-AEX-02: limite de experimentais 1 e 3 passam; 0, 4 e ausente apontam o campo")
+    void trialLimit() {
+        for (int ok : new int[] {1, 3}) {
+            assertThat(valid(s -> limited(s, ok)).validated().settings().trialLimit()).isEqualTo(ok);
+        }
+        for (Integer bad : new Integer[] {0, 4, null}) {
+            refuses(valid(s -> limited(s, bad)), "settings.trialLimit");
+        }
+    }
+
+    private static Settings limited(Settings s, Integer limit) {
+        return new Settings(s.dueDays(), false, 0L, s.feesCents(), null, s.reminderDays(), s.teacherPermissions(), false, true, true, true, 9, limit);
     }
 }
