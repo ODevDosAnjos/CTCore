@@ -56,6 +56,9 @@ const matriculaRota = "/alunos/nova-matricula?aluno=00000000-0000-0000-0000-0000
 const escolhaDavi: Passo[] = [{ preencher: ["Buscar aluno pelo nome (mínimo 2 letras)", "Davi"] }, { clicar: "Davi Nogueira" }, { escolher: ["Modalidade", "Jiu-Jitsu"] }];
 const modalidade: Passo[] = [{ escolher: ["Unidade", "Centro"] }, { escolher: ["Modalidade", "Jiu-Jitsu"] }, { escolher: ["Turma principal", "Jiu-Jitsu Adulto"] }, { escolher: ["Plano", "Jiu-Jitsu Livre"] }];
 
+// #746: a unidade "Tijuca" do `unidadeCanvas` é a Unidade Sul do MSW, de id fixo.
+const UNIDADE = "/configuracoes/unidades/00000000-0000-0000-0000-000000000023";
+
 export const casos: Caso[] = [
   { nome: "vitrine", rota: "/dev/vitrine", fullPage: true },
   { nome: "entrar", rota: "/entrar", canvas: "Login", canvasCelular: "LoginM" },
@@ -128,15 +131,15 @@ export const casos: Caso[] = [
   { nome: "configuracoes-organizacao", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigAcademia", organizacaoCanvas: true },
   { nome: "configuracoes-unidades", rota: "/configuracoes/unidades", perfil: ana, canvas: "ConfigUnidades", unidadesCanvas: "lista" },
   { nome: "configuracoes", rota: "/configuracoes", perfil: admin }, // GMConfig e GMConfigUnidade são de 360 px: a comparação é feita à mão (D5 da #435)
-  { nome: "configuracoes-unidade", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigUnidade", unidadeCanvas: "conectada" },
-  { nome: "configuracoes-unidade-pagamentos", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPagamentos", unidadeCanvas: "conectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
-  { nome: "configuracoes-unidade-pagamentos-desconectado", rota: "/configuracoes/unidade", perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
-  { nome: "configuracoes-unidade-lembretes", rota: "/configuracoes/unidade", perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
-  { nome: "configuracoes-unidade-links", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
+  { nome: "configuracoes-unidade", rota: UNIDADE, perfil: ana, canvas: "ConfigUnidade", unidadeCanvas: "conectada" },
+  { nome: "configuracoes-unidade-pagamentos", rota: UNIDADE, perfil: ana, canvas: "ConfigPagamentos", unidadeCanvas: "conectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
+  { nome: "configuracoes-unidade-pagamentos-desconectado", rota: UNIDADE, perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
+  { nome: "configuracoes-unidade-lembretes", rota: UNIDADE, perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
+  { nome: "configuracoes-unidade-links", rota: UNIDADE, perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
   { nome: "administradores", rota: "/administradores", perfil: ana, usuariosCanvas: true }, // #611: sem canvas (a tela nasceu depois do desenho: o canvas ConfigUsuarios é a tela antiga, com cartões de perfil e sem custo; segue a especificação e os componentes base)
-  { nome: "configuracoes-permissoes", rota: "/configuracoes/unidade/permissoes", perfil: ana, canvas: "PermissoesTabela", fullPage: true },
+  { nome: "configuracoes-permissoes", rota: `${UNIDADE}/permissoes`, perfil: ana, canvas: "PermissoesTabela", fullPage: true },
   { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
   { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
@@ -176,7 +179,7 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", unidadesCanvas: "lista", passos: [{ clicar: "Desativar a Barra" }] },
   { nome: "configuracoes-unidade-unica", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeUnica", unidadesCanvas: "unica", passos: [{ clicar: "Desativar a Academia" }] },
-  { nome: "configuracoes-unidade-professor", rota: "/configuracoes/unidade", perfil: ana, canvas: "ConfigPermProf", unidadeCanvas: "conectada", passos: [{ clicar: "Permissões do Professor", papel: "tab" }], fullPage: true },
+  { nome: "configuracoes-unidade-professor", rota: UNIDADE, perfil: ana, canvas: "ConfigPermProf", unidadeCanvas: "conectada", passos: [{ clicar: "Permissões do Professor", papel: "tab" }], fullPage: true },
   { nome: "administradores-alterar-unidades", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Alterar unidades Carla Mendes" }, { clicar: "Tijuca", papel: "checkbox" }] },
   { nome: "administradores-desativar", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Desativar Carla Mendes" }] },
   { nome: "administradores-convidar", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Convidar" }, { preencher: ["Nome *", "Fernanda Rocha"] }, { preencher: ["E-mail *", "fernanda@academialeao.example"] }, { clicar: "Tijuca", papel: "checkbox" }] },
@@ -184,7 +187,7 @@ export const casos: Caso[] = [
   // Sem caso: painel da aula, editar, cancelar e corrigir aula (o id da aula é gerado pelo MSW, sem rota fixa); GM* são as mesmas telas a 390 px (D1).
   { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin", modalidadesCanvas: "administrador" },
   { nome: "configuracoes-modalidade-desativar", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeDesativar", modalidadesCanvas: "desativar", passos: [{ clicar: "Desativar Muay Thai" }] },
-  { nome: "configuracoes-unidade-modalidades-recusa", rota: "/configuracoes/unidade", perfil: ana, canvas: "ModalidadesOferecidasRecusa", unidadeCanvas: "conectada", modalidadesCanvas: "recusa", passos: [{ clicar: "Muay Thai", papel: "checkbox" }] },
+  { nome: "configuracoes-unidade-modalidades-recusa", rota: UNIDADE, perfil: ana, canvas: "ModalidadesOferecidasRecusa", unidadeCanvas: "conectada", modalidadesCanvas: "recusa", passos: [{ clicar: "Muay Thai", papel: "checkbox" }] },
   { nome: "configuracoes-modalidades-graduacao", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeGraduacao", modalidadesCanvas: "lista", passos: [{ clicar: "Graduação Jiu-Jitsu" }] },
   { nome: "configuracoes-modalidades-pedido", rota: "/configuracoes/modalidades", perfil: ana, modalidadesCanvas: "lista", passos: [{ clicar: "Não achei minha modalidade" }] }, // D7: o canvas não desenha esta janela; o caso só guarda a referência do teste visual
   { nome: "configuracoes-faixa-nova", rota: "/configuracoes/faixas-etarias", perfil: ana, faixasCanvas: true, passos: [{ clicar: "Nova faixa etária" }] }, // #486: o canvas ConfigFaixas não desenha esta janela (só a lista), como na modalidades-pedido; o caso só guarda a referência do teste visual

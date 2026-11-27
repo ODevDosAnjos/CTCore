@@ -176,7 +176,7 @@ describe("DeactivateUnitDialog (RF-ORG-07)", () => {
 
   it("CA14: o Administrador não vê o botão", async () => {
     setup({ role: "ADMINISTRATOR" });
-    expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+    expect(await screen.findAllByRole("link", { name: /^Abrir/ })).toHaveLength(2);
     expect(screen.queryByRole("button", { name: /Desativar/ })).not.toBeInTheDocument();
   });
 

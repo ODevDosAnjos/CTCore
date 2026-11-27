@@ -5,7 +5,7 @@ import { setDevicePrefersDark } from "@/test/device";
 import { UnitTeacherTab } from "./UnitTeacherTab";
 import { renderTab } from "./unitTabKit";
 
-const tab = (p: Parameters<typeof renderTab>[0] extends (x: infer P) => unknown ? P : never) => <UnitTeacherTab d={p.d} set={p.set} unitName="Tijuca" />;
+const tab = (p: Parameters<typeof renderTab>[0] extends (x: infer P) => unknown ? P : never) => <UnitTeacherTab d={p.d} set={p.set} unitId="u1" unitName="Tijuca" />;
 
 describe("UnitTeacherTab (R6)", () => {
   it("CA15: mostra o título com a unidade, os cinco interruptores com as descrições e a faixa do cadeado", () => {
@@ -20,7 +20,7 @@ describe("UnitTeacherTab (R6)", () => {
 
   it("CA11: o atalho Ver tabela de permissões abre a tabela da unidade", () => {
     renderTab(tab);
-    expect(screen.getByRole("link", { name: "Ver tabela de permissões" })).toHaveAttribute("href", "/configuracoes/unidade/permissoes");
+    expect(screen.getByRole("link", { name: "Ver tabela de permissões" })).toHaveAttribute("href", "/configuracoes/unidades/u1/permissoes");
   });
 
   it("CA15: cada interruptor grava a sua permissão no rascunho", async () => {

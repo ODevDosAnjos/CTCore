@@ -48,9 +48,13 @@ describe("unidades x OpenAPI (CA15)", () => {
     expect((await adjust(FIRST, "outro-nome")).status).toBe(409);
   });
 
-  it("Administrador, Professor e portal recebem 403 na lista e no ajuste, e nada muda", async () => {
+  it("Administrador recebe só a unidade dele e 403 no ajuste; Professor e portal recebem 403 nos dois; nada muda", async () => {
     await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
-    for (const link of ["00000000-0000-0000-0000-000000000011", "00000000-0000-0000-0000-000000000012", "00000000-0000-0000-0000-000000000013"]) {
+    const own = await list();
+    expect(own.status).toBe(200);
+    expect(((await own.json()) as { id: string }[]).map((u) => u.id)).toEqual([FIRST]);
+    expect((await adjust(FIRST, "invasor")).status).toBe(403);
+    for (const link of ["00000000-0000-0000-0000-000000000012", "00000000-0000-0000-0000-000000000013"]) {
       await fetch("/api/v1/auth/session/link", { method: "PUT", headers: json, body: JSON.stringify({ linkId: link }) });
       for (const res of [await list(), await adjust(FIRST, "invasor")]) {
         expect(res.status).toBe(403);

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const UNIT = "/configuracoes/unidades/00000000-0000-0000-0000-000000000021";
+
 async function loginAs(page: Page, email: string) {
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill(email);
@@ -16,7 +18,7 @@ async function open(page: Page, path: string) {
 test("@critical configurações da unidade: Coordenador edita e Professor vê a área indisponível", async ({ page }) => {
   await loginAs(page, "ana@exemplo.com");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/unidade");
+  await open(page, UNIT);
   await expect(page.getByRole("heading", { name: /^Unidade /, level: 1 })).toBeVisible();
 
   await page.getByLabel("Telefone").fill("21999998888");
@@ -32,7 +34,7 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
 
   await open(page, "/");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/unidade");
+  await open(page, UNIT);
   await expect(page.getByLabel("Telefone")).toHaveValue("(21) 99999-8888");
   await expect(page.getByLabel("Valor da taxa")).toHaveValue("R$ 150,00");
   await page.getByRole("tab", { name: "Links" }).click();
@@ -43,6 +45,6 @@ test("@critical configurações da unidade: Coordenador edita e Professor vê a 
   await loginAs(page, "varios@exemplo.com");
   await page.getByRole("button", { name: /Academia Beta Gestão · Professor/ }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/unidade");
+  await open(page, UNIT);
   await expect(page.getByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeVisible();
 });

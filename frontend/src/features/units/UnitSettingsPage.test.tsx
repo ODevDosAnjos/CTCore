@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter } from "react-router";
+import { useEffect } from "react";
+import { MemoryRouter, useLocation } from "react-router";
 import { App } from "@/App";
 import { SessionProvider, type SessionView } from "@/features/auth/SessionProvider";
 import { mockPermissions } from "@/mocks/permissions";
@@ -59,6 +60,15 @@ type Sent = { name: string; settings: Record<string, unknown> } & Record<string,
 let stored: Record<string, UnitDetail>;
 let puts: { id: string; body: Sent }[];
 
+let address = "";
+function Address() {
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    address = pathname + search;
+  }, [pathname, search]);
+  return null;
+}
+
 function setup(
   role: string,
   opts: { units?: UnitDetail[]; path?: string; read?: () => Response | Promise<Response>; reachable?: () => Response } = {},
@@ -85,9 +95,10 @@ function setup(
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[opts.path ?? "/configuracoes/unidade"]}>
+      <MemoryRouter initialEntries={[opts.path ?? `/configuracoes/unidades/${units[0]?.id ?? A}`]}>
         <SessionProvider>
           <App />
+          <Address />
         </SessionProvider>
       </MemoryRouter>
     </ThemeProvider>,
@@ -113,11 +124,11 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
 
 
   it("CA8: a aba ativa vem de ?aba= (F5 mantém); aba inválida abre Dados sem erro", async () => {
-    setup("COORDINATOR", { path: "/configuracoes/unidade?aba=payments" });
+    setup("COORDINATOR", { path: `/configuracoes/unidades/${A}?aba=payments` });
     await screen.findByRole("heading", { name: "Unidade A", level: 1 });
     expect(await screen.findByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
     cleanup();
-    setup("COORDINATOR", { path: "/configuracoes/unidade?aba=nada" });
+    setup("COORDINATOR", { path: `/configuracoes/unidades/${A}?aba=nada` });
     await ready();
     expect(screen.getByRole("tab", { name: /Dados/ })).toHaveAttribute("aria-selected", "true");
   });
@@ -368,30 +379,65 @@ describe("UnitSettingsPage (RF-ORG-04)", () => {
     expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
   });
 
-  it("CA18: sem nenhuma unidade para configurar mostra o estado vazio", async () => {
-    setup("ADMINISTRATOR", { units: [] });
-    expect(await screen.findByRole("heading", { name: "Nenhuma unidade para configurar" })).toBeInTheDocument();
+  const AB = [detail(A, "Unidade A"), detail(B, "Unidade B")];
+  const choose = async (user: ReturnType<typeof userEvent.setup>, name: string | RegExp) => {
+    await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
+    await user.click(screen.getByRole("button", { name }));
+  };
+
+  it("#746 CA3: a unidade é a do endereço, mesmo não sendo a primeira; vira a do topo e o PUT é dela, com If-Match", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { units: AB, path: `/configuracoes/unidades/${B}` });
+    await ready("Unidade B");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Unidade B");
+    expect((await screen.findAllByRole("button", { name: "Unidade ativa: Unidade B" })).length).toBeGreaterThan(0);
+    expect(address).toBe(`/configuracoes/unidades/${B}`);
+    let version: string | null = null;
+    server.events.on("request:start", ({ request }) => {
+      if (request.method === "PUT") version = request.headers.get("If-Match");
+    });
+    await user.type(screen.getByLabelText("Nome"), "!");
+    await user.click(save());
+    await screen.findByRole("status");
+    server.events.removeAllListeners();
+    expect(puts.map((p) => p.id)).toEqual([B]);
+    expect(version).toBe("0");
   });
 
-  it("CA10: Administrador com duas unidades troca a unidade no topo e o formulário recarrega com a outra", async () => {
+  it("#746 CA4: outra unidade no topo muda endereço e tela, na mesma aba; \"Todas as unidades\" volta à lista", async () => {
     const user = userEvent.setup();
-    setup("ADMINISTRATOR", { units: [detail(A, "Unidade A"), detail(B, "Unidade B")] });
+    setup("COORDINATOR", { units: AB, path: `/configuracoes/unidades/${A}?aba=payments` });
+    server.use(http.get("/api/v1/units", () => HttpResponse.json([])));
+    await screen.findByRole("heading", { name: "Unidade A", level: 1 });
+    await choose(user, "Unidade B");
+    await screen.findByRole("heading", { name: "Unidade B", level: 1 });
+    expect(address).toBe(`/configuracoes/unidades/${B}?aba=payments`);
+    expect(await screen.findByRole("tab", { name: /Pagamentos/ })).toHaveAttribute("aria-selected", "true");
+    await choose(user, /^Todas as unidades/);
+    await screen.findByRole("heading", { name: "Unidades", level: 1 });
+    expect(address).toBe("/configuracoes/unidades");
+  });
+
+  it("#746 CA4: Administrador com duas unidades troca no topo e o formulário recarrega com a outra", async () => {
+    const user = userEvent.setup();
+    setup("ADMINISTRATOR", { units: AB });
     await ready();
-    expect(screen.getByLabelText("Nome")).toHaveValue("Unidade A");
     expect(screen.queryByRole("option", { name: "Todas as unidades" })).not.toBeInTheDocument();
-    await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
-    await user.click(screen.getByRole("button", { name: "Unidade B" }));
+    await choose(user, "Unidade B");
     await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveValue("Unidade B"));
+    expect(address).toBe(`/configuracoes/unidades/${B}`);
   });
 
-  it("CA7: Coordenador em \"Todas as unidades\" vê o pedido de escolha e nenhum campo; ao escolher uma, o formulário aparece", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR", { units: [detail(A, "Unidade A"), detail(B, "Unidade B")] });
-    expect(await screen.findByText(/Escolha uma unidade no topo/)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Nome")).not.toBeInTheDocument();
-    await user.click((await screen.findAllByRole("button", { name: /^Unidade ativa/ }))[0]);
-    await user.click(screen.getByRole("button", { name: "Unidade B" }));
-    await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveValue("Unidade B"));
+  it.each([
+    ["COORDINATOR", `/configuracoes/unidade?aba=payments&unidade=${B}`, `/configuracoes/unidades/${B}?aba=payments`],
+    ["ADMINISTRATOR", "/configuracoes/unidade?aba=payments", `/configuracoes/unidades/${A}?aba=payments`],
+    ["COORDINATOR", "/configuracoes/unidade?aba=payments", "/configuracoes/unidades"],
+  ])("#746 CA7: %s em %s vai para %s", async (role, path, target) => {
+    // O Coordenador com duas unidades começa em "Todas as unidades"; o Administrador, na primeira dele.
+    localStorage.clear();
+    setup(role, { units: AB, path });
+    server.use(http.get("/api/v1/units", () => HttpResponse.json([])));
+    await waitFor(() => expect(address).toBe(target));
   });
 
   // #519: um `it` por aba e tema (antes era um só com 6 rodadas do axe e estourava os 20 s com a máquina carregada).

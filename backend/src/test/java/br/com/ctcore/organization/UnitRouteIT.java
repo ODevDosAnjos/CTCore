@@ -12,14 +12,15 @@ import org.junit.jupiter.api.Test;
 /** RNF-31 nas duas rotas: perfis sem permissão, anônimo e unidade de outra organização por id adivinhado. */
 class UnitRouteIT extends UnitBase {
     @Test
-    @DisplayName("CA4 / CA5: anônimo 401; Administrador, Professor, Aluno, Responsável e sem vínculo 403 em GET e PATCH, sem efeito")
+    @DisplayName("CA4 / CA5: anônimo 401; Professor, Aluno, Responsável e sem vínculo 403 em GET e PATCH, Administrador 403 no PATCH, sem efeito")
     void deniedProfiles() throws Exception {
         var a = tenant();
         var before = unitRow(a.unitId());
         assertThat(call(list(), null).getResponse().getStatus()).isEqualTo(401);
         assertThat(call(adjust(a.unitId(), "x-" + a.orgId()), null).getResponse().getStatus()).isEqualTo(401);
         for (Role role : new Role[] {Role.ADMINISTRATOR, Role.TEACHER, Role.STUDENT, Role.GUARDIAN}) {
-            assertThat(call(list(), who(a, role)).getResponse().getStatus()).as(role.name()).isEqualTo(403);
+            // #746: o Administrador lista as unidades dele (o recorte está no UnitListIT).
+            assertThat(call(list(), who(a, role)).getResponse().getStatus()).as(role.name()).isEqualTo(role == Role.ADMINISTRATOR ? 200 : 403);
             var response = call(adjust(a.unitId(), "x-" + a.orgId()), who(a, role)).getResponse();
             assertThat(response.getStatus()).as(role.name()).isEqualTo(403);
             assertThat(response.getContentAsString()).contains("FORBIDDEN");

@@ -16,6 +16,7 @@ import { TermsPage } from "@/features/terms/TermsPage";
 import { TextsPage } from "@/features/texts/TextsPage";
 import { ModalitiesPage } from "@/features/modalities/ModalitiesPage";
 import { NewUnitPage } from "@/features/units/NewUnitPage";
+import { LegacyUnitRedirect } from "@/features/units/LegacyUnitRedirect";
 import { UnitSettingsPage } from "@/features/units/UnitSettingsPage";
 import { SettingsIndexPage } from "@/features/units/SettingsIndexPage";
 import { UnitsPage } from "@/features/units/UnitsPage";
@@ -127,12 +128,14 @@ const screens: Record<string, ReactNode> = {
   units: <UnitsPage />,
   newUnit: <NewUnitPage />,
   unitSettings: <UnitSettingsPage />,
+  unitLegacy: <LegacyUnitRedirect to="unitSettings" />,
   modalities: <ModalitiesPage />,
   ageRanges: <AgeRangesPage />,
   terms: <TermsPage />,
   texts: <TextsPage />,
   administrators: <AdministratorsPage />,
   permissionsTable: <PermissionsTablePage />,
+  permissionsTableLegacy: <LegacyUnitRedirect to="permissionsTable" />,
 };
 
 // Uma <Route> por rota da gestão; a rota com `parent` entra dentro da mãe (que tem um <Outlet />). Cada uma passa pelo guarda do mapa (D1).

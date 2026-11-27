@@ -2313,8 +2313,6 @@
       "teacher": "Permissões do Professor"
     },
     "tabError": "Há erro nesta aba",
-    "emptyTitle": "Nenhuma unidade para configurar",
-    "emptyText": "Seu acesso não inclui nenhuma unidade. Peça ao Coordenador da organização.",
     "sections": {
       "data": "Dados da unidade",
       "billing": "Cobrança",
@@ -2476,13 +2474,13 @@
     "title": "Configurações",
     "items": {
       "organizationSettings": "Organização",
-      "unitSettings": "Unidade",
+      "units": "Unidades",
       "modalities": "Modalidades",
       "ageRanges": "Faixas etárias",
       "terms": "Termos",
       "texts": "Textos",
-      "audit": "Auditoria",
-      "import": "Importar e exportar"
+      "subscription": "Assinatura",
+      "dataSecurity": "Dados e segurança"
     }
   },
   "unitScope": {
@@ -2493,8 +2491,7 @@
     "readOnlyCoordinator": "Só consulta · Coordenador",
     "close": "Fechar",
     "loading": "Carregando unidades...",
-    "error": "Não foi possível carregar as unidades.",
-    "chooseToEdit": "Escolha uma unidade no topo da tela para ver e alterar as configurações."
+    "error": "Não foi possível carregar as unidades."
   },
   "menu": {
     "groups": {
@@ -2523,7 +2520,6 @@
       "benefits": "Benefícios",
       "reports": "Relatórios",
       "allUnits": "Todas as unidades",
-      "unitSettings": "Unidade",
       "organizationSettings": "Organização",
       "modalities": "Modalidades",
       "ageRanges": "Faixas etárias",
@@ -2531,10 +2527,7 @@
       "texts": "Textos",
       "units": "Unidades",
       "subscription": "Assinatura",
-      "audit": "Auditoria",
-      "import": "Importar e exportar",
-      "exportFull": "Exportação completa",
-      "support": "Acesso de suporte"
+      "dataSecurity": "Dados e segurança"
     }
   },
   "authShell": {

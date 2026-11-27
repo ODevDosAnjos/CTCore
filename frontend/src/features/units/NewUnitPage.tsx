@@ -14,8 +14,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { WindowSteps } from "@/components/ui/window-steps";
 import { ApiError, api } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
+import { hrefOf } from "@/routes";
 import { SwitchRow } from "./SwitchRow";
 import { Text } from "./Text";
+import { useUnitScope } from "./UnitScopeProvider";
 import { createUnit, type NewUnit, type NewUnitResult } from "./useUnits";
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -298,7 +300,7 @@ function Created({ done }: { done: Done }) {
       <div className="mt-3 flex flex-wrap gap-2">
         {done.modalitiesFailed && (
           <Button asChild>
-            <Link to={`/configuracoes/unidade?unidade=${result.unit.id}`}>{t("units.new.toUnit")}</Link>
+            <Link to={hrefOf("unitSettings", { id: result.unit.id })}>{t("units.new.toUnit")}</Link>
           </Button>
         )}
         <Button asChild variant={done.modalitiesFailed ? "secondary" : "primary"}>
@@ -322,9 +324,11 @@ function Content({ children }: { children: ReactNode }) {
 // RF-ORG-03: assistente de nova unidade. Só o Coordenador (a rota já nega os demais; a barreira de dados é o servidor).
 export function NewUnitPage() {
   const navigate = useNavigate();
+  const scope = useUnitScope();
   const [forbidden, setForbidden] = useState(false);
   const [done, setDone] = useState<Done>();
   function finished(d: Done) {
+    scope.retry(); // a unidade nova entra no seletor do topo
     // Convite ou modalidade que falhou fica na tela com o aviso; nos demais casos volta à lista, que já traz a unidade nova.
     if (d.result.invite === "FAILED" || d.modalitiesFailed) setDone(d);
     else

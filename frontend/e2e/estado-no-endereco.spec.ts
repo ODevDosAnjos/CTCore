@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const UNIT = "/configuracoes/unidades/00000000-0000-0000-0000-000000000021";
+
 const CENTRO = "00000000-0000-0000-0000-000000000021";
 const JIU_JITSU = "00000000-0000-0000-0000-000000000103";
 const ALUNO_MENOR = "00000000-0000-0000-0000-000000000702";
@@ -172,9 +174,9 @@ test("Abas: Minha conta e Unidade guardam a aba no endereço, sem histórico e c
   await page.reload(); // F5 mantém a aba
   await expect(page.getByRole("tab", { name: "Sessões" })).toHaveAttribute("aria-selected", "true");
 
-  await open(page, "/configuracoes/unidade");
+  await open(page, UNIT);
   await page.getByRole("tab", { name: /^Pagamentos/ }).click();
-  await expect(page).toHaveURL(/\/configuracoes\/unidade\?aba=payments$/);
+  await expect(page).toHaveURL(/\/configuracoes\/unidades\/[\w-]+\?aba=payments$/);
   await page.reload();
   await expect(page.getByRole("tab", { name: /^Pagamentos/ })).toHaveAttribute("aria-selected", "true");
   await page.goBack(); // a troca de aba usou replace: o voltar sai da tela

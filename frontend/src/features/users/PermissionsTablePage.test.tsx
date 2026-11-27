@@ -16,11 +16,11 @@ const session = (role: string): SessionView => ({
   twoFactor: { enabled: false, required: false },
 });
 
-function setup(role = "COORDINATOR", path = "/configuracoes/unidade/permissoes") {
+function setup(role = "COORDINATOR", path = "/configuracoes/unidades/u1/permissoes", reach: { id: string }[] = []) {
   server.use(
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
-    http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: [] })),
+    http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: reach })),
     http.get("/api/v1/users", () => HttpResponse.json([])),
   );
   return render(
@@ -52,15 +52,16 @@ describe("PermissionsTablePage", () => {
   it("CA11 (#611): a linha Administradores é ● — — e Voltar à unidade aponta para Configurações › Unidade", async () => {
     setup();
     await ready();
-    expect(screen.getByRole("link", { name: "Voltar à unidade" })).toHaveAttribute("href", "/configuracoes/unidade");
+    expect(screen.getByRole("link", { name: "Voltar à unidade" })).toHaveAttribute("href", "/configuracoes/unidades/u1");
     const linha = within(screen.getByRole("table")).getByRole("row", { name: /Administradores/ });
     expect(within(linha).getAllByRole("cell").map((c) => c.textContent)).toEqual(["●", "—", "—"]);
   });
 
-  it("CA10 (#611): o endereço antigo leva à nova tabela", async () => {
-    setup("COORDINATOR", "/configuracoes/usuarios/permissoes");
+  // Com duas unidades o Coordenador começa em "Todas as unidades": a tabela usa a primeira ao alcance (#746, D7).
+  it.each(["/configuracoes/usuarios/permissoes", "/configuracoes/unidade/permissoes"])("CA10 (#611) e #746 CA7: o endereço antigo %s leva à nova tabela", async (path) => {
+    setup("COORDINATOR", path, [{ id: "u1" }, { id: "u2" }]);
     await ready();
-    expect(screen.getByRole("link", { name: "Voltar à unidade" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar à unidade" })).toHaveAttribute("href", "/configuracoes/unidades/u1");
   });
 
   it("CA10: a 360 px cada linha vira um bloco, sem tabela", async () => {

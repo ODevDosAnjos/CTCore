@@ -8,7 +8,7 @@ import type { Draft, SetDraft } from "./unitDraft";
 import { TEACHER_KEYS } from "./useUnitSettings";
 
 // Aba Permissões do Professor (R6, RF-ORG-04): cinco interruptores; a faixa lembra o que o Professor nunca vê.
-export function UnitTeacherTab({ d, set, unitName }: { d: Draft; set: SetDraft; unitName: string }) {
+export function UnitTeacherTab({ d, set, unitId, unitName }: { d: Draft; set: SetDraft; unitId: string; unitName: string }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-4">
@@ -29,7 +29,7 @@ export function UnitTeacherTab({ d, set, unitName }: { d: Draft; set: SetDraft; 
         <Lock aria-hidden className="mt-0.5 size-4 shrink-0" />
         <p>{t("unitSettings.teacherLock")}</p>
       </div>
-      <Link className="w-fit text-sm font-medium underline underline-offset-2" to={hrefOf("permissionsTable")}>
+      <Link className="w-fit text-sm font-medium underline underline-offset-2" to={hrefOf("permissionsTable", { id: unitId })}>
         {t("unitSettings.permissionsLink")}
       </Link>
     </div>

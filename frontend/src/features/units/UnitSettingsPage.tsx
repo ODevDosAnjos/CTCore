@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { CircleAlert } from "lucide-react";
 import { EditConflictDialog, type Difference } from "@/components/EditConflictDialog";
 import { LastChange } from "@/components/LastChange";
 import { isValidCnpj, isValidPhone, onlyDigits } from "@/components/fields/masks";
-import { EmptyState, ErrorState, ForbiddenState, LoadingState } from "@/components/states";
-import { Banner } from "@/components/ui/banner";
+import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import { useTabParam } from "@/components/ui/useTabParam";
 import { ApiError } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useEditConflict } from "@/lib/useEditConflict";
+import { hrefOf } from "@/routes";
 import { ALL, useUnitScope } from "./UnitScopeProvider";
 import { UnitDataTab } from "./UnitDataTab";
 import { UnitLinksTab } from "./UnitLinksTab";
@@ -161,7 +162,7 @@ function Form({ detail, api }: { detail: UnitDetail; api: ReturnType<typeof useU
     { id: "payments", content: <UnitPaymentsTab {...shared} connected={detail.settings.paymentAccount === "CONNECTED"} /> },
     { id: "reminders", content: <UnitRemindersTab {...shared} /> },
     { id: "links", content: <UnitLinksTab d={d} set={set} errors={errors} /> },
-    { id: "teacher", content: <UnitTeacherTab d={d} set={set} unitName={detail.name} /> },
+    { id: "teacher", content: <UnitTeacherTab d={d} set={set} unitId={detail.id} unitName={detail.name} /> },
   ].map((item) => ({ ...item, label: t(`unitSettings.tabs.${item.id}`), badge: flag(item.id as TabId) }));
 
   return (
@@ -237,24 +238,39 @@ function Detail({ id }: { id: string }) {
   );
 }
 
-function Content() {
-  const { t } = useTranslation();
+// D3 (item 746): o endereço define a unidade. Abrir uma unidade ativa a escolhe no topo; trocar o seletor depois leva à outra
+// unidade (na mesma aba) e "Todas as unidades" volta à lista. Unidade desativada não está no seletor e não sincroniza.
+function useScopeSync(id: string) {
   const scope = useUnitScope();
+  const navigate = useNavigate();
+  const { search } = useLocation();
+  // Só uma *mudança* do seletor navega; repetir o efeito (StrictMode) sem mudança não faz nada.
+  const seen = useRef<{ id: string; selected: string | null }>(undefined);
+  const inReach = scope.units.some((u) => u.id === id);
+  useEffect(() => {
+    if (scope.status !== "ready") return;
+    if (seen.current?.id !== id) {
+      seen.current = inReach ? { id, selected: scope.selected } : undefined;
+      if (inReach) scope.select(id);
+    } else if (scope.selected !== seen.current.selected) {
+      seen.current.selected = scope.selected;
+      if (scope.selected === ALL) void navigate(hrefOf("units"));
+      else if (scope.selected && scope.selected !== id) void navigate({ pathname: hrefOf("unitSettings", { id: scope.selected }), search }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `select` e `navigate` mudam a cada render
+  }, [id, inReach, scope.status, scope.selected]);
+  return scope;
+}
+
+function Content() {
+  const { id = "" } = useParams();
+  const scope = useScopeSync(id);
   if (scope.status === "loading") return <LoadingState />;
   if (scope.status === "forbidden") return <ForbiddenState />;
   if (scope.status === "error") return <ErrorState onRetry={scope.retry} />;
-  if (scope.selected === null) return <EmptyState title={t("unitSettings.emptyTitle")} text={t("unitSettings.emptyText")} />;
   return (
     <div className="flex flex-col gap-4">
-      {/* RN-ORG-08: em "Todas as unidades" nada é alterado; a unidade vem do seletor do topo (RF-ORG-05). */}
-      {scope.selected === ALL ? (
-        <>
-          <PageHeader title={t("unitSettings.generalTitle")} />
-          <Banner tone="info">{t("unitScope.chooseToEdit")}</Banner>
-        </>
-      ) : (
-        <Detail id={scope.selected} />
-      )}
+      <Detail id={id} />
     </div>
   );
 }

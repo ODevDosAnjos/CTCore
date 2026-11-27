@@ -39,16 +39,16 @@ const list = async () => {
 };
 
 describe("SettingsIndexPage (R8, GMConfig)", () => {
-  it("CA17: o Coordenador vê os links permitidos, na ordem do canvas, e Auditoria e Importar e exportar como Em breve", async () => {
+  it("CA17: o Coordenador vê os links permitidos, na ordem do menu, com Assinatura e Dados e segurança Em breve (#746)", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
     const items = await list();
     expect(items.getAllByRole("link").map((a) => a.textContent)).toEqual([
-      "Organização", "Unidade", "Modalidades", "Faixas etárias", "Termos", "Textos", "Auditoria", "Importar e exportar",
+      "Organização", "Unidades", "Modalidades", "Faixas etárias", "Termos", "Textos", "Assinatura", "Dados e segurança",
     ]);
-    expect(items.getByRole("link", { name: "Unidade" })).toHaveAttribute("href", "/configuracoes/unidade");
+    expect(items.getByRole("link", { name: "Unidades" })).toHaveAttribute("href", "/configuracoes/unidades");
     expect(items.getByRole("link", { name: "Textos" })).toHaveAttribute("href", "/configuracoes/textos");
-    for (const name of ["Auditoria", "Importar e exportar"]) {
+    for (const name of ["Assinatura", "Dados e segurança"]) {
       const soon = items.getByRole("link", { name });
       expect(soon).toHaveAttribute("aria-disabled", "true");
       await user.click(soon);
@@ -65,6 +65,8 @@ describe("SettingsIndexPage (R8, GMConfig)", () => {
     expect(items.getByRole("link", { name: "Organização" })).toBeInTheDocument();
     expect(screen.queryByText("Assinatura e Unidades aparecem só para o Coordenador.")).not.toBeInTheDocument();
     expect(items.queryByText("Assinatura")).not.toBeInTheDocument();
+    expect(items.getByRole("link", { name: "Unidades" })).toBeInTheDocument();
+    expect(items.getByRole("link", { name: "Dados e segurança" })).toHaveAttribute("aria-disabled", "true");
   });
 
   it("CA17: o Professor recebe a tela de área indisponível", async () => {

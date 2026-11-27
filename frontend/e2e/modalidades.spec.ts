@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const UNIT = "/configuracoes/unidades/00000000-0000-0000-0000-000000000021";
+
 async function open(page: Page, path: string) {
   await page.evaluate(`history.pushState({}, "", ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent("popstate"))`);
 }
@@ -64,7 +66,7 @@ test("@critical Coordenador marca uma modalidade na unidade", async ({ page }) =
   const available = page.locator("section", { has: page.getByRole("heading", { name: "Disponíveis para ativar" }) });
   await available.getByRole("button", { name: /Ativar\s*Jiu-Jitsu/ }).click();
 
-  await open(page, "/configuracoes/unidade");
+  await open(page, UNIT);
   await expect(page.getByRole("heading", { name: /^Unidade /, level: 1 })).toBeVisible();
   const offered = page.getByRole("checkbox", { name: "Jiu-Jitsu" });
   await expect(offered).not.toBeChecked();
@@ -73,6 +75,6 @@ test("@critical Coordenador marca uma modalidade na unidade", async ({ page }) =
 
   await open(page, "/");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/unidade");
+  await open(page, UNIT);
   await expect(page.getByRole("checkbox", { name: "Jiu-Jitsu" })).toBeChecked();
 });

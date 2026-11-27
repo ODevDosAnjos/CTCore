@@ -101,22 +101,23 @@ export const routes: AppRoute[] = [
   // `/configuracoes` não é item do menu: nenhum item fica marcado nela.
   { id: "settings", path: "/configuracoes", area: "management", permission: "UNIT_SETTINGS" },
   m("organizationSettings", "/configuracoes/organizacao", "ORGANIZATION_SETTINGS", "settings", "Building"),
-  m("units", "/configuracoes/unidades", "UNITS", "settings", "MapPin"),
+  m("units", "/configuracoes/unidades", "UNIT_SETTINGS", "settings", "MapPin"),
   sub("newUnit", "/configuracoes/unidades/nova", "units", "UNITS"),
-  m("unitSettings", "/configuracoes/unidade", "UNIT_SETTINGS", "settings", "Settings"),
+  // RF-ORG-04 (#746): a unidade é a do endereço; tela inteira, sem rota-pai.
+  sub("unitSettings", "/configuracoes/unidades/:id", "units", "UNIT_SETTINGS"),
+  // Endereços antigos: o destino depende da unidade escolhida, por isso têm tela e não "redirect".
+  sub("unitLegacy", "/configuracoes/unidade", "units", "UNIT_SETTINGS"),
   m("modalities", "/configuracoes/modalidades", "ORGANIZATION_SETTINGS", "settings", "Dumbbell"),
   m("ageRanges", "/configuracoes/faixas-etarias", "ORGANIZATION_SETTINGS", "settings", "Baby"),
   m("terms", "/configuracoes/termos", "ORGANIZATION_SETTINGS", "settings", "FileText"),
   m("texts", "/configuracoes/textos", "ORGANIZATION_SETTINGS", "settings", "Type"),
   // #611: Usuários saiu de Configurações; os endereços antigos levam aos novos (R8).
   sub("staffUsers", "/configuracoes/usuarios", "administrators", "STAFF_USERS", { redirect: "/administradores" }),
-  sub("permissionsTableOld", "/configuracoes/usuarios/permissoes", "unitSettings", "UNIT_SETTINGS", { redirect: "/configuracoes/unidade/permissoes" }),
-  sub("permissionsTable", "/configuracoes/unidade/permissoes", "unitSettings", "UNIT_SETTINGS", { trail: "permissionsTable.title" }),
+  sub("permissionsTableOld", "/configuracoes/usuarios/permissoes", "units", "UNIT_SETTINGS", { redirect: "/configuracoes/unidade/permissoes" }),
+  sub("permissionsTableLegacy", "/configuracoes/unidade/permissoes", "units", "UNIT_SETTINGS"),
+  sub("permissionsTable", "/configuracoes/unidades/:id/permissoes", "units", "UNIT_SETTINGS", { trail: "permissionsTable.title" }),
   m("subscription", "/configuracoes/assinatura", "SUBSCRIPTION", "settings", "CreditCard", "soon"),
-  m("audit", "/configuracoes/auditoria", "AUDIT", "settings", "ScrollText", "soon"),
-  m("import", "/configuracoes/importar", "IMPORT", "settings", "Upload", "soon"),
-  m("exportFull", "/configuracoes/exportacao", "EXPORT_FULL", "settings", "Download", "off"),
-  m("support", "/configuracoes/suporte", "SUPPORT_ACCESS", "settings", "LifeBuoy", "off"),
+  m("dataSecurity", "/configuracoes/dados-e-seguranca", "AUDIT", "settings", "ScrollText", "soon"),
 
   { id: "portalRequests", path: "/portal/pedidos", area: "portal" },
   { id: "portalCard", path: "/portal/carteirinha", area: "portal" },
