@@ -120,6 +120,26 @@ class S3FileStorageIT {
     }
 
     @Test
+    @DisplayName("RF-ACE-04: arquivo da conta fica em account/<id>/, é lido pela URL assinada, apagado e não escapa da pasta")
+    void storesAccountFilesInTheirOwnFolder() throws Exception {
+        storage.putAccountFile(A, "photo.png", bytes("conta-a"), "image/png"); // sem organização no contexto
+        var url = storage.accountFileUrl(A, "photo.png");
+        assertThat(url).contains("/account/" + A + "/photo.png").contains("X-Amz-Signature=");
+        assertThat(get(url).body()).isEqualTo("conta-a");
+        assertThat(get(storage.accountFileUrl(B, "photo.png")).statusCode()).isEqualTo(404);
+        for (var bad : new String[]{"../" + B + "/photo.png", "account/" + B + "/photo.png", "a\b", ".."}) {
+            assertThatThrownBy(() -> storage.putAccountFile(A, bad, bytes("x"), "image/png")).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> storage.accountFileUrl(A, bad)).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> storage.deleteAccountFile(A, bad)).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> storage.putAccountFile(A, "big.png", new byte[FileStorage.MAX_BYTES + 1], "image/png"))
+                .isInstanceOf(IllegalArgumentException.class);
+        storage.deleteAccountFile(A, "photo.png");
+        storage.deleteAccountFile(A, "photo.png"); // idempotente
+        assertThat(get(url).statusCode()).isEqualTo(404);
+    }
+
+    @Test
     @DisplayName("RN-ORG-03: sem organização no contexto, toda operação é negada")
     void deniesEveryOperationWithoutOrganization() {
         assertThatThrownBy(() -> storage.put("x.png", bytes("x"), "image/png")).isInstanceOf(AccessDeniedException.class);

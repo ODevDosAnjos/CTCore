@@ -7,7 +7,7 @@ import { usePopover } from "./usePopover";
 const item = "flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 // Menu da conta na barra de cima: avatar, nome, perfil e seta; abre com "Minha conta" e "Sair da conta" (D4).
-export function UserMenu({ name, roleLabel, onLogout }: { name: string; roleLabel?: string; onLogout?: () => void }) {
+export function UserMenu({ name, roleLabel, onLogout, photoUrl, onPhotoError }: { name: string; roleLabel?: string; onLogout?: () => void; photoUrl?: string | null; onPhotoError?: () => void }) {
   const { t } = useTranslation();
   const { open, setOpen, root, button } = usePopover();
   return (
@@ -21,7 +21,7 @@ export function UserMenu({ name, roleLabel, onLogout }: { name: string; roleLabe
         className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="sr-only">{t("layout.userMenu.label")}</span>
-        <Avatar name={name} decorative />
+        <Avatar name={name} decorative photoUrl={photoUrl} onPhotoError={onPhotoError} />
         <span className="hidden min-w-0 text-left leading-tight lg:block">
           <span className="block max-w-40 truncate font-medium">{name}</span>
           {roleLabel && <span className="block text-xs text-muted-foreground">{roleLabel}</span>}

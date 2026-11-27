@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { TONE_CLASS, type Tone } from "./status-tone";
 
@@ -17,14 +17,34 @@ export function avatarTone(name: string): Tone {
   return PALETTE[h % PALETTE.length];
 }
 
-export function Avatar({ name, className, decorative = false, size = "md" }: { name: string; className?: string; decorative?: boolean; size?: "sm" | "md" | "lg" }) {
+type AvatarProps = { name: string; className?: string; decorative?: boolean; size?: "sm" | "md" | "lg"; photoUrl?: string | null; onPhotoError?: () => void };
+
+const SIZE = { sm: "size-8 text-[11px]", md: "size-9 text-xs", lg: "size-16 text-lg" };
+
+export function Avatar({ name, className, decorative = false, size = "md", photoUrl, onPhotoError }: AvatarProps) {
+  // Guarda a URL que falhou: volta às iniciais, e uma URL nova (assinada de novo) é tentada outra vez.
+  const [broken, setBroken] = useState<string>();
+  if (photoUrl && photoUrl !== broken) {
+    return (
+      <img
+        src={photoUrl}
+        alt={decorative ? "" : name}
+        aria-hidden={decorative || undefined}
+        onError={() => {
+          setBroken(photoUrl);
+          onPhotoError?.();
+        }}
+        className={cn("shrink-0 rounded-full object-cover", SIZE[size], className)}
+      />
+    );
+  }
   return (
     <span
       role={decorative ? undefined : "img"}
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
       data-tone={avatarTone(name)}
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold", size === "sm" ? "size-8 text-[11px]" : size === "lg" ? "size-16 text-lg" : "size-9 text-xs", TONE_CLASS[avatarTone(name)], className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold", SIZE[size], TONE_CLASS[avatarTone(name)], className)}
     >
       {initials(name)}
     </span>

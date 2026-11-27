@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import br.com.ctcore.audit.AuditActor;
+import br.com.ctcore.storage.FileStorage;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class SessionService {
     static final Duration WRITE_EVERY = Duration.ofMinutes(1);
 
     public record Created(UUID accountId, String token, UUID activeLinkId) {}
-    public record AccountView(UUID id, String email, String name, OffsetDateTime passwordChangedAt) {}
+    public record AccountView(UUID id, String email, String name, OffsetDateTime passwordChangedAt, String phone, String photoUrl) {}
     public record LinkView(UUID id, UUID organizationId, String organizationName, String role, Set<UUID> unitIds,
             List<String> unitNames, OffsetDateTime lastAccessAt, LocalDate startsOn, List<String> studentNames) {}
     public record TwoFactorView(boolean enabled, boolean required, OffsetDateTime enabledAt) {}
@@ -45,10 +46,12 @@ public class SessionService {
     private final TwoFactorService twoFactor;
     private final IpLocator locator;
     private final AccountAudit audit;
+    private final FileStorage storage;
 
     public SessionService(@Lazy JdbcClient jdbc, @Lazy AccountTransactions accountTx, Clock clock, NewAccessNotifier newAccess,
             IpLocator locator, AccountAudit audit,
-            TwoFactorService twoFactor) {
+            TwoFactorService twoFactor, FileStorage storage) {
+        this.storage = storage;
         this.twoFactor = twoFactor;
         this.locator = locator;
         this.audit = audit;
@@ -191,8 +194,12 @@ public class SessionService {
     /** Account, active links and the active one, for the front to decide where to go (RN-ACE-16). */
     public SessionView view(UUID accountId, UUID activeLinkId) {
         return accountTx.forAccount(accountId, () -> {
-            AccountView account = jdbc.sql("select id, email, name, password_changed_at from account where id = :a").param("a", accountId)
-                    .query((rs, n) -> new AccountView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getObject(4, OffsetDateTime.class))).single();
+            AccountView account = jdbc.sql("select id, email, name, password_changed_at, phone, photo from account where id = :a").param("a", accountId)
+                    .query((rs, n) -> {
+                        String photo = rs.getString(6);
+                        return new AccountView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getObject(4, OffsetDateTime.class),
+                                rs.getString(5), photo == null ? null : storage.accountFileUrl(accountId, photo));
+                    }).single();
             OffsetDateTime enabledAt = twoFactor.enabledAt(accountId);
             List<LinkView> links = activeLinks(accountId).stream()
                     .map(l -> new LinkView(l.id(), l.organizationId(), organizationName(l.organizationId()), l.role().name(), unitsOf(l.id()),

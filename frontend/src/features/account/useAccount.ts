@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useSession, type SessionView } from "@/features/auth/SessionProvider";
 
@@ -16,6 +16,21 @@ export interface AccountSessionItem {
 export function useReloadSession() {
   const { setSession } = useSession();
   return async () => setSession(await api<SessionView>("/auth/session"));
+}
+
+/** Foto da conta para o avatar. A URL assinada vence: se a imagem falhar, a sessão é relida uma vez por montagem, sem laço. */
+export function useAccountPhoto() {
+  const { state } = useSession();
+  const reload = useReloadSession();
+  const retried = useRef(false);
+  return {
+    photoUrl: state.status === "ready" ? state.session.account.photoUrl : undefined,
+    onPhotoError: () => {
+      if (retried.current) return;
+      retried.current = true;
+      reload().catch(() => {}); // sem releitura ficam as iniciais
+    },
+  };
 }
 
 type Loaded = { tick: number; items?: AccountSessionItem[] };

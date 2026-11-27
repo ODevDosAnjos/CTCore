@@ -50,8 +50,10 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<ApiError> tooLarge(HttpServletRequest req) {
-        // #67: o comprovante da graduação de origem é regra de matrícula (422), não formato.
-        ErrorCode code = req.getRequestURI().endsWith("/enrollment/origin-proof") ? ErrorCode.UNPROCESSABLE : ErrorCode.VALIDATION_ERROR;
+        // #67: o comprovante da graduação de origem é regra de matrícula (422), não formato. #763: a foto da conta também é 422.
+        String uri = req.getRequestURI();
+        ErrorCode code = uri.endsWith("/enrollment/origin-proof") || uri.endsWith("/auth/profile/photo")
+                ? ErrorCode.UNPROCESSABLE : ErrorCode.VALIDATION_ERROR;
         return build(code, req, List.of(new ApiError.Field("file", "arquivo acima de 5 MB")));
     }
 

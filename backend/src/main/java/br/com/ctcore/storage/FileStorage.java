@@ -1,5 +1,7 @@
 package br.com.ctcore.storage;
 
+import java.util.UUID;
+
 /**
  * Armazenamento de arquivos por organização (RN-ORG-03). A organização vem sempre do OrganizationContext;
  * o nome é relativo à pasta da organização. Sem organização no contexto, todo método lança AccessDeniedException.
@@ -24,6 +26,18 @@ public interface FileStorage {
 
     /** NotFound se o arquivo não existir na organização. */
     void delete(String name);
+
+    /**
+     * Arquivos da conta (a foto), em pasta própria e válidos em todas as organizações. O {@code accountId} vem sempre da
+     * sessão, nunca da requisição.
+     */
+    void putAccountFile(UUID accountId, String name, byte[] content, String contentType);
+
+    /** URL de leitura assinada e temporária; só assina, sem consultar o armazenamento (a leitura da sessão não depende dele). */
+    String accountFileUrl(UUID accountId, String name);
+
+    /** Sem erro se o arquivo não existir. */
+    void deleteAccountFile(UUID accountId, String name);
 
     /** Recusa nomes que saem da pasta da organização. */
     static void checkName(String name) {

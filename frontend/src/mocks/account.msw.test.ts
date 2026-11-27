@@ -80,6 +80,58 @@ describe("minha conta x OpenAPI (CA17)", () => {
   });
 });
 
+describe("perfil da conta x OpenAPI (#763)", () => {
+  // FormData do jsdom não passa pelo fetch do Node; o corpo multipart vai montado à mão.
+  const upload = (field: string) =>
+    fetch("/api/v1/auth/profile/photo", {
+      method: "PUT",
+      headers: { "Content-Type": "multipart/form-data; boundary=x" },
+      body: `--x
+Content-Disposition: form-data; name="${field}"; filename="foto.png"
+
+png ficticio
+--x--
+`,
+    });
+  const routes = [["put", "/auth/profile"], ["put", "/auth/profile/photo"], ["delete", "/auth/profile/photo"]] as const;
+  const call = (method: string, path: string) => send(method.toUpperCase(), path, method === "put" ? { name: "Ana" } : undefined);
+
+  it("sem sessão 401 e no portal 403, os dois declarados", async () => {
+    for (const [method, path] of routes) {
+      expect((await call(method, path)).status).toBe(401);
+      expect(declared(path, method)).toEqual(expect.arrayContaining(["200", "401", "403"]));
+    }
+    await send("POST", "/auth/login", { email: "aluno@exemplo.com", password: "x" });
+    for (const [method, path] of routes) expect((await call(method, path)).status).toBe(403);
+  });
+
+  it("grava nome e telefone só com dígitos, com os campos do contrato; vazio apaga; inválido é 422 por campo", async () => {
+    await send("POST", "/auth/login", { email: "a@b.c", password: "x" });
+    const saved = await send("PUT", "/auth/profile", { name: "  Ana Fictícia ", phone: "(21) 99999-0000" });
+    expect(saved.status).toBe(200);
+    const { account } = await saved.json();
+    for (const key of Object.keys(account)) expect(openapi.components.schemas.AccountView.properties).toHaveProperty(key);
+    expect(account).toMatchObject({ name: "Ana Fictícia", phone: "21999990000" });
+    expect((await (await send("PUT", "/auth/profile", { name: "Ana", phone: "" })).json()).account.phone).toBeNull();
+    for (const [body, field] of [[{ name: "   " }, "name"], [{ name: "a".repeat(121) }, "name"], [{ name: "Ana", phone: "123" }, "phone"]] as const) {
+      const bad = await send("PUT", "/auth/profile", body);
+      expect(bad.status).toBe(422);
+      expect((await bad.json()).fields[0].field).toBe(field);
+    }
+    expect(declared("/auth/profile", "put")).toContain("422");
+  });
+
+  it("foto: envia, remove e recusa o envio sem o campo file", async () => {
+    await send("POST", "/auth/login", { email: "a@b.c", password: "x" });
+    const bad = await upload("outro");
+    expect(bad.status).toBe(422);
+    expect((await bad.json()).fields[0].field).toBe("file");
+    expect((await (await upload("file")).json()).account.photoUrl).toMatch(/^data:image/);
+    expect((await (await send("DELETE", "/auth/profile/photo")).json()).account.photoUrl).toBeNull();
+    expect(declared("/auth/profile/photo", "put")).toContain("422");
+  });
+});
+
 describe("vínculos da sessão x OpenAPI (#762)", () => {
   it("cada vínculo traz os campos obrigatórios, a data de início e os alunos só para Responsável", async () => {
     const required: string[] = openapi.components.schemas.LinkView.required;

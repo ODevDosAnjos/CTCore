@@ -6,6 +6,7 @@ import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
+import { useAccountPhoto } from "@/features/account/useAccount";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 import { useFocusOnRoute } from "@/components/layout/useFocusOnRoute";
 import { OrgMark } from "./OrgMark";
@@ -21,6 +22,7 @@ export function PortalShell() {
   const { t } = useTranslation();
   const { state } = useSession();
   const shell = useLoadPortalShell();
+  const photo = useAccountPhoto();
   const main = useRef<HTMLElement>(null);
   useFocusOnRoute(main);
   const session = state.status === "ready" ? state.session : undefined;
@@ -70,7 +72,7 @@ export function PortalShell() {
               </Link>
             )}
             <span aria-hidden="true" className="hidden h-6 w-px bg-sidebar-foreground/30 md:block" />
-            {name && role && <PortalAccount name={name} roleLabel={roleLabel} />}
+            {name && role && <PortalAccount name={name} roleLabel={roleLabel} {...photo} />}
             <span className="hidden items-center gap-2 md:flex">
               <LogoutButton iconOnly className={barButton} />
               <ChooseLinkTrigger />

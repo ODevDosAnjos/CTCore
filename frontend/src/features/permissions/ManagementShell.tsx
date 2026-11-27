@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ErrorState, LoadingState } from "@/components/states";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { useAccountPhoto } from "@/features/account/useAccount";
 import { AreaUnavailablePage } from "@/features/auth/AreaUnavailablePage";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
 import { LogoutError } from "@/features/auth/LogoutButton";
@@ -23,6 +24,7 @@ export function ManagementShell() {
   const { t } = useTranslation();
   const { state } = useSession();
   const side = useLogout();
+  const photo = useAccountPhoto();
   const perms = useLoadPermissions();
   const { status, permissions, retry } = perms;
   const { pathname } = useLocation();
@@ -58,7 +60,7 @@ export function ManagementShell() {
           onLogout={side.logout}
           unit={(variant) => <UnitSwitcher variant={variant} />}
           bell={<BellButton />}
-          userMenu={<UserMenu name={accountName} roleLabel={roleLabel} onLogout={side.logout} />}
+          userMenu={<UserMenu name={accountName} roleLabel={roleLabel} onLogout={side.logout} {...photo} />}
           headerExtra={<ChooseLinkTrigger />}
         >
           <Outlet />

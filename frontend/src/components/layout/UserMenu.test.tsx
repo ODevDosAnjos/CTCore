@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { UserMenu } from "./UserMenu";
@@ -23,6 +23,25 @@ describe("UserMenu", () => {
     await user.click(screen.getByRole("menuitem", { name: "Sair da conta" }));
     expect(onLogout).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("#763 CA6: com foto o avatar mostra a imagem; se ela falha, voltam as iniciais e avisa", () => {
+    const onPhotoError = vi.fn();
+    const menu = (url: string) => (
+      <MemoryRouter>
+        <UserMenu name="Ana Souza" photoUrl={url} onPhotoError={onPhotoError} />
+      </MemoryRouter>
+    );
+    const { container, rerender } = render(menu("https://arquivos.test/a.png"));
+    const img = container.querySelector("img")!;
+    expect(img).toHaveAttribute("src", "https://arquivos.test/a.png");
+    expect(screen.queryByText("AS")).not.toBeInTheDocument();
+    fireEvent.error(img);
+    expect(onPhotoError).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("AS")).toBeInTheDocument();
+    rerender(menu("https://arquivos.test/b.png"));
+    expect(container.querySelector("img")).toHaveAttribute("src", "https://arquivos.test/b.png");
   });
 
   it("CA7: Esc fecha e devolve o foco ao botão; clique fora fecha; sem onLogout não há Sair", async () => {

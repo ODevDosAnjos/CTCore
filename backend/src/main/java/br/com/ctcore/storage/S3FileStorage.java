@@ -2,6 +2,8 @@ package br.com.ctcore.storage;
 
 import br.com.ctcore.isolation.OrganizationContext;
 import java.net.URI;
+import java.util.Objects;
+import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -18,7 +20,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-/** Adaptador S3 (D1): objetos em {@code org/<organizationId>/<nome>}, leitura só por URL SigV4 temporária. */
+/** Adaptador S3 (D1): objetos em {@code org/<organizationId>/<nome>} e {@code account/<accountId>/<nome>}, leitura só por URL SigV4 temporária. */
 public class S3FileStorage implements FileStorage {
 
     private final StorageProperties props;
@@ -58,6 +60,17 @@ public class S3FileStorage implements FileStorage {
         return "org/" + organizationId + "/" + name;
     }
 
+    private static String accountKey(UUID accountId, String name) {
+        FileStorage.checkName(name);
+        return "account/" + Objects.requireNonNull(accountId) + "/" + name;
+    }
+
+    private String presign(String key) {
+        var get = GetObjectRequest.builder().bucket(props.getBucket()).key(key).build();
+        return presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .signatureDuration(props.getUrlExpiry()).getObjectRequest(get).build()).url().toString();
+    }
+
     private void requireExists(String key, String name) {
         try {
             client.headObject(b -> b.bucket(props.getBucket()).key(key));
@@ -90,9 +103,25 @@ public class S3FileStorage implements FileStorage {
     public String readUrl(String name) {
         var key = key(name);
         requireExists(key, name);
-        var get = GetObjectRequest.builder().bucket(props.getBucket()).key(key).build();
-        return presigner.presignGetObject(GetObjectPresignRequest.builder()
-                .signatureDuration(props.getUrlExpiry()).getObjectRequest(get).build()).url().toString();
+        return presign(key);
+    }
+
+    @Override
+    public void putAccountFile(UUID accountId, String name, byte[] content, String contentType) {
+        var key = accountKey(accountId, name);
+        FileStorage.checkSize(content);
+        client.putObject(b -> b.bucket(props.getBucket()).key(key).contentType(contentType), RequestBody.fromBytes(content));
+    }
+
+    @Override
+    public String accountFileUrl(UUID accountId, String name) {
+        return presign(accountKey(accountId, name));
+    }
+
+    @Override
+    public void deleteAccountFile(UUID accountId, String name) {
+        var key = accountKey(accountId, name);
+        client.deleteObject(b -> b.bucket(props.getBucket()).key(key));
     }
 
     @Override
