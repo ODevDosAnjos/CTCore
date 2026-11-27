@@ -129,7 +129,7 @@ describe("OverduePage (RF-COB-06)", () => {
     setup();
     await ready();
     await screen.findAllByText("Ana Souza");
-    expect(screen.getByRole("link", { name: "Configurar" })).toHaveAttribute("href", "/configuracoes/unidade");
+    expect(screen.getByRole("link", { name: "Configurar" })).toHaveAttribute("href", "/configuracoes/unidades"); // "Todas as unidades"
     const panel = screen.getByRole("region", { name: "Mensagem pronta do lembrete" });
     expect(within(panel).getByText(/Carla Souza/)).toBeInTheDocument();
     await user.click(within(tableRow("João Pereira")).getByText("Kimono · Centro"));
@@ -138,6 +138,21 @@ describe("OverduePage (RF-COB-06)", () => {
     expect(edit).toHaveAttribute("aria-disabled", "true");
     await user.click(edit);
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it.each([
+    ["uma unidade escolhida no topo", ["u1", "u2"], "u2", "/configuracoes/unidades/u2?aba=reminders"],
+    ["uma só ao alcance", ["u1"], null, "/configuracoes/unidades/u1?aba=reminders"],
+    ["\"Todas as unidades\" com duas", ["u1", "u2"], "all", "/configuracoes/unidades"],
+  ])("#748 CA6: Configurar com %s", async (_n, ids, chosen, href) => {
+    localStorage.clear();
+    if (chosen) localStorage.setItem("ctcore.unitScope.l1", chosen);
+    setup();
+    server.use(http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: true, units: ids.map((id) => ({ id, name: id, shortName: id })) })));
+    await ready();
+    await screen.findAllByText("Ana Souza");
+    await waitFor(() => expect(screen.getByRole("link", { name: "Configurar" })).toHaveAttribute("href", href));
+    localStorage.clear();
   });
 
   it("CA4: Registrar abre o registro de pagamento; na cobrança bloqueada a linha traz Renegociar no lugar", async () => {

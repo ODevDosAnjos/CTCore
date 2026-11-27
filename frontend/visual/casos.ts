@@ -132,10 +132,10 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidades", rota: "/configuracoes/unidades", perfil: ana, canvas: "ConfigUnidades", unidadesCanvas: "lista" },
   { nome: "configuracoes", rota: "/configuracoes", perfil: admin }, // GMConfig e GMConfigUnidade são de 360 px: a comparação é feita à mão (D5 da #435)
   { nome: "configuracoes-unidade", rota: UNIDADE, perfil: ana, canvas: "ConfigUnidade", unidadeCanvas: "conectada" },
-  { nome: "configuracoes-unidade-pagamentos", rota: UNIDADE, perfil: ana, canvas: "ConfigPagamentos", unidadeCanvas: "conectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
-  { nome: "configuracoes-unidade-pagamentos-desconectado", rota: UNIDADE, perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
+  { nome: "configuracoes-unidade-pagamentos", rota: UNIDADE, perfil: ana, canvas: "ConfigPagamentos", unidadeCanvas: "conectada", passos: [{ clicar: "Cobrança", papel: "tab" }] },
+  { nome: "configuracoes-unidade-pagamentos-desconectado", rota: UNIDADE, perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Cobrança", papel: "tab" }] },
   { nome: "configuracoes-unidade-lembretes", rota: UNIDADE, perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
-  { nome: "configuracoes-unidade-links", rota: UNIDADE, perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
+  { nome: "configuracoes-unidade-links", rota: UNIDADE, perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Divulgação", papel: "tab" }] },
   { nome: "configuracoes-modalidades", rota: "/configuracoes/organizacao?aba=modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
   { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/organizacao?aba=faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
   { nome: "administradores", rota: "/administradores", perfil: ana, usuariosCanvas: true }, // #611: sem canvas (a tela nasceu depois do desenho: o canvas ConfigUsuarios é a tela antiga, com cartões de perfil e sem custo; segue a especificação e os componentes base)
