@@ -192,7 +192,7 @@ describe("TwoFactorSetupDialog: trocar de aparelho (issue 764 CA6)", () => {
     await fill(user, "certa", "123456");
 
     expect(await screen.findByAltText("QR code para o aparelho novo")).toHaveAttribute("src", expect.stringContaining("data:image/png"));
-    expect(screen.getByText("KRSX G5CT MVRX EZLU")).toBeInTheDocument();
+    expect(screen.getByText("NOVO APAR ELHO FAKE")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Etapas" }).textContent).not.toContain("Guardar códigos");
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
     await user.type(screen.getByLabelText(NEW_CODE), "111111");

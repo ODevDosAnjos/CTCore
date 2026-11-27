@@ -2,7 +2,7 @@
 
 Origem: issue #764, parte c da #630 (RF-ACE-04, RF-LGP-01, RN-ACE-10, RN-ACE-17, RN-ACE-24, RN-ACE-25; decisão 24 de `docs/auditoria/decisoes-canvas.md`). Divisão e plano de partida em `specs/itens/630-minha-conta-abas.md`. Branch: `item/764-minha-conta-seguranca-dados`.
 
-Tempos: especificar 3 · construir 32 · verificar 26 (regressão 24; 1 rodada) · entregar 3
+Tempos: especificar 3 · construir 39 (2 rodadas) · verificar 42 (regressão 40; 2 rodadas) · entregar 1
 Comparação com o canvas: 3
 
 <!-- Fase 2: especificação. Escrita por `especificar`, que grava só as seções 1 a 6. -->
@@ -163,6 +163,16 @@ Desvios (parte B):
 
 Docker: o teste visual usou a imagem `mcr.microsoft.com/playwright:v1.64.1-noble`; o script remove só a que ele mesmo baixa, e há uma imagem do Playwright na máquina depois da prova (nenhum contêiner dela ficou).
 
+### Correção da entrega
+
+- gitleaks no job `security` do PR #767: um único achado (`generic-api-key`, `frontend/src/mocks/handlers.ts:2181`, commit `dbb53141`), a chave TOTP fictícia da resposta MSW de `/auth/two-factor/replace`. A "Entrega" cita também a linha 2130, mas o log do job não a acusa: esse valor já está na `dev` desde a #26 e não mudou. Arquivos: `handlers.ts` e `TwoFactorDialogs.test.tsx` (chave trocada por uma fictícia só de letras, `NOVOAPARELHOFAKE`, para o squash na `dev` não ser acusado) e `.gitleaksignore` (impressão digital do `dbb53141`, que continua no histórico do PR, com o motivo).
+- Prova: gitleaks 8.30.1 (o do CI), baixado em pasta temporária e removido depois. Antes: `git --log-opts "origin/dev..HEAD"` acusou o mesmo achado do CI. Depois: o mesmo comando, `git --pre-commit` e `stdin` com as linhas adicionadas de `git diff origin/dev` → sem achados.
+- `npm test -- TwoFactorDialogs AccountPage src/mocks casos comparar telasCanvas tokens` → 68 arquivos, 946 testes, 0 falhas; `npm run lint` e `npm run typecheck` → saída 0.
+- Não rodou: `gitleaks-rules.test.sh` falhou no primeiro caso nesta máquina Windows (o gitleaks devolveu `ERRO`); `.gitleaks.toml` e o script não mudaram, e a prova fica no CI.
+- Visual: `npm run test:visual:docker -- --update-snapshots -g "conta-trocar-aparelho"` → 4 passaram, nenhuma referência mudou (o caso para no passo da senha, antes da chave). Imagem do Playwright já estava na máquina.
+
+CI pegou o que o local não pegou: o gitleaks (job `security`) acusou a chave TOTP fictícia acrescentada ao MSW por este item (PR #767; causa do próprio item). Nos últimos 5 itens são 2 ocorrências (#763 e #764), abaixo do limite de 3.
+
 ## Verificação
 
 ### Rodada 1 — OK — 27/11/2026, estado 03cfb5a14acb17fa31bfbe8b9021c6586b06f91d
@@ -199,14 +209,42 @@ Achados:
 - sugestão, código, `frontend/src/features/auth/TwoFactorSetupDialog.tsx` (`requestReplace`) — um 401 de sessão expirada (diferente de senha ou código errado) cai no erro genérico com "Tentar de novo"; `PrivacyTab` relê a sessão nesse caso.
 - sugestão, código, `frontend/src/features/account/AccountPage.test.tsx` (caso de axe das abas) — a sessão do caso não traz `backupCodesRemaining`, então a linha da contagem não passa pelo axe desse teste.
 
+### Rodada 2 — OK — 27/11/2026, estado 41432455dd8dc5de0b1c5e2b5a8d1b7c7ecac5a5
+
+Nova rodada depois da correção do gitleaks. Desde a rodada 1 mudaram só a chave fictícia da resposta MSW da troca (`handlers.ts` e a asserção correspondente em `TwoFactorDialogs.test.tsx`), uma entrada com motivo no `.gitleaksignore`, a linha da #764 em `specs/backlog.md` e este arquivo. A rodada 1 não tinha achado obrigatório.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA5 | PASSOU | mantido da rodada 1 (back-end sem mudança); `TwoFactorReplaceIT` rodado de novo |
+| CA6 | PASSOU | reconferido: `npm test` e e2e de `duas-etapas.spec.ts`; a asserção da chave acompanha o MSW e continua exigindo a chave exibida |
+| CA7 a CA9 | PASSOU | mantido da rodada 1; `AccountDataExportIT` rodado de novo |
+| CA10 | PASSOU | mantido da rodada 1; `npm test` e e2e de `minha-conta.spec.ts` |
+| CA11 | PASSOU | reconferido: testes do MSW no `npm test` e e2e a 360 px; `conta-trocar-aparelho` para no passo da senha, antes da chave, então referências e capturas não mudam (comparação mantida da rodada 1) |
+
+Comandos:
+- `mvnw test` → 160 testes, 0 falhas.
+- `mvnw verify -Dit.test='TwoFactorReplaceIT,TwoFactorServiceIT,TwoFactorGateIT,AccountDataExportIT,S3FileStorageIT,AccountLinksIsolationIT,TwoFactorIsolationIT' -Djacoco.skip=true` (com as opções do AGENTS.md) → 28 testes, 0 falhas.
+- `npm run lint`, `npm run typecheck`, `npm run build` → saída 0; `npm test` → 278 arquivos, 3163 testes, 0 falhas.
+- `npm run e2e:full -- duas-etapas minha-conta` → 8 passaram.
+- Correção: gitleaks 8.30.1 (versão do CI, baixado em pasta temporária e removido) sobre commits simulados do estado conferido, sem tocar em branch nem índice: faixa do PR (`origin/dev..`, com o `dbb53141`) e squash único sobre `origin/dev` → sem achados nos dois (a simulação não inclui o texto desta rodada, que não traz chave).
+- CI do PR #767 no commit anterior (`dbb53141`): `backend`, `frontend`, `e2e`, `visual (1/2)`, `visual (2/2)` e imagens passaram; só `security` (e por ele `ci-gate`) falhou. Os passos de `security` posteriores ao gitleaks e o CI do estado corrigido ficam para o próximo push.
+
+Instáveis: nenhum.
+
+Achados:
+- nenhum obrigatório.
+- as duas sugestões da rodada 1 continuam valendo.
+
 ## Entrega
 
 O que muda: troca de aparelho com confirmação em duas etapas (`TwoFactorService`, `TwoFactorController`, `SessionService`; migração `V63`, com as colunas do pedido pendente e cinco políticas só de leitura para a exportação), `GET /auth/data-export` (`AccountDataExport`, `AccountDataExportController`, `FileStorage`/`S3FileStorage`), contrato `docs/openapi.yaml` (duas rotas de troca, `backupCodesRemaining` e `AccountDataExport`), interface da aba Segurança (contagem de códigos de reserva, janela "Trocar de aparelho" sobre `TwoFactorSetupDialog` com a prop `replace`) e da aba Privacidade ("Baixar meus dados" com `<a download>` criado no código), MSW, i18n, e2e e casos visuais.
 
-Verificação: rodada 1 OK, estado `03cfb5a14acb17fa31bfbe8b9021c6586b06f91d`; desde então só este arquivo mudou. Entrega: a base `dev` não avançou desde a verificação, então a regressão não foi rodada de novo. Visual e a suíte completa ficam para o CI.
+Verificação: rodada 2 OK, estado `41432455dd8dc5de0b1c5e2b5a8d1b7c7ecac5a5` (a rodada 2 cobriu a correção do gitleaks); desde então só este arquivo mudou. Entrega: a base `dev` não avançou desde a verificação, então a regressão não foi rodada de novo. Visual e a suíte completa ficam para o CI.
 
 Decisões: a janela de troca e a contagem não estão no canvas `MinhaConta`/`GMConta` (D11); usados os componentes base, sem `limiteCanvas`. Desvios de construção estão na seção "Construção".
 
 Limitações: `MigrationIT`, `mvnw verify` completo, `e2e` inteiro, `test:cov`, visual por caso e OSV/gitleaks ficam para o CI do PR.
 
 Fecha a #764 e a #630 (item-mãe dividido em #762 a #764).
+
+CI do PR #767 no commit `dbb53141`: o job `security` (gitleaks) reprovou por `generic-api-key` na chave TOTP fictícia da resposta MSW de `/auth/two-factor/replace` (`handlers.ts`), e por isso o `ci-gate` falhou. A correção está neste commit, em "Correção da entrega" (construção): a chave foi trocada por uma fictícia só de letras e a impressão digital do `dbb53141` foi registrada em `.gitleaksignore` com o motivo. O CI do commit novo é o que vale; o resultado vai no comentário de merge.

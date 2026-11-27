@@ -2178,7 +2178,7 @@ export const routes: Route[] = [
       if (!code || !VALID_CODES.includes(code)) return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
       if (code !== "123456") backupRemaining -= 1; // o código de reserva usado é gasto
       replacePending = true;
-      return HttpResponse.json({ secret: "KRSXG5CTMVRXEZLU", otpauthUri: "otpauth://totp/ctcore:ana%40exemplo.com?secret=KRSXG5CTMVRXEZLU&issuer=ctcore" });
+      return HttpResponse.json({ secret: "NOVOAPARELHOFAKE", otpauthUri: "otpauth://totp/ctcore:ana%40exemplo.com?secret=NOVOAPARELHOFAKE&issuer=ctcore" });
     },
   },
   {
