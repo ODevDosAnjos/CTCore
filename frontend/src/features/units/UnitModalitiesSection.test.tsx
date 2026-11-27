@@ -114,7 +114,7 @@ describe("UnitModalitiesSection (RF-MOD-03)", () => {
     const first = render(ui(A));
     expect(screen.getByText("Carregando...")).toBeInTheDocument();
     expect(await screen.findByText("Nenhuma modalidade ativa")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ir para Configurações › Modalidades" })).toHaveAttribute("href", "/configuracoes/modalidades");
+    expect(screen.getByRole("link", { name: "Ir para Configurações › Modalidades" })).toHaveAttribute("href", "/configuracoes/organizacao?aba=modalidades");
     first.unmount();
 
     let fail = true;

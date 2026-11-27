@@ -13,7 +13,6 @@ import { useTabParam } from "@/components/ui/useTabParam";
 import { Textarea } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
 import { useTerms, type TermsKind, type TermsVersion } from "./useTerms";
-import { PageHeader } from "@/components/ui/page-header";
 
 const KINDS: TermsKind[] = ["ENROLLMENT", "IMAGE_USE"];
 const TOOLBAR = ["bold", "italic", "list", "link"] as const;
@@ -157,12 +156,13 @@ function TermEditor({ kind }: { kind: TermsKind }) {
   );
 }
 
-function Content() {
+// RF-MAT-05: Coordenador publica; Administrador só consulta (canManage). A barreira de dados é o servidor.
+export function TermsTab() {
   const { t } = useTranslation();
-  const [kind, setKind] = useTabParam<TermsKind>(KINDS);
+  // Item 747 (D2): `?aba=` é a aba de Organização; o tipo do termo fica em `?termo=`.
+  const [kind, setKind] = useTabParam<TermsKind>(KINDS, KINDS[0], "termo");
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("terms.title")} />
       <Tabs
         label={t("terms.tabs")}
         value={kind}
@@ -171,9 +171,4 @@ function Content() {
       />
     </div>
   );
-}
-
-// RF-MAT-05: Coordenador publica; Administrador só consulta (canManage). A barreira de dados é o servidor.
-export function TermsPage() {
-  return <Content />;
 }

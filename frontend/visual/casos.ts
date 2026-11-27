@@ -136,12 +136,12 @@ export const casos: Caso[] = [
   { nome: "configuracoes-unidade-pagamentos-desconectado", rota: UNIDADE, perfil: ana, canvas: "PagamentosDesconectado", unidadeCanvas: "desconectada", passos: [{ clicar: "Pagamentos", papel: "tab" }] },
   { nome: "configuracoes-unidade-lembretes", rota: UNIDADE, perfil: ana, canvas: "LembretesAuto", unidadeCanvas: "conectada", passos: [{ clicar: "Lembretes", papel: "tab" }] },
   { nome: "configuracoes-unidade-links", rota: UNIDADE, perfil: ana, canvas: "ConfigLinks", unidadeCanvas: "conectada", passos: [{ clicar: "Links", papel: "tab" }] },
-  { nome: "configuracoes-modalidades", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
-  { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
+  { nome: "configuracoes-modalidades", rota: "/configuracoes/organizacao?aba=modalidades", perfil: ana, canvas: "ConfigModalidades", modalidadesCanvas: "lista" },
+  { nome: "configuracoes-faixas-etarias", rota: "/configuracoes/organizacao?aba=faixas-etarias", perfil: ana, canvas: "ConfigFaixas", faixasCanvas: true },
   { nome: "administradores", rota: "/administradores", perfil: ana, usuariosCanvas: true }, // #611: sem canvas (a tela nasceu depois do desenho: o canvas ConfigUsuarios é a tela antiga, com cartões de perfil e sem custo; segue a especificação e os componentes base)
   { nome: "configuracoes-permissoes", rota: `${UNIDADE}/permissoes`, perfil: ana, canvas: "PermissoesTabela", fullPage: true },
-  { nome: "configuracoes-termos", rota: "/configuracoes/termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
-  { nome: "configuracoes-textos", rota: "/configuracoes/textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
+  { nome: "configuracoes-termos", rota: "/configuracoes/organizacao?aba=termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
+  { nome: "configuracoes-textos", rota: "/configuracoes/organizacao?aba=textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
   { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
   // Acesso, conta, organização, unidades e usuários (#419). Estados e janelas abrem pelos passos.
   // Escolha de organização (#489): o login de "varios@" entra sem vínculo ativo e cai na página de escolha.
@@ -185,12 +185,12 @@ export const casos: Caso[] = [
   { nome: "administradores-convidar", rota: "/administradores", perfil: ana, usuariosCanvas: true, passos: [{ clicar: "Convidar" }, { preencher: ["Nome *", "Fernanda Rocha"] }, { preencher: ["E-mail *", "fernanda@academialeao.example"] }, { clicar: "Tijuca", papel: "checkbox" }] },
   // Modalidades, faixas, professores, turmas, agenda e dias sem aula (#420). Janelas abrem pelos passos.
   // Sem caso: painel da aula, editar, cancelar e corrigir aula (o id da aula é gerado pelo MSW, sem rota fixa); GM* são as mesmas telas a 390 px (D1).
-  { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin", modalidadesCanvas: "administrador" },
-  { nome: "configuracoes-modalidade-desativar", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeDesativar", modalidadesCanvas: "desativar", passos: [{ clicar: "Desativar Muay Thai" }] },
+  { nome: "configuracoes-modalidades-administrador", rota: "/configuracoes/organizacao?aba=modalidades", perfil: admin, canvas: "ConfigModalidadesAdmin", modalidadesCanvas: "administrador" },
+  { nome: "configuracoes-modalidade-desativar", rota: "/configuracoes/organizacao?aba=modalidades", perfil: ana, canvas: "ModalidadeDesativar", modalidadesCanvas: "desativar", passos: [{ clicar: "Desativar Muay Thai" }] },
   { nome: "configuracoes-unidade-modalidades-recusa", rota: UNIDADE, perfil: ana, canvas: "ModalidadesOferecidasRecusa", unidadeCanvas: "conectada", modalidadesCanvas: "recusa", passos: [{ clicar: "Muay Thai", papel: "checkbox" }] },
-  { nome: "configuracoes-modalidades-graduacao", rota: "/configuracoes/modalidades", perfil: ana, canvas: "ModalidadeGraduacao", modalidadesCanvas: "lista", passos: [{ clicar: "Graduação Jiu-Jitsu" }] },
-  { nome: "configuracoes-modalidades-pedido", rota: "/configuracoes/modalidades", perfil: ana, modalidadesCanvas: "lista", passos: [{ clicar: "Não achei minha modalidade" }] }, // D7: o canvas não desenha esta janela; o caso só guarda a referência do teste visual
-  { nome: "configuracoes-faixa-nova", rota: "/configuracoes/faixas-etarias", perfil: ana, faixasCanvas: true, passos: [{ clicar: "Nova faixa etária" }] }, // #486: o canvas ConfigFaixas não desenha esta janela (só a lista), como na modalidades-pedido; o caso só guarda a referência do teste visual
+  { nome: "configuracoes-modalidades-graduacao", rota: "/configuracoes/organizacao?aba=modalidades", perfil: ana, canvas: "ModalidadeGraduacao", modalidadesCanvas: "lista", passos: [{ clicar: "Graduação Jiu-Jitsu" }] },
+  { nome: "configuracoes-modalidades-pedido", rota: "/configuracoes/organizacao?aba=modalidades", perfil: ana, modalidadesCanvas: "lista", passos: [{ clicar: "Não achei minha modalidade" }] }, // D7: o canvas não desenha esta janela; o caso só guarda a referência do teste visual
+  { nome: "configuracoes-faixa-nova", rota: "/configuracoes/organizacao?aba=faixas-etarias", perfil: ana, faixasCanvas: true, passos: [{ clicar: "Nova faixa etária" }] }, // #486: o canvas ConfigFaixas não desenha esta janela (só a lista), como na modalidades-pedido; o caso só guarda a referência do teste visual
   { nome: "professor-novo", rota: "/professores", perfil: ana, canvas: "ProfessorNovo", passos: [{ clicar: "Novo professor" }] },
   { nome: "professor-painel", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorPainel" },
   { nome: "professor-inativar", rota: "/professores/00000000-0000-0000-0000-000000000502", perfil: ana, canvas: "ProfessorInativar", passos: [{ clicar: "Inativar" }], limiteCanvas: { 1440: 0.43, motivo: "fundo: a ação nasce no painel, então a janela abre sobre a gaveta do professor e o canvas a mostra sobre a lista; dados do mock diferem do canvas (medido a 41,3% na #470; a #553 remove este limite)" } },

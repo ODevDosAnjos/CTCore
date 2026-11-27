@@ -2,7 +2,6 @@ import { useState, type ReactNode } from "react";
 import { CircleHelp, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/Card";
-import { PageHeader } from "@/components/ui/page-header";
 import {
   EmptyState,
   ErrorState,
@@ -153,7 +152,8 @@ function ReadOnlyTable({ items, onGraduation }: { items: Modality[]; onGraduatio
   );
 }
 
-function Content() {
+// RF-MOD-01: Coordenador altera; Administrador só consulta (canManage). A barreira de dados é o servidor.
+export function ModalitiesTab() {
   const { t } = useTranslation();
   const api = useModalities();
   const [asking, setAsking] = useState(false);
@@ -193,17 +193,14 @@ function Content() {
   const canManage = items.some((m) => m.canManage);
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title={t("modalities.title")}
-        actions={
-          canManage && (
-            <Button variant="ghost" onClick={() => setAsking(true)}>
-              <CircleHelp aria-hidden />
-              {t("modalities.notFound")}
-            </Button>
-          )
-        }
-      />
+      {canManage && (
+        <div className="flex justify-end">
+          <Button variant="ghost" onClick={() => setAsking(true)}>
+            <CircleHelp aria-hidden />
+            {t("modalities.notFound")}
+          </Button>
+        </div>
+      )}
       {message && <Banner tone={message.kind === "alert" ? "danger" : "ok"}>{message.text}</Banner>}
       {items.length === 0 ? (
         <EmptyState
@@ -261,9 +258,4 @@ function Content() {
       />
     </div>
   );
-}
-
-// RF-MOD-01: Coordenador altera; Administrador só consulta (canManage). A barreira de dados é o servidor.
-export function ModalitiesPage() {
-  return <Content />;
 }

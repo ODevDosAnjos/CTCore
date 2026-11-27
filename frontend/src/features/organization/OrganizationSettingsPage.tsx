@@ -7,7 +7,13 @@ import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/components/ui/useTabParam";
+import { AgeRangesTab } from "@/features/age-ranges/AgeRangesTab";
 import { useSession } from "@/features/auth/SessionProvider";
+import { ModalitiesTab } from "@/features/modalities/ModalitiesTab";
+import { TermsTab } from "@/features/terms/TermsTab";
+import { TextsTab } from "@/features/texts/TextsTab";
 import { ApiError } from "@/lib/api";
 import { useEditConflict } from "@/lib/useEditConflict";
 import { BrandCard } from "./BrandCard";
@@ -185,7 +191,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   );
 }
 
-function Content({ canEdit }: { canEdit: boolean }) {
+function GeneralTab({ canEdit }: { canEdit: boolean }) {
   const { t } = useTranslation();
   const api = useOrganization();
   const [notice, setNotice] = useState<Notice>();
@@ -194,7 +200,9 @@ function Content({ canEdit }: { canEdit: boolean }) {
   if (!api.view) return <ErrorState onRetry={api.retry} />;
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("organization.title")} actions={<LastChange value={api.view.lastChange} />} />
+      <div className="flex justify-end">
+        <LastChange value={api.view.lastChange} />
+      </div>
       {!canEdit && <Banner tone="info">{t("organization.readOnly")}</Banner>}
       <OrganizationForm view={api.view} api={api} canEdit={canEdit} onTransferred={() => setNotice({ kind: "ok", text: t("organization.transfer.done") })} />
       <NoticeText notice={notice} />
@@ -202,12 +210,26 @@ function Content({ canEdit }: { canEdit: boolean }) {
   );
 }
 
+const TABS = ["geral", "modalidades", "faixas-etarias", "termos", "textos"] as const;
+
 // RF-ORG-01: o Coordenador edita; o Administrador só vê (D8). A barreira é o servidor; aqui só se esconde o que não funciona.
 export function OrganizationSettingsPage() {
+  const { t } = useTranslation();
+  const [tab, setTab] = useTabParam(TABS);
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
   const role = session?.links.find((l) => l.id === session.activeLinkId)?.role;
+  const content = {
+    geral: <GeneralTab canEdit={role === "COORDINATOR"} />,
+    modalidades: <ModalitiesTab />,
+    "faixas-etarias": <AgeRangesTab />,
+    termos: <TermsTab />,
+    textos: <TextsTab />,
+  };
   return (
-    <Content canEdit={role === "COORDINATOR"} />
+    <div className="flex flex-col gap-4">
+      <PageHeader title={t("organization.title")} />
+      <Tabs label={t("organization.tabs.label")} value={tab} onValueChange={setTab} tabs={TABS.map((id) => ({ id, label: t(`organization.tabs.${id}`), content: content[id] }))} />
+    </div>
   );
 }

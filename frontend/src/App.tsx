@@ -11,10 +11,6 @@ import { RequireSession } from "@/features/auth/RequireSession";
 import { RequireTwoFactor, TWO_FACTOR_REQUIRED_PATH } from "@/features/auth/RequireTwoFactor";
 import { TwoFactorRequiredPage } from "@/features/auth/TwoFactorRequiredPage";
 import { OrganizationSettingsPage } from "@/features/organization/OrganizationSettingsPage";
-import { AgeRangesPage } from "@/features/age-ranges/AgeRangesPage";
-import { TermsPage } from "@/features/terms/TermsPage";
-import { TextsPage } from "@/features/texts/TextsPage";
-import { ModalitiesPage } from "@/features/modalities/ModalitiesPage";
 import { NewUnitPage } from "@/features/units/NewUnitPage";
 import { LegacyUnitRedirect } from "@/features/units/LegacyUnitRedirect";
 import { UnitSettingsPage } from "@/features/units/UnitSettingsPage";
@@ -129,10 +125,6 @@ const screens: Record<string, ReactNode> = {
   newUnit: <NewUnitPage />,
   unitSettings: <UnitSettingsPage />,
   unitLegacy: <LegacyUnitRedirect to="unitSettings" />,
-  modalities: <ModalitiesPage />,
-  ageRanges: <AgeRangesPage />,
-  terms: <TermsPage />,
-  texts: <TextsPage />,
   administrators: <AdministratorsPage />,
   permissionsTable: <PermissionsTablePage />,
   permissionsTableLegacy: <LegacyUnitRedirect to="permissionsTable" />,

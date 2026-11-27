@@ -54,6 +54,12 @@ describe("mapa de rotas (CA4)", () => {
     expect(routeById("plansList").redirect).toBe("/planos");
     expect(routeById("staffUsers").redirect).toBe("/administradores");
     expect(routeById("permissionsTableOld").redirect).toBe("/configuracoes/unidade/permissoes");
+    // #747: as telas que viraram abas de Organização, sem item no menu.
+    for (const [id, tab] of [["modalities", "modalidades"], ["ageRanges", "faixas-etarias"], ["terms", "termos"], ["texts", "textos"]]) {
+      expect(routeById(id).redirect).toBe(`/configuracoes/organizacao?aba=${tab}`);
+      expect(activeItemOf(findRoute(routeById(id).path))).toBe("organizationSettings");
+      expect(menuCatalog.flatMap((g) => g.items).map((i) => i.id)).not.toContain(id);
+    }
   });
 
   it("item 'Em breve' e item fora do menu não têm tela", () => {
@@ -83,6 +89,12 @@ describe("equivalência do acesso por permissão com a lista de perfis de hoje (
     expect(canAccess(routeById("portalFinance"), "COORDINATOR", mockPermissions("COORDINATOR"))).toBe(false);
     expect(canAccess(routeById("portalFinance"), "STUDENT", undefined)).toBe(true);
     expect(canAccess(routeById("home"), undefined, undefined)).toBe(false);
+  });
+
+  it("#747 CA6: perfil do portal não entra em Organização nem nos endereços antigos", () => {
+    for (const id of ["organizationSettings", "modalities", "ageRanges", "terms", "texts"]) {
+      expect(canAccess(routeById(id), "STUDENT", mockPermissions("STUDENT")), id).toBe(false);
+    }
   });
 
   it("CA5: sem a chave do servidor a rota nega (Professor sem comunicados, Administrador sem Organização)", () => {

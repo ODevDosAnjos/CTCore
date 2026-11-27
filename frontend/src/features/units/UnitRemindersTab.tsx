@@ -9,6 +9,7 @@ import { ComingSoon } from "@/components/ui/coming-soon";
 import { Field, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { hrefOf } from "@/routes";
 import { Err, Text } from "./Text";
 import { MAX_REMINDERS, STANDARD_REMINDER_DAYS, type TabProps } from "./unitDraft";
 import { SwitchRow } from "./SwitchRow";
@@ -78,7 +79,7 @@ export function UnitRemindersTab({ d, set, errors }: TabProps) {
       <Banner tone="info">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span>{t("unitSettings.remindersStop")}</span>
-          <Link to="/configuracoes/textos" className={cn(buttonVariants({ variant: "secondary" }))}>
+          <Link to={`${hrefOf("organizationSettings")}?aba=textos`} className={cn(buttonVariants({ variant: "secondary" }))}>
             {t("unitSettings.editTexts")}
           </Link>
         </div>

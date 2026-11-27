@@ -11,12 +11,12 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { AgeRangeDialog } from "./AgeRangeDialog";
 import { useAgeRanges, type AgeRange } from "./useAgeRanges";
-import { PageHeader } from "@/components/ui/page-header";
 
 // Aberta com `target`: undefined = fechada, null = nova faixa, faixa = edição. `n` renova a janela a cada abertura.
 type Editing = { n: number; target: AgeRange | null };
 
-function Content() {
+// RF-MOD-04: Coordenador altera; Administrador só consulta (canManage). A barreira de dados é o servidor.
+export function AgeRangesTab() {
   const { t } = useTranslation();
   const api = useAgeRanges();
   const narrow = useBelowSm();
@@ -62,7 +62,7 @@ function Content() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("ageRanges.title")} actions={api.items.length > 0 ? create : undefined} />
+      {api.items.length > 0 && create && <div className="flex justify-end">{create}</div>}
       {message && <Banner tone={message.kind === "alert" ? "danger" : "ok"}>{message.text}</Banner>}
       {api.items.length === 0 ? (
         <EmptyState title={t("ageRanges.emptyTitle")} text={t("ageRanges.emptyText")} action={create || undefined} />
@@ -128,9 +128,4 @@ function Content() {
       />
     </div>
   );
-}
-
-// RF-MOD-04: Coordenador altera; Administrador só consulta (canManage). A barreira de dados é o servidor.
-export function AgeRangesPage() {
-  return <Content />;
 }

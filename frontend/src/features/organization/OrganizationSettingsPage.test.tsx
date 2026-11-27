@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -9,6 +9,7 @@ import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
 import { setDevicePrefersDark } from "@/test/device";
+import { LocationProbe, currentLocation, history } from "@/test/location";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { OrganizationView } from "./useOrganization";
 
@@ -26,7 +27,7 @@ const full: OrganizationView = { ...empty, color: "#1a56db", holderDocument: "11
 let writes: { method: string; body?: unknown }[];
 let stored: OrganizationView;
 
-function setup(role: string, initial: OrganizationView = empty, read?: () => Response | Promise<Response>) {
+function setup(role: string, initial: OrganizationView = empty, read?: () => Response | Promise<Response>, at = "/configuracoes/organizacao") {
   stored = initial;
   writes = [];
   server.use(
@@ -56,7 +57,8 @@ function setup(role: string, initial: OrganizationView = empty, read?: () => Res
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/organizacao"]}>
+      <MemoryRouter initialEntries={["/antes", at]} initialIndex={1}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -65,7 +67,12 @@ function setup(role: string, initial: OrganizationView = empty, read?: () => Res
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Organização", level: 1 });
+const ready = async () => {
+  await screen.findByRole("heading", { name: "Organização", level: 1 });
+  // O título aparece antes dos dados: espera o conteúdo da aba.
+  await waitFor(() => expect(screen.queryByText("Carregando...")).toBeNull());
+};
+const tab = (name: string) => screen.getByRole("tab", { name });
 
 describe("OrganizationSettingsPage", () => {
   it("CA15: o Coordenador altera nome, cor e titular, salva e vê a confirmação com os valores novos", async () => {
@@ -219,6 +226,7 @@ describe("OrganizationSettingsPage", () => {
     let fail = true;
     setup("COORDINATOR", empty, () => (fail ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json(empty)));
     const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
     fail = false;
     await user.click(retry);
     await ready();
@@ -230,6 +238,7 @@ describe("OrganizationSettingsPage", () => {
     first.unmount();
     setup("ADMINISTRATOR", empty, () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }));
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Modalidades" })).toBeEnabled();
   });
 
   it("CA18: organização sem logo, cor e titular mostra os campos vazios com o texto de padrão", async () => {
@@ -537,5 +546,35 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     const cross = within(dialog).getByText("Treinar em outra unidade").closest("li")!;
     expect(cross).toHaveTextContent("Seu valor: Sim");
     expect(cross).toHaveTextContent("Valor atual: Não");
+  });
+});
+
+describe("OrganizationSettingsPage: abas (#747)", () => {
+  it.each(["/configuracoes/organizacao", "/configuracoes/organizacao?aba=nada"])("CA2: %s mostra a aba Geral, com as cinco abas na ordem e o h1 Organização", async (at) => {
+    setup("COORDINATOR", full, undefined, at);
+    await ready();
+    const list = screen.getByRole("tablist", { name: "Seções da organização" });
+    expect(within(list).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Geral", "Modalidades", "Faixas etárias", "Termos", "Textos"]);
+    expect(tab("Geral")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Academia Alfa");
+  });
+
+  it("CA2: trocar de aba grava ?aba= sem nova entrada no histórico, mantém o h1 e vale depois de recarregar", async () => {
+    const user = userEvent.setup();
+    const first = setup("COORDINATOR", full);
+    await ready();
+    for (const [name, id] of [["Modalidades", "modalidades"], ["Faixas etárias", "faixas-etarias"], ["Termos", "termos"], ["Textos", "textos"], ["Geral", "geral"], ["Faixas etárias", "faixas-etarias"]]) {
+      await user.click(tab(name));
+      await ready();
+      expect(currentLocation().search).toBe(`?aba=${id}`);
+      expect(tab(name)).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Organização"]);
+    }
+    act(() => history(-1));
+    await waitFor(() => expect(currentLocation().pathname).toBe("/antes"));
+    first.unmount();
+    setup("COORDINATOR", full, undefined, "/configuracoes/organizacao?aba=faixas-etarias");
+    await ready();
+    expect(tab("Faixas etárias")).toHaveAttribute("aria-selected", "true");
   });
 });

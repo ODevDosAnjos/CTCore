@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/field";
 import { ApiError } from "@/lib/api";
 import { useTexts, type TextModel } from "./useTexts";
-import { PageHeader } from "@/components/ui/page-header";
 
 // Ordem do canvas: boas-vindas, lembretes, comunicados.
 const ORDER = ["WELCOME", "REMINDER_BEFORE", "REMINDER_DUE", "REMINDER_OVERDUE", "ANNOUNCEMENT_CANCELED_CLASS", "ANNOUNCEMENT_TEACHER_CHANGE", "ANNOUNCEMENT_SCHEDULE_CHANGE", "ANNOUNCEMENT_NO_CLASS_DAY", "ANNOUNCEMENT_GENERAL"];
@@ -201,7 +200,8 @@ function Editor({ model, canManage, api }: { model: TextModel; canManage: boolea
   );
 }
 
-function Content() {
+// RF-COM-03: Coordenador edita; Administrador só consulta (canManage). A barreira de dados é o servidor.
+export function TextsTab() {
   const { t } = useTranslation();
   const api = useTexts();
   const [key, setKey] = useState<string>();
@@ -214,7 +214,6 @@ function Content() {
   const selected = ordered.find((m) => m.key === key) ?? ordered[0];
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("texts.title")} />
       {ordered.length === 0 && <EmptyState title={t("texts.emptyTitle")} text={t("texts.emptyText")} />}
       {selected && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
@@ -240,9 +239,4 @@ function Content() {
       )}
     </div>
   );
-}
-
-// RF-COM-03: Coordenador edita; Administrador só consulta (canManage). A barreira de dados é o servidor.
-export function TextsPage() {
-  return <Content />;
 }
