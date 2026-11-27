@@ -2,7 +2,7 @@
 
 Origem: issue #763, parte b da #630 (RF-ACE-04, RNF-56, RN-ORG-03; decisão 24 de `docs/auditoria/decisoes-canvas.md`). Divisão e plano de partida em `specs/itens/630-minha-conta-abas.md`. Branch: `item/763-minha-conta-perfil`.
 
-Tempos: especificar 4 · construir 23 · verificar 14 (regressão 12) · entregar 3 (1 rodada)
+Tempos: especificar 4 · construir 26 (2 rodadas) · verificar 30 (regressão 27, 2 rodadas) · entregar 5 (2 rodadas)
 Comparação com o canvas: 3
 
 <!-- Fase 2: especificação. Escrita por `especificar`, que grava só as seções 1 a 6. -->
@@ -105,6 +105,15 @@ Testes do item (depois da última tarefa): `npm test -- ProfileTab AccountPage a
 Regressão: não roda nesta fase.
 Desvios (parte B): o cartão da lista do celular recebe só `photoUrl`, sem `onPhotoError`: o avatar do topo está montado junto e faz a única releitura (com os dois relendo seriam duas, contra o CA6). `frontend/visual/casos.ts` não mudou. Nos testes, FormData do jsdom não passa pelo fetch do Node: o `ProfileTab.test.tsx` troca o corpo do envio por texto e dubla o `LogoCropDialog` (o corte real roda no e2e); o `account.msw.test.ts` monta o multipart à mão. Arquivos contáveis do item: 26.
 
+### Correção da entrega
+
+- Falha do job `backend` (PR 766, run 45996124979): causa **não identificada**. O que o GitHub mostra: 3 tentativas, as três canceladas com `exceeded the maximum execution time of 15m0s`, sem log (blob 404). Nas tentativas 2 e 3 o passo do Maven consta como `failure` com cerca de 3 min 40 s, o job só termina cerca de 16 min depois e os passos `always()` aparecem como `skipped`. Log local parcial (`verify` interrompido, cerca de 5 min 40 s, 114 classes): nenhuma falha; `AccountProfileIT` 7/7 em 29 s.
+- Hipótese **não provada**: o runner parou de responder por falta de recurso (memória ou disco), e não um teste lento. O item acrescenta um terceiro contêiner de armazenamento e mais um contexto Spring à suíte; não está medido se isso basta.
+- Correção mínima, só para preservar a evidência — arquivo: `.github/workflows/ci.yml`, job `backend`: limite de 13 min no passo do Maven (job: 15), saída em `verify.log`, memória, disco e contêineres a cada 30 s no log e em `resources.log`, e envio de `backend-test-evidence` (os dois logs, relatórios do surefire e do failsafe) com `always()`. Código e testes do produto não mudaram.
+- Limite da correção: se o runner parar de responder de novo, nem o limite do passo nem o envio rodam; a evidência passa a ser só o log ao vivo na página do run, que mostra a classe em execução e a última leitura de memória e disco (copiar durante a execução).
+- Prova: `docker run --rm rhysd/actionlint:1.7.7 .github/workflows/ci.yml` → sem erro (imagem removida); o roteiro do passo simulado com `bash -eo pipefail` (amostragem em 1 s e Maven trocado por um comando que falha) → terminou em 3 s com código 1, sem travar. Os limites e o envio no GitHub só o CI prova.
+- Testes do item: não rodaram de novo (código e testes iguais aos verificados). `mvnw verify` completo não rodou, por restrição do ambiente.
+
 ## Verificação
 
 ### Rodada 1 — OK — 27/11/2026, estado fc0fe2c6881370de76ffe397302beb87e44de5db
@@ -137,6 +146,34 @@ Achados:
 - sugestão, código, `frontend/src/mocks/account.msw.test.ts` — o arquivo entra no commit em CRLF (na base e nos demais arquivos do índice é LF), com 5 linhas `\r\r\n` no corpo multipart (linhas 89 a 93; no template literal viram linha em branco a mais). Por isso o diff mostra o arquivo inteiro reescrito (147+/95-) quando só há 52 linhas novas (`git diff --ignore-space-at-eol`). Os CR soltos fazem o Git tratar o arquivo como `-text`, e o `autocrlf` não normaliza. Vale regravar em LF antes do commit (a #764 deve mexer no mesmo arquivo).
 - sugestão, código, `backend/src/test/java/br/com/ctcore/storage/S3FileStorageIT.java`, lista de nomes ruins — `"a\b"` em Java é o caractere backspace (recusado como controle), não a barra invertida; para provar a barra, `"a\\b"`.
 
+### Rodada 2 — OK — 27/11/2026, estado bea8a5b5b8c41b9ea7fbbbcd7b9bf08b6a2bbe17
+
+Depois da correção da entrega (`--ci 1`). De `fc0fe2c6` até este estado só mudaram `.github/workflows/ci.yml`, `specs/backlog.md` e este arquivo; código e testes do produto são os mesmos. A rodada 1 não tinha achado obrigatório.
+
+**Este `OK` não prova que o job `backend` do CI passa.** A causa da falha do run 45996124979 segue não identificada e o `mvnw verify` completo é só do CI (não rodou aqui). Não há evidência de que o item a causa nem de que não causa. O merge continua dependendo do `ci-gate` verde; a mudança no `ci.yml` só preserva evidência, não corrige a falha.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA5 | PASSOU | rodados de novo: `AccountProfileIT` 7/7 e `S3FileStorageIT` 6/6; ressalva de CA4 sobre `tooLarge` mantida da rodada 1 |
+| CA6 e CA7 | PASSOU | `npm test` 3144/3144; e2e `minha-conta` 1/1 e `e2e:full` 4/4 |
+| CA8 | PASSOU | testes e e2e rodados de novo; comparação das capturas mantida da rodada 1 (a interface não mudou); visual: no CI do PR |
+
+Comandos (todos com saída 0):
+- `mvnw test`: 160 testes, 0 falhas (inclui os de contrato).
+- `mvnw verify ... -Dit.test=AccountProfileIT,S3FileStorageIT -Djacoco.skip=true`: 13 testes, 0 falhas.
+- `npm run lint`, `npm run typecheck`, `npm run build`: sem erro.
+- `npm test`: 277 arquivos, 3144 testes, 0 falhas.
+- `npm run e2e -- minha-conta`: 1/1; `npm run e2e:full -- minha-conta`: 4/4.
+- `ci.yml`: `rhysd/actionlint:1.7.7` sem erro (imagem removida); roteiro do passo simulado com `bash --noprofile --norc -eo pipefail` e comando que falha: terminou em 4 s com código 1, sem travar.
+- GitHub, run 45996124979: conferidas pela API as 3 tentativas do job `backend` descritas em "Correção da entrega" (tentativa 1 com o passo do Maven sem conclusão; 2 e 3 com `failure` em 3 min 49 s e 3 min 34 s, job encerrado cerca de 16 min depois e passos seguintes `skipped`). O job `backend` não tem `env` com segredo; os logs enviados como artefato num repositório público vêm só de testes com dados fictícios.
+
+Instáveis: nenhum nesta rodada (o CA15 de `AgendaPage.test.tsx` passou).
+
+Achados:
+- nenhum obrigatório.
+- sugestão, código, `.github/workflows/ci.yml`, passo `./mvnw -B verify` — os 3 últimos jobs `backend` bem-sucedidos de outros itens levaram de 9 min 33 s a 11 min 16 s no total (e não 6 a 10 min, como diz a seção "Entrega"); o limite de 13 min no passo deixa cerca de 2 a 3 min de folga. Se estourar com o Maven ainda andando, é lentidão, e o `verify.log` enviado mostra onde.
+- sugestões da rodada 1 (CRLF em `account.msw.test.ts`; `"a\b"` em `S3FileStorageIT`): seguem abertas.
+
 ## Entrega
 
 O que muda: aba Perfil em Minha conta (gestão e portal) com nome, telefone e foto da conta; topo do menu do usuário mostra a foto ou as iniciais; a foto usa o armazenamento de arquivos (migração `V62__account_photo.sql`, endpoint de perfil em `AccountProfileController`, contrato em `docs/openapi.yaml`, handlers MSW e textos em `pt-BR.json`). A sessão não lê o armazenamento.
@@ -150,3 +187,9 @@ Decisões que quem lê precisa saber:
 Limitações:
 - `npm test` teve 1 falha instável fora do item (`AgendaPage.test.tsx`, CA15), que passou em 3 de 3 execuções isoladas; o item não toca `features/agenda`.
 - Os achados de sugestão da verificação (CRLF em `account.msw.test.ts` e a barra em `S3FileStorageIT`) ficaram para o dono decidir; não foram alterados nesta entrega.
+
+Falha de CI (PR #766, run 45996124979, `--ci 1`):
+- `backend`: cancelado pelo limite de 15 min do job (`The job has exceeded the maximum execution time of 15m0s`); o `./mvnw -B verify` estava em curso. Os logs do job não estão disponíveis (blob 404), então não há arquivo, teste nem primeira linha de erro. Em `dev`, o mesmo job levou de 6 a 10 min (runs de 2026-10-21 a 2026-10-29). Causa não verificada: lentidão do runner ou travamento de teste com Testcontainers, a apurar.
+- As demais verificações passaram (`frontend`, `e2e`, `visual` 1/2 e 2/2, `image-*`, `security`, `changes`).
+
+Segunda rodada de entrega (mesmo PR #766): o `--ci 1` da primeira foi `backend` cancelado pelo limite do job. Esta entrega leva só a correção de evidência do `.github/workflows/ci.yml` (limite de 13 min no passo do Maven, logs de recursos e envio de `backend-test-evidence`), já verificada na rodada 2 (`bea8a5b5`). A causa da falha segue não identificada; o merge depende do `ci-gate` verde do novo run.
