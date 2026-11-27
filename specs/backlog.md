@@ -344,6 +344,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 739 | Ficha do aluno e janelas da ficha iguais ao canvas, sem limiteCanvas | issue #739 | Atualizações · Polimento | — | agente | a fazer |
 | 740 | Sem acesso no celular: igual ao canvas SemAcessoM, sem limiteCanvas | issue #740 | Atualizações · Polimento | — | agente | a fazer |
 | 741 | Carteirinha do portal no celular: igual ao canvas, sem limiteCanvas | issue #741 | Atualizações · Polimento | — | agente | a fazer |
+| 735 | RNF-45 · Seletor de destino do comunicado no celular repete "Unidade · Unidade …" | issue #735 | Atualizações · Polimento | — | agente | a fazer |
 | 172 | RF-AJU-01 · Central de ajuda | issue #172 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 173 | RF-AJU-02 · Ícones "?" de ajuda nas telas | issue #173 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 174 | RF-AJU-03 · Tour do primeiro acesso | issue #174 | Atualizações · Funcionalidades | — | agente | a fazer |
@@ -422,6 +423,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 667 | Teste instável: EmailServiceIT.retries falha na regressão completa e passa isolado | issue #667 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 701 | Técnica · Migrar ITs com limpeza por delete para truncate em cascata (medição da #690) | issue #701 | Manutenção · Dívida técnica | — | agente | a fazer |
 | 702 | Técnica · S3FileStorageIT falha com Connection refused em execução local do verify | issue #702 | Manutenção · Dívida técnica | — | agente | a fazer |
+| 736 | Teste instável: e2e portal-minhas-informacoes (portal reduzido a 1024 px) falha sob carga | issue #736 | Manutenção · Dívida técnica | — | agente | a fazer |
 
 Situações: `a fazer`, `feito`, `bloqueado (P1)`. Item em andamento não é anotado aqui: é o que tem branch `item/<ID>-...` aberta.
 
@@ -429,7 +431,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 27/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 26/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|
