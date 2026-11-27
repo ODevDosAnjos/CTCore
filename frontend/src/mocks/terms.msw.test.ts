@@ -50,6 +50,27 @@ describe("termos x OpenAPI (RF-MAT-05, CA11)", () => {
     for (const status of ["200", "403", "404"]) expect(declared("/organization/terms/{kind}", "get")).toContain(status);
   });
 
+  it("769: units no formato do contrato, campos recusados na publicação e Administrador só com a unidade dele", async () => {
+    await login("ana@exemplo.com");
+    const view = await (await read("ENROLLMENT")).json();
+    expect(view.units.length).toBeGreaterThan(0);
+    const schema = openapi.components.schemas.TermsUnitPreview;
+    expect(Object.keys(view.units[0]).sort()).toEqual([...schema.required].sort());
+    expect(Object.keys(view.units[0].values).sort()).toEqual([...schema.properties.values.required].sort());
+    expect(view.units[0].missing).toContain("cnpj");
+    expect(view.units[0].values.cnpj).toBe("não informado");
+    expect((await (await read("IMAGE_USE")).json()).units).toEqual([]);
+    for (const bad of ["Contratante {telefone} deste termo.", "Contratante {cnpj deste termo longo."]) {
+      const res = await publish("ENROLLMENT", { body: bad, reaccept: true });
+      expect(res.status).toBe(400);
+      expect((await res.json()).fields[0].field).toBe("body");
+    }
+    expect((await publish("ENROLLMENT", { body: "Contratante: {unidade}, {razao_social}, {cnpj}, {endereco}.", reaccept: true })).status).toBe(201);
+    expect((await publish("IMAGE_USE", { body: "Uso de imagem com {telefone solto.", reaccept: true })).status).toBe(201);
+    await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
+    expect((await (await read("ENROLLMENT")).json()).units.map((u: { name: string }) => u.name)).toEqual(["Unidade Centro"]);
+  });
+
   it("Administrador lê com canManage falso e recebe 403 ao publicar; Professor recebe 403 em tudo", async () => {
     await login("varios@exemplo.com", "00000000-0000-0000-0000-000000000011");
     expect((await (await read("ENROLLMENT")).json()).canManage).toBe(false);

@@ -12,6 +12,7 @@ import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -140,9 +141,14 @@ public class TextModels {
     static void validate(TextModel model, String field, String text, int max) {
         if (text.isEmpty()) throw new ApiValidationException(field, "obrigatório");
         if (text.length() > max) throw new ApiValidationException(field, "no máximo " + max + " caracteres");
+        checkFields(model.fields, field, text);
+    }
+
+    /** Só os campos automáticos: 400 no campo com campo desconhecido ou chave sem fecho (usado também pelo termo de matrícula, RN-MAT-21). */
+    public static void checkFields(Collection<String> allowed, String field, String text) {
         Matcher m = FIELD.matcher(text);
         while (m.find()) {
-            if (!model.fields.contains(m.group(1))) throw new ApiValidationException(field, "campo automático desconhecido: {" + m.group(1) + "}");
+            if (!allowed.contains(m.group(1))) throw new ApiValidationException(field, "campo automático desconhecido: {" + m.group(1) + "}");
         }
         String rest = FIELD.matcher(text).replaceAll("");
         if (rest.indexOf('{') >= 0 || rest.indexOf('}') >= 0) throw new ApiValidationException(field, "chave { } sem fecho");

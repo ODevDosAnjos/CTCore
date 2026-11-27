@@ -8,6 +8,7 @@ import br.com.ctcore.audit.AuditEntry;
 import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.isolation.OrganizationTransactions;
+import br.com.ctcore.organization.UnitScope;
 import br.com.ctcore.permission.Access;
 import br.com.ctcore.permission.Permission;
 import br.com.ctcore.permission.Permissions;
@@ -32,7 +33,8 @@ public class Terms {
     static final int MAX_BODY = 20000;
 
     // ponytail: modelo fixo no servidor (versão 0, sem linha no banco); o modelo editável é do painel da plataforma (RF-PNL-07).
-    static final String ENROLLMENT_TEMPLATE = "TERMO DE MATRÍCULA\n\nAo matricular-se, o aluno (ou o seu responsável legal) declara conhecer e aceitar o regulamento da academia, "
+    static final String ENROLLMENT_TEMPLATE = "TERMO DE MATRÍCULA\n\nUnidade: {unidade}\nRazão social: {razao_social}\nCNPJ ou CPF: {cnpj}\nEndereço: {endereco}\n\n"
+            + "Ao matricular-se, o aluno (ou o seu responsável legal) declara conhecer e aceitar o regulamento da academia, "
             + "as condições de pagamento das mensalidades, as regras de frequência e as normas de uso das instalações e dos equipamentos.\n\n"
             + "O aluno declara estar apto à prática das modalidades contratadas e se compromete a informar à academia qualquer mudança em sua saúde.";
     static final String IMAGE_USE_TEMPLATE = "TERMO DE USO DE IMAGEM\n\nO aluno (ou o seu responsável legal) autoriza a academia a registrar e usar fotos e vídeos das aulas, "
@@ -59,14 +61,18 @@ public class Terms {
 
     public record Version(int version, String body, boolean reaccept, Instant publishedAt, String publishedBy, int acceptances) {}
 
-    public record View(boolean canManage, Version current, List<Version> versions) {}
+    /** {@code units}: valores dos campos automáticos por unidade ao alcance (RN-MAT-21); vazia no uso de imagem. */
+    public record View(boolean canManage, Version current, List<Version> versions, List<TermFields.UnitValues> units) {}
 
     private final JdbcClient jdbc;
     private final OrganizationTransactions transactions;
     private final Permissions permissions;
     private final AuditService audit;
 
-    public Terms(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Permissions permissions, AuditService audit) {
+    private final UnitScope unitScope;
+
+    public Terms(@Lazy JdbcClient jdbc, @Lazy OrganizationTransactions transactions, Permissions permissions, AuditService audit, UnitScope unitScope) {
+        this.unitScope = unitScope;
         this.jdbc = jdbc;
         this.transactions = transactions;
         this.permissions = permissions;
@@ -76,9 +82,10 @@ public class Terms {
     public View view(AccountPrincipal who, String kindName) {
         boolean manage = access(who) == Access.FULL;
         Kind kind = Kind.parse(kindName);
+        List<UUID> reachable = kind == Kind.ENROLLMENT ? unitScope.reachable(who).units().stream().map(UnitScope.Reachable::id).toList() : List.of();
         return transactions.execute(() -> {
             var versions = versions(who.organizationId(), kind);
-            return new View(manage, versions.isEmpty() ? model(kind) : versions.get(0), versions);
+            return new View(manage, versions.isEmpty() ? model(kind) : versions.get(0), versions, TermFields.values(jdbc, who.organizationId(), reachable));
         });
     }
 
@@ -93,6 +100,7 @@ public class Terms {
         Kind kind = Kind.parse(kindName);
         String text = body == null ? "" : body.strip();
         if (text.length() < MIN_BODY || text.length() > MAX_BODY) throw new ApiValidationException("body", "de 20 a 20000 caracteres");
+        if (kind == Kind.ENROLLMENT) TermFields.validate(text);
         if (reaccept == null) throw new ApiValidationException("reaccept", "obrigatório");
         return transactions.execute(() -> {
             Version current = current(who.organizationId(), kind);

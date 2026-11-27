@@ -7,9 +7,11 @@ import br.com.ctcore.audit.AuditActor;
 import br.com.ctcore.audit.AuditEntry;
 import br.com.ctcore.audit.AuditService;
 import br.com.ctcore.identity.AccountPrincipal;
+import br.com.ctcore.identity.Codes;
 import br.com.ctcore.identity.InviteRules;
 import br.com.ctcore.identity.Role;
 import br.com.ctcore.isolation.OrganizationTransactions;
+import br.com.ctcore.terms.TermFields;
 import br.com.ctcore.terms.Terms;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -29,7 +31,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class PortalTerms {
-    public record Text(int version, String body) {}
+    /** {@code body}: o termo já preenchido (RN-MAT-21); {@code hash}: dele, para o aceite recusar texto que mudou. */
+    public record Text(int version, String body, String hash) {}
 
     public record ImageUse(int version, String body, boolean granted) {}
 
@@ -75,11 +78,14 @@ public class PortalTerms {
             UUID org = who.organizationId();
             Terms.Version term = terms.current(org, Terms.Kind.ENROLLMENT);
             return candidates(who, null, false).stream().filter(c -> canAccept(c) && c.enrolled() && pending(org, c.id()))
-                    .map(c -> new Pending(c.id(), c.name(), new Text(term.version(), term.body()), imageUse(org, c.id()))).toList();
+                    .map(c -> {
+                        String body = filled(org, c.id(), term.body());
+                        return new Pending(c.id(), c.name(), new Text(term.version(), body, Codes.hash(body)), imageUse(org, c.id()));
+                    }).toList();
         });
     }
 
-    public Outcome<Acceptance> accept(AccountPrincipal who, UUID studentId, Integer version, Boolean imageUse, String ip) {
+    public Outcome<Acceptance> accept(AccountPrincipal who, UUID studentId, Integer version, Boolean imageUse, String hash, String ip) {
         requirePortal(who);
         if (version == null) throw new ApiValidationException("version", "obrigatório");
         return transactions.execute(() -> {
@@ -90,9 +96,12 @@ public class PortalTerms {
             if (!student.enrolled()) return new Outcome<>(false, new Acceptance(studentId, current.version(), granted));
             if (version != current.version()) throw new ApiStatusException(ErrorCode.TERMS_VERSION_CONFLICT);
             if (!pending(org, studentId)) return new Outcome<>(false, new Acceptance(studentId, current.version(), granted));
-            insert(who, studentId, "ENROLLMENT", "ACCEPTED", current.version(), ip, "term.accepted");
+            // Preenche uma vez só: o texto conferido pelo hash é o mesmo que fica gravado.
+            String text = filled(org, studentId, current.body());
+            if (hash != null && !Codes.hash(text).equals(hash)) throw new ApiStatusException(ErrorCode.TERMS_VERSION_CONFLICT);
+            insert(who, studentId, "ENROLLMENT", "ACCEPTED", current.version(), text, ip, "term.accepted");
             if (Boolean.TRUE.equals(imageUse) && !granted) {
-                insert(who, studentId, "IMAGE_USE", "ACCEPTED", terms.current(org, Terms.Kind.IMAGE_USE).version(), ip, "image-use.granted");
+                insert(who, studentId, "IMAGE_USE", "ACCEPTED", terms.current(org, Terms.Kind.IMAGE_USE).version(), null, ip, "image-use.granted");
                 granted = true;
             }
             return new Outcome<>(true, new Acceptance(studentId, current.version(), granted));
@@ -117,7 +126,7 @@ public class PortalTerms {
             int current = terms.current(org, Terms.Kind.IMAGE_USE).version();
             if (granted && version != null && version != current) throw new ApiStatusException(ErrorCode.TERMS_VERSION_CONFLICT);
             if (imageUse(org, studentId).granted() != granted) {
-                insert(who, studentId, "IMAGE_USE", granted ? "ACCEPTED" : "REVOKED", current, ip, granted ? "image-use.granted" : "image-use.revoked");
+                insert(who, studentId, "IMAGE_USE", granted ? "ACCEPTED" : "REVOKED", current, null, ip, granted ? "image-use.granted" : "image-use.revoked");
             }
             return imageUse(org, studentId);
         });
@@ -184,8 +193,17 @@ public class PortalTerms {
                         rs.getBoolean(6), rs.getBoolean(7))).list();
     }
 
-    private void insert(AccountPrincipal who, UUID studentId, String kind, String event, int version, String ip, String action) {
-        jdbc.sql("insert into term_acceptance (id, organization_id, student_id, kind, event, version, account_id, ip) values (:id, :org, :student, :kind, :event, :version, :acc, :ip)")
+    /** RN-MAT-21: preenche com a unidade da matrícula, a da modalidade ativa mais antiga; sem modalidade ativa, a de cadastro. */
+    private String filled(UUID org, UUID studentId, String template) {
+        UUID unit = jdbc.sql("select coalesce((select m.unit_id from enrollment_modality m where m.organization_id = s.organization_id and m.student_id = s.id "
+                + "and m.status = 'ACTIVE' order by m.started_at, m.created_at, m.id limit 1), s.registered_unit_id) from student s where s.organization_id = :org and s.id = :id")
+                .param("org", org).param("id", studentId).query(UUID.class).single();
+        return TermFields.fill(template, TermFields.values(jdbc, org, List.of(unit)).get(0));
+    }
+
+    private void insert(AccountPrincipal who, UUID studentId, String kind, String event, int version, String body, String ip, String action) {
+        jdbc.sql("insert into term_acceptance (id, organization_id, student_id, kind, event, version, body, account_id, ip) "
+                + "values (:id, :org, :student, :kind, :event, :version, :body, :acc, :ip)").param("body", body, java.sql.Types.VARCHAR)
                 .param("id", UUID.randomUUID()).param("org", who.organizationId()).param("student", studentId).param("kind", kind).param("event", event)
                 .param("version", version).param("acc", who.accountId()).param("ip", ip).update();
         var after = new LinkedHashMap<String, Object>();

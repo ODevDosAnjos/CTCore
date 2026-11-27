@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/portal")
 class PortalTermController {
-    record AcceptBody(Integer version, Boolean imageUse) {}
+    record AcceptBody(Integer version, Boolean imageUse, String hash) {}
 
     record ImageUseBody(Boolean granted, Integer version) {}
 
@@ -39,7 +39,7 @@ class PortalTermController {
     @PostMapping("/students/{id}/term-acceptance")
     ResponseEntity<PortalTerms.Acceptance> accept(@AuthenticationPrincipal AccountPrincipal who, @PathVariable UUID id, @RequestBody AcceptBody body,
             HttpServletRequest request) {
-        var outcome = terms.accept(who, id, body.version(), body.imageUse(), request.getRemoteAddr());
+        var outcome = terms.accept(who, id, body.version(), body.imageUse(), body.hash(), request.getRemoteAddr());
         return ResponseEntity.status(outcome.created() ? HttpStatus.CREATED : HttpStatus.OK).body(outcome.body());
     }
 

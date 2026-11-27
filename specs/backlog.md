@@ -266,7 +266,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 764 | 630c · Trocar de aparelho, códigos de reserva e Baixar meus dados (fecha a #630) | issue #764 (parte da #630) | Sprint 10.5 | #763 | agente | feito |
 | 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade (item-mãe: dividido em #762 a #764, P18; fecha na #764; sem construção própria) | issue #630 | Sprint 10.5 | #608 | agente | dividido |
 | 768 | 636a · Razão social da unidade e nome do titular | issue #768 (parte da #636) | Sprint 10.5 | #764 | agente | feito |
-| 769 | 636b · Campos automáticos no termo de matrícula (fecha a #636) | issue #769 (parte da #636) | Sprint 10.5 | #768 | agente | a fazer |
+| 769 | 636b · Campos automáticos no termo de matrícula (fecha a #636) | issue #769 (parte da #636) | Sprint 10.5 | #768 | agente | feito |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) (item-mãe: dividido em #768 e #769, P19; fecha na #769; sem construção própria) | issue #636 | Sprint 10.5 | #769 | agente | dividido |
 | 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |
 | 645 | RNF-44 · Movimento e retorno: avisos no canto, carregamento e transições | issue #645 | Sprint 10.5 | #624, #643 | agente | a fazer |

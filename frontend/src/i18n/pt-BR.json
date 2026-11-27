@@ -1932,6 +1932,22 @@
     },
     "draft": "Salvar rascunho",
     "publish": "Publicar versão {{version}}",
+    "fields": {
+      "legend": "Campos automáticos",
+      "insert": "Inserir o campo {{field}}",
+      "names": {
+        "unidade": "Nome da unidade",
+        "razao_social": "Razão social",
+        "cnpj": "CNPJ ou CPF",
+        "endereco": "Endereço"
+      }
+    },
+    "preview": {
+      "title": "Prévia por unidade",
+      "unit": "Unidade da prévia",
+      "empty": "Nenhuma unidade ativa ao seu alcance para a prévia.",
+      "missing": "Nesta unidade sai como “não informado”: {{fields}}."
+    },
     "reaccept": {
       "legend": "Ao publicar a versão {{version}}",
       "newOnly": "Só para novos alunos",
@@ -1942,6 +1958,7 @@
     "published": "Nova versão publicada.",
     "errors": {
       "invalid": "O texto precisa ter de 20 a 20000 caracteres e ser diferente do atual. Nada foi publicado.",
+      "fields": "Há um campo automático que não existe ou uma chave { } sem fecho. Nada foi publicado.",
       "conflict": "Outra pessoa publicou uma versão agora há pouco. A tela foi atualizada; confira e publique de novo. Nada foi alterado.",
       "generic": "Não foi possível publicar. Nada foi alterado. Tente de novo."
     },
@@ -3947,7 +3964,7 @@
     "emptyText": "Você está em dia com os termos.",
     "emptyAction": "Ir para o início",
     "errors": {
-      "conflict": "O termo mudou. Leia a nova versão e aceite de novo.",
+      "conflict": "O termo mudou: o texto foi atualizado. Leia de novo e aceite.",
       "generic": "Não conseguimos registrar o aceite. Tente de novo."
     }
   },

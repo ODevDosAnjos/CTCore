@@ -84,6 +84,80 @@ class TermsIT extends OrganizationBase {
                 java.util.UUID.randomUUID(), t.orgId(), student, kind, version, account);
     }
 
+    private java.util.UUID unit(Tenant t, String name, String legalName, String cnpj, String address, String city, String postalCode) {
+        java.util.UUID id = java.util.UUID.randomUUID();
+        adminJdbc().update("insert into unit (id, organization_id, name, short_name, legal_name, cnpj, address, city, postal_code) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, t.orgId(), name, id.toString(), legalName, cnpj, address, city, postalCode);
+        return id;
+    }
+
+    private static JsonNode byName(JsonNode view, String name) {
+        for (JsonNode u : view.get("units")) if (u.get("name").asText().equals(name)) return u;
+        throw new AssertionError("unidade fora da prévia: " + name);
+    }
+
+    @Test
+    @DisplayName("769 CA4: os quatro campos publicam e ficam sem preencher; campo desconhecido ou chave sem fecho dá 400 em body, sem versão nem auditoria; uso de imagem livre")
+    void automaticFields() throws Exception {
+        var t = tenant();
+        var c = account(t, Role.COORDINATOR);
+        for (String bad : new String[] {"Contratante {telefone} deste termo.", "Contratante {CNPJ} deste termo.", "Contratante {cnpj deste termo longo."}) {
+            var r = send(publishRequest("ENROLLMENT", payload(bad, true)), c);
+            assertThat(r.getStatus()).as(bad).isEqualTo(400);
+            assertThat(body(r).get("fields").get(0).get("field").asText()).isEqualTo("body");
+        }
+        assertThat(count(t)).isZero();
+        assertThat(audits(t)).isZero();
+        String all = "Contratante: {unidade}, {razao_social}, {cnpj}, {endereco}.";
+        var ok = send(publishRequest("ENROLLMENT", payload(all, true)), c);
+        assertThat(ok.getStatus()).isEqualTo(201);
+        assertThat(body(ok).get("body").asText()).isEqualTo(all);
+        assertThat(body(send(read("ENROLLMENT"), c)).get("current").get("body").asText()).isEqualTo(all);
+        assertThat(send(publishRequest("IMAGE_USE", payload("Uso de imagem com {telefone solto.", true)), c).getStatus()).isEqualTo(201);
+    }
+
+    @Test
+    @DisplayName("769 CA2, CA6, CA10: units traz os valores por unidade (própria, titular, não informado), só as ativas ao alcance e da organização; o modelo tem os quatro campos")
+    void previewUnits() throws Exception {
+        var t = tenant();
+        var other = tenant();
+        var c = account(t, Role.COORDINATOR);
+        unit(t, "Com CNPJ", "Alfa Sede Ltda", "11222333000181", "Rua Fictícia, 10", "Rio de Janeiro", "20000000");
+        unit(t, "Sem CNPJ", "Razão Que Não Sai", null, null, "Niterói", null);
+        unit(t, "Sem Razão", null, "11222333000181", null, null, null);
+        var inactive = unit(t, "Inativa", null, null, null, null, null);
+        adminJdbc().update("update unit set active = false where id = ?", inactive);
+        unit(other, "De Outra", null, null, null, null, null);
+        adminJdbc().update("update organization set holder_name = 'Titular Fictício', holder_document = '52998224725' where id = ?", t.orgId());
+
+        var view = body(send(read("ENROLLMENT"), c));
+        assertThat(view.get("units").findValuesAsText("name")).containsExactly("Com CNPJ", "Sem CNPJ", "Sem Razão", "Unit");
+        for (String field : new String[] {"{unidade}", "{razao_social}", "{cnpj}", "{endereco}"}) {
+            assertThat(view.get("current").get("body").asText()).contains(field);
+        }
+        var own = byName(view, "Com CNPJ").get("values");
+        assertThat(own.get("unidade").asText()).isEqualTo("Com CNPJ");
+        assertThat(own.get("razao_social").asText()).isEqualTo("Alfa Sede Ltda");
+        assertThat(own.get("cnpj").asText()).isEqualTo("11.222.333/0001-81");
+        assertThat(own.get("endereco").asText()).isEqualTo("Rua Fictícia, 10, Rio de Janeiro, CEP 20000-000");
+        assertThat(byName(view, "Com CNPJ").get("missing")).isEmpty();
+        var holder = byName(view, "Sem CNPJ").get("values");
+        assertThat(holder.get("razao_social").asText()).isEqualTo("Titular Fictício");
+        assertThat(holder.get("cnpj").asText()).isEqualTo("529.982.247-25");
+        assertThat(holder.get("endereco").asText()).isEqualTo("Niterói");
+        var noName = byName(view, "Sem Razão");
+        assertThat(noName.get("values").get("razao_social").asText()).isEqualTo("não informado");
+        assertThat(noName.get("missing").toString()).isEqualTo("[\"razao_social\",\"endereco\"]");
+        adminJdbc().update("update organization set holder_name = null, holder_document = '11222333000181' where id = ?", t.orgId());
+        var cnpjHolder = byName(body(send(read("ENROLLMENT"), c)), "Sem CNPJ");
+        assertThat(cnpjHolder.get("values").get("cnpj").asText()).isEqualTo("11.222.333/0001-81");
+        assertThat(cnpjHolder.get("missing").toString()).isEqualTo("[\"razao_social\"]");
+
+        var admin = body(send(read("ENROLLMENT"), account(t, Role.ADMINISTRATOR)));
+        assertThat(admin.get("units").findValuesAsText("name")).containsExactly("Unit");
+        assertThat(body(send(read("IMAGE_USE"), c)).get("units")).isEmpty();
+    }
+
     @Test
     @DisplayName("CA8: acceptances conta alunos distintos por versão, só da organização consultada; sem publicação é 0")
     void acceptances() throws Exception {

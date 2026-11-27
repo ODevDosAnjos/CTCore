@@ -91,6 +91,29 @@ test("@critical organização em abas: moldura, troca de aba, tipo de termo apó
   await expect(page.getByRole("navigation", { name: "Modelos de texto" })).toBeVisible();
 });
 
+// RN-MAT-21 (issue 769): no editor, dentro da moldura, o campo entra no texto e a prévia acompanha a unidade escolhida, sem rolagem a 360 px.
+test("@critical termos: inserir campo automático e trocar a unidade da prévia", async ({ page }) => {
+  await loginAs(page, "ana@exemplo.com");
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  // Segunda unidade ativa, para a prévia ter o que trocar.
+  await page.evaluate('fetch("/api/v1/units", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Unidade Sul" }) })');
+  await open(page, "/configuracoes/organizacao?aba=termos");
+  await expect(page.getByRole("navigation", { name: "Menu principal" })).toBeVisible();
+
+  const editor = page.getByLabel("Texto do termo");
+  await editor.fill("Contratante deste termo de matrícula: ");
+  await page.getByRole("button", { name: "Inserir o campo Nome da unidade" }).click();
+  await expect(editor).toHaveValue("Contratante deste termo de matrícula: {unidade}");
+  const preview = page.getByTestId("terms-preview");
+  await expect(preview).toHaveText("Contratante deste termo de matrícula: Unidade Centro");
+  await page.getByLabel("Unidade da prévia").selectOption({ label: "Unidade Sul" });
+  await expect(preview).toHaveText("Contratante deste termo de matrícula: Unidade Sul");
+
+  await page.setViewportSize({ width: 360, height: 740 });
+  await expect(preview).toBeVisible();
+  expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
+});
+
 // RF-ORG-06 / RN-ORG-06: a janela abre dentro da moldura; o escolhido que administra uma unidade sozinho exige marcá-la (aviso e 409),
 // cada unidade marcada soma a vaga e, com a unidade marcada, a transferência conclui e a tela segue na sessão.
 test("@critical transferir coordenação: unidade marcada com custo, aviso do Administrador único e sucesso na moldura", async ({ page }) => {

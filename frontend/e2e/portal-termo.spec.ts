@@ -23,6 +23,10 @@ test.describe("aceite do termo no portal a 360 px", () => {
 
       await expect(page).toHaveURL(/\/portal\/termo$/);
       await expect(page.getByRole("heading", { name: "Termo de matrícula", level: 1 })).toBeVisible();
+      // RN-MAT-21: o termo vem preenchido com a unidade da matrícula.
+      const text = page.getByRole("region", { name: /^Termo de matrícula · versão/ });
+      await expect(text).toContainText("Unidade: Unidade Centro");
+      await expect(text).not.toContainText("{");
       const image = page.getByLabel(/Autorizo o uso de imagem/);
       await expect(image).not.toBeChecked();
       expect(await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")).toBe(true);
