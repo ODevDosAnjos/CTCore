@@ -48,13 +48,20 @@ describe("organização x OpenAPI (CA21)", () => {
 
     const saved = await patch({ name: " Dojo ", color: "#1A56DB", holderDocument: "11.222.333/0001-81" });
     expect(saved.status).toBe(200);
-    expect(await saved.json()).toMatchObject({ name: "Dojo", color: "#1a56db", holderDocument: "11222333000181", logoUrl: null, version: 1 });
+    const body = await saved.json();
+    expect(body).toMatchObject({ name: "Dojo", holderDocument: "11222333000181", logoUrl: null, version: 1 });
+    expect(body).not.toHaveProperty("color");
     expect(await (await get()).json()).toMatchObject({ name: "Dojo" });
+
+    // A cor saiu (#758): mandada por engano, válida ou não, é ignorada e sozinha não sobe a versão.
+    for (const color of ["#1a56db", "#ffeb3b", "azul"]) {
+      const ignored = await patch({ name: "Dojo", color, holderDocument: "11.222.333/0001-81" });
+      expect(ignored.status).toBe(200);
+      expect(await ignored.json()).toEqual(body);
+    }
 
     const invalid = [
       [{ name: "" }, "name"],
-      [{ name: "ok", color: "#ffeb3b" }, "color"],
-      [{ name: "ok", color: "azul" }, "color"],
       [{ name: "ok", holderDocument: "123" }, "holderDocument"],
     ] as const;
     for (const [body, field] of invalid) {

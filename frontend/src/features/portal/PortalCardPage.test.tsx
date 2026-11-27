@@ -29,7 +29,7 @@ const judo = { id: "m2", name: "Judô" };
 const centro = { id: "u1", name: "Centro" };
 const norte = { id: "u2", name: "Norte" };
 const card = (over: Partial<PortalCardData> = {}): PortalCardData => ({
-  organization: { name: "Academia Alfa", color: "#1d4ed8", logoUrl: null },
+  organization: { name: "Academia Alfa", logoUrl: null },
   student: { id: "s1", name: "Ana Souza", photoUrl: null },
   students: [{ id: "s1", name: "Ana Souza", self: true }],
   status: "ACTIVE",
@@ -62,7 +62,7 @@ function setup(path = "/portal/carteirinha", reduced = false) {
     http.get("/api/v1/portal/students", () => HttpResponse.json([])),
     http.get("/api/v1/portal/shell", () =>
       HttpResponse.json({
-        organization: { name: "Academia Alfa", color: null, logoUrl: null },
+        organization: { name: "Academia Alfa", logoUrl: null },
         reduced,
         unreadAnnouncements: 0,
       }),
@@ -99,9 +99,9 @@ describe("PortalCardPage (RF-POR-03)", () => {
     expect(screen.queryByText(/^Sem conexão/)).not.toBeInTheDocument();
     expect(container.querySelector("canvas, svg[aria-label*='QR' i]")).toBeNull();
     expect(article.textContent).not.toMatch(/presen|frequ|progress|CPF|@/i);
-    // #754 CA3: a API manda cor (#1d4ed8) e nada dela chega à página; a marca sem logo mostra as iniciais.
+    // #754 CA3: nenhuma cor de organização chega à página; a marca sem logo mostra as iniciais.
     expect(article.querySelector("[data-initials=AA]")).not.toBeNull();
-    expect(container.innerHTML).not.toMatch(/--org|1d4ed8|29, 78, 216/i);
+    expect(container.innerHTML).not.toMatch(/--org/i);
   });
 
   it("CA2: logo que falha some sem erro; foto ausente ou que falha cai para as iniciais", async () => {
@@ -109,7 +109,6 @@ describe("PortalCardPage (RF-POR-03)", () => {
       card({
         organization: {
           name: "Academia Alfa",
-          color: null,
           logoUrl: "http://x.test/logo.png",
         },
         student: {

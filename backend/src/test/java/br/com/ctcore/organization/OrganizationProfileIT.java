@@ -62,7 +62,7 @@ class OrganizationProfileIT extends OrganizationBase {
         var a = tenant();
         for (Role role : new Role[] {Role.COORDINATOR, Role.ADMINISTRATOR}) {
             var view = ok(get(), a, role);
-            assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("name", "color", "holderDocument", "logoUrl", "version", "lastChange", "rules", "coordinator");
+            assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("name", "holderDocument", "logoUrl", "version", "lastChange", "rules", "coordinator");
             assertThat(view.path("name").asText()).isEqualTo("Synthetic " + a.orgId());
             assertThat(view.path("logoUrl").isNull()).isTrue();
             assertThat(view.path("coordinator").isNull()).isTrue();
@@ -143,19 +143,52 @@ class OrganizationProfileIT extends OrganizationBase {
     }
 
     @Test
-    @DisplayName("CA3 / CA6 / CA7: PATCH salva nome, cor e titular (só dígitos) e a leitura devolve; vazio salva nulo")
+    @DisplayName("CA3 / CA6 / CA7: PATCH salva nome e titular (só dígitos) e a leitura devolve; vazio salva nulo")
     void update() throws Exception {
         var a = tenant();
-        var view = ok(patch("{\"name\":\"  Dojo Alfa \",\"color\":\"#1A56DB\",\"holderDocument\":\"11.222.333/0001-81\"}"), a, Role.COORDINATOR);
+        var view = ok(patch("{\"name\":\"  Dojo Alfa \",\"holderDocument\":\"11.222.333/0001-81\"}"), a, Role.COORDINATOR);
         assertThat(view.path("name").asText()).isEqualTo("Dojo Alfa");
-        assertThat(view.path("color").asText()).isEqualTo("#1a56db");
         assertThat(view.path("holderDocument").asText()).isEqualTo("11222333000181");
         assertThat(ok(get(), a, Role.ADMINISTRATOR)).isEqualTo(view);
-        var cleared = ok(patch("{\"name\":\"Dojo Alfa\",\"color\":\"\",\"holderDocument\":null}"), a, Role.COORDINATOR);
-        assertThat(cleared.path("color").isNull()).isTrue();
+        var cleared = ok(patch("{\"name\":\"Dojo Alfa\",\"holderDocument\":null}"), a, Role.COORDINATOR);
         assertThat(cleared.path("holderDocument").isNull()).isTrue();
         assertThat(ok(patch("{\"name\":\"Dojo\",\"holderDocument\":\"529.982.247-25\"}"), a, Role.COORDINATOR).path("holderDocument").asText())
                 .isEqualTo("52998224725");
+    }
+
+    @Test
+    @DisplayName("#758 CA2: color no PATCH é ignorado; os outros campos gravam, sem color na resposta nem na auditoria")
+    void colorIgnored() throws Exception {
+        var a = tenant();
+        int saved = 0;
+        for (String color : new String[] {"#1a56db", "#ffeb3b", "azul"}) {
+            var view = ok(patch("{\"name\":\"Dojo " + ++saved + "\",\"color\":\"" + color + "\"}"), a, Role.COORDINATOR);
+            assertThat(view.path("name").asText()).isEqualTo("Dojo " + saved);
+            assertThat(view.has("color")).isFalse();
+        }
+        assertThat(audit(a, "organization.update")).hasSize(3)
+                .allSatisfy(r -> assertThat(String.valueOf(r.get("b")) + r.get("a")).doesNotContain("color"));
+        // só a cor "muda": a versão não sobe e nada é auditado
+        var same = ok(patch("{\"name\":\"Dojo 3\",\"color\":\"#000000\"}"), a, Role.COORDINATOR);
+        assertThat(same.path("version").asInt()).isEqualTo(3);
+        assertThat(audit(a, "organization.update")).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("#758 CA3: PATCH com color dá 403 a Administrador e Professor; o do Coordenador não altera outra organização")
+    void colorPatchPermissions() throws Exception {
+        var a = tenant();
+        var b = tenant();
+        var beforeA = row(a);
+        var beforeB = row(b);
+        String body = "{\"name\":\"Hack\",\"color\":\"#1a56db\"}";
+        for (Role role : new Role[] {Role.ADMINISTRATOR, Role.TEACHER}) {
+            assertThat(call(patch(body), who(a, role)).getResponse().getStatus()).isEqualTo(403);
+        }
+        assertThat(row(a)).isEqualTo(beforeA);
+        ok(patch(body), a, Role.COORDINATOR);
+        assertThat(row(b)).isEqualTo(beforeB);
+        assertThat(audit(b, "organization.update")).isEmpty();
     }
 
     @Test
@@ -169,22 +202,17 @@ class OrganizationProfileIT extends OrganizationBase {
         invalid(patch("{\"name\":\"" + longName + "\"}"), a, "name");
         invalid(patch("{\"name\":\"ok\",\"holderDocument\":\"529.982.247-26\"}"), a, "holderDocument");
         invalid(patch("{\"name\":\"ok\",\"holderDocument\":\"abc\"}"), a, "holderDocument");
-        for (String color : new String[] {"#ffeb3b", "azul", "#fff", "1a56db"}) {
-            invalid(patch("{\"name\":\"ok\",\"color\":\"" + color + "\"}"), a, "color");
-        }
         assertThat(ok(patch("{\"name\":\"" + "x".repeat(120) + "\"}"), a, Role.COORDINATOR).path("name").asText()).hasSize(120);
         assertThat(row(a)).isNotEqualTo(before);
         var current = row(a);
-        invalid(patch("{\"name\":\"\",\"color\":\"#1a56db\"}"), a, "name");
+        invalid(patch("{\"name\":\"\"}"), a, "name");
         assertThat(row(a)).isEqualTo(current);
     }
 
     @Test
-    @DisplayName("T2: o banco também recusa cor e titular fora do formato")
+    @DisplayName("T2: o banco também recusa titular fora do formato")
     void databaseChecks() {
         var a = tenant();
-        assertThatThrownBy(() -> adminJdbc().update("update organization set color = 'red' where id = ?", a.orgId())).isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> adminJdbc().update("update organization set color = '#ABCDEF' where id = ?", a.orgId())).isInstanceOf(Exception.class);
         assertThatThrownBy(() -> adminJdbc().update("update organization set holder_document = '123' where id = ?", a.orgId())).isInstanceOf(Exception.class);
     }
 
@@ -247,22 +275,22 @@ class OrganizationProfileIT extends OrganizationBase {
     void auditTrail() throws Exception {
         var a = tenant();
         var coordinator = who(a, Role.COORDINATOR);
-        assertThat(call(patch("{\"name\":\"Novo\",\"color\":\"#1a56db\",\"holderDocument\":\"52998224725\"}"), coordinator).getResponse().getStatus()).isEqualTo(200);
+        assertThat(call(patch("{\"name\":\"Novo\",\"holderDocument\":\"52998224725\"}"), coordinator).getResponse().getStatus()).isEqualTo(200);
         var rows = audit(a, "organization.update");
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).get("actor_profile")).isEqualTo("COORDINATOR");
         assertThat(rows.get(0).get("actor_id")).isEqualTo(coordinator.accountId());
         assertThat(rows.get(0).get("entity_id")).isEqualTo(a.orgId().toString());
-        assertThat(rows.get(0).get("a").toString()).contains("Novo", "#1a56db").doesNotContain("52998224725");
+        assertThat(rows.get(0).get("a").toString()).contains("Novo").doesNotContain("52998224725");
         assertThat(rows.get(0).get("b").toString()).contains("Synthetic");
 
-        call(patch("{\"name\":\"Novo\",\"color\":\"#1a56db\",\"holderDocument\":\"52998224725\"}"), coordinator);
+        call(patch("{\"name\":\"Novo\",\"holderDocument\":\"52998224725\"}"), coordinator);
         call(patch("{\"name\":\"\"}"), coordinator);
         call(patch("{\"name\":\"Hack\"}"), who(a, Role.ADMINISTRATOR));
-        call(patch("{\"name\":\"Só nome\",\"color\":\"#1a56db\",\"holderDocument\":\"52998224725\"}"), coordinator);
+        call(patch("{\"name\":\"Só nome\",\"holderDocument\":\"52998224725\"}"), coordinator);
         rows = audit(a, "organization.update");
         assertThat(rows).hasSize(2);
-        assertThat(rows).anySatisfy(r -> assertThat(r.get("a").toString()).contains("Só nome").doesNotContain("color"));
+        assertThat(rows).anySatisfy(r -> assertThat(r.get("a").toString()).contains("Só nome"));
 
         call(putLogo(LogoImageTest.image("png", 512, 512), "a.png"), coordinator);
         call(putLogo(LogoImageTest.image("png", 512, 512), "a.png"), coordinator);

@@ -21,8 +21,8 @@ const session = (role: string): SessionView => ({
 });
 const rules: OrganizationView["rules"] = { deactivationDays: 30, formerStudentRetentionMonths: 12, trialRetentionMonths: 6, crossUnitTraining: "plan" };
 const coordinator = { name: "Marcos Leão", email: "marcos@academialeao.example", twoFactorEnabled: true };
-const empty: OrganizationView = { name: "Academia Alfa", color: null, holderDocument: null, logoUrl: null, version: 0, lastChange: null, rules, coordinator };
-const full: OrganizationView = { ...empty, color: "#1a56db", holderDocument: "11222333000181", logoUrl: "data:image/png;base64,AAAA" };
+const empty: OrganizationView = { name: "Academia Alfa", holderDocument: null, logoUrl: null, version: 0, lastChange: null, rules, coordinator };
+const full: OrganizationView = { ...empty, holderDocument: "11222333000181", logoUrl: "data:image/png;base64,AAAA" };
 
 let writes: { method: string; body?: unknown }[];
 let stored: OrganizationView;

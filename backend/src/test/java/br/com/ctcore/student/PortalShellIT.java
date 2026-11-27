@@ -113,6 +113,7 @@ class PortalShellIT extends PortalTermBase {
         assertThat(r.get("unreadAnnouncements").asInt()).isZero();
         assertThat(r.get("organization").get("name").asText()).startsWith("Synthetic");
         assertThat(r.get("organization").get("logoUrl").isNull()).isTrue();
+        assertThat(r.get("organization").has("color")).isFalse();
 
         UUID parent = account("pai@portal.example");
         UUID active = student(t, "Filho Ativo", "2015-01-01", null), ended = student(t, "Filho Inativo", "2016-01-01", null);

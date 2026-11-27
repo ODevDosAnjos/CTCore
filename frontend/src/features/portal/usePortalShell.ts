@@ -3,7 +3,7 @@ import { api, ApiError } from "@/lib/api";
 
 // Espelha PortalShell do OpenAPI (docs/openapi.yaml).
 export interface PortalShellData {
-  organization: { name: string; color: string | null; logoUrl: string | null };
+  organization: { name: string; logoUrl: string | null };
   reduced: boolean;
   unreadAnnouncements: number;
   /** Unidade do rodapé e do contato (reduzido: a de cadastro); nulo sem aluno matriculado. Opcional só para os testes que montam a moldura sem ela. */

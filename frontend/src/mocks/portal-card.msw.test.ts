@@ -42,6 +42,7 @@ describe("Carteirinha do portal x OpenAPI (RF-POR-03, #90)", () => {
     await login("familia@exemplo.com");
     const first = await (await send("GET", "/portal/card")).json();
     expect(keys(first)).toEqual(required("PortalCard"));
+    expect(keys(first.organization)).toEqual(["logoUrl", "name"]);
     expect(first).toMatchObject({ status: "ACTIVE", student: { id: MINOR } });
     expect(first.students.map((s: { id: string }) => s.id)).toEqual([MINOR, CHILD_TWO]);
     expect(keys(first.students[0])).toEqual(["id", "name", "self"]);

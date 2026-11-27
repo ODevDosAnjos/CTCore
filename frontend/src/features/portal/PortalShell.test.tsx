@@ -21,7 +21,7 @@ const session = (role: string): SessionView => ({
   activeLinkId: "l1",
   twoFactor: { enabled: false, required: false },
 });
-const shell = (over: Partial<PortalShellData> = {}): PortalShellData => ({ organization: { name: "Academia Alfa", color: null, logoUrl: null }, reduced: false, unreadAnnouncements: 2, ...over });
+const shell = (over: Partial<PortalShellData> = {}): PortalShellData => ({ organization: { name: "Academia Alfa", logoUrl: null }, reduced: false, unreadAnnouncements: 2, ...over });
 
 function setup(path = "/", over: { role?: string; shell?: () => Response | Promise<Response>; data?: PortalShellData } = {}) {
   server.use(
@@ -45,9 +45,9 @@ function setup(path = "/", over: { role?: string; shell?: () => Response | Promi
   );
 }
 const ready = () => screen.findByRole("link", { name: "Academia Alfa" });
-// #754 CA3: mesmo que a API devolva cor, nada dela chega à página; aba, contadores e marca usam o token brand.
+// #754 CA3: nenhuma cor de organização chega à página; aba, contadores e marca usam o token brand.
 const expectNoOrgColor = (container: HTMLElement) => {
-  expect(container.innerHTML).not.toMatch(/--org|1d4ed8|29, 78, 216/i);
+  expect(container.innerHTML).not.toMatch(/--org/i);
   expect(container.querySelector("header nav a[aria-current=page]")).toHaveClass("aria-[current=page]:border-brand");
   for (const badge of container.querySelectorAll("[class*='min-w-5']")) expect(badge).toHaveClass("bg-brand");
 };
@@ -58,13 +58,13 @@ const bell = () => screen.queryAllByRole("link", { name: /^Avisos/ }).find((a) =
 
 describe("PortalShell: barra e navegação do portal (RF-POR-01)", () => {
   it("CA1: mostra organização, logo, nome e papel (Aluno e Responsável); sem logo não há imagem", async () => {
-    const { container, unmount } = setup("/", { data: shell({ organization: { name: "Academia Alfa", color: "#1d4ed8", logoUrl: "data:image/png;base64,AAAA" } }) });
+    const { container, unmount } = setup("/", { data: shell({ organization: { name: "Academia Alfa", logoUrl: "data:image/png;base64,AAAA" } }) });
     await ready();
     expect(container.querySelector("header img")).toHaveAttribute("src", "data:image/png;base64,AAAA");
     expect(screen.getByRole("link", { name: /Minha conta/ })).toHaveTextContent("ASAna SilvaAluno");
     expectNoOrgColor(container);
     unmount();
-    const guardian = setup("/", { role: "GUARDIAN", data: shell({ organization: { name: "Academia Alfa", color: "#1d4ed8", logoUrl: null } }) });
+    const guardian = setup("/", { role: "GUARDIAN", data: shell({ organization: { name: "Academia Alfa", logoUrl: null } }) });
     await ready();
     expect(guardian.container.querySelector("header [data-initials]")).toHaveClass("bg-brand");
     expectNoOrgColor(guardian.container);

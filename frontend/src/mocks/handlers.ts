@@ -1,7 +1,6 @@
 import { http, HttpResponse, type HttpResponseResolver } from "msw";
 import { isStrongPassword } from "@/features/auth/PasswordRules";
 import { isValidCpf, isValidCpfOrCnpj, onlyDigits } from "@/components/fields/masks";
-import { isHexColor, passesContrast } from "@/features/organization/contrastRatio";
 import { nextHolidays, validateDay, type DayBody } from "./noClassDays";
 import { mockPermissions } from "./permissions";
 import { comEstadoForcado } from "./cenarios/estado";
@@ -259,11 +258,10 @@ export const resetMockSession = () => {
   seedScenarios();
 };
 
-// Organização do vínculo ativo (RF-ORG-01), em memória: sem cor, titular nem logo.
+// Organização do vínculo ativo (RF-ORG-01), em memória: sem titular nem logo.
 type MockLastChange = { at: string; by: string | null } | null;
 const initialOrganization = {
   name: "Academia Alfa",
-  color: null as string | null,
   holderDocument: null as string | null,
   logoUrl: null as string | null,
   version: 0,
@@ -2328,13 +2326,11 @@ export const routes: Route[] = [
       if (denied) return denied;
       const missing = precondition(request);
       if (missing) return missing;
-      const body = (await request.json()) as { name?: string; color?: string | null; holderDocument?: string | null; rules?: Record<string, unknown> };
+      const body = (await request.json()) as { name?: string; holderDocument?: string | null; rules?: Record<string, unknown> };
       const name = (body.name ?? "").trim();
-      const color = body.color ? body.color : null;
       const holder = body.holderDocument ? body.holderDocument : null;
       const fields: { field: string; message: string }[] = [];
       if (!name || name.length > 120) fields.push({ field: "name", message: "entre 1 e 120 caracteres" });
-      if (color !== null && !(isHexColor(color) && passesContrast(color))) fields.push({ field: "color", message: "use #RRGGBB com contraste mínimo de 4,5:1" });
       if (holder !== null && !isValidCpfOrCnpj(holder)) fields.push({ field: "holderDocument", message: "CPF ou CNPJ inválido" });
       if (body.rules) {
         for (const [key, min, max] of ruleRanges) {
@@ -2347,9 +2343,9 @@ export const routes: Route[] = [
       const stale = precondition(request, organization.version);
       if (stale) return stale;
       const rules = body.rules ? (body.rules as typeof organization.rules) : organization.rules;
-      const next = { ...organization, name, color: color?.toLowerCase() ?? null, holderDocument: holder ? onlyDigits(holder) : null, rules };
+      const next = { ...organization, name, holderDocument: holder ? onlyDigits(holder) : null, rules };
       const changed =
-        next.name !== organization.name || next.color !== organization.color || next.holderDocument !== organization.holderDocument || JSON.stringify(rules) !== JSON.stringify(organization.rules);
+        next.name !== organization.name || next.holderDocument !== organization.holderDocument || JSON.stringify(rules) !== JSON.stringify(organization.rules);
       organization = changed ? { ...next, version: organization.version + 1, lastChange: changedNow() } : organization;
       return HttpResponse.json(organization);
     },
@@ -4985,7 +4981,7 @@ export const routes: Route[] = [
       if (denied) return denied;
       if (portalMine().some((s) => termPending(s.id))) return error(403, "TERM_PENDING", "Aceite o termo para continuar.");
       const reduced = current.account.email === REDUCED_ACCOUNT;
-      return HttpResponse.json({ organization: { name: organization.name, color: organization.color, logoUrl: organization.logoUrl }, reduced, unreadAnnouncements: reduced ? 0 : bellCount(), unit: { name: "Unidade Centro", address: "Rua Fictícia, 100, Centro, Rio de Janeiro", whatsapp: "(21) 90000-0000", email: "contato@unidade.example" } });
+      return HttpResponse.json({ organization: { name: organization.name, logoUrl: organization.logoUrl }, reduced, unreadAnnouncements: reduced ? 0 : bellCount(), unit: { name: "Unidade Centro", address: "Rua Fictícia, 100, Centro, Rio de Janeiro", whatsapp: "(21) 90000-0000", email: "contato@unidade.example" } });
     },
   },
   {
@@ -5110,7 +5106,7 @@ export const routes: Route[] = [
               { modality: judo, unit: homeUnit(NORTE), belt: null },
             ];
       return HttpResponse.json({
-        organization: { name: organization.name, color: organization.color, logoUrl: organization.logoUrl },
+        organization: { name: organization.name, logoUrl: organization.logoUrl },
         student: { id: student.id, name: student.name, photoUrl: student.photoUrl },
         students: cards.map((c) => ({ id: c.id, name: c.name, self: c.self })),
         status: inactive ? "INACTIVE" : "ACTIVE",

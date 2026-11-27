@@ -5,7 +5,6 @@ import type { OrganizationView } from "./useOrganization";
 
 const view: OrganizationView = {
   name: "Academia Leão",
-  color: null,
   holderDocument: null,
   logoUrl: null,
   version: 0,
