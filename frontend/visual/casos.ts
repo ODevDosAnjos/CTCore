@@ -174,7 +174,6 @@ export const casos: Caso[] = [
   // #490: aba Notificações (Administrador: Receber tudo desabilitado) e a lista de atalhos do celular (GMConta é de 390 px: a 1440 não há comparação, o 390 é conferido nas capturas)
   { nome: "conta-notificacoes", rota: "/conta?aba=notificacoes", perfil: admin, canvas: "MinhaContaNotificacoes", aguardar: '[role="switch"]' },
   { nome: "conta-celular", rota: "/conta", perfil: ana, canvas: "GMConta" },
-  { nome: "configuracoes-organizacao-contraste", rota: "/configuracoes/organizacao", perfil: ana, canvas: "ConfigOrgContraste", organizacaoCanvas: true, passos: [{ preencher: ["Cor principal", "#F4C430"] }] },
   { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: "duas@exemplo.com", canvas: "TransferirCoordenacao", organizacaoCanvas: true, passos: [{ clicar: "Transferir coordenação" }, { escolher: ["Novo Coordenador", "Carla Mendes"] }, { preencher: ["Sua senha", "segredo123"] }] },
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", unidadesCanvas: "lista", passos: [{ clicar: "Desativar a Barra" }] },
@@ -270,6 +269,8 @@ export const temas = [
 
 // Telas de gestão e portal do canvas sem caso, por motivo (#435). casos.test.ts exige que toda tela dessas páginas esteja em um caso ou aqui.
 export const semCaso: Record<string, string[]> = {
+  // tela do canvas retirada do produto
+  "tela do canvas retirada: não há cor por organização, decisão 20 (#626)": ["ConfigOrgContraste"],
   // variante de perfil, estado ou dado que o MSW não alcança por rota hoje
   "variante de perfil, estado ou dado que o MSW não alcança por rota hoje": [
     "InicioCoordenador", "AguardandoAprovacao", "SuporteAcesso",

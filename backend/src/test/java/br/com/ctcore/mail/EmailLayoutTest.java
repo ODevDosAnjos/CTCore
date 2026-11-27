@@ -13,16 +13,9 @@ class EmailLayoutTest {
     }
 
     @Test
-    @DisplayName("CA20: a cor da organização vai no botão, o rodapé traz feito com ctcore e sem cor vale #1a56db")
+    @DisplayName("#754 CA4: o botão usa a cor da marca do ctcore, o rodapé traz feito com ctcore e o texto continua escapado pelo chamador")
     void brandColorAndFooter() {
-        assertThat(EmailLayout.html("oi", "https://a/b", "Abrir", "#0b6e4f")).contains("background:#0b6e4f").doesNotContain("#1a56db").contains("feito com ctcore");
-        assertThat(EmailLayout.html("oi", "https://a/b", "Abrir")).contains("background:#1a56db").contains("feito com ctcore");
-        assertThat(EmailLayout.html("oi", null, "Abrir", "#0b6e4f")).contains("feito com ctcore");
-    }
-
-    @Test
-    @DisplayName("CA20: cor fora do formato não entra no estilo e o texto continua escapado pelo chamador")
-    void unsafeColorIsIgnored() {
-        assertThat(EmailLayout.html("&lt;b&gt;", "https://a/b", "Abrir", "red;\"onload=x")).contains("background:#1a56db").doesNotContain("onload").contains("&lt;b&gt;");
+        assertThat(EmailLayout.html("&lt;b&gt;", "https://a/b", "Abrir")).contains("background:#C8462C", "feito com ctcore", "&lt;b&gt;");
+        assertThat(EmailLayout.html("oi", null, "Abrir")).contains("feito com ctcore").doesNotContain("<a ", "background:");
     }
 }

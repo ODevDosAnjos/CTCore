@@ -7,16 +7,14 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { initials } from "@/components/ui/avatar";
 import { Field, Input } from "@/components/ui/field";
-import { ColorField } from "./ColorField";
-import { isHexColor } from "./contrastRatio";
 import { LogoCropDialog } from "./LogoCropDialog";
 import { checkLogoFile, LOGO_TYPES } from "./logoFile";
 import type { OrganizationView } from "./useOrganization";
 
 type Notice = { kind: "ok" | "error"; text: string };
 
-// RF-ORG-01: cartão "Marca" do canvas: nome, titular, logo (miniatura, trocar e remover), cor principal e a nota da marca.
-// Nome, titular e cor são do formulário da tela (rodapé Descartar/Salvar); a logo envia e remove na hora (D5).
+// RF-ORG-01: cartão "Marca" do canvas: nome, titular, logo (miniatura, trocar e remover) e a nota da marca (sem cor: RNF-22).
+// Nome e titular são do formulário da tela (rodapé Descartar/Salvar); a logo envia e remove na hora (D5).
 export function BrandCard({
   view,
   canEdit,
@@ -27,9 +25,6 @@ export function BrandCard({
   onHolder,
   onHolderBlur,
   holderError,
-  color,
-  onColor,
-  colorError,
   nameRef,
   uploadLogo,
   removeLogo,
@@ -43,9 +38,6 @@ export function BrandCard({
   onHolder: (value: string) => void;
   onHolderBlur: () => void;
   holderError?: string;
-  color: string;
-  onColor: (value: string) => void;
-  colorError?: string;
   nameRef?: React.Ref<HTMLInputElement>;
   uploadLogo: (logo: Blob) => Promise<unknown>;
   removeLogo: () => Promise<unknown>;
@@ -67,7 +59,6 @@ export function BrandCard({
     setCropping(file);
   }
 
-  const brand = isHexColor(color) ? ({ "--amostra": color } as React.CSSProperties) : undefined;
   return (
     <Card heading="h2" title={t("organization.brandTitle")} className="flex flex-col">
       <div className="flex flex-col gap-4">
@@ -89,8 +80,7 @@ export function BrandCard({
             ) : (
               <span
                 aria-hidden="true"
-                style={brand}
-                className={`flex size-[72px] shrink-0 items-center justify-center rounded-card font-heading text-3xl font-bold text-brand-foreground ${brand ? "bg-(--amostra)" : "bg-brand"}`}
+                className="flex size-[72px] shrink-0 items-center justify-center rounded-card bg-brand font-heading text-3xl font-bold text-brand-foreground"
               >
                 {initials(name || view.name)}
               </span>
@@ -124,7 +114,6 @@ export function BrandCard({
           </div>
           {notice && <Banner tone={notice.kind === "ok" ? "ok" : "danger"}>{notice.text}</Banner>}
         </div>
-        <ColorField value={color} onChange={onColor} disabled={!canEdit} error={colorError} />
       </div>
       {cropping && (
         <LogoCropDialog

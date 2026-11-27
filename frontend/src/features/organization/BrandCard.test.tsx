@@ -23,8 +23,6 @@ const show = (v: OrganizationView, canEdit = true) =>
       holder=""
       onHolder={vi.fn()}
       onHolderBlur={vi.fn()}
-      color=""
-      onColor={vi.fn()}
       uploadLogo={vi.fn()}
       removeLogo={vi.fn()}
     />,
