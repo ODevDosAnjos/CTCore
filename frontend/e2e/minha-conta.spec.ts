@@ -104,3 +104,18 @@ test("Perfil: salva nome e telefone, envia a foto, vê no topo e remove, também
   await expect(main.getByText("Foto removida.")).toBeVisible();
   await expect(top.locator("img[src^='data:image/png']")).toHaveCount(0);
 });
+
+// issue 764: baixar os próprios dados na gestão, dentro da moldura e também a 360 px.
+test("Privacidade: baixa o arquivo dos meus dados, também a 360 px", async ({ page }) => {
+  await login(page, "ana@exemplo.com");
+  await page.getByRole("button", { name: /Menu da conta/ }).click();
+  await page.getByRole("menuitem", { name: "Minha conta" }).click();
+  const main = page.getByRole("main");
+  await main.getByRole("tab", { name: "Privacidade" }).click();
+  await expect(page.getByRole("banner").first()).toBeVisible();
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")).toBeLessThanOrEqual(0);
+  const download = page.waitForEvent("download");
+  await main.getByRole("button", { name: "Baixar meus dados" }).click();
+  expect((await download).suggestedFilename()).toBe("meus-dados-ctcore.json");
+});

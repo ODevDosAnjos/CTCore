@@ -114,6 +114,16 @@ public class S3FileStorage implements FileStorage {
     }
 
     @Override
+    public byte[] getAccountFile(UUID accountId, String name) {
+        var key = accountKey(accountId, name);
+        try {
+            return client.getObjectAsBytes(b -> b.bucket(props.getBucket()).key(key)).asByteArray();
+        } catch (NoSuchKeyException e) {
+            throw new NotFound(name);
+        }
+    }
+
+    @Override
     public String accountFileUrl(UUID accountId, String name) {
         return presign(accountKey(accountId, name));
     }

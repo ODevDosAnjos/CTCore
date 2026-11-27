@@ -137,6 +137,15 @@
       "organizationText": "A sua organização exige a verificação em duas etapas dos Administradores. Ative para usar o sistema.",
       "activate": "Ativar duas etapas"
     },
+    "replace": {
+      "title": "Trocar de aparelho",
+      "intro": "Confirme a sua senha e um código atual, do app ou de reserva.",
+      "next": "Continuar",
+      "expired": "O pedido de troca venceu. Confirme a senha e o código de novo.",
+      "step1": "Abra o app autenticador no aparelho novo (Google Authenticator, Microsoft Authenticator ou outro).",
+      "qrAlt": "QR code para o aparelho novo",
+      "warning": "O aparelho anterior vale até você confirmar o código do app novo. Os códigos de reserva continuam os mesmos."
+    },
     "errors": {
       "tooMany": "Muitas tentativas. Espere alguns minutos e tente de novo.",
       "failed": "Não conseguimos concluir. Tente de novo."
@@ -3704,7 +3713,10 @@
       "disableTitle": "Desligar duas etapas",
       "disableIntro": "Para desligar, confirme a sua senha e um código.",
       "disableSubmit": "Desligar",
-      "disabling": "Desligando..."
+      "disabling": "Desligando...",
+      "codesLeft": "códigos de reserva: {{n}} de 10",
+      "replace": "Trocar de aparelho",
+      "replaced": "Aparelho trocado. Use o app novo no próximo acesso."
     },
     "sessions": {
       "title": "Sessões ativas",
@@ -3771,7 +3783,9 @@
       "since": "Desde"
     },
     "privacy": {
-      "managementDownload": "Conta, vínculos, consentimentos e acessos num arquivo."
+      "managementDownload": "Conta, vínculos, consentimentos e acessos num arquivo.",
+      "preparing": "Preparando o arquivo...",
+      "fileName": "meus-dados-ctcore.json"
     },
     "portal": {
       "label": "Minhas informações",

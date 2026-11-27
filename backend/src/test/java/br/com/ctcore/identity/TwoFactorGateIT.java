@@ -27,7 +27,7 @@ class TwoFactorGateIT extends AuthBase {
         }
         MvcResult view = get("/api/v1/auth/session", s).andReturn();
         assertThat(view.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(view).path("twoFactor").toString()).isEqualTo("{\"enabled\":false,\"required\":true,\"enabledAt\":null}");
+        assertThat(body(view).path("twoFactor").toString()).isEqualTo("{\"enabled\":false,\"required\":true,\"enabledAt\":null,\"backupCodesRemaining\":0}");
 
         activate(s, "c@x.com");
         assertThat(get("/api/v1/probe-org", s).andReturn().getResponse().getStatus()).isEqualTo(200);

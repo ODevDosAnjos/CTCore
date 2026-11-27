@@ -122,9 +122,13 @@ class S3FileStorageIT {
         }
         assertThatThrownBy(() -> storage.putAccountFile(A, "big.png", new byte[FileStorage.MAX_BYTES + 1], "image/png"))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThat(storage.getAccountFile(A, "photo.png")).isEqualTo(bytes("conta-a"));
+        assertThatThrownBy(() -> storage.getAccountFile(B, "photo.png")).isInstanceOf(FileStorage.NotFound.class);
+        assertThatThrownBy(() -> storage.getAccountFile(B, "../" + A + "/photo.png")).isInstanceOf(IllegalArgumentException.class);
         storage.deleteAccountFile(A, "photo.png");
         storage.deleteAccountFile(A, "photo.png"); // idempotente
         assertThat(get(url).statusCode()).isEqualTo(404);
+        assertThatThrownBy(() -> storage.getAccountFile(A, "photo.png")).isInstanceOf(FileStorage.NotFound.class);
     }
 
     @Test

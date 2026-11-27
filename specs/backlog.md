@@ -263,7 +263,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 628 | RN-ACE-24 · Exigir duas etapas dos Administradores | issue #628 | Sprint 10.5 | #748 | agente | feito |
 | 762 | 630a · Minha conta em quatro abas, com Meus vínculos | issue #762 (parte da #630) | Sprint 10.5 | #608 | agente | feito |
 | 763 | 630b · Minha conta › Perfil: nome, telefone e foto da conta | issue #763 (parte da #630) | Sprint 10.5 | #762 | agente | feito |
-| 764 | 630c · Trocar de aparelho, códigos de reserva e Baixar meus dados (fecha a #630) | issue #764 (parte da #630) | Sprint 10.5 | #763 | agente | a fazer |
+| 764 | 630c · Trocar de aparelho, códigos de reserva e Baixar meus dados (fecha a #630) | issue #764 (parte da #630) | Sprint 10.5 | #763 | agente | feito |
 | 630 | RF-ACE-04 · Minha conta em abas com conteúdo: Perfil, Segurança, Notificações e Privacidade (item-mãe: dividido em #762 a #764, P18; fecha na #764; sem construção própria) | issue #630 | Sprint 10.5 | #608 | agente | dividido |
 | 636 | RN-MAT-21 · Termo de matrícula com os dados da unidade (CNPJ e endereço) | issue #636 | Sprint 10.5 | — | agente | a fazer |
 | 638 | RN-COB-17 · Uma chave por lembrete na aba Lembretes da unidade | issue #638 | Sprint 10.5 | — | agente | a fazer |

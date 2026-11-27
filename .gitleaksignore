@@ -13,3 +13,5 @@ cfd54bf8e3088431f050535a12dc325fd902f03b:segredo-falso.txt:github-pat:1
 6b956242d7c24dee771d5cca2c6deb8429a2ce83:infra/scripts/seed.test.sh:connection-url-password:44
 # Falso positivo: a Entrega do item 644 citava a linha de teste com a senha fictícia (host .example.test) no commit 23f50ff, antes de a frase ser trocada sem a URL literal.
 23f50ff1ff177d79adcb461a4d3ed160536894c1:specs/itens/644-seed-realista-contas-faceis.md:connection-url-password:162
+# Falso positivo: chave TOTP ficticia (base32 de "helloworld") na resposta MSW de /auth/two-factor/replace, no commit do PR #767. Valor trocado na correcao por um so de letras; o commit antigo continua na historia do PR.
+dbb53141a7a3b8bb6f0c9e7b7e9e83e3797a7533:frontend/src/mocks/handlers.ts:generic-api-key:2181

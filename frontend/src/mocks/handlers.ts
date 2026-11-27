@@ -107,6 +107,9 @@ let announcementEmail = true;
 
 // Sessão simulada: abre com um login bem-sucedido. Senha "errada" dá 401, "limite" dá 429.
 let loggedIn = false;
+// Troca de aparelho e códigos de reserva (issue 764): contas já ligadas têm 8, como o login diz; ativar ou gerar volta a 10.
+let backupRemaining = 8;
+let replacePending = false;
 let ticketAccount: string | null = null;
 
 // Cenários (#449): massa de dados fictícios para `npm run dev` e o teste visual. Desligado por padrão; os dados entram em `cenarios/`.
@@ -207,6 +210,8 @@ export const resetMockSession = () => {
   loggedIn = false;
   current = session;
   ticketAccount = null;
+  backupRemaining = 8;
+  replacePending = false;
   organization = { ...initialOrganization };
   adminTwoFactor = { required: false, lastChange: null };
   units = initialUnits();
@@ -288,8 +293,14 @@ const changedNow = (): MockLastChange => ({ at: new Date().toISOString(), by: cu
 let organization = { ...initialOrganization };
 // RN-ACE-24: exigência de duas etapas dos Administradores, em memória. Ligada, toda conta com vínculo de Administrador é obrigada.
 let adminTwoFactor = { required: false, lastChange: null as MockLastChange };
-const sessionView = (s: typeof session) =>
-  adminTwoFactor.required && s.links.some((l) => l.role === "ADMINISTRATOR") ? { ...s, twoFactor: { ...s.twoFactor, required: true } } : s;
+const sessionView = (s: typeof session) => ({
+  ...s,
+  twoFactor: {
+    ...s.twoFactor,
+    required: s.twoFactor.required || (adminTwoFactor.required && s.links.some((l) => l.role === "ADMINISTRATOR")),
+    backupCodesRemaining: s.twoFactor.enabled ? backupRemaining : 0,
+  },
+});
 // PNG de 1 pixel: o mock não guarda o arquivo enviado, só que existe uma logo.
 const MOCK_LOGO =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg==";
@@ -2094,6 +2105,8 @@ export const routes: Route[] = [
       loggedIn = true;
       current = accounts[ticketAccount] ?? session;
       ticketAccount = null;
+      backupRemaining = 8;
+      replacePending = false;
       return HttpResponse.json(sessionView(current));
     },
   },
@@ -2124,6 +2137,7 @@ export const routes: Route[] = [
       const { code } = (await request.json()) as { code?: string };
       if (code !== "123456") return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
       current = { ...current, twoFactor: { ...current.twoFactor, enabled: true, enabledAt: new Date().toISOString() } };
+      backupRemaining = 10;
       return HttpResponse.json(backupCodes());
     },
   },
@@ -2147,7 +2161,64 @@ export const routes: Route[] = [
     resolver: async () => {
       if (!loggedIn) return unauthenticated();
       if (!current.twoFactor.enabled) return error(409, "CONFLICT", "Duas etapas desligadas.");
+      backupRemaining = 10;
       return HttpResponse.json(backupCodes());
+    },
+  },
+  // Troca de aparelho (RF-ACE-04): senha e código atual abrem o pedido; o código do app novo (123456) conclui.
+  {
+    method: "post",
+    path: "/auth/two-factor/replace",
+    resolver: async ({ request }) => {
+      if (!loggedIn) return unauthenticated();
+      if (!current.twoFactor.enabled) return error(409, "CONFLICT", "Duas etapas desligadas.");
+      const { password, code } = (await request.json()) as { password?: string; code?: string };
+      if (password === "limite") return error(429, "TOO_MANY_REQUESTS", "Muitas tentativas.");
+      if (password === "errada") return error(401, "INVALID_CREDENTIALS", "E-mail ou senha incorretos.");
+      if (!code || !VALID_CODES.includes(code)) return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
+      if (code !== "123456") backupRemaining -= 1; // o código de reserva usado é gasto
+      replacePending = true;
+      return HttpResponse.json({ secret: "NOVOAPARELHOFAKE", otpauthUri: "otpauth://totp/ctcore:ana%40exemplo.com?secret=NOVOAPARELHOFAKE&issuer=ctcore" });
+    },
+  },
+  {
+    method: "post",
+    path: "/auth/two-factor/replace/confirm",
+    resolver: async ({ request }) => {
+      if (!loggedIn) return unauthenticated();
+      if (!current.twoFactor.enabled || !replacePending) return error(409, "CONFLICT", "Não há troca pendente.");
+      const { code } = (await request.json()) as { code?: string };
+      if (code !== "123456") return error(401, "INVALID_TWO_FACTOR_CODE", "Código inválido.");
+      replacePending = false;
+      return new HttpResponse(null, { status: 204 });
+    },
+  },
+  // Baixar meus dados (RF-LGP-01): só com vínculo de gestão ativo; dados fictícios.
+  {
+    method: "get",
+    path: "/auth/data-export",
+    resolver: () => {
+      const denied = profileAccess();
+      if (denied) return denied;
+      const organization = current.links[0].organizationName;
+      return HttpResponse.json(
+        {
+          generatedAt: new Date().toISOString(),
+          account: { name: current.account.name, email: current.account.email, phone: current.account.phone ?? null, photo: null },
+          links: current.links.map((l) => ({ organization: l.organizationName, role: l.role, status: "ACTIVE", startsOn: l.startsOn, endsOn: null, units: l.unitNames })),
+          consents: {
+            termAcceptances: [{ organization, kind: "ENROLLMENT", event: "ACCEPTED", version: 1, at: "2026-01-10T12:00:00Z" }],
+            modalityConfirmations: [],
+            emailPreferences: [],
+            teacherDirectory: [],
+          },
+          access: {
+            attempts: [{ at: "2026-11-20T12:00:00Z", result: "SUCCESS", ip: "203.0.113" }],
+            sessions: [{ device: "Chrome em Windows", createdAt: "2026-11-20T12:00:00Z", lastUsedAt: "2026-11-20T13:00:00Z", endedAt: null, ip: "203.0.113" }],
+          },
+        },
+        { headers: { "Content-Disposition": 'attachment; filename="meus-dados-ctcore.json"' } },
+      );
     },
   },
   {
@@ -2277,7 +2348,7 @@ export const routes: Route[] = [
       }
       loggedIn = true;
       current = session;
-      return HttpResponse.json(session);
+      return HttpResponse.json(sessionView(session));
     },
   },
   {
@@ -2301,7 +2372,7 @@ export const routes: Route[] = [
       if (code === "fraca" || !password || !isStrongPassword(password)) return error(400, "PASSWORD_WEAK", "Senha fraca.");
       loggedIn = true;
       current = session;
-      return HttpResponse.json(session);
+      return HttpResponse.json(sessionView(session));
     },
   },
   {
@@ -2349,7 +2420,7 @@ export const routes: Route[] = [
       const { linkId } = (await request.json()) as { linkId?: string };
       if (!current.links.some((l) => l.id === linkId)) return error(404, "LINK_NOT_FOUND", "Vínculo não encontrado.");
       current = { ...current, activeLinkId: linkId ?? null };
-      return HttpResponse.json(current);
+      return HttpResponse.json(sessionView(current));
     },
   },
   {

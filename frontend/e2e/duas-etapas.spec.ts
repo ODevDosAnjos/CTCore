@@ -59,3 +59,35 @@ test("@critical exigir duas etapas dos Administradores: o Coordenador liga e o A
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   await expect(nav).toBeVisible();
 });
+
+// issue 764, RNF-56: trocar de aparelho a partir de Minha conta › Segurança, dentro da moldura e também a 360 px.
+test("Segurança: contagem de códigos de reserva e troca de aparelho, também a 360 px", async ({ page }) => {
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("duas@exemplo.com");
+  await page.getByLabel("Senha").fill("segredo123");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.getByLabel("Código").fill("123456");
+  await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
+  await page.getByRole("button", { name: /Menu da conta/ }).click();
+  await page.getByRole("menuitem", { name: "Minha conta" }).click();
+  const main = page.getByRole("main");
+  await main.getByRole("tab", { name: "Segurança" }).click();
+  await expect(page.getByRole("banner").first()).toBeVisible();
+  await expect(main.getByText("códigos de reserva: 8 de 10")).toBeVisible();
+
+  await page.setViewportSize({ width: 360, height: 800 });
+  const noScroll = () => page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth");
+  expect(await noScroll()).toBeLessThanOrEqual(0);
+  await main.getByRole("button", { name: "Trocar de aparelho" }).click();
+  const dialog = page.getByRole("dialog", { name: "Trocar de aparelho" });
+  await dialog.getByLabel("Senha").fill("segredo123");
+  await dialog.getByLabel("Código do app ou de reserva").fill("RESERVA001");
+  await dialog.getByRole("button", { name: "Continuar" }).click();
+  await expect(dialog.getByAltText("QR code para o aparelho novo")).toBeVisible();
+  expect(await noScroll()).toBeLessThanOrEqual(0);
+  await dialog.getByLabel("Digite o código de 6 números que aparece no app").fill("123456");
+  await dialog.getByRole("button", { name: "Confirmar" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(main.getByText("Aparelho trocado. Use o app novo no próximo acesso.")).toBeVisible();
+  await expect(main.getByText("códigos de reserva: 7 de 10")).toBeVisible();
+});

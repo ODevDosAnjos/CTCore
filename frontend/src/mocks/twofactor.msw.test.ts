@@ -77,3 +77,41 @@ describe("duas etapas x OpenAPI (CA25)", () => {
     expect((await send("DELETE", "/auth/two-factor", { password: "x", code: "123456" })).status).toBe(204);
   });
 });
+
+describe("trocar de aparelho e contagem x OpenAPI (issue 764)", () => {
+  const login = async (email: string) => {
+    const first = await (await send("POST", "/auth/login", { email, password: "x" })).json();
+    if (first.ticket) await send("POST", "/auth/login/two-factor", { ticket: first.ticket, code: "123456" });
+  };
+  const remaining = async () => (await (await send("GET", "/auth/session")).json()).twoFactor.backupCodesRemaining;
+
+  it("as duas rotas respondem o que o contrato declara", async () => {
+    const body = { password: "x", code: "123456" };
+    expect((await send("POST", "/auth/two-factor/replace", body)).status).toBe(401);
+    expect((await send("POST", "/auth/two-factor/replace/confirm", { code: "123456" })).status).toBe(401);
+    await login("a@b.c");
+    expect(await remaining()).toBe(0);
+    expect((await send("POST", "/auth/two-factor/replace", body)).status).toBe(409);
+
+    await login("duas@exemplo.com");
+    expect((await send("POST", "/auth/two-factor/replace/confirm", { code: "123456" })).status).toBe(409);
+    expect((await send("POST", "/auth/two-factor/replace", { ...body, password: "errada" })).status).toBe(401);
+    expect((await send("POST", "/auth/two-factor/replace", { ...body, code: "000000" })).status).toBe(401);
+    expect((await send("POST", "/auth/two-factor/replace", { ...body, password: "limite" })).status).toBe(429);
+    const setup = await (await send("POST", "/auth/two-factor/replace", body)).json();
+    for (const k of openapi.components.schemas.TwoFactorSetup.required) expect(setup).toHaveProperty(k);
+    expect((await send("POST", "/auth/two-factor/replace/confirm", { code: "000000" })).status).toBe(401);
+    expect((await send("POST", "/auth/two-factor/replace/confirm", { code: "123456" })).status).toBe(204);
+    expect(declared("/auth/two-factor/replace", "post")).toEqual(expect.arrayContaining(["200", "401", "409", "429"]));
+    expect(declared("/auth/two-factor/replace/confirm", "post")).toEqual(expect.arrayContaining(["204", "401", "409"]));
+  });
+
+  it("a contagem começa em 8, cai com o código de reserva e volta a 10 com códigos novos", async () => {
+    await login("duas@exemplo.com");
+    expect(await remaining()).toBe(8);
+    await send("POST", "/auth/two-factor/replace", { password: "x", code: "RESERVA001" });
+    expect(await remaining()).toBe(7);
+    await send("POST", "/auth/two-factor/backup-codes");
+    expect(await remaining()).toBe(10);
+  });
+});

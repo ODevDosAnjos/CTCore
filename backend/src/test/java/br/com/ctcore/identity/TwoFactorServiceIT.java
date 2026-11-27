@@ -34,7 +34,7 @@ class TwoFactorServiceIT extends AuthBase {
         assertThat(setup.getResponse().getStatus()).isEqualTo(200);
         String secret = body(setup).path("secret").asText();
         assertThat(body(setup).path("otpauthUri").asText()).startsWith("otpauth://totp/CTCore").contains("secret=" + secret, "issuer=CTCore");
-        assertThat(body(get("/api/v1/auth/session", s).andReturn()).path("twoFactor").toString()).isEqualTo("{\"enabled\":false,\"required\":false,\"enabledAt\":null}");
+        assertThat(body(get("/api/v1/auth/session", s).andReturn()).path("twoFactor").toString()).isEqualTo("{\"enabled\":false,\"required\":false,\"enabledAt\":null,\"backupCodesRemaining\":0}");
         assertThat(count("select count(*) from account_two_factor where enabled_at is not null")).isZero();
         String stored = admin.queryForObject("select secret_encrypted from account_two_factor", String.class);
         assertThat(stored).doesNotContain(secret);
