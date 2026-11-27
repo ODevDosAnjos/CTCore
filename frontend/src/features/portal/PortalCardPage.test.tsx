@@ -99,6 +99,9 @@ describe("PortalCardPage (RF-POR-03)", () => {
     expect(screen.queryByText(/^Sem conexão/)).not.toBeInTheDocument();
     expect(container.querySelector("canvas, svg[aria-label*='QR' i]")).toBeNull();
     expect(article.textContent).not.toMatch(/presen|frequ|progress|CPF|@/i);
+    // #754 CA3: a API manda cor (#1d4ed8) e nada dela chega à página; a marca sem logo mostra as iniciais.
+    expect(article.querySelector("[data-initials=AA]")).not.toBeNull();
+    expect(container.innerHTML).not.toMatch(/--org|1d4ed8|29, 78, 216/i);
   });
 
   it("CA2: logo que falha some sem erro; foto ausente ou que falha cai para as iniciais", async () => {

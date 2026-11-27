@@ -17,7 +17,6 @@ import { TextsTab } from "@/features/texts/TextsTab";
 import { ApiError } from "@/lib/api";
 import { useEditConflict } from "@/lib/useEditConflict";
 import { BrandCard } from "./BrandCard";
-import { isHexColor, passesContrast } from "./contrastRatio";
 import { CoordinationCard } from "./CoordinationCard";
 import { RANGES, invalidRules, sameRules, toDraft, toRules, type NumericRule, type RulesDraft } from "./rulesDraft";
 import { RulesCard } from "./RulesCard";
@@ -33,7 +32,7 @@ function NoticeText({ notice }: { notice?: Notice }) {
 
 const holderText = (view: OrganizationView) => (view.holderDocument ? formatCpfCnpj(view.holderDocument) : "");
 
-// Um só formulário (D5): nome, titular, cor e regras salvam juntos pelo rodapé; a logo envia e remove na hora.
+// Um só formulário (D5): nome, titular e regras salvam juntos pelo rodapé; a logo envia e remove na hora.
 function OrganizationForm({ view, api, canEdit, onTransferred }: { view: OrganizationView; api: Api; canEdit: boolean; onTransferred: () => void }) {
   const { t } = useTranslation();
   const { save, adopt } = api;
@@ -41,7 +40,6 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   const nameInput = useRef<HTMLInputElement>(null);
   const conflict = useEditConflict(api.fetchCurrent);
   const [name, setName] = useState(view.name);
-  const [color, setColor] = useState(view.color ?? "");
   const [holder, setHolder] = useState(holderText(view));
   const [holderTouched, setHolderTouched] = useState(false);
   const [rules, setRules] = useState<RulesDraft>(toDraft(view.rules));
@@ -50,13 +48,11 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   const [notice, setNotice] = useState<Notice>();
 
   const nameError = name.trim() === "" ? t("organization.nameRequired") : name.trim().length > 120 ? t("organization.nameTooLong") : undefined;
-  const colorBad = color !== "" && (!isHexColor(color) || !passesContrast(color));
   const holderBad = holder !== "" && !isValidCpfOrCnpj(holder);
   const badRules = invalidRules(rules);
-  const blocked = !!nameError || colorBad || holderBad || badRules.length > 0 || busy;
+  const blocked = !!nameError || holderBad || badRules.length > 0 || busy;
   const dirty =
     name.trim() !== view.name ||
-    color.toLowerCase() !== (view.color ?? "") ||
     onlyDigits(holder) !== (view.holderDocument ?? "") ||
     !sameRules(rules, toDraft(view.rules));
   const holderShown = errors.holderDocument ?? (holderTouched && holderBad ? t("organization.holderInvalid") : undefined);
@@ -68,7 +64,6 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
 
   function discard() {
     setName(view.name);
-    setColor(view.color ?? "");
     setHolder(holderText(view));
     setHolderTouched(false);
     setRules(toDraft(view.rules));
@@ -83,7 +78,7 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
     setNotice(undefined);
     try {
       await save(
-        { name: name.trim(), color: color === "" ? null : color.toLowerCase(), holderDocument: holder === "" ? null : onlyDigits(holder), rules: toRules(rules) },
+        { name: name.trim(), holderDocument: holder === "" ? null : onlyDigits(holder), rules: toRules(rules) },
         version,
       );
       setNotice({ kind: "ok", text: t("organization.saved") });
@@ -107,7 +102,6 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
     const mine = toRules(rules);
     const fields: [string, string, string, (v: string) => string][] = [
       [t("organization.name"), name.trim(), current.name, (v) => v],
-      [t("organization.color"), color.toLowerCase(), current.color ?? "", (v) => v],
       [t("organization.holder"), onlyDigits(holder), current.holderDocument ?? "", formatCpfCnpj],
       ...(Object.keys(RANGES) as NumericRule[]).map((key): [string, string, string, (v: string) => string] => [
         t(`organization.rules.${key}`),
@@ -123,7 +117,6 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
   }
   function reload(current: OrganizationView) {
     setName(current.name);
-    setColor(current.color ?? "");
     setHolder(holderText(current));
     setHolderTouched(false);
     setRules(toDraft(current.rules));
@@ -153,9 +146,6 @@ function OrganizationForm({ view, api, canEdit, onTransferred }: { view: Organiz
           onHolder={(v) => setHolder(formatCpfCnpj(v))}
           onHolderBlur={() => setHolderTouched(true)}
           holderError={holderShown}
-          color={color}
-          onColor={setColor}
-          colorError={errors.color}
           nameRef={nameInput}
           uploadLogo={api.uploadLogo}
           removeLogo={api.removeLogo}

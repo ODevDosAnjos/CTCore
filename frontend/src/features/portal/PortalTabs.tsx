@@ -19,7 +19,7 @@ function Count({ count, className }: { count: number; className?: string }) {
   if (count <= 0) return null;
   const shown = count > 99 ? "99+" : String(count);
   return (
-    <span className={cn("min-w-5 rounded-full bg-[var(--org,var(--brand))] px-1 text-center text-xs font-semibold text-brand-foreground", className)}>
+    <span className={cn("min-w-5 rounded-full bg-brand px-1 text-center text-xs font-semibold text-brand-foreground", className)}>
       <span aria-hidden="true">{shown}</span>
       <span className="sr-only">{t("portalShell.unread", { count: shown })}</span>
     </span>
@@ -47,7 +47,7 @@ export function PortalTabs({ reduced, count, variant }: { reduced: boolean; coun
             className={cn(
               ring,
               bar
-                ? "inline-flex h-full items-center gap-2 border-b-[3px] border-transparent px-3 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground aria-[current=page]:border-[var(--org,var(--brand))] aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-foreground"
+                ? "inline-flex h-full items-center gap-2 border-b-[3px] border-transparent px-3 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground aria-[current=page]:border-brand aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-foreground"
                 : "relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground",
             )}
           >

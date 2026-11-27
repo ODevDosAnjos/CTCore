@@ -8,7 +8,7 @@ import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 import { useFocusOnRoute } from "@/components/layout/useFocusOnRoute";
-import { OrgMark, orgStyle } from "./OrgMark";
+import { OrgMark } from "./OrgMark";
 import { PortalAccount } from "./PortalAccount";
 import { PortalFooter } from "./PortalFooter";
 import { PortalTabs } from "./PortalTabs";
@@ -35,7 +35,7 @@ export function PortalShell() {
   const orgName = data?.organization.name ?? t("app.name");
   return (
     <PortalShellContext.Provider value={shell}>
-    <div className="flex min-h-screen flex-col" style={orgStyle(data?.organization.color)}>
+    <div className="flex min-h-screen flex-col">
       <a
         href="#conteudo"
         onClick={(e) => {
@@ -63,7 +63,7 @@ export function PortalShell() {
               >
                 <Bell aria-hidden="true" className="size-5" />
                 {count > 0 && (
-                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-[var(--org,var(--brand))] px-1 text-center text-xs font-semibold text-brand-foreground">
+                  <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-brand px-1 text-center text-xs font-semibold text-brand-foreground">
                     {shown}
                   </span>
                 )}

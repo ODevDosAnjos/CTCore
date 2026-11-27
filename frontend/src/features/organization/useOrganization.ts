@@ -29,7 +29,6 @@ export interface OrganizationView {
 }
 export interface OrganizationUpdate {
   name: string;
-  color: string | null;
   holderDocument: string | null;
   rules?: OrganizationRules;
 }

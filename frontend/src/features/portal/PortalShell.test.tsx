@@ -45,6 +45,12 @@ function setup(path = "/", over: { role?: string; shell?: () => Response | Promi
   );
 }
 const ready = () => screen.findByRole("link", { name: "Academia Alfa" });
+// #754 CA3: mesmo que a API devolva cor, nada dela chega à página; aba, contadores e marca usam o token brand.
+const expectNoOrgColor = (container: HTMLElement) => {
+  expect(container.innerHTML).not.toMatch(/--org|1d4ed8|29, 78, 216/i);
+  expect(container.querySelector("header nav a[aria-current=page]")).toHaveClass("aria-[current=page]:border-brand");
+  for (const badge of container.querySelectorAll("[class*='min-w-5']")) expect(badge).toHaveClass("bg-brand");
+};
 const tabs = () => within(screen.getByRole("navigation", { name: "Portal" })).getAllByRole("link");
 const label = (a: HTMLElement) => a.getAttribute("aria-label") ?? a.textContent;
 const current = () => tabs().filter((a) => a.getAttribute("aria-current") === "page").map(label);
@@ -56,9 +62,12 @@ describe("PortalShell: barra e navegação do portal (RF-POR-01)", () => {
     await ready();
     expect(container.querySelector("header img")).toHaveAttribute("src", "data:image/png;base64,AAAA");
     expect(screen.getByRole("link", { name: /Minha conta/ })).toHaveTextContent("ASAna SilvaAluno");
+    expectNoOrgColor(container);
     unmount();
-    const guardian = setup("/", { role: "GUARDIAN" });
+    const guardian = setup("/", { role: "GUARDIAN", data: shell({ organization: { name: "Academia Alfa", color: "#1d4ed8", logoUrl: null } }) });
     await ready();
+    expect(guardian.container.querySelector("header [data-initials]")).toHaveClass("bg-brand");
+    expectNoOrgColor(guardian.container);
     expect(screen.getByRole("link", { name: /Minha conta/ })).toHaveTextContent("ASAna SilvaResponsável");
     expect(screen.queryByText("Minha conta", { selector: ".underline" })).toBeNull();
     expect(guardian.container.querySelector("header img")).toBeNull();
@@ -244,7 +253,7 @@ describe("PortalShell: barra e navegação do portal (RF-POR-01)", () => {
     expect(header.firstElementChild).not.toHaveClass("flex-wrap");
     expect(screen.getByRole("main")).toHaveClass("max-w-280");
     const active = tabs().find((a) => a.getAttribute("aria-current") === "page")!;
-    expect(active).toHaveClass("aria-[current=page]:border-[var(--org,var(--brand))]");
+    expect(active).toHaveClass("aria-[current=page]:border-brand");
     expect(active.className).not.toContain("aria-[current=page]:bg-");
     const out = within(header).getByRole("button", { name: "Sair da conta" });
     expect(out.querySelector("span")).toHaveClass("sr-only");

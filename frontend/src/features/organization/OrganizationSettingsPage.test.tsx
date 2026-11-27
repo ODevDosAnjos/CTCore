@@ -75,23 +75,23 @@ const ready = async () => {
 const tab = (name: string) => screen.getByRole("tab", { name });
 
 describe("OrganizationSettingsPage", () => {
-  it("CA15: o Coordenador altera nome, cor e titular, salva e vê a confirmação com os valores novos", async () => {
+  it("CA15: o Coordenador altera nome e titular, salva e vê a confirmação com os valores novos", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR", full);
     await ready();
     expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Academia Alfa");
-    expect(screen.getByLabelText("Cor principal")).toHaveValue("#1a56db");
+    expect(screen.queryByLabelText("Cor principal")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Usar a cor/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Prévia no portal|Contraste/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("11.222.333/0001-81");
     await user.clear(screen.getByLabelText(/^Nome da organização/));
     await user.type(screen.getByLabelText(/^Nome da organização/), "Dojo Novo");
-    await user.clear(screen.getByLabelText("Cor principal"));
-    await user.type(screen.getByLabelText("Cor principal"), "#0B6E4F");
     await user.clear(screen.getByLabelText("Titular (razão social ou nome)"));
     await user.type(screen.getByLabelText("Titular (razão social ou nome)"), "52998224725");
     expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("529.982.247-25");
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
-    expect(writes).toEqual([{ method: "PATCH", body: { name: "Dojo Novo", color: "#0b6e4f", holderDocument: "52998224725", rules } }]);
+    expect(writes).toEqual([{ method: "PATCH", body: { name: "Dojo Novo", holderDocument: "52998224725", rules } }]);
     expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Dojo Novo");
   });
 
@@ -104,24 +104,6 @@ describe("OrganizationSettingsPage", () => {
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("nome recusado pelo servidor")).toBeInTheDocument();
     expect(screen.getByLabelText(/^Nome da organização/)).toHaveAttribute("aria-invalid", "true");
-  });
-
-  it("CA15: cor reprovada mostra a razão e Reprovado com texto e ícone e bloqueia o salvar; aprovada mostra Aprovado", async () => {
-    const user = userEvent.setup();
-    setup("COORDINATOR");
-    await ready();
-    await user.type(screen.getByLabelText("Cor principal"), "#ffeb3b");
-    expect(screen.getByRole("alert")).toHaveTextContent(/Esta cor tem contraste 1,22:1 com o texto branco/);
-    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
-    await user.clear(screen.getByLabelText("Cor principal"));
-    await user.type(screen.getByLabelText("Cor principal"), "#1a56db");
-    expect(screen.getByText(/Contraste [\d,]+:1 · AA/).querySelector("svg")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeEnabled();
-    await user.clear(screen.getByLabelText("Cor principal"));
-    await user.type(screen.getByLabelText("Cor principal"), "azul");
-    expect(screen.getByRole("alert")).toHaveTextContent("Use o formato #RRGGBB");
-    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
   });
 
   it("nome em branco e titular inválido bloqueiam o salvar", async () => {
@@ -206,7 +188,7 @@ describe("OrganizationSettingsPage", () => {
     setup("ADMINISTRATOR", full);
     await ready();
     expect(screen.getByText("Você pode ver estes dados, mas só o Coordenador altera.")).toBeInTheDocument();
-    for (const label of [/^Nome da organização/, "Cor principal", "Titular (razão social ou nome)", "Prazo para bloquear por atraso", "Usar a cor #C8462C"]) {
+    for (const label of [/^Nome da organização/, "Titular (razão social ou nome)", "Prazo para bloquear por atraso"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
     expect(screen.getByRole("radio", { name: "Sim" })).toBeDisabled();
@@ -214,6 +196,7 @@ describe("OrganizationSettingsPage", () => {
       expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
     }
     expect(screen.queryByLabelText("Arquivo da logo")).not.toBeInTheDocument();
+    expect(screen.queryByText(/\bcor\b/i)).not.toBeInTheDocument();
   });
 
   it("CA18: carregando, erro com Tentar de novo e Professor veem os estados certos", async () => {
@@ -241,11 +224,9 @@ describe("OrganizationSettingsPage", () => {
     expect(screen.getByRole("tab", { name: "Modalidades" })).toBeEnabled();
   });
 
-  it("CA18: organização sem logo, cor e titular mostra os campos vazios com o texto de padrão", async () => {
+  it("CA18: organização sem logo e titular mostra os campos vazios", async () => {
     setup("COORDINATOR");
     await ready();
-    expect(screen.getByLabelText("Cor principal")).toHaveValue("");
-    expect(screen.getByText("Sem cor definida: vale a cor padrão da plataforma.")).toBeInTheDocument();
     expect(screen.getByLabelText("Titular (razão social ou nome)")).toHaveValue("");
     expect(screen.queryByRole("img", { name: "Logo da organização" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enviar logo" })).toBeInTheDocument();
@@ -254,20 +235,24 @@ describe("OrganizationSettingsPage", () => {
   it.each([
     ["claro", false],
     ["escuro", true],
-  ])("CA18: a 360 px não tem violações no axe no tema %s, com a cor reprovada e o aviso visíveis", async (_n, dark) => {
+  ])("CA18: a 360 px não tem violações no axe no tema %s, com o erro do campo à vista", async (_n, dark) => {
     const user = userEvent.setup();
     setDevicePrefersDark(dark);
     window.innerWidth = 360;
     const { container } = setup("COORDINATOR", full);
     await ready();
     expect(await axeViolations(container)).toEqual([]);
-    await user.clear(screen.getByLabelText("Cor principal"));
-    await user.type(screen.getByLabelText("Cor principal"), "#ffeb3b");
     await user.clear(screen.getByLabelText(/^Nome da organização/));
+    expect(screen.getByText("Informe o nome da organização.")).toBeInTheDocument();
     expect(await axeViolations(container)).toEqual([]);
   });
 
-  it("CA18: o Administrador também passa no axe", async () => {
+  it.each([
+    ["claro", false],
+    ["escuro", true],
+  ])("CA18: o Administrador também passa no axe a 360 px no tema %s", async (_n, dark) => {
+    setDevicePrefersDark(dark);
+    window.innerWidth = 360;
     const { container } = setup("ADMINISTRATOR", full);
     await ready();
     expect(await axeViolations(container)).toEqual([]);
@@ -460,7 +445,7 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByText("Dados salvos.")).toBeInTheDocument();
     const next = { deactivationDays: 45, formerStudentRetentionMonths: 24, trialRetentionMonths: 3, crossUnitTraining: "denied" };
-    expect(writes).toEqual([{ method: "PATCH", body: { name: "Academia Alfa", color: "#1a56db", holderDocument: "11222333000181", rules: next } }]);
+    expect(writes).toEqual([{ method: "PATCH", body: { name: "Academia Alfa", holderDocument: "11222333000181", rules: next } }]);
     expect(screen.getByLabelText("Prazo para bloquear por atraso")).toHaveValue("45");
     expect(screen.getByRole("radio", { name: "Não" })).toBeChecked();
   });
@@ -519,12 +504,9 @@ describe("OrganizationSettingsPage: canvas, regras e Coordenação (R1, R5 a R8)
     expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled();
     await user.type(screen.getByLabelText(/^Nome da organização/), "!");
     await user.click(screen.getByRole("radio", { name: "Sim" }));
-    await user.click(screen.getByRole("button", { name: "Usar a cor #C8462C" }));
-    expect(screen.getByLabelText("Cor principal")).toHaveValue("#C8462C");
     expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Descartar" }));
     expect(screen.getByLabelText(/^Nome da organização/)).toHaveValue("Academia Alfa");
-    expect(screen.getByLabelText("Cor principal")).toHaveValue("#1a56db");
     expect(screen.getByRole("radio", { name: "Depende do plano" })).toBeChecked();
     expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
     expect(writes).toEqual([]);

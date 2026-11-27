@@ -1,28 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { contrastRatio } from "@/features/organization/contrastRatio";
-import { OrgMark, orgColor, orgStyle } from "./OrgMark";
+import { OrgMark } from "./OrgMark";
 import { PortalTabs } from "./PortalTabs";
 
-describe("OrgMark e cor da organização (CA5, CA6)", () => {
-  it.each([
-    ["#F5E663", undefined], // claro, reprovado no contraste
-    ["#1E3A8A", "#1E3A8A"], // escuro, aprovado
-    [null, undefined],
-    ["azul", undefined],
-    ["#12345", undefined],
-  ])("CA5: %s -> %s", (color, expected) => {
-    expect(orgColor(color)).toBe(expected);
-    if (expected) {
-      expect(contrastRatio(expected)).toBeGreaterThanOrEqual(4.5);
-      expect(orgStyle(color)).toEqual({ "--org": expected });
-    } else expect(orgStyle(color)).toBeUndefined();
-  });
-
+describe("OrgMark (CA6; #754 CA3)", () => {
   it("CA6: sem logo ou com imagem quebrada, o quadrado com as iniciais", () => {
     const { container, rerender } = render(<OrgMark name="Academia Alfa" logoUrl={null} />);
     expect(container.querySelector("[data-initials]")).toHaveAttribute("data-initials", "AA");
     expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("[data-initials]")).toHaveClass("bg-brand");
     rerender(<OrgMark name="Academia Alfa" logoUrl="data:image/png;base64,AAAA" />);
     const img = container.querySelector("img")!;
     expect(img).toHaveAttribute("src", "data:image/png;base64,AAAA");
