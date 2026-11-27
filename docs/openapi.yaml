@@ -932,6 +932,8 @@ paths:
         `kind` é `ENROLLMENT` (termo de matrícula) ou `IMAGE_USE` (uso de imagem); outro valor, 404. Sem publicação, `current` é o texto padrão
         da plataforma como versão 0 (`reaccept` falso, sem data nem autor) e `versions` vem vazia. `versions` traz as versões publicadas,
         da mais nova para a mais antiga, com o texto de cada uma. `canManage` é verdadeiro só para o Coordenador. Professor, Aluno e Responsável recebem 403.
+        `current` e `versions` trazem os campos automáticos sem preencher. No termo de matrícula, `units` traz as unidades ativas ao alcance do vínculo
+        (o Coordenador, todas; o Administrador, só as dele) com os valores dos campos de cada uma, para a prévia (RN-MAT-21); no uso de imagem, vazia.
       security: [{ sessionCookie: [] }]
       parameters:
         - { name: kind, in: path, required: true, schema: { $ref: '#/components/schemas/TermsKind' } }
@@ -948,7 +950,8 @@ paths:
       description: |
         `body` de 20 a 20000 caracteres depois de aparar as pontas e diferente do texto atual; `reaccept` obrigatório: verdadeiro, todos aceitam de novo
         no próximo acesso; falso, vale só para novos alunos. A versão é a anterior mais um (a primeira é 1), numerada por organização e por tipo,
-        e não muda mais: não há rota de alterar nem de apagar. Duas publicações simultâneas do mesmo tipo: uma 201 e uma 409 `TERMS_VERSION_CONFLICT`.
+        e não muda mais: não há rota de alterar nem de apagar. O termo de matrícula aceita os campos automáticos `{unidade}`, `{razao_social}`, `{cnpj}` e
+        `{endereco}`, guardados sem preencher; outro campo ou chave sem fecho é 400 no campo `body` (RN-MAT-21). O uso de imagem não tem campos. Duas publicações simultâneas do mesmo tipo: uma 201 e uma 409 `TERMS_VERSION_CONFLICT`.
         Grava `terms.published` na auditoria, sem o texto.
       security: [{ sessionCookie: [], csrfHeader: [] }]
       parameters:
@@ -3633,8 +3636,9 @@ paths:
       summary: Alunos com termo de matrícula pendente que a conta aceita (RN-MAT-11, RN-MAT-14, RN-POR-03). Responsável e Aluno.
       description: |
         Só alunos com matrícula, sem aceite ou com aceite anterior à última versão publicada com reaceite, que a sessão pode aceitar: o próprio aluno adulto
-        ou o responsável financeiro do menor. Cada item traz o texto vigente do termo e do uso de imagem. Sem pendência, lista vazia. Funciona com o termo
-        pendente. Gestão e Professor: 403.
+        ou o responsável financeiro do menor. Cada item traz o texto vigente do termo e do uso de imagem. O termo vem com os campos automáticos preenchidos com
+        a unidade da matrícula do aluno (a da modalidade ativa mais antiga; sem modalidade ativa, a de cadastro) e com o `hash` desse texto; dado em branco
+        sai como "não informado" (RN-MAT-21). Sem pendência, lista vazia. Funciona com o termo pendente. Gestão e Professor: 403.
       security: [{ sessionCookie: [] }]
       responses:
         '200':
@@ -3651,7 +3655,8 @@ paths:
       summary: Aceita o termo de matrícula, com a caixa opcional de uso de imagem (RN-MAT-11, RN-MAT-12). Responsável e Aluno.
       description: |
         Só o aluno adulto (conta dele) ou o responsável financeiro do menor. `version` é obrigatória (400) e deve ser a vigente (409 `TERMS_VERSION_CONFLICT`).
-        Grava conta, versão, data, hora e IP, sem nunca alterar nem apagar, e `term.accepted` (e `image-use.granted`) na auditoria, sem o texto. Repetir o aceite, ou
+        `hash` é opcional; se vier e o texto preenchido tiver mudado, também 409 `TERMS_VERSION_CONFLICT`, sem gravar nada.
+        Grava o texto preenchido, conta, versão, data, hora e IP, sem nunca alterar nem apagar, e `term.accepted` (e `image-use.granted`) na auditoria, sem o texto. Repetir o aceite, ou
         aceitar aluno sem matrícula ou sem pendência, responde 200 sem gravar. Aluno não ligado à conta ou de outra organização: 404; ligado mas que a conta não
         aceita (responsável não financeiro): 403.
       security: [{ sessionCookie: [], csrfHeader: [] }]
@@ -4581,11 +4586,28 @@ components:
         acceptances: { type: integer, minimum: 0, description: Alunos distintos que aceitaram esta versão (ACCEPTED); 0 no texto padrão. }
     TermsView:
       type: object
-      required: [canManage, current, versions]
+      required: [canManage, current, versions, units]
       properties:
         canManage: { type: boolean }
         current: { $ref: '#/components/schemas/TermsVersion' }
         versions: { type: array, items: { $ref: '#/components/schemas/TermsVersion' } }
+        units: { type: array, items: { $ref: '#/components/schemas/TermsUnitPreview' }, description: 'Unidades ativas ao alcance, para a prévia do termo de matrícula; vazia no uso de imagem.' }
+    TermsUnitPreview:
+      type: object
+      required: [id, name, values, missing]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        values:
+          type: object
+          required: [unidade, razao_social, cnpj, endereco]
+          description: Valor pronto de cada campo automático; dado em branco vem como "não informado".
+          properties:
+            unidade: { type: string }
+            razao_social: { type: string }
+            cnpj: { type: string }
+            endereco: { type: string }
+        missing: { type: array, items: { type: string, enum: [unidade, razao_social, cnpj, endereco] }, description: Campos que saem "não informado". }
     TermsPublishInput:
       type: object
       required: [body, reaccept]
@@ -7126,10 +7148,11 @@ components:
             email: { type: string, nullable: true }
     PortalTermText:
       type: object
-      required: [version, body]
+      required: [version, body, hash]
       properties:
         version: { type: integer, minimum: 0 }
-        body: { type: string, description: Texto puro com quebras de linha. }
+        body: { type: string, description: 'Texto puro com quebras de linha, já preenchido com a unidade da matrícula.' }
+        hash: { type: string, description: Marca opaca do texto mostrado; o aceite a devolve. }
     PortalImageUse:
       type: object
       required: [version, body, granted]
@@ -7151,6 +7174,7 @@ components:
       properties:
         version: { type: integer, minimum: 0, description: Versão vigente do termo de matrícula. }
         imageUse: { type: boolean, description: 'Caixa opcional do uso de imagem. Ausente ou falso, não concede.' }
+        hash: { type: string, description: 'O `hash` do texto lido. Se o texto preenchido mudou, 409. Ausente, grava o texto do momento.' }
     PortalTermAcceptance:
       type: object
       required: [studentId, version, imageUse]

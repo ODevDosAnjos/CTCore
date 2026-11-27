@@ -23,12 +23,12 @@ const session = (role: string, name = "X"): SessionView => ({
 const pending: PortalTermPending = {
   id: "s1",
   name: "Aluno Fictício",
-  term: { version: 1, body: "Texto do termo.\nSegunda linha." },
+  term: { version: 1, body: "Texto do termo.\nSegunda linha.", hash: "h1" },
   imageUse: { version: 1, body: "Texto do uso de imagem.", granted: false },
 };
 
 let list: PortalTermPending[];
-let posts: { id: string; body: { version: number; imageUse: boolean } }[];
+let posts: { id: string; body: { version: number; hash?: string; imageUse: boolean } }[];
 
 function setup(over: { role?: string; name?: string; initial?: PortalTermPending[]; get?: () => Response; post?: () => Response | undefined; path?: string } = {}) {
   list = over.initial ?? [pending];
@@ -42,7 +42,7 @@ function setup(over: { role?: string; name?: string; initial?: PortalTermPending
     http.post("/api/v1/portal/students/:id/term-acceptance", async ({ request, params }) => {
       const failure = over.post?.();
       if (failure) return failure;
-      posts.push({ id: params.id as string, body: (await request.json()) as { version: number; imageUse: boolean } });
+      posts.push({ id: params.id as string, body: (await request.json()) as { version: number; hash?: string; imageUse: boolean } });
       list = list.filter((p) => p.id !== params.id);
       return HttpResponse.json({ studentId: params.id, version: 1, imageUse: false }, { status: 201 });
     }),
@@ -73,7 +73,7 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
     await userEvent.click(image);
     await userEvent.click(submit);
     await screen.findByRole("heading", { name: /^Olá/, level: 1 });
-    expect(posts).toEqual([{ id: "s1", body: { version: 1, imageUse: true } }]);
+    expect(posts).toEqual([{ id: "s1", body: { version: 1, hash: "h1", imageUse: true } }]);
   });
 
   it("mostra marca, abertura, termo rolável com versão, Baixar PDF em breve e as dicas (R1 a R4)", async () => {
@@ -164,12 +164,35 @@ describe("PortalTermPage (RN-MAT-11, RN-POR-03)", () => {
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
   });
 
-  it("termo que mudou (409) avisa e mantém a tela", async () => {
-    setup({ post: () => HttpResponse.json({ code: "TERMS_VERSION_CONFLICT" }, { status: 409 }) });
+  it("769 CA9: texto que mudou (409) avisa, é lido de novo com a caixa desmarcada, e o novo aceite funciona", async () => {
+    let attempts = 0;
+    setup({
+      post: () => {
+        if (++attempts > 1) return undefined;
+        list = [{ ...pending, term: { version: 1, body: "Texto do termo atualizado.", hash: "h2" } }];
+        return HttpResponse.json({ code: "TERMS_VERSION_CONFLICT" }, { status: 409 });
+      },
+    });
     await heading();
     await userEvent.click(await screen.findByLabelText("Li e aceito o termo de matrícula"));
     await userEvent.click(screen.getByRole("button", { name: "Aceitar e continuar" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("O termo mudou");
+    expect(await screen.findByText("Texto do termo atualizado.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("O termo mudou");
+    const read = screen.getByLabelText("Li e aceito o termo de matrícula");
+    expect(read).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Aceitar e continuar" })).toBeDisabled();
+    await userEvent.click(read);
+    await userEvent.click(screen.getByRole("button", { name: "Aceitar e continuar" }));
+    await screen.findByRole("heading", { name: /^Olá/, level: 1 });
+    expect(posts).toEqual([{ id: "s1", body: { version: 1, hash: "h2", imageUse: false } }]);
+  });
+
+  it("falha no aceite mostra o erro e mantém a tela", async () => {
+    setup({ post: () => new HttpResponse(null, { status: 500 }) });
+    await heading();
+    await userEvent.click(await screen.findByLabelText("Li e aceito o termo de matrícula"));
+    await userEvent.click(screen.getByRole("button", { name: "Aceitar e continuar" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não conseguimos registrar");
     await waitFor(() => expect(screen.getByRole("button", { name: "Aceitar e continuar" })).toBeEnabled());
   });
 

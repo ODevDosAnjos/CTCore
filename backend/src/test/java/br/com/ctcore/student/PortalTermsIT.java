@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.ctcore.identity.AccountPrincipal;
 import br.com.ctcore.identity.Role;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -46,6 +47,143 @@ class PortalTermsIT extends PortalTermBase {
         assertThat(post(portal(t, acc2, Role.STUDENT), noImage, "{\"version\":1,\"imageUse\":false}").getStatus()).isEqualTo(201);
         assertThat(count("student_id = ? and kind = 'IMAGE_USE'", noImage)).isZero();
         assertThat(body(get(portal(t, acc2, Role.STUDENT), "/students/" + noImage + "/image-use")).get("granted").asBoolean()).isFalse();
+    }
+
+    private static final String FIELDS_TERM = "Contratante: {unidade} | {razao_social} | {cnpj} | {endereco}.";
+
+    private UUID unit(Tenant t, String name, String legalName, String cnpj, String address) {
+        UUID id = UUID.randomUUID();
+        adminJdbc().update("insert into unit (id, organization_id, name, short_name, legal_name, cnpj, address, city, postal_code) values (?, ?, ?, ?, ?, ?, ?, 'Cidade Fictícia', '20000000')",
+                id, t.orgId(), name, id.toString(), legalName, cnpj, address);
+        return id;
+    }
+
+    private void publishFields(Tenant t) {
+        publish(t, "ENROLLMENT", 1, true);
+        adminJdbc().update("update terms_version set body = ? where organization_id = ?", FIELDS_TERM, t.orgId());
+    }
+
+    private UUID enrolledAt(Tenant t, String name, UUID account, UUID unit) {
+        UUID id = student(t, name, "1990-01-01", account);
+        EnrollmentFixtures.enroll(adminJdbc(), t.orgId(), id, unit, "ACTIVE", 0, null);
+        return id;
+    }
+
+    private JsonNode term(AccountPrincipal who) throws Exception {
+        return body(get(who, "/term")).get(0).get("term");
+    }
+
+    private String stored(UUID student) {
+        return adminJdbc().queryForObject("select body from term_acceptance where student_id = ? and kind = 'ENROLLMENT'", String.class, student);
+    }
+
+    private static String acceptance(int version, JsonNode term) {
+        return "{\"version\":" + version + ",\"hash\":\"" + term.get("hash").asText() + "\"}";
+    }
+
+    @Test
+    @DisplayName("769 CA1, CA3: cada aluno lê e aceita o texto da própria unidade; o gravado é o mostrado e não muda com a unidade nem com o titular")
+    void filledPerUnit() throws Exception {
+        Tenant t = tenant();
+        publishFields(t);
+        publish(t, "IMAGE_USE", 1, true);
+        UUID north = unit(t, "Norte", "Norte Ltda", "11222333000181", "Rua Norte, 1"), south = unit(t, "Sul", "Sul Ltda", "11444777000161", "Rua Sul, 2");
+        UUID accN = account("norte@portal.example"), accS = account("sul@portal.example");
+        UUID a = enrolledAt(t, "Aluno Norte", accN, north), b = enrolledAt(t, "Aluno Sul", accS, south);
+        var expected = java.util.Map.of(a, "Contratante: Norte | Norte Ltda | 11.222.333/0001-81 | Rua Norte, 1, Cidade Fictícia, CEP 20000-000.",
+                b, "Contratante: Sul | Sul Ltda | 11.444.777/0001-61 | Rua Sul, 2, Cidade Fictícia, CEP 20000-000.");
+        for (var entry : java.util.Map.of(a, accN, b, accS).entrySet()) {
+            var who = portal(t, entry.getValue(), Role.STUDENT);
+            var shown = term(who);
+            assertThat(shown.get("body").asText()).isEqualTo(expected.get(entry.getKey()));
+            assertThat(post(who, entry.getKey(), "{\"version\":1,\"imageUse\":true,\"hash\":\"" + shown.get("hash").asText() + "\"}").getStatus()).isEqualTo(201);
+            assertThat(stored(entry.getKey())).isEqualTo(shown.get("body").asText());
+        }
+        assertThat(count("kind = 'IMAGE_USE' and body is null")).isEqualTo(2);
+        assertThat(adminJdbc().queryForObject("select coalesce(string_agg(after_data::text, ''), '') from audit_log where entity_id = ?", String.class, a.toString()))
+                .doesNotContain("Contratante", "Norte Ltda", "11.222.333");
+
+        adminJdbc().update("update unit set name = 'Outro', legal_name = 'Outra Ltda', cnpj = null, address = 'Outra Rua' where id = ?", north);
+        adminJdbc().update("update organization set holder_name = 'Novo Titular' where id = ?", t.orgId());
+        assertThat(stored(a)).isEqualTo(expected.get(a));
+        assertThat(post(portal(t, accN, Role.STUDENT), a, "{\"version\":1,\"hash\":\"antigo\"}").getStatus()).isEqualTo(200);
+        assertThat(count("student_id = ? and kind = 'ENROLLMENT'", a)).isEqualTo(1);
+        assertThat(stored(a)).isEqualTo(expected.get(a));
+    }
+
+    @Test
+    @DisplayName("769 CA2, CA10: sem CNPJ vale o titular; em branco sai não informado e o aceite funciona; o modelo (versão 0) vem preenchido")
+    void holderAndMissing() throws Exception {
+        Tenant t = tenant();
+        UUID noCnpj = unit(t, "Filial", "Razão Que Não Sai", null, "Rua Filial, 3");
+        UUID acc = account("filial@portal.example");
+        UUID s = enrolledAt(t, "Aluno Filial", acc, noCnpj);
+        var who = portal(t, acc, Role.STUDENT);
+        adminJdbc().update("update organization set holder_name = 'Titular Fictício', holder_document = '52998224725' where id = ?", t.orgId());
+
+        var model = term(who);
+        assertThat(model.get("version").asInt()).isZero();
+        assertThat(model.get("body").asText()).contains("Unidade: Filial", "Razão social: Titular Fictício", "CNPJ ou CPF: 529.982.247-25", "Endereço: Rua Filial, 3")
+                .doesNotContain("{", "Razão Que Não Sai");
+
+        adminJdbc().update("update organization set holder_name = null, holder_document = null where id = ?", t.orgId());
+        adminJdbc().update("update unit set address = null, city = null, postal_code = null where id = ?", noCnpj);
+        var blank = term(who);
+        assertThat(blank.get("body").asText()).contains("Razão social: não informado", "CNPJ ou CPF: não informado", "Endereço: não informado");
+        assertThat(post(who, s, acceptance(0, blank)).getStatus()).isEqualTo(201);
+        assertThat(stored(s)).isEqualTo(blank.get("body").asText());
+    }
+
+    @Test
+    @DisplayName("769 CA8: vale a modalidade ativa mais antiga; todas encerradas, a unidade de cadastro; mudar de unidade depois não reabre o termo")
+    void enrollmentUnit() throws Exception {
+        Tenant t = tenant();
+        publishFields(t);
+        UUID older = unit(t, "Antiga", null, null, null), newer = unit(t, "Recente", null, null, null);
+        UUID acc = account("duas@portal.example");
+        UUID s = student(t, "Aluno Duas", "1990-01-01", acc);
+        var first = EnrollmentFixtures.enroll(adminJdbc(), t.orgId(), s, newer, "ACTIVE", 0, null);
+        var second = EnrollmentFixtures.enroll(adminJdbc(), t.orgId(), s, older, "ACTIVE", 1, null);
+        adminJdbc().update("update enrollment_modality set started_at = now() - interval '30 days' where id = ?", second.row());
+        var who = portal(t, acc, Role.STUDENT);
+        assertThat(term(who).get("body").asText()).startsWith("Contratante: Antiga |");
+
+        adminJdbc().update("update enrollment_modality set status = 'ENDED', ended_at = now() where id = ?", second.row());
+        assertThat(term(who).get("body").asText()).startsWith("Contratante: Recente |");
+        adminJdbc().update("update enrollment_modality set status = 'ENDED', ended_at = now() where id = ?", first.row());
+        assertThat(term(who).get("body").asText()).startsWith("Contratante: Unit |");
+
+        assertThat(post(who, s, acceptance(1, term(who))).getStatus()).isEqualTo(201);
+        adminJdbc().update("update enrollment_modality set status = 'ACTIVE', ended_at = null where id = ?", second.row());
+        assertThat(body(get(who, "/term"))).isEmpty();
+        assertThat(stored(s)).startsWith("Contratante: Unit |");
+    }
+
+    @Test
+    @DisplayName("769 CA9: dado mudou antes do aceite, hash antigo dá 409 sem gravar; o novo funciona; sem hash grava o texto do momento")
+    void changedBeforeAcceptance() throws Exception {
+        Tenant t = tenant();
+        publishFields(t);
+        publish(t, "IMAGE_USE", 1, true);
+        UUID u = unit(t, "Centro Fictício", "Centro Ltda", "11222333000181", "Rua Um, 1");
+        UUID acc = account("mudou@portal.example"), acc2 = account("semhash@portal.example");
+        UUID s = enrolledAt(t, "Aluno Mudou", acc, u), s2 = enrolledAt(t, "Aluno Sem Hash", acc2, u);
+        var who = portal(t, acc, Role.STUDENT);
+        var old = term(who);
+        adminJdbc().update("update unit set legal_name = 'Centro Novo Ltda' where id = ?", u);
+
+        var refused = post(who, s, "{\"version\":1,\"imageUse\":true,\"hash\":\"" + old.get("hash").asText() + "\"}");
+        assertThat(refused.getStatus()).isEqualTo(409);
+        assertThat(body(refused).get("code").asText()).isEqualTo("TERMS_VERSION_CONFLICT");
+        assertThat(count("true")).isZero();
+        assertThat(audits("term.accepted", s)).isZero();
+
+        var fresh = term(who);
+        assertThat(fresh.get("hash").asText()).isNotEqualTo(old.get("hash").asText());
+        assertThat(post(who, s, acceptance(1, fresh)).getStatus()).isEqualTo(201);
+        assertThat(stored(s)).contains("Centro Novo Ltda");
+        assertThat(post(portal(t, acc2, Role.STUDENT), s2, "{\"version\":1}").getStatus()).isEqualTo(201);
+        assertThat(stored(s2)).isEqualTo(stored(s));
     }
 
     @Test

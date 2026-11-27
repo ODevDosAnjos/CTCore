@@ -24,7 +24,20 @@ const v1: TermsVersion = { version: 1, body: "Primeira versão publicada do term
 let versions: TermsVersion[];
 let posts: { kind: string; body: { body: string; reaccept: boolean } }[];
 
-const view = (role: string): TermsView => ({ canManage: role === "COORDINATOR", current: versions[0] ?? MODEL, versions });
+const unitPreview = (id: string, name: string, legalName: string | null) => ({
+  id,
+  name,
+  values: { unidade: name, razao_social: legalName ?? "não informado", cnpj: "11.222.333/0001-81", endereco: "Rua Fictícia, 1" },
+  missing: legalName ? [] : ["razao_social"],
+});
+const UNITS = [unitPreview("u1", "Centro", "Centro Ltda"), unitPreview("u2", "Norte", null)];
+
+const view = (role: string, kind = "ENROLLMENT"): TermsView => ({
+  canManage: role === "COORDINATOR",
+  current: versions[0] ?? MODEL,
+  versions,
+  units: kind === "ENROLLMENT" ? UNITS : [],
+});
 
 function setup(role: string, over: { get?: () => Response | Promise<Response>; post?: (n: number) => Response | undefined; initial?: TermsVersion[]; at?: string } = {}) {
   versions = over.initial ?? [];
@@ -33,7 +46,7 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
     http.get("/api/v1/auth/session", () => HttpResponse.json(session(role))),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: false, units: [] })),
-    http.get("/api/v1/organization/terms/:kind", over.get ?? (() => HttpResponse.json(view(role)))),
+    http.get("/api/v1/organization/terms/:kind", over.get ?? (({ params }) => HttpResponse.json(view(role, params.kind as string)))),
     http.post("/api/v1/organization/terms/:kind/versions", async ({ request, params }) => {
       const body = (await request.json()) as { body: string; reaccept: boolean };
       posts.push({ kind: params.kind as string, body });
@@ -126,6 +139,49 @@ describe("TermsTab", () => {
     expect(versions).toEqual([]);
   });
 
+  it("769 CA6: o campo entra no cursor ou no lugar da seleção, e a prévia segue o texto em edição e a unidade escolhida", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { initial: [{ ...v1, body: "Contratante: XXX. Fim do termo." }] });
+    const box = (await editor()) as HTMLTextAreaElement;
+    box.setSelectionRange(13, 16);
+    await user.click(screen.getByRole("button", { name: "Inserir o campo Razão social" }));
+    expect(box).toHaveValue("Contratante: {razao_social}. Fim do termo.");
+    await waitFor(() => expect(box.selectionStart).toBe(27));
+    box.setSelectionRange(0, 0);
+    await user.click(screen.getByRole("button", { name: "Inserir o campo Nome da unidade" }));
+    expect(box).toHaveValue("{unidade}Contratante: {razao_social}. Fim do termo.");
+    expect(screen.getByTestId("terms-preview")).toHaveTextContent("CentroContratante: Centro Ltda. Fim do termo.");
+    expect(screen.queryByText(/sai como “não informado”/)).toBeNull();
+    await user.selectOptions(screen.getByLabelText("Unidade da prévia"), "Norte");
+    expect(screen.getByTestId("terms-preview")).toHaveTextContent("NorteContratante: não informado. Fim do termo.");
+    expect(screen.getByText("Nesta unidade sai como “não informado”: Razão social.")).toBeInTheDocument();
+  });
+
+  it("769 CA4: campo recusado pelo servidor avisa sobre o campo; uso de imagem não tem campos nem prévia", async () => {
+    const user = userEvent.setup();
+    setup("COORDINATOR", { post: () => HttpResponse.json({ code: "VALIDATION_ERROR", fields: [{ field: "body", message: "campo automático desconhecido: {telefone}" }] }, { status: 400 }) });
+    const box = await editor();
+    await user.clear(box);
+    await user.type(box, "Texto com campo que o servidor recusa.");
+    await user.click(screen.getByLabelText(/Só para novos alunos/));
+    await user.click(publishButton());
+    expect(await screen.findByRole("alert")).toHaveTextContent("campo automático que não existe");
+    await user.click(screen.getByRole("tab", { name: "Uso de imagem" }));
+    await screen.findByRole("tab", { name: "Uso de imagem", selected: true });
+    await editor();
+    expect(screen.queryByRole("heading", { name: "Prévia por unidade" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Inserir o campo/ })).toBeNull();
+  });
+
+  it("769 CA6: o Administrador tem a prévia da versão atual, sem botões de campo; sem unidade ao alcance, o cartão diz", async () => {
+    const first = setup("ADMINISTRATOR", { initial: [{ ...v1, body: "Unidade contratante: {unidade}." }] });
+    expect(await screen.findByTestId("terms-preview")).toHaveTextContent("Unidade contratante: Centro.");
+    expect(screen.queryByRole("button", { name: /^Inserir o campo/ })).toBeNull();
+    first.unmount();
+    setup("ADMINISTRATOR", { get: () => HttpResponse.json({ ...view("ADMINISTRATOR"), units: [] }) });
+    expect(await screen.findByText("Nenhuma unidade ativa ao seu alcance para a prévia.")).toBeInTheDocument();
+  });
+
   it("CA9: o Administrador vê o texto e o histórico, sem editor, rascunho, botão nem escolha", async () => {
     setup("ADMINISTRATOR", { initial: [v1] });
     await ready();
@@ -134,7 +190,7 @@ describe("TermsTab", () => {
     expect(screen.queryByRole("button", { name: /^Publicar versão/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Salvar rascunho/ })).toBeNull();
     expect(screen.queryByRole("radio")).toBeNull();
-    expect(screen.getByText(v1.body)).toBeInTheDocument();
+    expect(screen.getAllByText(v1.body)).toHaveLength(2); // texto atual e prévia
     expect(screen.queryByText(/O uso de imagem é uma caixa separada/)).not.toBeInTheDocument();
   });
 

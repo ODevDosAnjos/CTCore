@@ -12,10 +12,17 @@ export interface TermsVersion {
   publishedBy: string | null;
   acceptances: number;
 }
+export interface TermsUnitPreview {
+  id: string;
+  name: string;
+  values: Record<string, string>;
+  missing: string[];
+}
 export interface TermsView {
   canManage: boolean;
   current: TermsVersion;
   versions: TermsVersion[];
+  units: TermsUnitPreview[];
 }
 export interface TermsInput {
   body: string;

@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 export interface PortalTermPending {
   id: string;
   name: string;
-  term: { version: number; body: string };
+  term: { version: number; body: string; hash?: string };
   imageUse: { version: number; body: string; granted: boolean };
 }
 
@@ -36,7 +36,7 @@ export function usePortalTerm() {
     retry: () => setTick((n) => n + 1),
     // Erros sobem (ApiError) para a tela mostrar; depois do aceite a lista é lida de novo.
     accept: async (p: PortalTermPending, imageUse: boolean) => {
-      await api(`/portal/students/${p.id}/term-acceptance`, { method: "POST", body: { version: p.term.version, imageUse } });
+      await api(`/portal/students/${p.id}/term-acceptance`, { method: "POST", body: { version: p.term.version, hash: p.term.hash, imageUse } });
       setTick((n) => n + 1);
     },
   };

@@ -36,14 +36,19 @@ describe("aceite do termo no portal x OpenAPI (#85)", () => {
     const pending = await (await send("GET", "/portal/term")).json();
     expect(pending).toHaveLength(1);
     expect(pending[0]).toMatchObject({ id: ADULT, imageUse: { granted: false } });
-    expect(pending[0].term.body).toBeTruthy();
+    expect(pending[0].term.body).toContain("Unidade: Unidade Centro");
+    expect(pending[0].term.body).not.toContain("{");
+    expect(Object.keys(pending[0].term).sort()).toEqual([...openapi.components.schemas.PortalTermText.required].sort());
+    const stale = await send("POST", `/portal/students/${ADULT}/term-acceptance`, { version: pending[0].term.version, hash: "antigo" });
+    expect(stale.status).toBe(409);
+    expect((await stale.json()).code).toBe("TERMS_VERSION_CONFLICT");
 
     expect((await send("POST", `/portal/students/${ADULT}/term-acceptance`, {})).status).toBe(400);
     expect((await send("POST", `/portal/students/${ADULT}/term-acceptance`, { version: 9 })).status).toBe(409);
     expect((await send("POST", `/portal/students/${MINOR}/term-acceptance`, { version: 0 })).status).toBe(404);
     expect((await send("GET", "/portal/modality-confirmations")).status).toBe(403);
 
-    const accepted = await send("POST", `/portal/students/${ADULT}/term-acceptance`, { version: pending[0].term.version, imageUse: true });
+    const accepted = await send("POST", `/portal/students/${ADULT}/term-acceptance`, { version: pending[0].term.version, hash: pending[0].term.hash, imageUse: true });
     expect(accepted.status).toBe(201);
     expect(await accepted.json()).toMatchObject({ studentId: ADULT, imageUse: true });
     expect((await send("POST", `/portal/students/${ADULT}/term-acceptance`, { version: pending[0].term.version })).status).toBe(200);

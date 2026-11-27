@@ -361,12 +361,37 @@ let ageRanges = initialAgeRanges();
 // Termos da organização (RF-MAT-05), em memória: sem publicação vale o texto padrão como versão 0. Texto igual ao atual ou fora de 20 a 20000 é 400.
 type MockTermsVersion = { version: number; body: string; reaccept: boolean; publishedAt: string | null; publishedBy: string | null; acceptances: number };
 const TERMS_TEMPLATES: Record<string, string> = {
-  ENROLLMENT: "TERMO DE MATRÍCULA\n\nAo matricular-se, o aluno declara conhecer e aceitar o regulamento da academia.",
+  ENROLLMENT: "TERMO DE MATRÍCULA\n\nUnidade: {unidade}\nRazão social: {razao_social}\nCNPJ ou CPF: {cnpj}\nEndereço: {endereco}\n\nAo matricular-se, o aluno declara conhecer e aceitar o regulamento da academia.",
   IMAGE_USE: "TERMO DE USO DE IMAGEM\n\nO aluno autoriza o uso de fotos e vídeos das aulas nos canais da academia.",
 };
 let termsVersions: Record<string, MockTermsVersion[]> = { ENROLLMENT: [], IMAGE_USE: [] };
 const termsCurrent = (kind: string): MockTermsVersion =>
   termsVersions[kind][0] ?? { version: 0, body: TERMS_TEMPLATES[kind], reaccept: false, publishedAt: null, publishedBy: null, acceptances: 0 };
+// RN-MAT-21: campos automáticos, preenchidos como no servidor (um lugar só para a prévia e o portal).
+const TERM_FIELDS = ["unidade", "razao_social", "cnpj", "endereco"];
+const formatDocument = (d: string) =>
+  d.length === 14 ? d.replace(/(.{2})(.{3})(.{3})(.{4})(.{2})/, "$1.$2.$3/$4-$5") : d.length === 11 ? d.replace(/(.{3})(.{3})(.{3})(.{2})/, "$1.$2.$3-$4") : d;
+const termUnit = (id: string) => {
+  const u = unitDetail(id);
+  // Com CNPJ, razão social e documento são os da unidade; sem CNPJ, os do titular.
+  const [legalName, document] = u.cnpj ? [u.legalName, u.cnpj] : [organization.holderName, organization.holderDocument];
+  const cep = u.postalCode?.replace(/^(\d{5})(\d{3})$/, "$1-$2");
+  const raw = [u.name, legalName ?? "", formatDocument(document ?? ""), [u.address, u.city, cep && `CEP ${cep}`].filter(Boolean).join(", ")];
+  return {
+    id,
+    name: u.name,
+    values: Object.fromEntries(TERM_FIELDS.map((f, i) => [f, raw[i] || "não informado"])),
+    missing: TERM_FIELDS.filter((_, i) => !raw[i]),
+  };
+};
+const fillTerm = (text: string, unitId: string) => {
+  const { values } = termUnit(unitId);
+  return text.replace(/\{([a-z_]+)\}/g, (all, f: string) => (Object.hasOwn(values, f) ? values[f] : all));
+};
+const termFieldsError = (text: string) => {
+  if ([...text.matchAll(/\{([^{}]*)}/g)].some((m) => !TERM_FIELDS.includes(m[1]))) return "campo automático desconhecido";
+  return /[{}]/.test(text.replace(/\{[^{}]*}/g, "")) ? "chave { } sem fecho" : null;
+};
 // Textos dos modelos de e-mail (RF-COM-03, #83), em memória: sem texto próprio vale o da plataforma. Mesmas validações do servidor.
 type MockTextModel = { group: string; fields: string[]; subject: string; body: string };
 const REMINDER_FIELDS = ["nome", "valor", "vencimento", "unidade", "descricao", "link_pagamento"];
@@ -1805,6 +1830,14 @@ const termText = (kind: "ENROLLMENT" | "IMAGE_USE") => {
   const { version, body } = termsCurrent(kind);
   return { version, body };
 };
+// O termo pendente vem preenchido com a unidade da matrícula (modalidade ativa mais antiga ou a de cadastro), com um hash do texto.
+const pendingTerm = (s: StudentDetail) => {
+  const oldest = (mockEnrollments[s.id]?.modalities ?? []).filter((m) => m.status === "ACTIVE").sort((a, b) => a.startedAt.localeCompare(b.startedAt))[0];
+  const { version, body } = termText("ENROLLMENT");
+  const filled = fillTerm(body, oldest?.unitId ?? s.registeredUnitId);
+  const hash = String([...filled].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0));
+  return { version, body: filled, hash };
+};
 const confirmable = (s: StudentDetail) => {
   const since = portalAccepted.get(s.id);
   return (mockEnrollments[s.id]?.modalities ?? [])
@@ -2717,7 +2750,9 @@ export const routes: Route[] = [
       if (denied) return denied;
       const kind = params.kind as string;
       if (!(kind in TERMS_TEMPLATES)) return error(404, "NOT_FOUND", "Não encontrado.");
-      return HttpResponse.json({ canManage: activeRole() === "COORDINATOR", current: termsCurrent(kind), versions: termsVersions[kind] });
+      const reachable = kind !== "ENROLLMENT" ? [] : units.filter((u) => u.active && (activeRole() !== "ADMINISTRATOR" || u.id === ADMIN_UNIT));
+      const preview = reachable.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")).map((u) => termUnit(u.id));
+      return HttpResponse.json({ canManage: activeRole() === "COORDINATOR", current: termsCurrent(kind), versions: termsVersions[kind], units: preview });
     },
   },
   {
@@ -2731,6 +2766,8 @@ export const routes: Route[] = [
       const input = (await request.json()) as { body?: string; reaccept?: boolean };
       const text = input.body?.trim() ?? "";
       if (text.length < 20 || text.length > 20000) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "body", message: "de 20 a 20000 caracteres" }]);
+      const badField = kind === "ENROLLMENT" ? termFieldsError(text) : null;
+      if (badField) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "body", message: badField }]);
       if (typeof input.reaccept !== "boolean") return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "reaccept", message: "obrigatório" }]);
       if (text === termsCurrent(kind).body.trim()) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "body", message: "igual ao texto atual" }]);
       const created = { version: termsCurrent(kind).version + 1, body: text, reaccept: input.reaccept, publishedAt: new Date().toISOString(), publishedBy: current.account.name, acceptances: 0 };
@@ -5327,7 +5364,7 @@ export const routes: Route[] = [
     resolver: () => {
       const denied = portalAccess();
       if (denied) return denied;
-      return HttpResponse.json(portalMine().filter((s) => termPending(s.id)).map((s) => ({ id: s.id, name: s.name, term: termText("ENROLLMENT"), imageUse: { ...termText("IMAGE_USE"), granted: portalImage.get(s.id) ?? false } })));
+      return HttpResponse.json(portalMine().filter((s) => termPending(s.id)).map((s) => ({ id: s.id, name: s.name, term: pendingTerm(s), imageUse: { ...termText("IMAGE_USE"), granted: portalImage.get(s.id) ?? false } })));
     },
   },
   {
@@ -5337,12 +5374,13 @@ export const routes: Route[] = [
     resolver: async ({ params, request }) => {
       const denied = portalAccess();
       if (denied) return denied;
-      const body = (await request.json().catch(() => ({}))) as { version?: unknown; imageUse?: boolean };
+      const body = (await request.json().catch(() => ({}))) as { version?: unknown; imageUse?: boolean; hash?: string };
       if (!Number.isInteger(body.version)) return error(400, "VALIDATION_ERROR", "Dados inválidos.", [{ field: "version", message: "obrigatória" }]);
       const student = portalMine().find((s) => s.id === params.id);
       if (!student) return error(404, "NOT_FOUND", "Não encontrado.");
       if (body.version !== termText("ENROLLMENT").version) return error(409, "TERMS_VERSION_CONFLICT", "O termo mudou.");
       const wrote = termPending(student.id);
+      if (wrote && body.hash !== undefined && body.hash !== pendingTerm(student).hash) return error(409, "TERMS_VERSION_CONFLICT", "O termo mudou.");
       if (wrote) {
         portalAccepted.set(student.id, new Date().toISOString());
         if (body.imageUse) portalImage.set(student.id, true);

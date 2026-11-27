@@ -72,14 +72,8 @@ function TermBlock({
     setMessage(undefined);
     try {
       await onAccept(image);
-    } catch (e) {
-      setMessage(
-        t(
-          e instanceof ApiError && e.status === 409
-            ? "portalTerm.errors.conflict"
-            : "portalTerm.errors.generic",
-        ),
-      );
+    } catch {
+      setMessage(t("portalTerm.errors.generic"));
       setBusy(false);
     }
   };
@@ -141,6 +135,8 @@ export function PortalTermPage() {
   const term = usePortalTerm();
   const [accepted, setAccepted] = useState(false);
   const [initial, setInitial] = useState<PortalTermPending[]>([]);
+  // No 409 o texto é lido de novo e o bloco do termo remonta; por isso o aviso fica no nível da página.
+  const [conflict, setConflict] = useState(false);
   if (term.data && term.data.length > 0 && initial.length === 0)
     setInitial(term.data); // D3: a API devolve só os pendentes
   const session = state.status === "ready" ? state.session : undefined;
@@ -207,8 +203,15 @@ export function PortalTermPage() {
           item={current}
           many={initial.length > 1}
           onAccept={async (imageUse) => {
-            await term.accept(current, imageUse);
-            setAccepted(true);
+            setConflict(false);
+            try {
+              await term.accept(current, imageUse);
+              setAccepted(true);
+            } catch (e) {
+              if (!(e instanceof ApiError && e.status === 409)) throw e;
+              setConflict(true);
+              term.retry();
+            }
           }}
         />
       </div>
@@ -243,6 +246,11 @@ export function PortalTermPage() {
           </p>
           <PageHeader title={t("portalTerm.title")} subtitle={intro} />
         </div>
+        {conflict && (
+          <p role="alert" className="text-sm text-danger-foreground">
+            {t("portalTerm.errors.conflict")}
+          </p>
+        )}
         {body}
       </main>
     </>

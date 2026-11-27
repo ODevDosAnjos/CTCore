@@ -287,7 +287,8 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
         const versao = (version: number, publishedAt: string, acceptances: number, body: string) => ({ version, body, reaccept: false, publishedAt, publishedBy: "Marcos Leão", acceptances });
         const corpo = "Termo de matrícula · Academia Leão\n\n1. A mensalidade vence no dia escolhido na matrícula e é cobrada por modalidade.\n2. Não há juros, multa ou pagamento parcial. A taxa do meio de pagamento online é somada ao valor.\n3. Com 30 dias de atraso, a modalidade é bloqueada até o pagamento.\n4. O aluno declara estar apto à prática esportiva. A academia não guarda dados de saúde.\n5. O encerramento pode ser pedido pelo portal a qualquer momento.";
         const versions = [versao(3, "2026-09-01T15:00:00Z", 187, corpo), versao(2, "2025-01-10T15:00:00Z", 142, corpo + " "), versao(1, "2022-03-05T15:00:00Z", 96, corpo + "  ")];
-        (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/organization/terms/ENROLLMENT", status: 200, body: { canManage: true, current: versions[0], versions } });
+        const units = [{ id: "00000000-0000-0000-0000-000000000741", name: "Tijuca", values: { unidade: "Tijuca", razao_social: "Academia Leão Tijuca Ltda.", cnpj: "11.222.333/0001-81", endereco: "Rua Fictícia, 100, Rio de Janeiro, CEP 20000-000" }, missing: [] }];
+        (globalThis as unknown as { __mswOverride?: (spec: unknown) => void }).__mswOverride?.({ method: "get", path: "/organization/terms/ENROLLMENT", status: 200, body: { canManage: true, current: versions[0], versions, units } });
       });
     }
     if (textosCanvas) {
