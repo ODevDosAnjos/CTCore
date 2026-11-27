@@ -7,6 +7,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
+import { LocationProbe, currentLocation } from "@/test/location";
 import { setDeviceNarrow, setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { AgeRange } from "./useAgeRanges";
@@ -28,7 +29,7 @@ const LAST = { at: "2026-10-02T17:12:00Z", by: "Marcos Leão" };
 let items: AgeRange[];
 let writes: { method: string; body: unknown }[];
 
-function setup(role: string, over: { list?: () => Response | Promise<Response>; initial?: AgeRange[]; last?: typeof LAST | null } = {}) {
+function setup(role: string, over: { list?: () => Response | Promise<Response>; initial?: AgeRange[]; last?: typeof LAST | null; at?: string } = {}) {
   items = over.initial ?? defaults();
   writes = [];
   server.use(
@@ -60,7 +61,8 @@ function setup(role: string, over: { list?: () => Response | Promise<Response>; 
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/faixas-etarias"]}>
+      <MemoryRouter initialEntries={[over.at ?? "/configuracoes/organizacao?aba=faixas-etarias"]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -69,10 +71,14 @@ function setup(role: string, over: { list?: () => Response | Promise<Response>; 
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Faixas etárias", level: 1 });
+const ready = async () => {
+  await screen.findByRole("heading", { name: "Organização", level: 1 });
+  // O título é o mesmo em todas as abas: espera o conteúdo da aba.
+  await waitFor(() => expect(screen.queryByText("Carregando...")).toBeNull());
+};
 const rows = () => within(screen.getByRole("table")).getAllByRole("row").slice(1).map((tr) => within(tr).getAllByRole("cell").map((td) => td.textContent).join("|"));
 
-describe("AgeRangesPage", () => {
+describe("AgeRangesTab", () => {
   it("CA1, CA2: subtítulo, Nova faixa etária no cabeçalho, cinco cabeçalhos, traço sem máximo e Usada em (nenhuma, uma, duas e muitas turmas)", async () => {
     setup("COORDINATOR", { initial: [...defaults(), { id: "r4", name: "Master", minAge: 35, maxAge: null, usedIn: used(0) }] });
     await ready();
@@ -231,26 +237,33 @@ describe("AgeRangesPage", () => {
       list: () => (++calls === 1 ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json({ canManage: true, items: defaults(), lastChange: null })),
     });
     expect(screen.getByRole("status")).toHaveTextContent("Carregando");
-    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
+    await user.click(retry);
     await ready();
   });
 
   it("CA9: o 403 do servidor mostra o estado sem permissão", async () => {
     setup("COORDINATOR", { list: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
   });
 
-  it("CA10: o item aparece no menu de Configurações para Coordenador e Administrador e não para Professor", async () => {
-    for (const [role, visible] of [["COORDINATOR", true], ["ADMINISTRATOR", true], ["TEACHER", false]] as const) {
-      const { unmount } = setup(role);
-      if (visible) {
-        await ready();
-        expect(screen.getAllByRole("link", { name: "Faixas etárias" })[0]).toHaveAttribute("href", "/configuracoes/faixas-etarias");
-      } else {
-        await screen.findByRole("heading", { level: 1 });
-        expect(screen.queryByRole("link", { name: "Faixas etárias" })).toBeNull();
-      }
-      unmount();
+  it("#747 CA5, CA6: o endereço antigo leva à aba Faixas etárias, com Organização marcada no menu; Professor não entra", async () => {
+    for (const role of ["COORDINATOR", "ADMINISTRATOR"]) {
+      const view = setup(role, { at: "/configuracoes/faixas-etarias" });
+      await ready();
+      expect(currentLocation().pathname + currentLocation().search).toBe("/configuracoes/organizacao?aba=faixas-etarias");
+      expect(screen.getByRole("tab", { name: "Faixas etárias" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByRole("link", { name: "Organização" })[0]).toHaveAttribute("aria-current", "page");
+      expect(screen.queryByRole("link", { name: "Faixas etárias" })).toBeNull();
+      view.unmount();
+    }
+    for (const at of ["/configuracoes/faixas-etarias", "/configuracoes/organizacao?aba=faixas-etarias"]) {
+      const view = setup("TEACHER", { at });
+      expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      view.unmount();
     }
   });
 

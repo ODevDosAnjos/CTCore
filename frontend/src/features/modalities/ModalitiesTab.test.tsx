@@ -10,6 +10,7 @@ import {
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
+import { LocationProbe, currentLocation } from "@/test/location";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { Modality, ModalityRequest } from "./useModalities";
@@ -44,7 +45,7 @@ let blockedStudents: number;
 
 function setup(
   role: string,
-  over: { list?: () => Response | Promise<Response> } = {},
+  over: { list?: () => Response | Promise<Response>; at?: string } = {},
 ) {
   const manage = role === "COORDINATOR";
   items = [
@@ -111,7 +112,8 @@ function setup(
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/modalidades"]}>
+      <MemoryRouter initialEntries={[over.at ?? "/configuracoes/organizacao?aba=modalidades"]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -120,14 +122,17 @@ function setup(
   );
 }
 
-const ready = () =>
-  screen.findByRole("heading", { name: "Modalidades", level: 1 });
+const ready = async () => {
+  await screen.findByRole("heading", { name: "Organização", level: 1 });
+  // O título é o mesmo em todas as abas: espera o conteúdo da aba.
+  await waitFor(() => expect(screen.queryByText("Carregando...")).toBeNull());
+};
 const block = (name: string) =>
   screen.getByRole("heading", { name }).closest("section")!;
 const names = (title: string) =>
   within(block(title)).queryAllByRole("listitem").map((li) => li.querySelector("p")!.textContent);
 
-describe("ModalitiesPage", () => {
+describe("ModalitiesTab", () => {
   it("CA1, CA2: o Coordenador vê subtítulo, os cartões com a linha de graduação, a nota e o pedido no topo; ativar move o cartão e avisa", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
@@ -171,7 +176,9 @@ describe("ModalitiesPage", () => {
           : HttpResponse.json([modality("m2", "Judô", false)]),
     });
     expect(screen.getByRole("status")).toHaveTextContent("Carregando");
-    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
+    await user.click(retry);
     await ready();
     expect(within(block("Suas modalidades")).getByText(/Ative uma da lista/)).toBeInTheDocument();
   });
@@ -179,11 +186,31 @@ describe("ModalitiesPage", () => {
   it("CA12: catálogo sem itens mostra o estado vazio", async () => {
     setup("COORDINATOR", { list: () => HttpResponse.json([]) });
     expect(await screen.findByRole("heading", { name: "Nenhuma modalidade no catálogo" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
   });
 
   it("CA12: o 403 do servidor mostra o estado sem permissão", async () => {
     setup("COORDINATOR", { list: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
+  });
+
+  it("#747 CA5, CA6: o endereço antigo leva à aba Modalidades, com Organização marcada no menu; Professor não entra", async () => {
+    for (const role of ["COORDINATOR", "ADMINISTRATOR"]) {
+      const view = setup(role, { at: "/configuracoes/modalidades" });
+      await ready();
+      expect(currentLocation().pathname + currentLocation().search).toBe("/configuracoes/organizacao?aba=modalidades");
+      expect(screen.getByRole("tab", { name: "Modalidades" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByRole("link", { name: "Organização" })[0]).toHaveAttribute("aria-current", "page");
+      expect(screen.queryByRole("link", { name: "Modalidades" })).toBeNull();
+      view.unmount();
+    }
+    for (const at of ["/configuracoes/modalidades", "/configuracoes/organizacao?aba=modalidades"]) {
+      const view = setup("TEACHER", { at });
+      expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      view.unmount();
+    }
   });
 
   it("CA5, CA2: MODALITY_IN_USE abre a janela com as turmas por unidade e os alunos; 'Entendi' fecha e a modalidade segue ativa", async () => {

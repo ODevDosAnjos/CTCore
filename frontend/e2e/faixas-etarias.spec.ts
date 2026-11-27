@@ -13,9 +13,10 @@ test("@critical Coordenador cria uma faixa etária", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Menu principal" });
   await nav.getByText("Configurações", { exact: true }).click();
-  await expect(nav.getByRole("link", { name: "Faixas etárias" })).toBeVisible();
-  await open(page, "/configuracoes/faixas-etarias"); // o link recarrega a página e a sessão simulada se perderia
-  await expect(page.getByRole("heading", { name: "Faixas etárias", level: 1 })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Organização" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Faixas etárias" })).toHaveCount(0);
+  await open(page, "/configuracoes/organizacao?aba=faixas-etarias"); // o link recarrega a página e a sessão simulada se perderia
+  await expect(page.getByRole("tab", { name: "Faixas etárias", selected: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Adulto", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Nova faixa etária" }).click();
@@ -27,6 +28,6 @@ test("@critical Coordenador cria uma faixa etária", async ({ page }) => {
 
   await open(page, "/");
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/faixas-etarias");
+  await open(page, "/configuracoes/organizacao?aba=faixas-etarias");
   await expect(page.getByRole("cell", { name: "Master", exact: true })).toBeVisible();
 });

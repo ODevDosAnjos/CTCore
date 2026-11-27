@@ -252,7 +252,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 714 | Técnica · Recalibrar o critério do visual:canvas depois da moldura (remove a regra temporária; usa o relatório da #568) | issue #714 | Sprint 10.5 | #624, #733, #568 | agente | feito |
 | 745 | 625a · Limite de aulas experimentais por unidade e comprovante da graduação só por modalidade | issue #745 (parte da #625) | Sprint 10.5 | #611, #624 | agente | feito |
 | 746 | 625b · Menu de Configurações e Unidades abertas pela lista | issue #746 (parte da #625) | Sprint 10.5 | #745 | agente | feito |
-| 747 | 625c · Organização em abas | issue #747 (parte da #625) | Sprint 10.5 | #746 | agente | a fazer |
+| 747 | 625c · Organização em abas | issue #747 (parte da #625) | Sprint 10.5 | #746 | agente | feito |
 | 748 | 625d · Abas Cobrança e Divulgação da unidade (fecha a #625) | issue #748 (parte da #625) | Sprint 10.5 | #747 | agente | a fazer |
 | 625 | RF-ORG-09 · Configurações em quatro itens com abas: Organização, Unidades, Assinatura e Dados e segurança (item-mãe: dividido em #745 a #748; fecha na #748; sem construção própria) | issue #625 | Sprint 10.5 | #748 | agente | dividido |
 | 626 | RNF-22 · Retirar a cor da organização: marca só com nome e logo | issue #626 | Sprint 10.5 | #748 | agente | a fazer |
@@ -435,7 +435,7 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 
 ## Pendências para o dono
 
-Último número usado: P13 (aberta em 26/11/2026, na especificação da #625: divisão em partes; aprovada pelo dono no mesmo dia: issues #745 a #748). Antes: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 26/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
+Último número usado: P15 (abertas em 27/11/2026, na construção da #747, sem decisão ainda). Antes: P13 (aberta em 26/11/2026, na especificação da #625: divisão em partes; aprovada pelo dono no mesmo dia: issues #745 a #748). Antes: P12 (aberta em 26/11/2026, na especificação da #714: critério do `visual:canvas`; decidida pelo dono em 26/11/2026, opção a). Antes: P11 (aberta em 26/11/2026, na #721: divisão em partes; aprovada pelo dono no mesmo dia: issues #732 e #733). Antes: P10 (abertas em 25/11/2026, na decisão da versão 1.0). Antes: P6 (aberta em 25/11/2026, na #646: divisão em partes; aprovada pelo dono no mesmo dia: issues #717 a #721). P5 (aberta em 25/11/2026, na #568; decidida pelo dono no mesmo dia, caminho 3: relatório e "30% mantido por ora" na #568, moldura nas #624 e #646, recalibração na #714). P4 foi decidida pelo dono em 25/11/2026 (opção b na #710). Quem acrescenta uma pendência atualiza esta linha; os números não se repetem, mesmo depois que a pendência sai da tabela.
 
 | Nº | Pendência | Opção recomendada | Trava qual item | Enquanto isso |
 |---|---|---|---|---|
@@ -445,6 +445,8 @@ Itens de pessoa (etiqueta `depende de você`, Sprints 22 a 25): o agente não co
 | P8 | RN-ASS-18 diz "cortesia até o lançamento e depois 50% por 12 ciclos"; o dono decidiu cupom de 100% por 3 ciclos. | Atualizar `16-assinatura.md` antes da #127. | #127 | — |
 | P9 | Sem SMS na 1.0: o cadastro confirma só o e-mail (RF-CAD-02) e o aviso de 5 dias antes do bloqueio sai só por e-mail (RN-INA-03). | Nota em `18` e `12`; SMS volta com a #177 em Atualizações · Funcionalidades. | #111, #147 | — |
 | P10 | Vocabulário: "mensalidade" (aluno → academia, conta da unidade) e "assinatura" (academia → ctcore, conta da plataforma). | Fixar em `docs/design/textos.md` antes da #664. | #664 | — |
+| P14 | #747: a faixa do Administrador na aba Modalidades ainda cita "Configurações › Unidade" (`modalities.readOnlyBanner`, o mesmo texto do canvas), item que não existe no menu desde a #746. | Trocar para "Configurações › Unidades" no próximo item que mexer na aba Modalidades. | nenhum | O texto não é link; o caminho se acha pelo item Unidades. |
+| P15 | #747: a 390 px, ao abrir `/configuracoes/organizacao?aba=textos`, a aba ativa fica fora da parte visível da linha de abas: o `Tabs` base rola a linha, mas não leva a aba ativa à vista. | Ajuste no componente `Tabs` (rolar até a aba ativa), em item de componente base. | nenhum | A linha rola com o dedo e o conteúdo da aba aparece; a página não rola na horizontal. |
 
 ## Encaixes para as próximas sprints
 

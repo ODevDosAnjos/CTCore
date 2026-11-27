@@ -26,6 +26,22 @@ describe("useTabParam (RNF-27, D5)", () => {
     expect(screen.getByRole("button")).toHaveTextContent("ativa a");
   });
 
+  it("#747 D2: com outro nome de parâmetro, lê e grava nele sem tocar em ?aba=", async () => {
+    function Inner() {
+      const [kind, setKind] = useTabParam(IDS, "a", "termo");
+      return <button onClick={() => setKind("c")}>tipo {kind}</button>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/x?aba=b&termo=b"]}>
+        <LocationProbe />
+        <Inner />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("button")).toHaveTextContent("tipo b");
+    await userEvent.click(screen.getByRole("button"));
+    expect(currentLocation().search).toBe("?aba=b&termo=c");
+  });
+
   it("CA8: lê a aba do endereço", () => {
     open("/x?aba=b");
     expect(screen.getByRole("button")).toHaveTextContent("ativa b");

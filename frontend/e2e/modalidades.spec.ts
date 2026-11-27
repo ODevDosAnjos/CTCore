@@ -15,9 +15,10 @@ test("@critical Coordenador ativa uma modalidade e pede uma nova", async ({ page
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Menu principal" });
   await nav.getByText("Configurações", { exact: true }).click();
-  await expect(nav.getByRole("link", { name: "Modalidades" })).toBeVisible();
-  await open(page, "/configuracoes/modalidades"); // o link recarrega a página e a sessão simulada se perderia
-  await expect(page.getByRole("heading", { name: "Modalidades", level: 1 })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Organização" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Modalidades" })).toHaveCount(0);
+  await open(page, "/configuracoes/organizacao?aba=modalidades"); // o link recarrega a página e a sessão simulada se perderia
+  await expect(page.getByRole("tab", { name: "Modalidades", selected: true })).toBeVisible();
 
   const mine = page.locator("section", { has: page.getByRole("heading", { name: "Suas modalidades" }) });
   const available = page.locator("section", { has: page.getByRole("heading", { name: "Disponíveis para ativar" }) });
@@ -37,8 +38,8 @@ test("@critical Coordenador liga a graduação do Jiu-Jitsu e edita um nível", 
   await page.getByLabel("Senha").fill("segredo123");
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/modalidades");
-  await expect(page.getByRole("heading", { name: "Modalidades", level: 1 })).toBeVisible();
+  await open(page, "/configuracoes/organizacao?aba=modalidades");
+  await expect(page.getByRole("tab", { name: "Modalidades", selected: true })).toBeVisible();
 
   const available = page.locator("section", { has: page.getByRole("heading", { name: "Disponíveis para ativar" }) });
   await available.getByRole("button", { name: /Ativar\s*Jiu-Jitsu/ }).click();
@@ -62,7 +63,7 @@ test("@critical Coordenador marca uma modalidade na unidade", async ({ page }) =
   await page.getByLabel("Senha").fill("segredo123");
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Bem-vindo ao ctcore" })).toBeVisible();
-  await open(page, "/configuracoes/modalidades");
+  await open(page, "/configuracoes/organizacao?aba=modalidades");
   const available = page.locator("section", { has: page.getByRole("heading", { name: "Disponíveis para ativar" }) });
   await available.getByRole("button", { name: /Ativar\s*Jiu-Jitsu/ }).click();
 

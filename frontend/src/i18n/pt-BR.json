@@ -267,6 +267,14 @@
   },
   "organization": {
     "title": "Organização",
+    "tabs": {
+      "label": "Seções da organização",
+      "geral": "Geral",
+      "modalidades": "Modalidades",
+      "faixas-etarias": "Faixas etárias",
+      "termos": "Termos",
+      "textos": "Textos"
+    },
     "readOnly": "Você pode ver estes dados, mas só o Coordenador altera.",
     "name": "Nome da organização",
     "nameRequired": "Informe o nome da organização.",
@@ -1905,7 +1913,6 @@
     }
   },
   "terms": {
-    "title": "Termos",
     "tabs": "Tipo de termo",
     "kinds": {
       "ENROLLMENT": "Termo de matrícula",
@@ -1949,7 +1956,6 @@
     }
   },
   "texts": {
-    "title": "Textos",
     "models": {
       "WELCOME": "Boas-vindas",
       "REMINDER_BEFORE": "Lembrete: antes do vencimento",
@@ -2028,7 +2034,6 @@
     "list": "Modelos de texto"
   },
   "ageRanges": {
-    "title": "Faixas etárias",
     "columns": {
       "name": "Nome",
       "minAge": "Idade mínima",
@@ -2076,7 +2081,6 @@
     }
   },
   "modalities": {
-    "title": "Modalidades",
     "readOnlyBanner": "Quem ativa e desativa modalidades e edita a graduação é o Coordenador. Você marca as modalidades oferecidas na sua unidade em Configurações › Unidade.",
     "catalog": "Catálogo ctcore",
     "graduationOn": "Graduação ligada",
@@ -2475,10 +2479,6 @@
     "items": {
       "organizationSettings": "Organização",
       "units": "Unidades",
-      "modalities": "Modalidades",
-      "ageRanges": "Faixas etárias",
-      "terms": "Termos",
-      "texts": "Textos",
       "subscription": "Assinatura",
       "dataSecurity": "Dados e segurança"
     }
@@ -2521,10 +2521,6 @@
       "reports": "Relatórios",
       "allUnits": "Todas as unidades",
       "organizationSettings": "Organização",
-      "modalities": "Modalidades",
-      "ageRanges": "Faixas etárias",
-      "terms": "Termos",
-      "texts": "Textos",
       "units": "Unidades",
       "subscription": "Assinatura",
       "dataSecurity": "Dados e segurança"

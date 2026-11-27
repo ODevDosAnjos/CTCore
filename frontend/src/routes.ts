@@ -107,10 +107,11 @@ export const routes: AppRoute[] = [
   sub("unitSettings", "/configuracoes/unidades/:id", "units", "UNIT_SETTINGS"),
   // Endereços antigos: o destino depende da unidade escolhida, por isso têm tela e não "redirect".
   sub("unitLegacy", "/configuracoes/unidade", "units", "UNIT_SETTINGS"),
-  m("modalities", "/configuracoes/modalidades", "ORGANIZATION_SETTINGS", "settings", "Dumbbell"),
-  m("ageRanges", "/configuracoes/faixas-etarias", "ORGANIZATION_SETTINGS", "settings", "Baby"),
-  m("terms", "/configuracoes/termos", "ORGANIZATION_SETTINGS", "settings", "FileText"),
-  m("texts", "/configuracoes/textos", "ORGANIZATION_SETTINGS", "settings", "Type"),
+  // #747: viraram abas de Organização; os endereços antigos levam a elas.
+  sub("modalities", "/configuracoes/modalidades", "organizationSettings", "ORGANIZATION_SETTINGS", { redirect: "/configuracoes/organizacao?aba=modalidades" }),
+  sub("ageRanges", "/configuracoes/faixas-etarias", "organizationSettings", "ORGANIZATION_SETTINGS", { redirect: "/configuracoes/organizacao?aba=faixas-etarias" }),
+  sub("terms", "/configuracoes/termos", "organizationSettings", "ORGANIZATION_SETTINGS", { redirect: "/configuracoes/organizacao?aba=termos" }),
+  sub("texts", "/configuracoes/textos", "organizationSettings", "ORGANIZATION_SETTINGS", { redirect: "/configuracoes/organizacao?aba=textos" }),
   // #611: Usuários saiu de Configurações; os endereços antigos levam aos novos (R8).
   sub("staffUsers", "/configuracoes/usuarios", "administrators", "STAFF_USERS", { redirect: "/administradores" }),
   sub("permissionsTableOld", "/configuracoes/usuarios/permissoes", "units", "UNIT_SETTINGS", { redirect: "/configuracoes/unidade/permissoes" }),

@@ -102,7 +102,7 @@ function setup(
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/modalidades"]}>
+      <MemoryRouter initialEntries={["/configuracoes/organizacao?aba=modalidades"]}>
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -113,7 +113,7 @@ function setup(
 
 async function open(name = /^Graduação\s*Jiu-Jitsu$|^Jiu-Jitsu$/) {
   const user = userEvent.setup();
-  await screen.findByRole("heading", { name: "Modalidades", level: 1 });
+  await screen.findByRole("heading", { name: "Organização", level: 1 });
   await user.click(await screen.findByRole("button", { name }));
   return { user, dialog: await screen.findByRole("dialog") };
 }
@@ -125,7 +125,7 @@ const levelNames = (dialog: HTMLElement) =>
 describe("GraduationDialog", () => {
   it("CA12: o Coordenador vê o botão Graduação só nas linhas ativas", async () => {
     setup("COORDINATOR");
-    await screen.findByRole("heading", { name: "Modalidades", level: 1 });
+    await screen.findByRole("heading", { name: "Organização", level: 1 });
     expect(
       await screen.findAllByRole("button", { name: /Graduação/ }),
     ).toHaveLength(1);

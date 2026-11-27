@@ -7,6 +7,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
+import { LocationProbe, currentLocation } from "@/test/location";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { TermsVersion, TermsView } from "./useTerms";
@@ -25,7 +26,7 @@ let posts: { kind: string; body: { body: string; reaccept: boolean } }[];
 
 const view = (role: string): TermsView => ({ canManage: role === "COORDINATOR", current: versions[0] ?? MODEL, versions });
 
-function setup(role: string, over: { get?: () => Response | Promise<Response>; post?: (n: number) => Response | undefined; initial?: TermsVersion[] } = {}) {
+function setup(role: string, over: { get?: () => Response | Promise<Response>; post?: (n: number) => Response | undefined; initial?: TermsVersion[]; at?: string } = {}) {
   versions = over.initial ?? [];
   posts = [];
   server.use(
@@ -45,7 +46,8 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/termos"]}>
+      <MemoryRouter initialEntries={[over.at ?? "/configuracoes/organizacao?aba=termos"]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -54,11 +56,15 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Termos", level: 1 });
+const ready = async () => {
+  await screen.findByRole("heading", { name: "Organização", level: 1 });
+  // O título é o mesmo em todas as abas: espera o conteúdo da aba.
+  await waitFor(() => expect(screen.queryByText("Carregando...")).toBeNull());
+};
 const editor = () => screen.findByLabelText("Texto do termo");
 const publishButton = () => screen.getByRole("button", { name: /^Publicar versão [0-9]+$/ });
 
-describe("TermsPage", () => {
+describe("TermsTab", () => {
   it("CA9: sem versão publicada mostra o histórico vazio e o texto padrão no editor; publicar começa desabilitado", async () => {
     setup("COORDINATOR");
     await ready();
@@ -172,26 +178,54 @@ describe("TermsPage", () => {
     let calls = 0;
     setup("COORDINATOR", { get: () => (++calls === 1 ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json(view("COORDINATOR"))) });
     expect(screen.getByRole("status")).toHaveTextContent("Carregando");
-    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
+    await user.click(retry);
     expect(await editor()).toBeInTheDocument();
   });
 
   it("CA9: o 403 do servidor mostra o estado sem permissão", async () => {
     setup("COORDINATOR", { get: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
   });
 
-  it("CA10: o item aparece no menu de Configurações para Coordenador e Administrador e não para Professor", async () => {
-    for (const [role, visible] of [["COORDINATOR", true], ["ADMINISTRATOR", true], ["TEACHER", false]] as const) {
-      const { unmount } = setup(role);
-      if (visible) {
-        await ready();
-        expect(screen.getAllByRole("link", { name: "Termos" })[0]).toHaveAttribute("href", "/configuracoes/termos");
-      } else {
-        await screen.findByRole("heading", { level: 1 });
-        expect(screen.queryByRole("link", { name: "Termos" })).toBeNull();
-      }
-      unmount();
+  it("#747 CA4: o tipo de termo fica em ?termo= sem sair da aba, vale depois de recarregar e o inválido é o de matrícula", async () => {
+    const user = userEvent.setup();
+    const first = setup("COORDINATOR");
+    await ready();
+    await user.click(screen.getByRole("tab", { name: "Uso de imagem" }));
+    expect(currentLocation().search).toBe("?aba=termos&termo=IMAGE_USE");
+    expect(screen.getByRole("tab", { name: "Termos" })).toHaveAttribute("aria-selected", "true");
+    first.unmount();
+    for (const [at, kind] of [
+      ["/configuracoes/organizacao?aba=termos&termo=IMAGE_USE", "Uso de imagem"],
+      ["/configuracoes/organizacao?aba=termos&termo=nada", "Termo de matrícula"],
+      ["/configuracoes/termos?aba=IMAGE_USE", "Termo de matrícula"], // D4: a busca do endereço antigo é descartada
+    ]) {
+      const view = setup("COORDINATOR", { at });
+      await ready();
+      expect(screen.getByRole("tab", { name: kind })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getByRole("tab", { name: "Termos" })).toHaveAttribute("aria-selected", "true");
+      view.unmount();
+    }
+  });
+
+  it("#747 CA5, CA6: o endereço antigo leva à aba Termos, com Organização marcada no menu; Professor não entra", async () => {
+    for (const role of ["COORDINATOR", "ADMINISTRATOR"]) {
+      const view = setup(role, { at: "/configuracoes/termos" });
+      await ready();
+      expect(currentLocation().pathname + currentLocation().search).toBe("/configuracoes/organizacao?aba=termos");
+      expect(screen.getByRole("tab", { name: "Termos" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByRole("link", { name: "Organização" })[0]).toHaveAttribute("aria-current", "page");
+      expect(screen.queryByRole("link", { name: "Termos" })).toBeNull();
+      view.unmount();
+    }
+    for (const at of ["/configuracoes/termos", "/configuracoes/organizacao?aba=termos"]) {
+      const view = setup("TEACHER", { at });
+      expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      view.unmount();
     }
   });
 

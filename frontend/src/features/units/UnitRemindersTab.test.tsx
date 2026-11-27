@@ -71,10 +71,10 @@ describe("UnitRemindersTab (R5, RN-COB-17)", () => {
     expect(screen.getByRole("switch", { name: "3 dias antes do vencimento" })).toBeEnabled();
   });
 
-  it("CA14: Editar textos leva a /configuracoes/textos", () => {
+  it("CA14: Editar textos leva à aba Textos de Organização", () => {
     renderTab(tab);
     expect(screen.getByText(/Os lembretes param quando a cobrança é paga/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Editar textos" })).toHaveAttribute("href", "/configuracoes/textos");
+    expect(screen.getByRole("link", { name: "Editar textos" })).toHaveAttribute("href", "/configuracoes/organizacao?aba=textos");
   });
 
   it("o erro do servidor no horário aparece na aba", () => {

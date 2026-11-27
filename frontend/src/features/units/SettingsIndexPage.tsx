@@ -10,7 +10,7 @@ import { buildMenu } from "@/features/permissions/buildMenu";
 import { usePermissions } from "@/features/permissions/usePermissions";
 
 // Mesmo conjunto e ordem do grupo Configurações do menu (RF-ORG-09).
-const ORDER = ["organizationSettings", "units", "modalities", "ageRanges", "terms", "texts", "subscription", "dataSecurity"];
+const ORDER = ["organizationSettings", "units", "subscription", "dataSecurity"];
 
 function Content() {
   const { t } = useTranslation();

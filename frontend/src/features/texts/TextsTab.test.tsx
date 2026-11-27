@@ -7,6 +7,7 @@ import { SessionProvider, type SessionView } from "@/features/auth/SessionProvid
 import { mockPermissions } from "@/mocks/permissions";
 import { server } from "@/mocks/server";
 import { axeViolations } from "@/test/axe";
+import { LocationProbe, currentLocation } from "@/test/location";
 import { setDevicePrefersDark } from "@/test/device";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { TextModel, TextModelList } from "./useTexts";
@@ -37,7 +38,7 @@ let models: TextModel[];
 let puts: { key: string; body: { subject: string; body: string } }[];
 let deletes: string[];
 
-function setup(role: string, over: { get?: () => Response | Promise<Response>; put?: () => Response | undefined } = {}) {
+function setup(role: string, over: { get?: () => Response | Promise<Response>; put?: () => Response | undefined; at?: string } = {}) {
   models = initial();
   puts = [];
   deletes = [];
@@ -65,7 +66,8 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
   );
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={["/configuracoes/textos"]}>
+      <MemoryRouter initialEntries={[over.at ?? "/configuracoes/organizacao?aba=textos"]}>
+        <LocationProbe />
         <SessionProvider>
           <App />
         </SessionProvider>
@@ -74,12 +76,16 @@ function setup(role: string, over: { get?: () => Response | Promise<Response>; p
   );
 }
 
-const ready = () => screen.findByRole("heading", { name: "Textos", level: 1 });
+const ready = async () => {
+  await screen.findByRole("heading", { name: "Organização", level: 1 });
+  // O título é o mesmo em todas as abas: espera o conteúdo da aba.
+  await waitFor(() => expect(screen.queryByText("Carregando...")).toBeNull());
+};
 const open = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
 };
 
-describe("TextsPage", () => {
+describe("TextsTab", () => {
   it("CA9, CA10, CA11: sem subtítulo, lista única na ordem do canvas com selos, sem botão Editar, e o primeiro modelo já aberto", async () => {
     const user = userEvent.setup();
     setup("COORDINATOR");
@@ -183,24 +189,32 @@ describe("TextsPage", () => {
     let calls = 0;
     const first = setup("COORDINATOR", { get: () => (++calls === 1 ? HttpResponse.json({ code: "INTERNAL_ERROR" }, { status: 500 }) : HttpResponse.json({ canManage: true, models: [] })) });
     expect(screen.getByRole("status")).toHaveTextContent("Carregando");
-    await user.click(await screen.findByRole("button", { name: "Tentar de novo" }));
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
+    await user.click(retry);
     expect(await screen.findByRole("heading", { name: "Nenhum modelo de texto" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
     first.unmount();
     setup("COORDINATOR", { get: () => HttpResponse.json({ code: "FORBIDDEN" }, { status: 403 }) });
     expect(await screen.findByRole("heading", { name: "Você não tem acesso" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Seções da organização" })).toBeInTheDocument();
   });
 
-  it("R12: o item aparece no menu de Configurações para Coordenador e Administrador e não para Professor", async () => {
-    for (const [role, visible] of [["COORDINATOR", true], ["ADMINISTRATOR", true], ["TEACHER", false]] as const) {
-      const { unmount } = setup(role);
-      if (visible) {
-        await ready();
-        expect(screen.getAllByRole("link", { name: "Textos" })[0]).toHaveAttribute("href", "/configuracoes/textos");
-      } else {
-        await screen.findByRole("heading", { level: 1 });
-        expect(screen.queryByRole("link", { name: "Textos" })).toBeNull();
-      }
-      unmount();
+  it("#747 CA5, CA6: o endereço antigo leva à aba Textos, com Organização marcada no menu; Professor não entra", async () => {
+    for (const role of ["COORDINATOR", "ADMINISTRATOR"]) {
+      const view = setup(role, { at: "/configuracoes/textos" });
+      await ready();
+      expect(currentLocation().pathname + currentLocation().search).toBe("/configuracoes/organizacao?aba=textos");
+      expect(screen.getByRole("tab", { name: "Textos" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByRole("link", { name: "Organização" })[0]).toHaveAttribute("aria-current", "page");
+      expect(screen.queryByRole("link", { name: "Textos" })).toBeNull();
+      view.unmount();
+    }
+    for (const at of ["/configuracoes/textos", "/configuracoes/organizacao?aba=textos"]) {
+      const view = setup("TEACHER", { at });
+      expect(await screen.findByRole("heading", { name: "Esta área não está disponível para o seu perfil" })).toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      view.unmount();
     }
   });
 

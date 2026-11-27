@@ -44,10 +44,10 @@ describe("SettingsIndexPage (R8, GMConfig)", () => {
     setup("COORDINATOR");
     const items = await list();
     expect(items.getAllByRole("link").map((a) => a.textContent)).toEqual([
-      "Organização", "Unidades", "Modalidades", "Faixas etárias", "Termos", "Textos", "Assinatura", "Dados e segurança",
+      "Organização", "Unidades", "Assinatura", "Dados e segurança",
     ]);
     expect(items.getByRole("link", { name: "Unidades" })).toHaveAttribute("href", "/configuracoes/unidades");
-    expect(items.getByRole("link", { name: "Textos" })).toHaveAttribute("href", "/configuracoes/textos");
+    expect(items.getByRole("link", { name: "Organização" })).toHaveAttribute("href", "/configuracoes/organizacao");
     for (const name of ["Assinatura", "Dados e segurança"]) {
       const soon = items.getByRole("link", { name });
       expect(soon).toHaveAttribute("aria-disabled", "true");
@@ -55,7 +55,7 @@ describe("SettingsIndexPage (R8, GMConfig)", () => {
     }
     expect(screen.getByRole("heading", { name: "Configurações", level: 1 })).toBeInTheDocument();
     expect(screen.queryByText("Assinatura e Unidades aparecem só para o Coordenador.")).not.toBeInTheDocument();
-    await user.click(items.getByRole("link", { name: "Textos" }));
+    await user.click(items.getByRole("link", { name: "Organização" }));
     expect(screen.queryByRole("heading", { name: "Configurações", level: 1 })).not.toBeInTheDocument();
   });
 

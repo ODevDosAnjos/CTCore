@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ApiError } from "@/lib/api";
+import { hrefOf } from "@/routes";
 import { Banner } from "@/components/ui/banner";
 import { BlockedNotice } from "@/components/ui/blocked-notice";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,7 +40,7 @@ export function UnitModalitiesSection({ unitId, unitName }: { unitId: string; un
           title={t("unitModalities.emptyTitle")}
           text={t("unitModalities.emptyText")}
           action={
-            <Link className="min-h-11 py-2 underline" to="/configuracoes/modalidades">
+            <Link className="min-h-11 py-2 underline" to={`${hrefOf("organizationSettings")}?aba=modalidades`}>
               {t("unitModalities.emptyLink")}
             </Link>
           }

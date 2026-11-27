@@ -42,16 +42,12 @@ describe("buildMenu", () => {
     const finance = grp("finance", [it_("collections", "/cobrancas"), it_("plans", "/planos"), it_("benefits", "/beneficios")]);
     const subscription = it_("subscription", "/configuracoes/assinatura", { disabled: true });
     const dataSecurity = it_("dataSecurity", "/configuracoes/dados-e-seguranca", { disabled: true });
-    const common = [
-      it_("modalities", "/configuracoes/modalidades"), it_("ageRanges", "/configuracoes/faixas-etarias"),
-      it_("terms", "/configuracoes/termos"), it_("texts", "/configuracoes/textos"),
-    ];
     const org = it_("organizationSettings", "/configuracoes/organizacao");
     const units = it_("units", "/configuracoes/unidades");
     const rest = [home, people, operation, finance, communication, reports];
     const coordinatorRest = [home, grp("people", [...people.items, administrators]), operation, finance, communication, reports];
-    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...coordinatorRest, grp("settings", [org, units, ...common, subscription, dataSecurity])]);
-    expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([...rest, grp("settings", [org, units, ...common, dataSecurity])]);
+    expect(bare(buildMenu(mockPermissions("COORDINATOR"), t))).toEqual([...coordinatorRest, grp("settings", [org, units, subscription, dataSecurity])]);
+    expect(bare(buildMenu(mockPermissions("ADMINISTRATOR"), t))).toEqual([...rest, grp("settings", [org, units, dataSecurity])]);
   });
 
   it("T1: item \"Em breve\" só entra se o perfil tem a permissão e traz disabled; grupo traz o ícone", () => {
