@@ -3,6 +3,7 @@ package br.com.ctcore.identity;
 import br.com.ctcore.identity.IdentityException.Code;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
@@ -25,7 +26,7 @@ public class SessionService {
     public record Created(UUID accountId, String token, UUID activeLinkId) {}
     public record AccountView(UUID id, String email, String name, OffsetDateTime passwordChangedAt) {}
     public record LinkView(UUID id, UUID organizationId, String organizationName, String role, Set<UUID> unitIds,
-            List<String> unitNames, OffsetDateTime lastAccessAt) {}
+            List<String> unitNames, OffsetDateTime lastAccessAt, LocalDate startsOn, List<String> studentNames) {}
     public record TwoFactorView(boolean enabled, boolean required, OffsetDateTime enabledAt) {}
     public record SessionView(AccountView account, List<LinkView> links, UUID activeLinkId, TwoFactorView twoFactor) {}
 
@@ -168,6 +169,21 @@ public class SessionService {
                 .query(OffsetDateTime.class).optional().orElse(null);
     }
 
+    private LocalDate startsOn(UUID linkId) {
+        return jdbc.sql("select starts_on from account_link where id = :l").param("l", linkId)
+                .query(LocalDate.class).optional().orElse(null);
+    }
+
+    /** RF-ACE-05: only the names of the students this account is guardian of, through its own link (RLS of V61). */
+    private List<String> studentNames(UUID accountId, UUID linkId) {
+        return jdbc.sql("select s.name from account_link l "
+                + "join guardian g on g.organization_id = l.organization_id and g.account_id = l.account_id "
+                + "join student_guardian sg on sg.organization_id = g.organization_id and sg.guardian_id = g.id "
+                + "join student s on s.organization_id = sg.organization_id and s.id = sg.student_id "
+                + "where l.id = :l and l.account_id = :a order by s.name_key, s.id")
+                .param("l", linkId).param("a", accountId).query(String.class).list();
+    }
+
     private String organizationName(UUID organizationId) {
         return jdbc.sql("select name from organization where id = :o").param("o", organizationId).query(String.class).single();
     }
@@ -180,7 +196,8 @@ public class SessionService {
             OffsetDateTime enabledAt = twoFactor.enabledAt(accountId);
             List<LinkView> links = activeLinks(accountId).stream()
                     .map(l -> new LinkView(l.id(), l.organizationId(), organizationName(l.organizationId()), l.role().name(), unitsOf(l.id()),
-                            unitNames(l.id()), lastAccessAt(l.id()))).toList();
+                            unitNames(l.id()), lastAccessAt(l.id()), startsOn(l.id()),
+                            l.role() == Role.GUARDIAN ? studentNames(accountId, l.id()) : List.of())).toList();
             return new SessionView(account, links, activeLinkId,
                     new TwoFactorView(enabledAt != null, twoFactor.requiredFor(accountId), enabledAt));
         });

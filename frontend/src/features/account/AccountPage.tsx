@@ -1,27 +1,25 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
-import { CARD_TITLE, Card } from "@/components/Card";
-import { useBelowSm } from "@/components/query/useBelowSm";
-import { ComingSoon } from "@/components/ui/coming-soon";
 import { PageHeader } from "@/components/ui/page-header";
-import { PortalHeading } from "@/features/portal/PortalHeading";
-import { MenuList, SoonRow } from "@/features/portal/PortalMenuRows";
 import { Tabs } from "@/components/ui/tabs";
 import { useTabParam } from "@/components/ui/useTabParam";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useSession } from "@/features/auth/SessionProvider";
+import { PortalHeading } from "@/features/portal/PortalHeading";
+import { cn } from "@/lib/utils";
 import { isManagement } from "@/routes";
 import { AccessCard } from "./AccessCard";
 import { AccountMenuList } from "./AccountMenuList";
-import { NotificationsTab } from "./NotificationsTab";
+import { MyLinks } from "./MyLinks";
+import { NotificationsTab, PortalNotifications } from "./NotificationsTab";
+import { PrivacyTab } from "./PrivacyTab";
 import { SessionsSection } from "./SessionsSection";
 import { TwoFactorSection } from "./TwoFactorSection";
 import { useAccountSessions } from "./useAccount";
 
-const TABS = ["acesso", "duas-etapas", "sessoes", "notificacoes"] as const;
-const DATA_CARDS = ["download", "delete"] as const;
+const TABS = ["perfil", "seguranca", "notificacoes", "privacidade"] as const;
 const NARROW = "(max-width: 767px)"; // mesmo ponto de quebra da moldura da gestão (D7)
 
 function useBelowMd() {
@@ -37,94 +35,81 @@ function useBelowMd() {
   return narrow;
 }
 
-// RF-ACE-04: "Minha conta" para qualquer perfil logado; as rotas agem só sobre a conta da sessão (R13).
+// RF-ACE-04, decisão 24: "Minha conta" para qualquer perfil logado, nas mesmas quatro abas (`?aba=`); as rotas agem só sobre a conta da sessão (R13).
 export function AccountPage() {
+  const { t } = useTranslation();
   const { state } = useSession();
   const session = state.status === "ready" ? state.session : undefined;
-  const role = session?.links.find((l) => l.id === session.activeLinkId)?.role ?? "";
-  if (isManagement(role)) return <ManagementAccount />;
-  // No celular a barra do portal não tem o botão de sair: ele fica no fim de Minha conta.
-  return (
-    <>
-      <PortalAccount />
-      <div className="mt-6 md:hidden">
-        <LogoutButton />
-      </div>
-    </>
-  );
-}
-
-// Portal (Aluno e Responsável, canvas PortalConta): rótulo, "‹ Voltar" no celular, Acesso, duas etapas, sessões e os cartões de dados ("Em breve", Sprint 13).
-function PortalAccount() {
-  const { t } = useTranslation();
-  const sessions = useAccountSessions();
-  const narrow = useBelowSm();
-  return (
-    <div className="flex flex-col gap-4">
-      <Link to="/portal/minhas-informacoes" className="inline-flex min-h-11 items-center gap-1 self-start text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden">
-        <ArrowLeft aria-hidden className="size-4" />
-        {t("account.portal.back")}
-      </Link>
-      <PortalHeading label={t("account.portal.label")} title={t("account.title")} />
-      <div className="grid items-start gap-4 md:grid-cols-2">
-        <AccessCard onPasswordChanged={sessions.reload} portal />
-        <TwoFactorSection portal />
-      </div>
-      <SessionsSection {...sessions} portal />
-      {narrow ? (
-        <MenuList label={t("account.portal.dataMenu")}>
-          <SoonRow icon={Download} label={t("account.portal.download.title")} />
-          <SoonRow icon={Trash2} label={t("account.portal.delete.title")} />
-        </MenuList>
-      ) : (
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          {DATA_CARDS.map((k) => (
-            <Card key={k} heading="h2" titleClassName={CARD_TITLE} title={t(`account.portal.${k}.title`)}>
-              <p className="mb-3 text-sm text-muted-foreground">{t(`account.portal.${k}.text`)}</p>
-              <ComingSoon tipAlign="end" variant="button" label={t(`account.portal.${k}.title`)} />
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Gestão (canvas MinhaConta): abas em `?aba=`; abaixo de 768 px sem `aba`, a lista de atalhos (canvas GMConta).
-function ManagementAccount() {
-  const { t } = useTranslation();
+  const portal = !isManagement(session?.links.find((l) => l.id === session.activeLinkId)?.role ?? "");
   const sessions = useAccountSessions();
   const narrow = useBelowMd();
   const [params] = useSearchParams();
   const [tab, setTab] = useTabParam(TABS);
-  const raw = params.get("aba");
-  // Abaixo de 768 px sem `aba` válida a tela é a lista de atalhos.
-  const aba = (TABS as readonly string[]).includes(raw ?? "") ? tab : undefined;
+  const chosen = (TABS as readonly string[]).includes(params.get("aba") ?? "");
+
+  const access = <AccessCard onPasswordChanged={sessions.reload} portal={portal} />;
+  const twoFactor = <TwoFactorSection portal={portal} />;
+  const sessionList = <SessionsSection {...sessions} portal={portal} />;
+  const content = {
+    perfil: <MyLinks portal={portal} />,
+    // D5: no portal, o arranjo do canvas PortalConta; na gestão, o do MinhaConta (duas colunas só em tela larga).
+    seguranca: portal ? (
+      <div className="flex flex-col gap-4">
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          {access}
+          {twoFactor}
+        </div>
+        {sessionList}
+      </div>
+    ) : (
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-4">
+          {access}
+          {twoFactor}
+        </div>
+        <div className="min-w-0">{sessionList}</div>
+      </div>
+    ),
+    notificacoes: portal ? <PortalNotifications /> : <NotificationsTab />,
+    privacidade: <PrivacyTab portal={portal} />,
+  };
+  const tabs = (
+    <Tabs
+      label={t("account.tabs.label")}
+      value={tab}
+      onValueChange={setTab}
+      className={cn(!portal && "max-md:[&>[role=tablist]]:hidden")}
+      tabs={TABS.map((id) => ({ id, label: t(`account.tabs.${id}`), content: content[id] }))}
+    />
+  );
+
+  if (portal)
+    return (
+      <div className="flex flex-col gap-4">
+        <Link to="/portal/minhas-informacoes" className="inline-flex min-h-11 items-center gap-1 self-start text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden">
+          <ArrowLeft aria-hidden className="size-4" />
+          {t("account.portal.back")}
+        </Link>
+        <PortalHeading label={t("account.portal.label")} title={t("account.title")} />
+        {tabs}
+        {/* No celular a barra do portal não tem o botão de sair: ele fica no fim de Minha conta. */}
+        <div className="mt-2 md:hidden">
+          <LogoutButton />
+        </div>
+      </div>
+    );
+
   return (
     <div className="space-y-4">
-      {narrow && aba && (
+      {narrow && chosen && (
         <Link to="/conta" className="inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft aria-hidden className="size-4" />
           {t("account.back")}
         </Link>
       )}
       <PageHeader title={t("account.title")} />
-      {narrow && !aba ? (
-        <AccountMenuList sessionCount={sessions.status === "ready" ? sessions.items.length : null} />
-      ) : (
-        <Tabs
-          label={t("account.tabs.label")}
-          value={tab}
-          onValueChange={setTab}
-          className="max-md:[&>[role=tablist]]:hidden"
-          tabs={[
-            { id: "acesso", label: t("account.tabs.access"), content: <AccessCard onPasswordChanged={sessions.reload} /> },
-            { id: "duas-etapas", label: t("account.tabs.twoFactor"), content: <TwoFactorSection /> },
-            { id: "sessoes", label: t("account.tabs.sessions"), content: <SessionsSection {...sessions} /> },
-            { id: "notificacoes", label: t("account.tabs.notifications"), content: <NotificationsTab /> },
-          ]}
-        />
-      )}
+      {/* Abaixo de 768 px sem `aba` válida a tela é a lista de atalhos (canvas GMConta). */}
+      {narrow && !chosen ? <AccountMenuList sessionCount={sessions.status === "ready" ? sessions.items.length : null} /> : tabs}
     </div>
   );
 }

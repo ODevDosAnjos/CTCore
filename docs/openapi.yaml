@@ -3987,7 +3987,7 @@ components:
         passwordChangedAt: { type: string, format: date-time, nullable: true, description: "Última troca de senha (troca, redefinição ou senha do convite); vazio para conta que nunca trocou a senha desde a criação." }
     LinkView:
       type: object
-      required: [id, organizationId, organizationName, role, unitIds, unitNames]
+      required: [id, organizationId, organizationName, role, unitIds, unitNames, studentNames]
       properties:
         id: { type: string, format: uuid }
         organizationId: { type: string, format: uuid }
@@ -3998,6 +3998,8 @@ components:
           items: { type: string, format: uuid }
         unitNames: { type: array, items: { type: string }, description: "Nomes das unidades do vínculo, em ordem alfabética." }
         lastAccessAt: { type: string, format: date-time, nullable: true, description: "Último acesso por este vínculo (grava ao escolher o vínculo em PUT /auth/session/link); vazio se nunca entrou." }
+        startsOn: { type: string, format: date, nullable: true, description: "Data de início do vínculo; vazio se não registrada." }
+        studentNames: { type: array, items: { type: string }, description: "Só no vínculo de Responsável: nomes dos alunos ligados à própria conta, em ordem alfabética; vazia nos demais papéis." }
     TwoFactorRequired:
       type: object
       required: [twoFactorRequired, ticket, backupCodesRemaining]

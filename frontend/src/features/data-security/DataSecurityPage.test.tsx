@@ -157,7 +157,7 @@ describe("Dados e segurança › Duas etapas (#628)", () => {
     await send("PUT", "/organization/admin-two-factor", { required: true });
     await login("admin@exemplo.com");
     await send("POST", "/auth/two-factor/enable", { code: "123456" });
-    open("/conta?aba=duas-etapas");
+    open("/conta?aba=seguranca");
     expect(await screen.findByRole("heading", { name: "Verificação em duas etapas" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Desligar/ })).not.toBeInTheDocument();
   });

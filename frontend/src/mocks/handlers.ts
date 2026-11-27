@@ -25,7 +25,7 @@ const error = (status: number, code: string, message: string, fields: { field: s
 const session = {
   account: { id: "00000000-0000-0000-0000-000000000001", email: "ana@exemplo.com", name: "Ana", passwordChangedAt: "2026-08-12T12:00:00Z" as string | null },
   links: [
-    { id: "00000000-0000-0000-0000-000000000002", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "COORDINATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: null },
+    { id: "00000000-0000-0000-0000-000000000002", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "COORDINATOR", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null },
   ],
   activeLinkId: "00000000-0000-0000-0000-000000000002" as string | null,
   twoFactor: { enabled: false, required: false, enabledAt: null as string | null },
@@ -35,9 +35,9 @@ const session = {
 const many = {
   account: { id: "00000000-0000-0000-0000-000000000009", email: "varios@exemplo.com", name: "Vera", passwordChangedAt: null as string | null },
   links: [
-    { id: "00000000-0000-0000-0000-000000000011", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: "2026-11-17T22:10:00Z" },
-    { id: "00000000-0000-0000-0000-000000000012", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null },
-    { id: "00000000-0000-0000-0000-000000000013", organizationId: "00000000-0000-0000-0000-000000000004", organizationName: "Academia Beta", role: "TEACHER", unitIds: [], unitNames: ["Norte", "Sul"], lastAccessAt: null },
+    { id: "00000000-0000-0000-0000-000000000011", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: "2026-11-17T22:10:00Z" },
+    { id: "00000000-0000-0000-0000-000000000012", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null },
+    { id: "00000000-0000-0000-0000-000000000013", organizationId: "00000000-0000-0000-0000-000000000004", organizationName: "Academia Beta", role: "TEACHER", unitIds: [], unitNames: ["Norte", "Sul"], startsOn: null as string | null, studentNames: [] as string[], lastAccessAt: null },
   ],
   activeLinkId: null as string | null,
   twoFactor: { enabled: false, required: false, enabledAt: null as string | null },
@@ -59,37 +59,37 @@ const accounts: Record<string, ReturnType<typeof withTwoFactor>> = {
   // Aluno adulto com matrícula e termo pendente (#85): o portal leva ao aceite antes de qualquer tela.
   "termo@exemplo.com": {
     ...withTwoFactor("termo@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000014", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
+    links: [{ id: "00000000-0000-0000-0000-000000000014", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000014",
   },
   // Aluno cujas modalidades acabaram (#88): o portal abre reduzido (sem Agenda nem Avisos), sem termo pendente.
   "reduzido@exemplo.com": {
     ...withTwoFactor("reduzido@exemplo.com", false, false),
     account: { ...session.account, email: "reduzido@exemplo.com", name: "Gabriel Rocha" }, // canvas PortalReduzido: "Olá, Gabriel"
-    links: [{ id: "00000000-0000-0000-0000-000000000015", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
+    links: [{ id: "00000000-0000-0000-0000-000000000015", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000015",
   },
   // Responsável com dois filhos (#89): o Início mostra a faixa de cartões e o total da família.
   "familia@exemplo.com": {
     ...withTwoFactor("familia@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000016", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "GUARDIAN", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
+    links: [{ id: "00000000-0000-0000-0000-000000000016", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "GUARDIAN", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: ["Aluno Menor Fictício", "Filho Fictício Dois"], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000016",
   },
   // Aluno adulto com portal completo (#418, teste visual da moldura do portal).
   "aluno@exemplo.com": {
     ...withTwoFactor("aluno@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-0000000000a1", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
+    links: [{ id: "00000000-0000-0000-0000-0000000000a1", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "STUDENT", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-0000000000a1",
   },
   // Gestão por perfil (#417, teste visual da moldura): Administrador e Professor com vínculo ativo.
   "admin@exemplo.com": {
     ...withTwoFactor("admin@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000017", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
+    links: [{ id: "00000000-0000-0000-0000-000000000017", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "ADMINISTRATOR", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000017",
   },
   "prof@exemplo.com": {
     ...withTwoFactor("prof@exemplo.com", false, false),
-    links: [{ id: "00000000-0000-0000-0000-000000000018", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "TEACHER", unitIds: [], unitNames: ["Centro"], lastAccessAt: null }],
+    links: [{ id: "00000000-0000-0000-0000-000000000018", organizationId: "00000000-0000-0000-0000-000000000003", organizationName: "Academia Alfa", role: "TEACHER", unitIds: [], unitNames: ["Centro"], startsOn: "2026-01-10" as string | null, studentNames: [] as string[], lastAccessAt: null }],
     activeLinkId: "00000000-0000-0000-0000-000000000018",
   },
 };

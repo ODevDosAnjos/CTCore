@@ -169,10 +169,10 @@ test("@critical Cobranças: abrir e fechar mantém o filtro; o endereço antigo 
 test("Abas: Minha conta e Unidade guardam a aba no endereço, sem histórico e com F5", async ({ page }) => {
   await login(page);
   await open(page, "/conta");
-  await page.getByRole("tab", { name: "Sessões" }).click();
-  await expect(page).toHaveURL(/\/conta\?aba=sessoes$/);
+  await page.getByRole("tab", { name: "Segurança" }).click();
+  await expect(page).toHaveURL(/\/conta\?aba=seguranca$/);
   await page.reload(); // F5 mantém a aba
-  await expect(page.getByRole("tab", { name: "Sessões" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Segurança" })).toHaveAttribute("aria-selected", "true");
 
   await open(page, UNIT);
   await page.getByRole("tab", { name: /^Cobrança/ }).click();
@@ -180,5 +180,5 @@ test("Abas: Minha conta e Unidade guardam a aba no endereço, sem histórico e c
   await page.reload();
   await expect(page.getByRole("tab", { name: /^Cobrança/ })).toHaveAttribute("aria-selected", "true");
   await page.goBack(); // a troca de aba usou replace: o voltar sai da tela
-  await expect(page).toHaveURL(/\/conta\?aba=sessoes$/);
+  await expect(page).toHaveURL(/\/conta\?aba=seguranca$/);
 });

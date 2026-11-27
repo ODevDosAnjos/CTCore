@@ -143,7 +143,7 @@ export const casos: Caso[] = [
   { nome: "configuracoes-dados-seguranca", rota: "/configuracoes/dados-e-seguranca", perfil: ana }, // #628: sem canvas (decisão 22); o caso só guarda a referência do teste visual
   { nome: "configuracoes-termos", rota: "/configuracoes/organizacao?aba=termos", perfil: ana, canvas: "ConfigTermos", termosCanvas: true },
   { nome: "configuracoes-textos", rota: "/configuracoes/organizacao?aba=textos", perfil: admin, canvas: "ConfigTextos", textosCanvas: true, passos: [{ clicar: "Lembrete: antes do vencimento" }] },
-  { nome: "conta", rota: "/conta", perfil: ana, canvas: "MinhaConta" },
+  { nome: "conta", rota: "/conta?aba=seguranca", perfil: ana, canvas: "MinhaConta" },
   // Acesso, conta, organização, unidades e usuários (#419). Estados e janelas abrem pelos passos.
   // Escolha de organização (#489): o login de "varios@" entra sem vínculo ativo e cai na página de escolha.
   { nome: "escolha-organizacao", rota: "/entrar", canvas: "EscolhaOrganizacao", canvasCelular: "EscolhaOrgM", passos: [{ preencher: ["E-mail", "varios@exemplo.com"] }, { preencher: ["Senha", "segredo123"] }, { clicar: "Entrar" }] },
@@ -169,12 +169,18 @@ export const casos: Caso[] = [
   { nome: "convite-vencido", rota: "/convite/vencido", canvas: "ConviteVencido" },
   { nome: "pagina-nao-encontrada", rota: "/pagina-que-nao-existe", perfil: prof }, // #675: sem canvas (D6); segue a especificação e os estados base
   { nome: "sem-acesso", rota: "/administradores", perfil: prof, canvas: "EstadoSemAcesso", canvasCelular: "SemAcessoM", limiteCanvas: { 390: 0.22, motivo: "medido a 20,6% a 390 px: o canvas SemAcessoM é tela cheia sem moldura, com a marca no topo e a linha de suporte; o sistema mostra o cartão dentro da moldura, com o botão Ver minhas turmas; a #740 trata a tela e remove este limite" } },
-  { nome: "conta-aluno", rota: "/conta", perfil: aluno, canvas: "PortalTrocarEmail", informacoesCanvas: true, passos: [{ clicar: "Trocar e-mail" }], limiteCanvas: { 1440: 0.70, motivo: "fundo: a janela confere com o canvas (Novo e-mail, Senha atual com a dica, Resumo de 4 avisos, rodapé fixo); atrás dela o canvas mostra só o cartão Acesso, e o sistema mostra a página inteira (medido a 68,5% na #498; a #642 remove este limite)" } },
-  { nome: "conta-duas-etapas", rota: "/conta?aba=duas-etapas", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img' },
-  { nome: "conta-codigos-reserva", rota: "/conta?aba=duas-etapas", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Ver códigos de reserva novos" }, { clicar: "Guardei os códigos em lugar seguro", papel: "checkbox" }], aguardar: '[role="dialog"] ul li:nth-child(10)' },
+  { nome: "conta-aluno", rota: "/conta?aba=seguranca", perfil: aluno, canvas: "PortalTrocarEmail", informacoesCanvas: true, passos: [{ clicar: "Trocar e-mail" }], limiteCanvas: { 1440: 0.70, motivo: "fundo: a janela confere com o canvas (Novo e-mail, Senha atual com a dica, Resumo de 4 avisos, rodapé fixo); atrás dela o canvas mostra só o cartão Acesso, e o sistema mostra a página inteira (medido a 68,5% na #498; a #642 remove este limite)" } },
+  { nome: "conta-duas-etapas", rota: "/conta?aba=seguranca", perfil: ana, canvas: "DuasEtapas", passos: [{ clicar: "Ativar duas etapas" }], aguardar: '[role="dialog"] img' },
+  { nome: "conta-codigos-reserva", rota: "/conta?aba=seguranca", perfil: "duas@exemplo.com", canvas: "CodigosReserva", passos: [{ clicar: "Ver códigos de reserva novos" }, { clicar: "Guardei os códigos em lugar seguro", papel: "checkbox" }], aguardar: '[role="dialog"] ul li:nth-child(10)' },
   // #490: aba Notificações (Administrador: Receber tudo desabilitado) e a lista de atalhos do celular (GMConta é de 390 px: a 1440 não há comparação, o 390 é conferido nas capturas)
   { nome: "conta-notificacoes", rota: "/conta?aba=notificacoes", perfil: admin, canvas: "MinhaContaNotificacoes", aguardar: '[role="switch"]' },
   { nome: "conta-celular", rota: "/conta", perfil: ana, canvas: "GMConta" },
+  // #762: abas sem tela no canvas (decisão 24); o caso só guarda a referência do teste visual
+  { nome: "conta-perfil", rota: "/conta?aba=perfil", perfil: ana },
+  { nome: "conta-privacidade", rota: "/conta?aba=privacidade", perfil: ana },
+  { nome: "conta-aluno-perfil", rota: "/conta?aba=perfil", perfil: aluno },
+  { nome: "conta-aluno-notificacoes", rota: "/conta?aba=notificacoes", perfil: aluno, aguardar: '[role="switch"]' },
+  { nome: "conta-aluno-privacidade", rota: "/conta?aba=privacidade", perfil: aluno },
   { nome: "configuracoes-transferir-coordenacao", rota: "/configuracoes/organizacao", perfil: "duas@exemplo.com", canvas: "TransferirCoordenacao", organizacaoCanvas: true, passos: [{ clicar: "Transferir coordenação" }, { escolher: ["Novo Coordenador", "Carla Mendes"] }, { preencher: ["Sua senha", "segredo123"] }] },
   { nome: "configuracoes-unidade-nova", rota: "/configuracoes/unidades/nova", perfil: ana, canvas: "UnidadeNova" },
   { nome: "configuracoes-unidade-desativar", rota: "/configuracoes/unidades", perfil: ana, canvas: "UnidadeDesativar", unidadesCanvas: "lista", passos: [{ clicar: "Desativar a Barra" }] },
@@ -241,7 +247,7 @@ export const casos: Caso[] = [
   { nome: "matricula-vencimento", rota: matriculaRota, perfil: ana, canvas: "MatriculaVencimento", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }] },
   { nome: "matricula-resumo", rota: matriculaRota, perfil: ana, canvas: "MatriculaResumo", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }, { clicar: "Continuar" }] },
   { nome: "matricula-concluida", rota: matriculaRota, perfil: ana, canvas: "MatriculaConcluida", oferta: true, passos: [...modalidade, { clicar: "Continuar" }, { clicar: "Dia 5", papel: "radio" }, { clicar: "Continuar" }, { clicar: "Concluir matrícula" }] },
-  { nome: "conta-aluno-pagina", rota: "/conta", perfil: aluno, canvas: "PortalConta", canvasCelular: "PortalMConta", informacoesCanvas: true },
+  { nome: "conta-aluno-pagina", rota: "/conta?aba=seguranca", perfil: aluno, canvas: "PortalConta", canvasCelular: "PortalMConta", informacoesCanvas: true },
   { nome: "portal-editar-contato", rota: "/portal/minhas-informacoes", perfil: aluno, canvas: "PortalMEditar", canvasCelular: "PortalMEditar", informacoesCanvas: true, passos: [{ clicar: "Editar(?: contato)?$" }] },
   { nome: "portal-familia", rota: "/portal/financeiro", perfil: familia, canvas: "PortalFamilia", canvasCelular: "PortalMFamilia" },
   { nome: "portal-reduzido-info", rota: "/portal/minhas-informacoes", perfil: reduzido, canvas: "PortalReduzidoInfo" },
