@@ -3733,12 +3733,22 @@
     },
     "tabs": {
       "label": "Seções de Minha conta",
-      "access": "Acesso",
-      "twoFactor": "Duas etapas",
-      "sessions": "Sessões",
-      "notifications": "Notificações"
+      "perfil": "Perfil",
+      "seguranca": "Segurança",
+      "notificacoes": "Notificações",
+      "privacidade": "Privacidade"
     },
     "back": "Voltar para Minha conta",
+    "profile": {
+      "links": "Meus vínculos",
+      "role": "Papel",
+      "units": "Unidades",
+      "students": "Alunos ligados",
+      "since": "Desde"
+    },
+    "privacy": {
+      "managementDownload": "Conta, vínculos, consentimentos e acessos num arquivo."
+    },
     "portal": {
       "label": "Minhas informações",
       "back": "Voltar",
@@ -3767,6 +3777,8 @@
       "twoFactor": "Duas etapas",
       "sessions": "Sessões ativas",
       "notifications": "Notificações",
+      "profileRow": "Perfil",
+      "privacy": "Privacidade",
       "passwordMonths_one": "alterada há {{count}} mês",
       "passwordMonths_other": "alterada há {{count}} meses",
       "passwordRecent": "alterada há menos de 1 mês",
@@ -3798,7 +3810,8 @@
       "save": "Salvar alterações",
       "saving": "Salvando...",
       "saveFailed": "Não foi possível salvar. Sua mudança foi mantida; tente de novo.",
-      "saved": "Preferências salvas."
+      "saved": "Preferências salvas.",
+      "always": "Sempre enviamos: avisos de segurança da conta e da assinatura"
     }
   },
   "notifications": {

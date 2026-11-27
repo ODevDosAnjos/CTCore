@@ -6,6 +6,8 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { ComingSoon } from "@/components/ui/coming-soon";
 import { Switch } from "@/components/ui/switch";
+import { PortalPreferences } from "@/features/portal/PortalSettings";
+import { useResource } from "@/features/students/useStudentRecord";
 import { useNotificationPrefs } from "./useNotificationPrefs";
 
 function Item({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
@@ -16,6 +18,26 @@ function Item({ title, hint, children }: { title: string; hint?: string; childre
         {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// D2: avisos que não dá para desligar, nas duas áreas: só o texto, sem chave.
+function AlwaysSent() {
+  const { t } = useTranslation();
+  return <p className="text-sm text-muted-foreground">{t("account.notifications.always")}</p>;
+}
+
+// RN-COM-13: no portal, a mesma chave de comunicados de Minhas informações (vínculo ativo). Não é lista: não tem estado vazio.
+export function PortalNotifications() {
+  const prefs = useResource<{ announcements: boolean }>("/auth/email-preferences");
+  if (prefs.status === "forbidden") return <ForbiddenState />;
+  if (prefs.status === "loading") return <LoadingState />;
+  if (!prefs.data) return <ErrorState onRetry={prefs.reload} />;
+  return (
+    <div className="space-y-4">
+      <PortalPreferences initial={prefs.data.announcements} />
+      <AlwaysSent />
     </div>
   );
 }
@@ -46,6 +68,7 @@ export function NotificationsTab() {
       <Card title={t("account.notifications.welcome.title")} heading="h2">
         <ComingSoon variant="switch" label={t("account.notifications.welcome.label")} />
       </Card>
+      <AlwaysSent />
       {p.saveFailed && <Banner tone="danger">{t("account.notifications.saveFailed")}</Banner>}
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="ghost" disabled={!p.dirty || p.saving} onClick={p.discard}>

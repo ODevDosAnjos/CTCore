@@ -79,3 +79,17 @@ describe("minha conta x OpenAPI (CA17)", () => {
     expect((await send("POST", "/auth/email-change", { ...body, code: "123456" })).status).toBe(202);
   });
 });
+
+describe("vínculos da sessão x OpenAPI (#762)", () => {
+  it("cada vínculo traz os campos obrigatórios, a data de início e os alunos só para Responsável", async () => {
+    const required: string[] = openapi.components.schemas.LinkView.required;
+    for (const email of ["varios@exemplo.com", "familia@exemplo.com"]) {
+      await send("POST", "/auth/login", { email, password: "x" });
+      const { links } = await (await send("GET", "/auth/session")).json();
+      for (const link of links) {
+        for (const k of [...required, "startsOn"]) expect(link).toHaveProperty(k);
+        expect(link.studentNames.length > 0).toBe(link.role === "GUARDIAN");
+      }
+    }
+  });
+});

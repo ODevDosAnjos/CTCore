@@ -68,6 +68,8 @@ describe("NotificationsTab (CA10)", () => {
     expect(screen.getByRole("switch", { name: "Receber o “Precisa de atenção” todo dia às 7h" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("switch", { name: "Dicas dos primeiros dias" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getAllByText("Em breve")).toHaveLength(2);
+    expect(screen.getByText("Sempre enviamos: avisos de segurança da conta e da assinatura")).toBeInTheDocument();
+    expect(screen.getAllByRole("switch")).toHaveLength(4);
     expect(puts).toEqual([]);
   });
 

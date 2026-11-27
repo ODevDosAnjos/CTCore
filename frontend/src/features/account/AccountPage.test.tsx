@@ -21,12 +21,13 @@ const session = (role: string, twoFactor: TwoFactor = { enabled: false, required
 
 // A sessão do mock fica ativa para as rotas que exigem login; o GET /auth/session é trocado por `current`.
 type Handler = Parameters<typeof server.use>[number];
-async function setup(role = "COORDINATOR", twoFactor: TwoFactor = { enabled: false, required: false }, path = "/conta", extra: Handler[] = [], passwordChangedAt: string | null = "2026-08-12T15:00:00Z") {
+async function setup(role = "COORDINATOR", twoFactor: TwoFactor = { enabled: false, required: false }, path = SEGURANCA, extra: Handler[] = [], passwordChangedAt: string | null = "2026-08-12T15:00:00Z") {
   await fetch("/api/v1/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "a@b.c", password: "x" }) });
   let current = session(role, twoFactor, passwordChangedAt);
   server.use(
     ...extra,
     portalShellOk,
+    http.get("/api/v1/auth/email-preferences", () => HttpResponse.json({ announcements: true })),
     http.get("/api/v1/auth/session", () => HttpResponse.json(current)),
     http.get("/api/v1/permissions", () => HttpResponse.json({ permissions: mockPermissions(role) })),
     http.get("/api/v1/units/reachable", () => HttpResponse.json({ allUnits: false, units: [] })),
@@ -51,52 +52,83 @@ function Where() {
 
 const ready = () => screen.findByRole("heading", { name: "Minha conta", level: 1 });
 const strong = "NovaSenha123";
-const DUAS = "/conta?aba=duas-etapas";
-const SESSOES = "/conta?aba=sessoes";
+const SEGURANCA = "/conta?aba=seguranca";
 
-describe("AccountPage: abas (CA1, CA2)", () => {
-  it("o Administrador vê quatro abas com Acesso ativa e sem subtítulo; clicar muda a aba e a URL", async () => {
-    const user = userEvent.setup();
-    await setup("ADMINISTRATOR");
+const NAMES = ["Perfil", "Segurança", "Notificações", "Privacidade"];
+const IDS = ["perfil", "seguranca", "notificacoes", "privacidade"];
+const OFF: TwoFactor = { enabled: false, required: false };
+// Um título que só existe dentro de cada aba, por área.
+const CONTENT = {
+  ADMINISTRATOR: ["Meus vínculos", "Sessões ativas", "Sino da gestão", "Baixar meus dados"],
+  STUDENT: ["Meus vínculos", "Sessões ativas", "Preferências de e-mail", "Excluir minha conta"],
+};
+
+describe("AccountPage: abas (#762 CA1, CA2)", () => {
+  it.each((["ADMINISTRATOR", "STUDENT"] as const).flatMap((role) => IDS.map((id, i) => [role, id, i] as const)))("%s abre ?aba=%s com as quatro abas em ordem e a pedida ativa", async (role, id, i) => {
+    await setup(role, OFF, `/conta?aba=${id}`);
     await ready();
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Acesso", "Duas etapas", "Sessões", "Notificações"]);
-    expect(screen.getByRole("tab", { name: "Acesso", selected: true })).toBeInTheDocument();
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(NAMES);
+    expect(screen.getByRole("tab", { name: NAMES[i], selected: true })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: CONTENT[role][i] })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toContainElement(screen.getByRole("tabpanel"));
+  });
+
+  it("clicar muda a aba e a URL; as setas, Home e End movem o foco", async () => {
+    const user = userEvent.setup();
+    await setup("ADMINISTRATOR", OFF, "/conta");
+    await ready();
     expect(screen.queryByText("X · Administrador da Centro")).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Notificações" }));
     expect(screen.getByTestId("where")).toHaveTextContent("/conta?aba=notificacoes");
     expect(await screen.findByText("Sino da gestão")).toBeInTheDocument();
-  });
-
-  it("abre direto na aba da URL e as setas, Home e End movem o foco", async () => {
-    const user = userEvent.setup();
-    await setup("ADMINISTRATOR", { enabled: false, required: false }, SESSOES);
-    await ready();
-    expect(screen.getByRole("tab", { name: "Sessões", selected: true })).toBeInTheDocument();
-    screen.getByRole("tab", { name: "Sessões" }).focus();
+    screen.getByRole("tab", { name: "Notificações" }).focus();
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: "Notificações" })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: "Privacidade" })).toHaveFocus();
     await user.keyboard("{Home}");
-    expect(screen.getByRole("tab", { name: "Acesso" })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: "Perfil" })).toHaveFocus();
     await user.keyboard("{End}");
-    expect(screen.getByRole("tab", { name: "Notificações" })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: "Privacidade" })).toHaveFocus();
   });
 
-  it("o Aluno continua com a página de antes, sem abas", async () => {
-    await setup("STUDENT");
+  it.each(["ADMINISTRATOR", "STUDENT"].flatMap((role) => ["", "?aba=xyz", "?aba=acesso", "?aba=duas-etapas", "?aba=sessoes"].map((q) => [role, q] as const)))("%s com '%s' abre o Perfil", async (role, query) => {
+    await setup(role, OFF, `/conta${query}`);
     await ready();
-    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1, name: "Minha conta" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Perfil", selected: true })).toBeInTheDocument();
+  });
+
+  it("no portal há o Voltar e o rótulo; o Perfil mostra só Meus vínculos", async () => {
+    await setup("STUDENT", OFF, "/conta");
+    await ready();
     expect(screen.getByText("Minhas informações", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Minhas informações", current: "page" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Voltar" })).toHaveAttribute("href", "/portal/minhas-informacoes");
-    for (const name of ["Acesso", "Verificação em duas etapas", "Sessões ativas", "Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    expect(within(screen.getByRole("tabpanel")).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Meus vínculos"]);
+  });
+});
+
+describe("AccountPage: Segurança (#762 CA6, CA7)", () => {
+  it("junta Acesso, duas etapas e sessões; no portal, sem coluna de local", async () => {
+    await setup("STUDENT");
+    await ready();
+    for (const name of ["Acesso", "Verificação em duas etapas", "Sessões ativas"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     expect(screen.getByText("Opcional para alunos")).toBeInTheDocument();
     expect(await screen.findByText("Este aparelho")).toBeInTheDocument();
-    expect(screen.queryByText("No portal, a sessão dura 30 dias.")).not.toBeInTheDocument();
-    for (const name of ["Baixar meus dados", "Excluir minha conta"]) expect(screen.getByRole("button", { name })).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getAllByText("Em breve").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByRole("columnheader", { name: "Local" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["COORDINATOR", true, false],
+    ["ADMINISTRATOR", true, false],
+    ["ADMINISTRATOR", false, true],
+    ["TEACHER", false, true],
+    ["STUDENT", false, true],
+    ["GUARDIAN", false, true],
+  ])("%s (obrigado: %s) vê Desligar: %s", async (role, required, visible) => {
+    await setup(role, { enabled: true, required, enabledAt: "2026-08-12T15:00:00Z" });
+    await ready();
+    await screen.findByRole("button", { name: "Ver códigos de reserva novos" });
+    expect(!!screen.queryByRole("button", { name: "Desligar" })).toBe(visible);
   });
 });
 
@@ -108,7 +140,7 @@ describe("AccountPage: cartão Acesso (CA3)", () => {
     expect(screen.getByText("alterada em 12/08/2026")).toBeInTheDocument();
     expect(screen.queryByText(/O novo e-mail só vale depois de confirmado pelo link \(24 horas\)/)).not.toBeInTheDocument();
     first.unmount();
-    await setup("COORDINATOR", { enabled: false, required: false }, "/conta", [], null);
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA, [], null);
     await ready();
     expect(await screen.findByText("nunca alterada")).toBeInTheDocument();
   });
@@ -222,7 +254,7 @@ describe("AccountPage: e-mail (CA3)", () => {
 
   it("com as duas etapas pede o código", async () => {
     const user = userEvent.setup();
-    await setup("ADMINISTRATOR", { enabled: true, required: false }, "/conta", [
+    await setup("ADMINISTRATOR", { enabled: true, required: false }, SEGURANCA, [
       http.post("/api/v1/auth/email-change", async ({ request }) => {
         const { code } = (await request.json()) as { code?: string };
         return code === "123456" ? new HttpResponse(null, { status: 202 }) : HttpResponse.json({ code: "INVALID_TWO_FACTOR_CODE" }, { status: 401 });
@@ -278,7 +310,7 @@ describe("ConfirmEmailPage (CA7, CA8)", () => {
 describe("AccountPage: duas etapas (CA5, CA9)", () => {
   it("Coordenador obrigado vê Ativa, a data e os códigos novos, sem Desligar; os códigos abrem direto", async () => {
     const user = userEvent.setup();
-    await setup("COORDINATOR", { enabled: true, required: true, enabledAt: "2026-08-12T15:00:00Z" }, DUAS);
+    await setup("COORDINATOR", { enabled: true, required: true, enabledAt: "2026-08-12T15:00:00Z" }, SEGURANCA);
     await ready();
     expect(screen.getByText("Ativa")).toBeInTheDocument();
     expect(screen.getByText("app autenticador · ativada em 12/08/2026")).toBeInTheDocument();
@@ -294,7 +326,7 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
 
   it("sem as duas etapas: Desligada e o botão Ativar; liga com QR, código e códigos, e Agora não fecha sem ativar", async () => {
     const user = userEvent.setup();
-    const { setSession } = await setup("ADMINISTRATOR", { enabled: false, required: false }, DUAS);
+    const { setSession } = await setup("ADMINISTRATOR", { enabled: false, required: false }, SEGURANCA);
     await ready();
     expect(screen.getByText("Desligada")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Ativar duas etapas" }));
@@ -314,7 +346,7 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
 
   it("desliga com senha e código; erros aparecem nos campos", async () => {
     const user = userEvent.setup();
-    const { setSession } = await setup("ADMINISTRATOR", { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" }, DUAS);
+    const { setSession } = await setup("ADMINISTRATOR", { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" }, SEGURANCA);
     await ready();
     await user.click(screen.getByRole("button", { name: "Desligar" }));
     const dialog = await screen.findByRole("dialog");
@@ -335,7 +367,7 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
 
   it("desligar: 429, 403 e falha do servidor têm estados próprios", async () => {
     const user = userEvent.setup();
-    await setup("ADMINISTRATOR", { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" }, DUAS);
+    await setup("ADMINISTRATOR", { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" }, SEGURANCA);
     await ready();
     await user.click(screen.getByRole("button", { name: "Desligar" }));
     const dialog = await screen.findByRole("dialog");
@@ -352,7 +384,7 @@ describe("AccountPage: duas etapas (CA5, CA9)", () => {
 describe("AccountPage: sessões (CA6, CA13)", () => {
   it("tabela com Aparelho, Local e Último uso; selo só na atual; encerra uma sessão", async () => {
     const user = userEvent.setup();
-    await setup("COORDINATOR", { enabled: false, required: false }, SESSOES);
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA);
     await ready();
     expect(await screen.findByText("Este aparelho")).toBeInTheDocument();
     const table = screen.getByRole("table");
@@ -368,7 +400,7 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
 
   it("encerra todas as outras só depois da confirmação", async () => {
     const user = userEvent.setup();
-    await setup("COORDINATOR", { enabled: false, required: false }, SESSOES);
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA);
     await ready();
     await user.click(await screen.findByRole("button", { name: "Encerrar todas as outras" }));
     const dialog = await screen.findByRole("dialog");
@@ -380,7 +412,7 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
 
   it("falha ao encerrar mostra o aviso", async () => {
     const user = userEvent.setup();
-    await setup("COORDINATOR", { enabled: false, required: false }, SESSOES, [http.delete("/api/v1/auth/sessions/:id", () => new HttpResponse(null, { status: 500 }))]);
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA, [http.delete("/api/v1/auth/sessions/:id", () => new HttpResponse(null, { status: 500 }))]);
     await ready();
     await user.click(await screen.findByRole("button", { name: "Encerrar a sessão em Safari em iOS" }));
     expect(await screen.findByText("Não conseguimos encerrar a sessão. Tente de novo.")).toBeInTheDocument();
@@ -389,7 +421,7 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
   it("abaixo de 640 px a lista vira cartões, sem tabela", async () => {
     setDeviceNarrow(true);
     window.innerWidth = 360;
-    await setup("COORDINATOR", { enabled: false, required: false }, SESSOES);
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA);
     await ready();
     expect(await screen.findByRole("list", { name: "Sessões ativas" })).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -401,7 +433,7 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
     let fail = true;
     let release = () => {};
     const gate = new Promise<void>((r) => (release = r));
-    await setup("COORDINATOR", { enabled: false, required: false }, SESSOES, [
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA, [
       http.get("/api/v1/auth/sessions", async () => {
         await gate;
         return fail ? new HttpResponse(null, { status: 500 }) : HttpResponse.json([]);
@@ -418,7 +450,7 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
 
   it("401 na lista volta ao login", async () => {
     let calls = 0;
-    await setup("COORDINATOR", { enabled: false, required: false }, "/conta", [
+    await setup("COORDINATOR", { enabled: false, required: false }, SEGURANCA, [
       http.get("/api/v1/auth/sessions", () => HttpResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 })),
       http.get("/api/v1/auth/session", () => (calls++ === 0 ? HttpResponse.json(session("COORDINATOR")) : HttpResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 }))),
     ]);
@@ -426,12 +458,12 @@ describe("AccountPage: sessões (CA6, CA13)", () => {
   });
 });
 
-describe("AccountPage: lista do celular (CA12)", () => {
-  it("a 390 px sem ?aba= mostra a lista de atalhos com Sair e sem abas; tocar abre a aba com seta de voltar", async () => {
+describe("AccountPage: lista do celular (CA12, #762 CA2)", () => {
+  it("a 390 px sem ?aba= válida mostra a lista de atalhos com Sair e sem abas; tocar abre a aba com seta de voltar", async () => {
     const user = userEvent.setup();
     setDeviceNarrow(true);
     window.innerWidth = 390;
-    await setup("COORDINATOR", { enabled: true, required: true, enabledAt: "2026-08-12T15:00:00Z" });
+    await setup("COORDINATOR", { enabled: true, required: true, enabledAt: "2026-08-12T15:00:00Z" }, "/conta?aba=sessoes");
     await ready();
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
     expect(screen.getByText("Coordenador · Centro")).toBeInTheDocument();
@@ -439,18 +471,30 @@ describe("AccountPage: lista do celular (CA12)", () => {
     expect(screen.getByText(/alterada há \d+ meses?/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Sair/ }).length).toBeGreaterThan(0);
     await user.click(screen.getByRole("link", { name: /Sessões ativas/ }));
-    expect(screen.getByTestId("where")).toHaveTextContent("/conta?aba=sessoes");
+    expect(screen.getByTestId("where")).toHaveTextContent("/conta?aba=seguranca");
     expect(await screen.findByText("Este aparelho")).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "Voltar para Minha conta" }));
     expect(screen.getByTestId("where")).toHaveTextContent(/^\/conta$/);
     expect(await screen.findByText("Duas etapas")).toBeInTheDocument();
   });
 
+  it("as linhas abrem a aba correspondente", async () => {
+    setDeviceNarrow(true);
+    window.innerWidth = 390;
+    await setup("COORDINATOR", OFF, "/conta");
+    await ready();
+    // só a lista de atalhos: a moldura também tem links
+    const list = screen.getAllByRole("list").find((l) => within(l).queryByRole("link", { name: /^Privacidade/ }))!;
+    const rows = within(list).getAllByRole("link");
+    expect(rows.map((a) => a.getAttribute("href"))).toEqual(["perfil", "seguranca", "seguranca", "seguranca", "seguranca", "notificacoes", "privacidade"].map((id) => `/conta?aba=${id}`));
+    ["Perfil", "Senha", "E-mail", "Duas etapas", "Sessões ativas", "Notificações", "Privacidade"].forEach((label, i) => expect(rows[i]).toHaveTextContent(label));
+  });
+
   it("Sair encerra a sessão e volta ao login", async () => {
     const user = userEvent.setup();
     setDeviceNarrow(true);
     window.innerWidth = 390;
-    await setup("COORDINATOR");
+    await setup("COORDINATOR", OFF, "/conta");
     await ready();
     server.use(http.get("/api/v1/auth/session", () => HttpResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 })));
     await user.click(screen.getByRole("button", { name: "Sair" }));
@@ -466,25 +510,20 @@ describe("AccountPage: lista do celular (CA12)", () => {
   });
 });
 
-describe("AccountPage: acessibilidade em 360 px (CA13)", () => {
-  it.each([
-    ["gestão", "COORDINATOR", false, "/conta?aba=acesso"],
-    ["gestão", "COORDINATOR", true, "/conta?aba=acesso"],
-    ["gestão", "ADMINISTRATOR", false, SESSOES],
-    ["gestão", "ADMINISTRATOR", true, DUAS],
-    ["gestão", "COORDINATOR", false, "/conta?aba=notificacoes"],
-    ["portal", "STUDENT", false, "/conta"],
-    ["portal", "GUARDIAN", true, "/conta"],
-  ])("perfil de %s (%s) sem violações no axe (escuro: %s, %s)", async (_n, role, dark, path) => {
-    setDevicePrefersDark(dark);
-    window.innerWidth = 360;
-    const { container } = await setup(role, { enabled: true, required: role === "COORDINATOR", enabledAt: "2026-08-12T15:00:00Z" }, path);
-    await ready();
-    if (path.includes("sessoes") || role === "STUDENT" || role === "GUARDIAN") await screen.findByText("Safari em iOS");
-    if (path.includes("notificacoes")) await screen.findByText("Sino da gestão");
-    expect(document.documentElement.classList.contains("dark")).toBe(dark);
-    expect(await axeViolations(container)).toEqual([]);
-  });
+describe("AccountPage: acessibilidade em 360 px (CA13, #762 CA10)", () => {
+  it.each((["ADMINISTRATOR", "STUDENT"] as const).flatMap((role) => IDS.flatMap((id, i) => [false, true].map((dark) => [role, id, dark, i] as const))))(
+    "%s na aba %s sem violações no axe (escuro: %s)",
+    async (role, id, dark, i) => {
+      setDevicePrefersDark(dark);
+      window.innerWidth = 360;
+      const { container } = await setup(role, { enabled: true, required: false, enabledAt: "2026-08-12T15:00:00Z" }, `/conta?aba=${id}`);
+      await ready();
+      await screen.findByRole("heading", { name: CONTENT[role][i] });
+      if (id === "seguranca") await screen.findByText("Safari em iOS");
+      expect(document.documentElement.classList.contains("dark")).toBe(dark);
+      expect(await axeViolations(container)).toEqual([]);
+    },
+  );
 });
 
 describe("AccountPage do portal: janelas sem violações no axe (CA13)", () => {
@@ -500,5 +539,139 @@ describe("AccountPage do portal: janelas sem violações no axe (CA13)", () => {
     await userEvent.setup().click(screen.getByRole("button", { name }));
     await screen.findByRole("dialog", { name });
     expect(await axeViolations(document.body)).toEqual([]);
+  });
+});
+
+describe("AccountPage: Perfil, Meus vínculos (#762 CA5)", () => {
+  const base = { unitIds: [], unitNames: ["Centro", "Norte"], studentNames: [] as string[], startsOn: "2026-02-10" as string | null };
+  const links: SessionView["links"] = [
+    { ...base, id: "l1", organizationId: "o1", organizationName: "Alfa", role: "ADMINISTRATOR" },
+    { ...base, id: "l2", organizationId: "o2", organizationName: "Beta", role: "GUARDIAN", studentNames: ["Ana Fictícia", "Beto Fictício"] },
+    { ...base, id: "l3", organizationId: "o3", organizationName: "Gama", role: "TEACHER", startsOn: null },
+    { ...base, id: "l4", organizationId: "o4", organizationName: "Delta", role: "STUDENT" },
+    { ...base, id: "l5", organizationId: "o5", organizationName: "Épsilon", role: "COORDINATOR" },
+  ];
+  const many = (over: Partial<SessionView> = {}) => http.get("/api/v1/auth/session", () => HttpResponse.json({ ...session("ADMINISTRATOR"), links, ...over }));
+  const fields = (item: HTMLElement) => Array.from(item.querySelectorAll("dt"), (dt) => `${dt.textContent}: ${dt.nextElementSibling?.textContent}`);
+
+  it("cada vínculo mostra os campos do papel, sem controle de edição, e há o atalho de troca, que abre a escolha", async () => {
+    const user = userEvent.setup();
+    await setup("ADMINISTRATOR", OFF, "/conta", [many()]);
+    await ready();
+    const panel = screen.getByRole("tabpanel");
+    const items = within(within(panel).getByRole("list", { name: "Meus vínculos" })).getAllByRole("listitem");
+    expect(items.map((i) => i.querySelector("p")?.textContent)).toEqual(["Alfa", "Beta", "Gama", "Delta", "Épsilon"]);
+    expect(items.map(fields)).toEqual([
+      ["Papel: Administrador", "Unidades: Centro e Norte", "Desde: 10/02/2026"],
+      ["Papel: Responsável", "Alunos ligados: Ana Fictícia e Beto Fictício", "Desde: 10/02/2026"],
+      ["Papel: Professor", "Unidades: Centro e Norte"],
+      ["Papel: Aluno", "Desde: 10/02/2026"],
+      ["Papel: Coordenador", "Desde: 10/02/2026"],
+    ]);
+    expect(within(panel).getAllByRole("button").map((b) => b.textContent)).toEqual(["Trocar organização ou área"]);
+    expect(within(panel).queryByRole("link")).not.toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Trocar organização ou área" }));
+    expect(await screen.findByRole("dialog", { name: "Onde você quer entrar?" })).toBeInTheDocument();
+  });
+
+  it("com um vínculo só não há atalho; no portal o Perfil não tem outro cartão", async () => {
+    await setup("STUDENT", OFF, "/conta");
+    await ready();
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).queryByRole("button")).not.toBeInTheDocument();
+    expect(panel.querySelectorAll("section")).toHaveLength(1);
+  });
+});
+
+const ALWAYS = "Sempre enviamos: avisos de segurança da conta e da assinatura";
+
+describe("AccountPage: Notificações do portal (#762 CA8)", () => {
+  const PATH = "/conta?aba=notificacoes";
+  const URL = "/api/v1/auth/email-preferences";
+
+  it("lê o valor gravado, grava a mudança e mostra a linha Sempre enviamos sem chave", async () => {
+    const user = userEvent.setup();
+    const puts: unknown[] = [];
+    await setup("GUARDIAN", OFF, PATH, [
+      http.get(URL, () => HttpResponse.json({ announcements: false })),
+      http.put(URL, async ({ request }) => {
+        const body = (await request.json()) as { announcements: boolean };
+        puts.push(body);
+        return HttpResponse.json(body);
+      }),
+    ]);
+    await ready();
+    const toggle = await screen.findByRole("switch", { name: "Comunicados da academia" });
+    expect(toggle).not.toBeChecked();
+    expect(screen.getByText(ALWAYS)).toBeInTheDocument();
+    expect(within(screen.getByRole("tabpanel")).getAllByRole("switch")).toHaveLength(1);
+    await user.click(toggle);
+    await waitFor(() => expect(toggle).toBeChecked());
+    expect(puts).toEqual([{ announcements: true }]);
+  });
+
+  it("falha ao gravar avisa e mantém o valor", async () => {
+    await setup("STUDENT", OFF, PATH, [http.put(URL, () => new HttpResponse(null, { status: 500 }))]);
+    await ready();
+    const toggle = await screen.findByRole("switch", { name: "Comunicados da academia" });
+    await userEvent.setup().click(toggle);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível salvar a preferência.");
+    expect(toggle).toBeChecked();
+  });
+
+  it("carregando e erro com Tentar de novo", async () => {
+    const user = userEvent.setup();
+    let fail = true;
+    let release = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    await setup("STUDENT", OFF, PATH, [
+      http.get(URL, async () => {
+        await gate;
+        return fail ? new HttpResponse(null, { status: 500 }) : HttpResponse.json({ announcements: true });
+      }),
+    ]);
+    await ready();
+    expect(within(screen.getByRole("tabpanel")).getByRole("status")).toHaveTextContent("Carregando...");
+    release();
+    const retry = await screen.findByRole("button", { name: "Tentar de novo" });
+    fail = false;
+    await user.click(retry);
+    expect(await screen.findByRole("switch", { name: "Comunicados da academia" })).toBeChecked();
+  });
+
+  it("403 mostra sem permissão", async () => {
+    await setup("STUDENT", OFF, PATH, [http.get(URL, () => new HttpResponse(null, { status: 403 }))]);
+    await ready();
+    expect(await screen.findByText("Você não tem acesso")).toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+});
+
+describe("AccountPage: Privacidade (#762 CA9)", () => {
+  it.each([
+    ["STUDENT", false, ["Baixar meus dados", "Excluir minha conta"]],
+    ["ADMINISTRATOR", false, ["Baixar meus dados"]],
+    ["GUARDIAN", true, ["Baixar meus dados", "Excluir minha conta"]],
+  ])("%s (abaixo de 640 px: %s): Em breve, desabilitado e sem requisição ao clicar", async (role, narrow, names) => {
+    setDeviceNarrow(narrow);
+    await setup(role, OFF, "/conta?aba=privacidade");
+    await ready();
+    const panel = screen.getByRole("tabpanel");
+    await new Promise((r) => setTimeout(r, 200)); // deixa as cargas da moldura e das sessões terminarem antes de contar
+    // abaixo de 640 px o portal usa as linhas "Em breve" (papel de link)
+    const items = within(panel).getAllByRole(narrow ? "link" : "button");
+    expect(items.map((i) => i.textContent)).toEqual(names);
+    expect(within(panel).getAllByText("Em breve")).toHaveLength(names.length);
+    const requests: string[] = [];
+    const spy = ({ request }: { request: Request }) => requests.push(request.url);
+    server.events.on("request:start", spy);
+    const user = userEvent.setup();
+    for (const item of items) {
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      await user.click(item);
+    }
+    await new Promise((r) => setTimeout(r, 50));
+    server.events.removeListener("request:start", spy);
+    expect(requests).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Bell, ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Smartphone, type LucideIcon } from "lucide-react";
+import { Bell, ChevronRight, KeyRound, Lock, LogOut, Mail, ShieldCheck, Smartphone, UserRound, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Avatar } from "@/components/ui/avatar";
@@ -49,11 +49,13 @@ export function AccountMenuList({ sessionCount }: { sessionCount: number | null 
         </div>
       </div>
       <ul className="divide-y rounded-card border bg-card">
-        <Row icon={KeyRound} to="?aba=acesso" label={t("account.menu.senha")} value={password} />
-        <Row icon={Mail} to="?aba=acesso" label={t("account.menu.email")} value={account.email} />
-        <Row icon={ShieldCheck} to="?aba=duas-etapas" label={t("account.menu.twoFactor")} value={t(twoFactor.enabled ? "account.menu.on" : "account.menu.off")} />
-        <Row icon={Smartphone} to="?aba=sessoes" label={t("account.menu.sessions")} value={sessionCount ?? ""} />
+        <Row icon={UserRound} to="?aba=perfil" label={t("account.menu.profileRow")} />
+        <Row icon={KeyRound} to="?aba=seguranca" label={t("account.menu.senha")} value={password} />
+        <Row icon={Mail} to="?aba=seguranca" label={t("account.menu.email")} value={account.email} />
+        <Row icon={ShieldCheck} to="?aba=seguranca" label={t("account.menu.twoFactor")} value={t(twoFactor.enabled ? "account.menu.on" : "account.menu.off")} />
+        <Row icon={Smartphone} to="?aba=seguranca" label={t("account.menu.sessions")} value={sessionCount ?? ""} />
         <Row icon={Bell} to="?aba=notificacoes" label={t("account.menu.notifications")} />
+        <Row icon={Lock} to="?aba=privacidade" label={t("account.menu.privacy")} />
       </ul>
       <Button type="button" variant="danger" className="min-h-11 w-full" disabled={pending} onClick={logout}>
         <LogOut aria-hidden />

@@ -709,8 +709,8 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
   await expect(page.locator("[data-vitrine], h1").first()).toBeVisible();
   // só serve para evitar a rolagem errada no clique: com a página ainda crescendo, a rolagem automática fica menor e o fundo do print oscila (#530)
   if (passos.length > 0) await assentar(page, perfil);
-  // Minha conta (#490): a lista de sessões (portal e aba Sessões) ou o conteúdo da aba pedida
-  if (perfil && rota.startsWith("/conta")) await expect(page.getByRole("button", { name: /^Encerrar a sessão em/ }).or(page.getByText(/alterada (em|há)|nunca alterada|^Ativa$|^Desligada$|Sino da gestão/)).first()).toBeVisible();
+  // Minha conta (#490, #762): o conteúdo da aba pedida
+  if (perfil && rota.startsWith("/conta")) await expect(page.getByRole("button", { name: /^Encerrar a sessão em/ }).or(page.getByText(/alterada (em|há)|nunca alterada|^Ativa$|^Desligada$|Sino da gestão|^Meus vínculos$|^Comunicados da academia$|^Baixar meus dados$/)).first()).toBeVisible();
   for (const p of passos) {
     if ("preencher" in p) await page.getByLabel(p.preencher[0], { exact: true }).fill(p.preencher[1]);
     else if ("escolher" in p) {
