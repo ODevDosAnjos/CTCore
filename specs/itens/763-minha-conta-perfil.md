@@ -2,7 +2,7 @@
 
 Origem: issue #763, parte b da #630 (RF-ACE-04, RNF-56, RN-ORG-03; decisão 24 de `docs/auditoria/decisoes-canvas.md`). Divisão e plano de partida em `specs/itens/630-minha-conta-abas.md`. Branch: `item/763-minha-conta-perfil`.
 
-Tempos: especificar 4 · construir 26 (2 rodadas) · verificar 30 (regressão 27, 2 rodadas) · entregar 5 (2 rodadas)
+Tempos: especificar 4 · construir 38 (3 rodadas) · verificar 43 (regressão 39, 3 rodadas) · entregar 8 (3 rodadas)
 Comparação com o canvas: 3
 
 <!-- Fase 2: especificação. Escrita por `especificar`, que grava só as seções 1 a 6. -->
@@ -114,6 +114,16 @@ Desvios (parte B): o cartão da lista do celular recebe só `photoUrl`, sem `onP
 - Prova: `docker run --rm rhysd/actionlint:1.7.7 .github/workflows/ci.yml` → sem erro (imagem removida); o roteiro do passo simulado com `bash -eo pipefail` (amostragem em 1 s e Maven trocado por um comando que falha) → terminou em 3 s com código 1, sem travar. Os limites e o envio no GitHub só o CI prova.
 - Testes do item: não rodaram de novo (código e testes iguais aos verificados). `mvnw verify` completo não rodou, por restrição do ambiente.
 
+### Correção da entrega
+
+Segunda falha do job `backend` (run 46008751655 e as 3 tentativas do 45996124979): o runner para cerca de 3 min 30 s depois do começo do Maven, sem enviar artefato.
+
+- Causa, reproduzida nesta máquina: o armazenamento de teste (`chrislusf/seaweedfs:3.80`, `/data` em tmpfs) usa 19 MiB parado. Ao gravar um arquivo de 2 bytes numa coleção nova, ele cria volumes com `preallocate` de 1 GiB cada, e o contêiner foi a 2,025 GiB (`shmem` 2,0 GiB: é RAM de verdade). O log mostra `create 7 volume, created 2`: aqui o tmpfs (metade da RAM da VM do Docker, 4,8 GiB) só comportou 2. Depois dos ITs, o contêiner estava com 2,069 GiB. Inferência não medida no CI: no runner de 16 GB cabem mais volumes, e cada armazenamento que recebe gravação custa vários GiB. A `dev` tem dois (`OrganizationBase` e `S3FileStorageIT`) e passa; o item acrescentava o terceiro (`AccountProfileIT`), e nenhum deles era encerrado antes do fim da execução.
+- Correção, só em testes: um armazenamento para toda a execução (`OrganizationBase.storageEndpoint()`), usado também pelo `S3FileStorageIT` e pelo `AuthBase`. A propriedade foi para o `AuthBase`, e o `AccountProfileIT` deixou de ter contêiner e contexto Spring próprios. A suíte passa a ter 1 armazenamento (a `dev` tem 2) — arquivos, em `backend/src/test/java/br/com/ctcore/`: `organization/OrganizationBase.java`, `identity/AuthBase.java`, `identity/AccountProfileIT.java`, `storage/S3FileStorageIT.java`. Arquivos contáveis do item: 28.
+- Prova: `./backend/mvnw -f backend/pom.xml verify -Dtest=NaoExiste -Dsurefire.failIfNoSpecifiedTests=false -Dit.test='AccountProfileIT,AuthRoutesIT,S3FileStorageIT' -Djacoco.skip=true` → 31 testes, 0 falhas; 1 contêiner de armazenamento criado; um só contexto Spring para `AccountProfileIT` e `AuthRoutesIT`. Com `-Dit.test='AccountProfileIT,S3FileStorageIT,AccountIT,OrganizationProfileIT'` → 37 testes, 0 falhas, 1 armazenamento.
+- Limpeza: contêiner de prova `ct763-seaweed` removido; os do Testcontainers saíram pelo Ryuk; nenhuma imagem nova.
+- Não rodou: `mvnw verify` completo nem a suíte de ITs (restrição do ambiente). Só o CI prova que o job `backend` passa. A instrumentação do `ci.yml` ficou como estava.
+
 ## Verificação
 
 ### Rodada 1 — OK — 27/11/2026, estado fc0fe2c6881370de76ffe397302beb87e44de5db
@@ -174,22 +184,51 @@ Achados:
 - sugestão, código, `.github/workflows/ci.yml`, passo `./mvnw -B verify` — os 3 últimos jobs `backend` bem-sucedidos de outros itens levaram de 9 min 33 s a 11 min 16 s no total (e não 6 a 10 min, como diz a seção "Entrega"); o limite de 13 min no passo deixa cerca de 2 a 3 min de folga. Se estourar com o Maven ainda andando, é lentidão, e o `verify.log` enviado mostra onde.
 - sugestões da rodada 1 (CRLF em `account.msw.test.ts`; `"a\b"` em `S3FileStorageIT`): seguem abertas.
 
+### Rodada 3 — OK — 27/11/2026, estado ffe4c4581cb195c8e8589453224ebe19b8e705bb
+
+Depois da segunda correção da entrega. De `bea8a5b5` até este estado só mudaram `AccountProfileIT`, `AuthBase`, `OrganizationBase`, `S3FileStorageIT` e este arquivo; produto, interface, contrato e `ci.yml` são os mesmos. A rodada 2 não tinha achado obrigatório. A asserção dos testes não mudou: saiu o contêiner próprio de dois ITs, e o endereço do armazenamento único passou a vir de `OrganizationBase.storageEndpoint()`.
+
+**Este `OK` não prova que o job `backend` do CI passa.** O último run (46008751655, `f3ed7fa1`, sem esta correção) tem `backend` e `ci-gate` vermelhos. O `mvnw verify` completo é só do CI e a memória do contêiner não foi medida de novo aqui: a causa descrita em "Correção da entrega" só se confirma com o run da correção. O merge depende do `ci-gate` verde.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA5 | PASSOU | rodados de novo: `AccountProfileIT` 7/7 e `S3FileStorageIT` 6/6; ressalva de CA4 sobre `tooLarge` mantida da rodada 1 |
+| CA6 e CA7 | PASSOU | `npm test` 3144/3144; e2e `minha-conta` 1/1 e `e2e:full` 4/4 |
+| CA8 | PASSOU | testes e e2e rodados de novo; comparação das capturas mantida da rodada 1 (a interface não mudou); visual: no CI do PR |
+
+Comandos (todos com saída 0):
+- `mvnw test`: 160 testes, 0 falhas.
+- `mvnw verify ... -Dit.test='AccountProfileIT,S3FileStorageIT,AuthRoutesIT,OrganizationProfileIT,TeacherWriteIT' -Djacoco.skip=true` (os ITs alterados e mais três das duas bases alteradas): 58 testes, 0 falhas; 1 contêiner de armazenamento criado; `AuthRoutesIT` reaproveitou o contexto Spring do `AccountProfileIT`.
+- Busca em `backend/src`: só `OrganizationBase` cria contêiner `chrislusf/seaweedfs`.
+- `npm run lint`, `npm run typecheck`, `npm run build`: sem erro.
+- `npm test`: 277 arquivos, 3144 testes, 0 falhas.
+- `npm run e2e -- minha-conta`: 1/1; `npm run e2e:full -- minha-conta`: 4/4.
+- Docker: nenhum contêiner de teste sobrou e nenhuma imagem nova.
+- Arquivos contáveis do item: 28.
+
+Instáveis: nenhum nesta rodada.
+
+Achados:
+- nenhum obrigatório.
+- sugestão, especificação, este arquivo — com o `ci-gate` verde confirmando a causa (terceiro armazenamento, do próprio item), falta a linha `CI pegou o que o local não pegou: ...` que o `AGENTS.md` pede; a `entregar` pode gravá-la antes do commit, já que o arquivo não muda depois do push.
+- sugestão, especificação, seção "Entrega" — ela ainda diz que a causa não foi identificada, e a frase "Foto e nomes de perfil seguem a regra de isolamento por organização ativa; o perfil não cruza a conta" contraria o R1 e a D4 (nome, telefone e foto são da conta e valem em todas as organizações; só a auditoria fica na organização ativa). Corrigir também na descrição do PR #766.
+- sugestões das rodadas anteriores (CRLF em `account.msw.test.ts`; `"a\b"` em `S3FileStorageIT`; folga do limite de 13 min no `ci.yml`): seguem abertas.
+
 ## Entrega
 
 O que muda: aba Perfil em Minha conta (gestão e portal) com nome, telefone e foto da conta; topo do menu do usuário mostra a foto ou as iniciais; a foto usa o armazenamento de arquivos (migração `V62__account_photo.sql`, endpoint de perfil em `AccountProfileController`, contrato em `docs/openapi.yaml`, handlers MSW e textos em `pt-BR.json`). A sessão não lê o armazenamento.
 
-Verificação: rodada 1 `OK` (estado `fc0fe2c6`), com `AccountProfileIT` 7/7, `S3FileStorageIT` 6/6, testes de front do item e e2e `minha-conta` 1/1 e `e2e:full` 4/4. Visual por caso fica para o CI do PR (comentário de merge).
+Verificação: rodada 3 `OK` (estado `ffe4c458`): `AccountProfileIT` 7/7, `S3FileStorageIT` 6/6, `mvnw test` 160/160, testes de front 3144/3144, e2e `minha-conta` 1/1 e `e2e:full` 4/4. Visual por caso fica para o CI do PR (comentário de merge).
+
+Correção da falha de CI (`backend`, run 46008751655 em `f3ed7fa1`): o item acrescentava um terceiro armazenamento de teste (`AccountProfileIT`) à suíte. Esta entrega leva a correção só em testes, em que a suíte passa a usar um armazenamento único (`OrganizationBase.storageEndpoint()`). Detalhes em "Correção da entrega". O merge depende do `ci-gate` verde do run desta entrega.
+
+CI pegou o que o local não pegou: o `mvnw verify` completo não rodou localmente; o terceiro armazenamento de teste estourou a memória do runner no run 46008751655 (causa do próprio item).
 
 Decisões que quem lê precisa saber:
-- Foto e nomes de perfil seguem a regra de isolamento por organização ativa; o perfil não cruza a conta.
+- Nome, telefone e foto são da conta e valem em todas as organizações; só a auditoria da alteração fica na organização ativa (RN da aba Perfil e D4).
 - O limite de 5 MB do servidor (`ApiExceptionHandler.tooLarge`) foi conferido só por leitura; o tamanho é exercitado em `LogoImage`.
 
 Limitações:
 - `npm test` teve 1 falha instável fora do item (`AgendaPage.test.tsx`, CA15), que passou em 3 de 3 execuções isoladas; o item não toca `features/agenda`.
-- Os achados de sugestão da verificação (CRLF em `account.msw.test.ts` e a barra em `S3FileStorageIT`) ficaram para o dono decidir; não foram alterados nesta entrega.
-
-Falha de CI (PR #766, run 45996124979, `--ci 1`):
-- `backend`: cancelado pelo limite de 15 min do job (`The job has exceeded the maximum execution time of 15m0s`); o `./mvnw -B verify` estava em curso. Os logs do job não estão disponíveis (blob 404), então não há arquivo, teste nem primeira linha de erro. Em `dev`, o mesmo job levou de 6 a 10 min (runs de 2026-10-21 a 2026-10-29). Causa não verificada: lentidão do runner ou travamento de teste com Testcontainers, a apurar.
-- As demais verificações passaram (`frontend`, `e2e`, `visual` 1/2 e 2/2, `image-*`, `security`, `changes`).
-
-Segunda rodada de entrega (mesmo PR #766): o `--ci 1` da primeira foi `backend` cancelado pelo limite do job. Esta entrega leva só a correção de evidência do `.github/workflows/ci.yml` (limite de 13 min no passo do Maven, logs de recursos e envio de `backend-test-evidence`), já verificada na rodada 2 (`bea8a5b5`). A causa da falha segue não identificada; o merge depende do `ci-gate` verde do novo run.
+- Os achados de sugestão da verificação (CRLF em `account.msw.test.ts`, a barra em `S3FileStorageIT` e a folga do limite de 13 min no `ci.yml`) ficaram para o dono decidir; não foram alterados nesta entrega.
+- Falhas de CI anteriores, do PR #766: run 45996124979 (`--ci 1`) cancelou o `backend` pelo limite de 15 min, e o run 46008751655 (`f3ed7fa1`) falhou no mesmo job pela causa acima. Os demais jobs passaram.

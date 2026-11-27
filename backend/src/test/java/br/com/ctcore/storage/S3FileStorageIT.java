@@ -8,26 +8,15 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
 
 /** Armazenamento real compatível com S3 (mesma imagem do docker-compose). */
 class S3FileStorageIT {
 
-    static final GenericContainer<?> STORAGE = new GenericContainer<>(DockerImageName.parse("chrislusf/seaweedfs:3.80"))
-            .withCommand("server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json", "-ip.bind=0.0.0.0")
-            .withCopyFileToContainer(MountableFile.forHostPath(Path.of("../infra/storage/s3.json")), "/etc/seaweedfs/s3.json")
-            .withTmpFs(java.util.Map.of("/data", "rw")) // dados em memória: não ocupa o disco do runner (#28)
-            .withExposedPorts(8333)
-            .waitingFor(Wait.forHttp("/status").forPort(8333));
     static S3FileStorage storage;
     static S3FileStorage shortLived;
     static final HttpClient HTTP = HttpClient.newHttpClient();
@@ -35,9 +24,8 @@ class S3FileStorageIT {
 
     @BeforeAll
     static void start() {
-        STORAGE.start();
         var props = new StorageProperties();
-        props.setEndpoint("http://" + STORAGE.getHost() + ":" + STORAGE.getMappedPort(8333));
+        props.setEndpoint(br.com.ctcore.organization.OrganizationBase.storageEndpoint());
         storage = new S3FileStorage(props);
         storage.ensureBucket();
         storage.ensureBucket(); // idempotente

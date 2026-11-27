@@ -40,9 +40,14 @@ public abstract class OrganizationBase extends PostgresIT {
         STORAGE.start();
     }
 
+    /** Um armazenamento só para toda a execução, como o banco: quem precisa dele usa este endereço, sem criar outro contêiner (#763). */
+    public static String storageEndpoint() {
+        return "http://" + STORAGE.getHost() + ":" + STORAGE.getMappedPort(8333);
+    }
+
     @DynamicPropertySource
     static void storage(DynamicPropertyRegistry registry) {
-        registry.add("ctcore.storage.endpoint", () -> "http://" + STORAGE.getHost() + ":" + STORAGE.getMappedPort(8333));
+        registry.add("ctcore.storage.endpoint", OrganizationBase::storageEndpoint);
     }
 
     @Autowired protected MockMvc mvc;

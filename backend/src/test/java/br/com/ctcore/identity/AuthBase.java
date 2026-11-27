@@ -38,6 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
 abstract class AuthBase extends PostgresIT {
     static final String PASSWORD = "Abcdefg1";
 
+    // In the base, so no subclass needs a context (or a container) of its own to reach the storage.
+    @org.springframework.test.context.DynamicPropertySource
+    static void storage(org.springframework.test.context.DynamicPropertyRegistry registry) {
+        registry.add("ctcore.storage.endpoint", br.com.ctcore.organization.OrganizationBase::storageEndpoint);
+    }
+
     @TestConfiguration
     static class Config {
         @Bean
