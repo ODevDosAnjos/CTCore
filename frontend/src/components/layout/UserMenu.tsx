@@ -29,7 +29,7 @@ export function UserMenu({ name, roleLabel, onLogout, photoUrl, onPhotoError }: 
         <ChevronDown aria-hidden="true" className="size-4" />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-40 mt-1 w-52 rounded-card border bg-popover p-1 text-popover-foreground shadow-menu">
+        <div role="menu" className="absolute right-0 top-full z-40 mt-1 w-52 duration-200 animate-in fade-in-0 rounded-card border bg-popover p-1 text-popover-foreground shadow-menu">
           <Link role="menuitem" to="/conta" onClick={() => setOpen(false)} className={item}>
             <UserRound aria-hidden="true" className="size-4" />
             {t("layout.myAccount")}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { SupportContact, platformContact } from "@/features/auth/SupportContact";
+import { ToastProvider } from "@/components/ui/toast";
 
 // Moldura das telas de acesso (canvas): painel escuro da marca a partir de 768 px e formulário de 420 px.
 // O contato de suporte fica uma vez só, abaixo do formulário, para valer nos dois tamanhos.
@@ -23,6 +24,7 @@ export function AuthShell({
   }, [focusTitle]);
   const contact = platformContact();
   return (
+    <ToastProvider>
     <div className="min-h-screen md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <aside className="hidden flex-col justify-between gap-10 bg-sidebar p-12 text-sidebar-foreground md:flex" data-testid="auth-brand">
         <Brand className="text-2xl" />
@@ -50,6 +52,7 @@ export function AuthShell({
         </main>
       </div>
     </div>
+    </ToastProvider>
   );
 }
 

@@ -3641,6 +3641,12 @@
     },
     "cardDate": "Recebido em {{date}}"
   },
+  "toast": {
+    "close": "Fechar aviso"
+  },
+  "routeProgress": {
+    "label": "Carregando a tela"
+  },
   "common": {
     "cancel": "Cancelar",
     "confirm": "Confirmar",

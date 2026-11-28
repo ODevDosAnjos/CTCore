@@ -729,6 +729,8 @@ async function abrir(page: Page, rota: string, perfil?: string, passos: Passo[] 
   // animação infinita (ex.: o spinner do botão em carregamento) nunca termina: o Playwright já a congela no print, então só as finitas contam
   await page.waitForFunction(`[...document.images].every((i) => i.complete && i.naturalWidth > 0) && !document.getAnimations().some((a) => a.playState === "running" && a.effect.getComputedTiming().iterations !== Infinity)`);
   await page.evaluate("document.fonts.ready");
+  // a barra de troca de tela (400 ms) não pode entrar no print: esperar ela sumir correu com a barra que ainda ia aparecer (CI), então ela fica escondida
+  await page.addStyleTag({ content: '[role="region"][aria-label="Carregando a tela"] { visibility: hidden !important; }' });
 }
 
 for (const caso of casos) {

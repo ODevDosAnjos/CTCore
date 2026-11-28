@@ -13,7 +13,7 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   expect: { toHaveScreenshot: { animations: "disabled", caret: "hide", maxDiffPixelRatio: 0, threshold: 0.05 } },
-  use: { baseURL: "http://localhost:5174", locale: "pt-BR", timezoneId: "America/Sao_Paulo", ...devices["Desktop Chrome"], channel: "chromium", launchOptions: { args: ["--lang=pt-BR"] } },
+  use: { baseURL: "http://localhost:5174", reducedMotion: "reduce", locale: "pt-BR", timezoneId: "America/Sao_Paulo", ...devices["Desktop Chrome"], channel: "chromium", launchOptions: { args: ["--lang=pt-BR"] } },
   // #564: com a raster parcial do Chromium, dia-sem-aula-novo às vezes guarda um resíduo num pixel junto do anel de foco. Só ele roda sem ela.
   // O launchOptions do projeto substitui o do `use` geral, por isso repete --lang. Outro caso com o mesmo sintoma entra nas duas expressões.
   projects: [

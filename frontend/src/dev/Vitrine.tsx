@@ -20,6 +20,7 @@ import { PersonRow } from "@/components/ui/person-row";
 import { WhatsAppButton } from "@/components/whatsapp/WhatsAppButton";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Banner } from "@/components/ui/banner";
+import { ToastProvider, useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeInput } from "@/components/ui/code-input";
@@ -95,6 +96,7 @@ function Pieces({ theme, first }: { theme: string; first: boolean }) {
             <Banner key={t} tone={t}>Aviso {t}</Banner>
           ))}
         </div>
+        {first && <ToastDemo />}
       </Section>
       <Section heading="h2" title={`Números e pessoas (${theme})`}>
         <div className="flex flex-wrap items-center gap-4">
@@ -227,8 +229,27 @@ function MaybeRouter({ children }: { children: ReactNode }) {
   return useInRouterContext() ? <>{children}</> : <MemoryRouter>{children}</MemoryRouter>;
 }
 
+// Dispara os três avisos (só desenvolvimento): o teste visual abre o canto inferior com eles.
+function ToastDemo() {
+  const toast = useToast();
+  return (
+    <Button
+      className="mt-3"
+      variant="secondary"
+      onClick={() => {
+        toast.success("Aluno salvo.");
+        toast.warn("Confira o telefone.");
+        toast.error("Não foi possível salvar.");
+      }}
+    >
+      Mostrar avisos
+    </Button>
+  );
+}
+
 export default function Vitrine() {
   return (
+    <ToastProvider>
     <main data-vitrine className="min-h-screen bg-background p-4 text-foreground">
       <PageHeader title="Vitrine" subtitle="Peças do canvas nos dois temas (só desenvolvimento)" />
       {[
@@ -242,5 +263,6 @@ export default function Vitrine() {
         </Card>
       ))}
     </main>
+    </ToastProvider>
   );
 }

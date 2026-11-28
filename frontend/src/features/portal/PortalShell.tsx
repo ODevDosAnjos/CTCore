@@ -2,6 +2,8 @@ import { useRef } from "react";
 import { Bell, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet } from "react-router";
+import { RouteProgress } from "@/components/layout/RouteProgress";
+import { ToastProvider } from "@/components/ui/toast";
 import { ErrorState, ForbiddenState, LoadingState } from "@/components/states";
 import { ChooseLinkTrigger } from "@/features/auth/ChooseLinkTrigger";
 import { LogoutButton } from "@/features/auth/LogoutButton";
@@ -37,6 +39,8 @@ export function PortalShell() {
   const orgName = data?.organization.name ?? t("app.name");
   return (
     <PortalShellContext.Provider value={shell}>
+    <ToastProvider>
+    <RouteProgress />
     <div className="flex min-h-screen flex-col">
       <a
         href="#conteudo"
@@ -96,6 +100,7 @@ export function PortalShell() {
       <PortalFooter organization={orgName} unit={data?.unit} />
       <PortalTabs reduced={reduced} count={count} variant="bottom" />
     </div>
+    </ToastProvider>
     </PortalShellContext.Provider>
   );
 }

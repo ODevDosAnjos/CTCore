@@ -294,3 +294,10 @@ describe("PortalShell: sair da conta (#434)", () => {
     await waitFor(() => expect(n).toBe(1));
   });
 });
+
+describe("PortalShell: aviso", () => {
+  it("CA2: a moldura do portal monta o aviso", async () => {
+    setup("/");
+    expect(await screen.findByTestId("toast-live")).toBeInTheDocument();
+  });
+});

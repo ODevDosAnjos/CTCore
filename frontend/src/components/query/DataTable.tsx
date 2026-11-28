@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** `hideLabel`: o título da coluna só para leitor de tela (ex.: a coluna do menu "..." da linha). */
 export type Column<T> = { key: string; label: string; sortable?: boolean; numeric?: boolean; hideLabel?: boolean; render: (row: T) => ReactNode };
@@ -128,14 +129,14 @@ export function TableSkeleton<T>({ columns, rows = 8 }: { columns: Column<T>[]; 
                 <td key={c.key} className="px-3 py-2">
                   {j === 0 ? (
                     <div className="flex items-center gap-3">
-                      <div className="size-9 shrink-0 animate-pulse rounded-full bg-neutral" />
+                      <Skeleton className="size-9 shrink-0 rounded-full" />
                       <div className="flex flex-1 flex-col gap-1">
-                        <div className="h-3 w-32 animate-pulse rounded-md bg-neutral" />
-                        <div className="h-3 w-20 animate-pulse rounded-md bg-neutral" />
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-20" />
                       </div>
                     </div>
                   ) : (
-                    <div className="h-3 w-20 animate-pulse rounded-md bg-neutral" />
+                    <Skeleton className="h-3 w-20" />
                   )}
                 </td>
               ))}

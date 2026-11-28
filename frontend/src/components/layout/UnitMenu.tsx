@@ -62,10 +62,10 @@ export function UnitMenu({ status, units, allUnits, selected, onSelect, onRetry,
           <ChevronDown aria-hidden="true" className={cn("shrink-0", small ? "size-3" : "size-4")} />
         </Dialog.Trigger>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/40 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/40 duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
           <Dialog.Content
             aria-describedby={undefined}
-            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-t-window bg-background p-4 shadow-window data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom"
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-t-window bg-background p-4 shadow-window duration-200 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom"
           >
             <Dialog.Title className="text-lg font-semibold">{t("unitScope.sheetTitle")}</Dialog.Title>
             <div role="radiogroup" aria-label={t("unitScope.sheetTitle")} className="flex flex-col gap-2">

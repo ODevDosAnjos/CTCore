@@ -50,7 +50,7 @@ export function Popover({
           aria-label={label}
           tabIndex={-1}
           className={cn(
-            "z-50 overflow-y-auto border bg-popover text-popover-foreground shadow-menu sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(440px,calc(100vw-2rem))] sm:rounded-[14px]",
+            "z-50 duration-200 animate-in fade-in-0 overflow-y-auto border bg-popover text-popover-foreground shadow-menu sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(440px,calc(100vw-2rem))] sm:rounded-[14px]",
             sheet
               ? "fixed inset-0 sm:bottom-auto sm:max-h-[calc(100vh-5rem)]"
               : "fixed inset-x-4 top-16 max-h-[calc(100vh-5rem)] rounded-[14px] p-4",

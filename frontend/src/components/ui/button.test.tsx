@@ -32,7 +32,17 @@ describe("Button", () => {
     await userEvent.click(b);
     expect(onClick).not.toHaveBeenCalled();
     expect(b).toHaveAttribute("aria-busy", "true");
+    expect(b).toHaveAttribute("aria-disabled", "true");
+    expect(b.querySelector("svg.animate-spin")).not.toBeNull();
     expect(screen.getByText("Carregando")).toBeInTheDocument();
+  });
+
+  it("CA5: sem loading volta ao normal", () => {
+    render(<Button>Salvar</Button>);
+    const b = screen.getByRole("button");
+    expect(b).not.toHaveAttribute("aria-busy");
+    expect(b).not.toHaveAttribute("aria-disabled");
+    expect(b.querySelector("svg")).toBeNull();
   });
 
   it("CA2: desabilitado com motivo fica aria-disabled, com dica e sem clique", async () => {
