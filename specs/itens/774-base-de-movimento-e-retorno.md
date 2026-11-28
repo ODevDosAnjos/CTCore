@@ -1,7 +1,7 @@
 # 774 — 645a · Base de movimento e retorno: aviso no canto, barra, esqueleto e transições
 
 Origem: issue #774 (Sprint 10.5), parte a da #645 (`specs/itens/645-movimento-e-retorno.md`, D1); RNF-44 e RNF-20 em `docs/especificacao/00-visao-geral.md`; decisão 33 de `docs/auditoria/decisoes-canvas.md`; padrão de rotas e telas (RNF-56). Branch: `item/774-base-de-movimento-e-retorno`.
-Tempos: especificar 8 min · construir 52 min (2 rodadas) · verificar 48 min (regressão 42 min) (2 rodadas) · entregar 4 min (1 rodada)
+Tempos: especificar 8 min · construir 52 min (2 rodadas) · verificar 62 min (regressão 55 min) (3 rodadas) · entregar 4 min (1 rodada)
 
 ## 1. Objetivo
 
@@ -115,7 +115,7 @@ Achados:
 
 Base da parte a da #645: aviso no canto (`Toast`, 5 s, com relógio injetado nos testes), barra de progresso de rota (`RouteProgress`, 400 ms fixos) nas molduras `ManagementShell` e `PortalShell`, esqueleto (`Skeleton`) em `LoadingState` e `TableSkeleton`, `aria-disabled` e indicador no `Button` com `loading`, transições de 200 ms com bloco de reduzir movimento em `index.css`, README do design atualizado, caso visual `vitrine-avisos` e e2e `movimento-e-retorno`.
 
-Verificação: rodada 1 OK (estado `1cd3cbdf722a7ae98a612985024bcca8f4c084a3`); desde então só este arquivo mudou.
+Verificação: rodada 3 OK (estado `c31bb61b907e9d0e28262cdf5c773444fa241086`), a última; a árvore atual difere dela só neste arquivo. A rodada 1 e a 2 ficam registradas acima.
 Regressão local da verificação: `npm run lint`, `typecheck`, `build`, `npm test` (3208 testes) e e2e do spec da tela passaram. A base `dev` não avançou desde a verificação, então não houve merge nem nova regressão.
 Decisões: D3 (barra por tempo fixo de 400 ms) aceita; a `role=status` não é fixa na região de avisos, para não quebrar os testes que buscam `status`/`alert` únicos.
 Limitações: sem tela de Toast no canvas, a comparação com o canvas não se aplica; o visual das referências `vitrine-*` e `vitrine-avisos-*` é conferido no job `visual` do CI. Sem `limiteCanvas`. Os avisos ainda não são disparados por telas reais (chega com #775 a #778). Achado de sugestão: aviso dentro de janela modal (Radix) pode ficar `aria-hidden`, a avaliar em #775 a #778.
@@ -125,3 +125,23 @@ Limitações: sem tela de Toast no canvas, a comparação com o canvas não se a
 - `RouteProgress.tsx` agora envolve a barra numa `role="region"` com nome (marco para o axe); `visual/telas.visual.ts` espera a barra sair (`waitFor detached`) antes do print — prova: `npm run lint`, `typecheck`, `npx vitest run src/components/layout src/features/permissions src/features/portal` (570 passaram); `npm run e2e -- movimento-e-retorno comprovantes portal-barra` → 6 passaram.
 - Referências visuais: nenhuma regerada (o print agora não tem a barra, igual às referências existentes). Visual do CI confere.
 - Nova entrega: a `dev` avançou para `40687009` (backlog da #780); a branch recebe `origin/dev` por merge, sem conflito. Regressão local não repetida: "Quem roda o quê" deixa a prova do conjunto para o CI do PR.
+
+### Correção da entrega (2)
+- CI do PR #779 (estado `d2522ea8`) ainda vermelho: e2e `comprovantes` (axe `color-contrast`, janela aberta) e visual 2/2 (`cobranca-cancelar` e `cobranca-registrar`, 8 casos). Causa: a janela (`Modal`) e a sombra passaram a ter `animate-in fade-in-0` de 200 ms; o axe e a captura pegavam a janela no meio do fade (cores misturadas). CI pegou o que o local não pegou: axe e visual com janela ainda em fade.
+- Correção na causa comum: `reducedMotion: "reduce"` em `playwright.config.ts` e `playwright.visual.config.ts`, que aciona o bloco de reduzir movimento do `index.css` (D4) e deixa janelas sem animação nos testes — prova: `npm run lint`, `typecheck` limpos; `npm run e2e -- comprovantes movimento-e-retorno` → 3 passaram.
+- Referências visuais: nenhuma regerada. Visual do CI confere (`cobranca-*` e suíte inteira).
+
+### Rodada 3 — OK — 2026-11-27, estado c31bb61b907e9d0e28262cdf5c773444fa241086
+
+Mudou desde a rodada 2 (`git diff 0599f0b3... c31bb61b...`): só `reducedMotion: "reduce"` em `frontend/playwright.config.ts` e `frontend/playwright.visual.config.ts` (correção da entrega 2), backlog e este arquivo. Nenhum código de produto nem teste mudou; CA1 a CA7 e CA9 mantidos da rodada 2.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA7, CA9 | PASSOU | mantido da rodada 2; `npm test` 284 arquivos, 3208 testes passaram |
+| CA8 | PASSOU (visual no CI do PR) | e2e `comprovantes` (light e dark, axe com janela aberta, a falha do CI) passou com `reducedMotion`; visual: no CI do PR (`cobranca-*` e suíte inteira) |
+
+Comandos: `npm run lint`, `typecheck`, `build` ok; `npm test` 3208 passaram; `npm run e2e -- movimento-e-retorno comprovantes portal-barra` 6 passaram.
+Instáveis: nenhum nesta rodada.
+Achados:
+- sugestão, código, `playwright.config.ts` — `reducedMotion: "reduce"` global em todos os e2e e no visual faz o CI não exercitar as animações reais (o bloco de reduzir movimento fica coberto, as transições não); aceitável (D4), mas vale um caso e2e sem a preferência se a #775 a #778 dependerem de animação.
+- sugestão, código, `RouteProgress.tsx` — barra por tempo fixo de 400 ms (D3), como antes.

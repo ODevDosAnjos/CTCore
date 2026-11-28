@@ -8,7 +8,7 @@ export default defineConfig({
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: "http://localhost:5173", trace: "retain-on-failure", locale: "pt-BR" },
+  use: { baseURL: "http://localhost:5173", reducedMotion: "reduce", trace: "retain-on-failure", locale: "pt-BR" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "npm run dev -- --port 5173 --strictPort",
