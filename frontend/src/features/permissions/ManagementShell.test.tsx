@@ -197,3 +197,11 @@ describe("ManagementShell", () => {
     });
   });
 });
+
+describe("ManagementShell: aviso", () => {
+  it("CA2: a moldura da gestão monta o aviso e a barra de troca", async () => {
+    setup("COORDINATOR");
+    expect((await screen.findAllByRole("link", { name: "Início", hidden: true })).length).toBeGreaterThan(0);
+    expect(screen.getByTestId("toast-live")).toBeInTheDocument();
+  });
+});

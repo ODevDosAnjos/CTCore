@@ -33,7 +33,7 @@ export function GroupFlyout({ title, anchor, onClose, children }: { title: strin
       data-sidebar-scroll
       aria-label={title}
       style={{ left: (rect?.right ?? 72) + 8, top, maxHeight: `calc(100vh - ${top}px - 8px)` }}
-      className="fixed z-50 flex w-60 flex-col gap-1 overflow-y-auto rounded-xl border border-sidebar-accent bg-sidebar p-2 text-sidebar-foreground shadow-menu"
+      className="fixed z-50 flex w-60 duration-200 animate-in fade-in-0 slide-in-from-left-2 flex-col gap-1 overflow-y-auto rounded-xl border border-sidebar-accent bg-sidebar p-2 text-sidebar-foreground shadow-menu"
     >
       <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wide opacity-70">{title}</p>
       {children}

@@ -45,7 +45,7 @@ export function Drawer({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className={cn("fixed inset-0 z-40", scrim === "canvas" ? "bg-sidebar/30" : "bg-sidebar/70")} />
+        <Dialog.Overlay className={cn("fixed inset-0 z-40 duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0", scrim === "canvas" ? "bg-sidebar/30" : "bg-sidebar/70")} />
         <Dialog.Content
           aria-describedby={undefined}
           onOpenAutoFocus={() => {
@@ -55,7 +55,7 @@ export function Drawer({
             e.preventDefault();
             (returnFocusRef?.current ?? opener.current)?.focus();
           }}
-          className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-full flex-col overflow-hidden border-l bg-card shadow-panel sm:w-[min(560px,100%)]"
+          className="fixed inset-y-0 right-0 z-50 flex h-full w-full duration-200 data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right max-w-full flex-col overflow-hidden border-l bg-card shadow-panel sm:w-[min(560px,100%)]"
         >
           {mobileTitle && (
             <div className="flex items-center gap-2 border-b border-divider px-4 py-3 sm:hidden">

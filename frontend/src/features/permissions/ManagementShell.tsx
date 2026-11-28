@@ -1,4 +1,6 @@
 import { Outlet, useLocation } from "react-router";
+import { RouteProgress } from "@/components/layout/RouteProgress";
+import { ToastProvider } from "@/components/ui/toast";
 import { useTranslation } from "react-i18next";
 import { ErrorState, LoadingState } from "@/components/states";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -47,6 +49,8 @@ export function ManagementShell() {
   const allowed = !!route && canAccess(route, link?.role, permissions);
   return (
     <PermissionsContext.Provider value={perms}>
+      <ToastProvider>
+      <RouteProgress />
       <UnitScopeProvider>
         <AppLayout
           groups={groups}
@@ -67,6 +71,7 @@ export function ManagementShell() {
         </AppLayout>
         {side.failed && <LogoutError onRetry={side.logout} />}
       </UnitScopeProvider>
+      </ToastProvider>
     </PermissionsContext.Provider>
   );
 }

@@ -106,7 +106,7 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
   );
 
   return (
-    <div className={cn("flex h-full flex-col bg-sidebar text-sidebar-foreground", menu ? "w-full" : collapsed ? "w-18" : "w-62")}>
+    <div className={cn("flex h-full flex-col bg-sidebar text-sidebar-foreground", "transition-[width] duration-200", menu ? "w-full" : collapsed ? "w-18" : "w-62")}>
       {!menu && (
         <div className={cn("flex flex-col gap-1 px-4 py-4", collapsed && "items-center px-0")}>
           <BrandMark org={org} compact={collapsed} />
@@ -147,7 +147,7 @@ export function Sidebar({ groups, activeId, org, roleLabel, badges = {}, collaps
               <button type="button" aria-expanded={expanded} onClick={() => !menu && flip(g.id)} className={cn(row, "font-medium hover:bg-sidebar-accent")}>
                 <GroupIcon aria-hidden="true" className="size-5 shrink-0" />
                 <span className="flex-1 text-left">{g.label}</span>
-                <ChevronRight aria-hidden="true" className={cn("size-4 transition-transform", expanded && "rotate-90")} />
+                <ChevronRight aria-hidden="true" className={cn("size-4 transition-transform duration-200", expanded && "rotate-90")} />
               </button>
               {expanded && <div className="ml-5 flex flex-col gap-1 border-l border-sidebar-accent pl-2">{g.items.map((i) => sub(i))}</div>}
             </div>

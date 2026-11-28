@@ -61,6 +61,7 @@ const UNIDADE = "/configuracoes/unidades/00000000-0000-0000-0000-000000000023";
 
 export const casos: Caso[] = [
   { nome: "vitrine", rota: "/dev/vitrine", fullPage: true },
+  { nome: "vitrine-avisos", rota: "/dev/vitrine", passos: [{ clicar: "Mostrar avisos" }] }, // #774: Toast aberto; sem tela no canvas, o caso só guarda a referência
   { nome: "entrar", rota: "/entrar", canvas: "Login", canvasCelular: "LoginM" },
   { nome: "inicio", rota: "/", perfil: ana, canvas: "Main", canvasEscuro: "MainEscuro" },
   // Moldura da gestão (#417): menu, barra de cima, abas e menu de celular por perfil

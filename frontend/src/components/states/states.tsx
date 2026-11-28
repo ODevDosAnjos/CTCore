@@ -2,6 +2,7 @@ import type { ReactNode, Ref } from "react";
 import { Ban, Inbox, Lock, RefreshCw, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StateCard } from "./StateCard";
 
 // Estados de tela (RNF-25). Textos padrão vêm de pt-BR.json; cada tela pode passar os seus, já traduzidos (D7).
@@ -14,9 +15,9 @@ export function LoadingState({ text, variant }: { text?: string } & Card) {
     return (
       <StateCard role="status">
         <div aria-hidden className="flex w-full max-w-sm flex-col gap-2">
-          <div className="h-4 w-1/2 animate-pulse self-center rounded-md bg-neutral" />
-          <div className="h-3 w-full animate-pulse rounded-md bg-neutral" />
-          <div className="h-3 w-5/6 animate-pulse self-center rounded-md bg-neutral" />
+          <Skeleton className="h-4 w-1/2 self-center" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-5/6 self-center" />
         </div>
         <p className="text-sm text-muted-foreground">{text ?? t("states.loadingCard")}</p>
       </StateCard>
@@ -24,9 +25,9 @@ export function LoadingState({ text, variant }: { text?: string } & Card) {
   return (
     <div role="status" className="flex flex-col gap-3 py-8">
       <span className="sr-only">{text ?? t("states.loading")}</span>
-      <div aria-hidden className="h-6 w-1/3 animate-pulse rounded-md bg-neutral" />
-      <div aria-hidden className="h-4 w-full animate-pulse rounded-md bg-neutral" />
-      <div aria-hidden className="h-4 w-5/6 animate-pulse rounded-md bg-neutral" />
+      <Skeleton className="h-6 w-1/3" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
     </div>
   );
 }

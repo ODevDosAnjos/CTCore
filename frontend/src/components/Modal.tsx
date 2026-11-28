@@ -50,7 +50,7 @@ export function Modal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className={cn("fixed inset-0 z-40", scrim === "canvas" ? "bg-sidebar/50" : "bg-sidebar/70")} />
+        <Dialog.Overlay className={cn("fixed inset-0 z-40 duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0", scrim === "canvas" ? "bg-sidebar/50" : "bg-sidebar/70")} />
         <Dialog.Content
           aria-describedby={undefined}
           onEscapeKeyDown={dismissible ? undefined : (e) => e.preventDefault()}
@@ -64,7 +64,7 @@ export function Modal({
             (returnFocusRef?.current ?? opener.current)?.focus();
           }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 max-h-full w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex flex-col overflow-hidden rounded-window border bg-card",
+            "fixed left-1/2 top-1/2 z-50 duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 max-h-full w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex flex-col overflow-hidden rounded-window border bg-card",
             size === "sm" ? "max-w-[540px]" : size === "md" ? "max-w-[600px]" : size === "lg" ? "max-w-[760px]" : "max-w-lg",
             fullOnMobile && "max-sm:left-0 max-sm:top-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0",
             className,
