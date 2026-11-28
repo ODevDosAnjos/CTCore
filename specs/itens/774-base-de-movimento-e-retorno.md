@@ -1,7 +1,7 @@
 # 774 — 645a · Base de movimento e retorno: aviso no canto, barra, esqueleto e transições
 
 Origem: issue #774 (Sprint 10.5), parte a da #645 (`specs/itens/645-movimento-e-retorno.md`, D1); RNF-44 e RNF-20 em `docs/especificacao/00-visao-geral.md`; decisão 33 de `docs/auditoria/decisoes-canvas.md`; padrão de rotas e telas (RNF-56). Branch: `item/774-base-de-movimento-e-retorno`.
-Tempos: especificar 8 min · construir 42 min · verificar 28 min (regressão 22 min) · entregar 4 min (1 rodada)
+Tempos: especificar 8 min · construir 52 min (2 rodadas) · verificar 48 min (regressão 42 min) (2 rodadas) · entregar 4 min (1 rodada)
 
 ## 1. Objetivo
 
@@ -96,6 +96,21 @@ Achados:
 - sugestão, código, `ui/toast.tsx` — com janela modal (Radix) aberta, o aviso fica fora do diálogo e pode ficar `aria-hidden`; avaliar nas issues #775 a #778 ao disparar avisos de dentro de janelas.
 - sugestão, código, `RouteProgress.tsx` — barra por tempo fixo de 400 ms (D3 aceito), não acompanha o carregamento real.
 
+### Rodada 2 — OK — 2026-11-27, estado 0599f0b3d25ec5117c0b71365fa3d2b6521d78b6
+
+Mudou desde a rodada 1 (`git diff 1cd3cbdf... 0599f0b3...`): `RouteProgress.tsx` (barra dentro de `role="region"` com nome) e `visual/telas.visual.ts` (espera a barra sair antes do print). Critérios que isso toca foram reconferidos; os demais mantêm o status da rodada 1.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1, CA2, CA4 a CA7, CA9 | PASSOU | mantido da rodada 1; `npm test` completo sem falha nova |
+| CA3 | PASSOU | `RouteProgress.test.tsx` e e2e `movimento-e-retorno` (1 passou) com a barra dentro da região; `routeProgress.label` = "Carregando a tela" bate com o seletor do teste visual |
+| CA8 | PASSOU (visual no CI do PR) | axe: e2e `portal-barra` e `comprovantes` (light e dark) passaram, que eram as falhas do CI por regra `region`; visual: no CI do PR (a espera da barra só evita captura com a barra; nenhuma referência muda) |
+
+Comandos: `npm run lint` limpo; `typecheck` limpo; `build` ok; `npm test` 284 arquivos, 3207 de 3208 passaram (1 instável, abaixo); `npm run e2e -- movimento-e-retorno comprovantes portal-barra` 6 passaram.
+Instáveis: `AgendaPage.test.tsx` > "CA15: carregando, vazio, erro..." falhou 1 vez na suíte inteira (`findByText("Carregando...")` não achou; suíte de 841 s sob carga); passou 3 de 3 rodando só o arquivo com `--maxWorkers=2`; passou na rodada 1. O item não toca a Agenda: o `maestro` registra na issue de instabilidade.
+Achados:
+- sugestão, código, `RouteProgress.tsx` — a barra continua por tempo fixo de 400 ms (D3), como na rodada 1.
+
 ## Entrega
 
 Base da parte a da #645: aviso no canto (`Toast`, 5 s, com relógio injetado nos testes), barra de progresso de rota (`RouteProgress`, 400 ms fixos) nas molduras `ManagementShell` e `PortalShell`, esqueleto (`Skeleton`) em `LoadingState` e `TableSkeleton`, `aria-disabled` e indicador no `Button` com `loading`, transições de 200 ms com bloco de reduzir movimento em `index.css`, README do design atualizado, caso visual `vitrine-avisos` e e2e `movimento-e-retorno`.
@@ -104,3 +119,9 @@ Verificação: rodada 1 OK (estado `1cd3cbdf722a7ae98a612985024bcca8f4c084a3`); 
 Regressão local da verificação: `npm run lint`, `typecheck`, `build`, `npm test` (3208 testes) e e2e do spec da tela passaram. A base `dev` não avançou desde a verificação, então não houve merge nem nova regressão.
 Decisões: D3 (barra por tempo fixo de 400 ms) aceita; a `role=status` não é fixa na região de avisos, para não quebrar os testes que buscam `status`/`alert` únicos.
 Limitações: sem tela de Toast no canvas, a comparação com o canvas não se aplica; o visual das referências `vitrine-*` e `vitrine-avisos-*` é conferido no job `visual` do CI. Sem `limiteCanvas`. Os avisos ainda não são disparados por telas reais (chega com #775 a #778). Achado de sugestão: aviso dentro de janela modal (Radix) pode ficar `aria-hidden`, a avaliar em #775 a #778.
+
+### Correção da entrega
+- CI do PR #779 vermelho (e2e e visual 2/2). Causa: a barra `RouteProgress` (400 ms, `role="progressbar"` solto) aparecia após redirecionamentos de rota durante o axe (regra `region`, impacto moderado) e dentro dos prints (780 px de diferença a 390 px). CI pegou o que o local não pegou: axe e visual com a barra visível logo após navegar.
+- `RouteProgress.tsx` agora envolve a barra numa `role="region"` com nome (marco para o axe); `visual/telas.visual.ts` espera a barra sair (`waitFor detached`) antes do print — prova: `npm run lint`, `typecheck`, `npx vitest run src/components/layout src/features/permissions src/features/portal` (570 passaram); `npm run e2e -- movimento-e-retorno comprovantes portal-barra` → 6 passaram.
+- Referências visuais: nenhuma regerada (o print agora não tem a barra, igual às referências existentes). Visual do CI confere.
+- Nova entrega: a `dev` avançou para `40687009` (backlog da #780); a branch recebe `origin/dev` por merge, sem conflito. Regressão local não repetida: "Quem roda o quê" deixa a prova do conjunto para o CI do PR.

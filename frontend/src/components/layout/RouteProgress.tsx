@@ -15,5 +15,10 @@ export function RouteProgress() {
     return () => clearTimeout(id);
   }, [pathname]);
   if (settled === pathname) return null;
-  return <div role="progressbar" aria-label={t("routeProgress.label")} className="fixed inset-x-0 top-0 z-70 h-0.5 animate-pulse bg-brand" />;
+  // dentro de uma região com nome: o axe exige todo conteúdo em marco (regra "region")
+  return (
+    <div role="region" aria-label={t("routeProgress.label")}>
+      <div role="progressbar" aria-label={t("routeProgress.label")} className="fixed inset-x-0 top-0 z-70 h-0.5 animate-pulse bg-brand" />
+    </div>
+  );
 }
