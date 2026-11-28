@@ -363,6 +363,7 @@ Dependências: cada issue declara apenas dependência de sprint ("Depende de: Sp
 | 740 | Sem acesso no celular: igual ao canvas SemAcessoM, sem limiteCanvas | issue #740 | Atualizações · Polimento | — | agente | a fazer |
 | 741 | Carteirinha do portal no celular: igual ao canvas, sem limiteCanvas | issue #741 | Atualizações · Polimento | — | agente | a fazer |
 | 735 | RNF-45 · Seletor de destino do comunicado no celular repete "Unidade · Unidade …" | issue #735 | Atualizações · Polimento | — | agente | a fazer |
+| 780 | RF-ACE-05 · Escolha de vínculo agrupada por academia, com selo de área | issue #780 | Atualizações · Polimento | — | agente | a fazer |
 | 172 | RF-AJU-01 · Central de ajuda | issue #172 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 173 | RF-AJU-02 · Ícones "?" de ajuda nas telas | issue #173 | Atualizações · Funcionalidades | — | agente | a fazer |
 | 174 | RF-AJU-03 · Tour do primeiro acesso | issue #174 | Atualizações · Funcionalidades | — | agente | a fazer |
