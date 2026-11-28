@@ -1,7 +1,7 @@
 # 774 — 645a · Base de movimento e retorno: aviso no canto, barra, esqueleto e transições
 
 Origem: issue #774 (Sprint 10.5), parte a da #645 (`specs/itens/645-movimento-e-retorno.md`, D1); RNF-44 e RNF-20 em `docs/especificacao/00-visao-geral.md`; decisão 33 de `docs/auditoria/decisoes-canvas.md`; padrão de rotas e telas (RNF-56). Branch: `item/774-base-de-movimento-e-retorno`.
-Tempos: especificar 8 min · construir 52 min (2 rodadas) · verificar 62 min (regressão 55 min) (3 rodadas) · entregar 4 min (1 rodada)
+Tempos: especificar 8 min · construir 62 min (3 rodadas) · verificar 72 min (regressão 63 min) (4 rodadas) · entregar 6 min (2 rodadas)
 
 ## 1. Objetivo
 
@@ -115,10 +115,14 @@ Achados:
 
 Base da parte a da #645: aviso no canto (`Toast`, 5 s, com relógio injetado nos testes), barra de progresso de rota (`RouteProgress`, 400 ms fixos) nas molduras `ManagementShell` e `PortalShell`, esqueleto (`Skeleton`) em `LoadingState` e `TableSkeleton`, `aria-disabled` e indicador no `Button` com `loading`, transições de 200 ms com bloco de reduzir movimento em `index.css`, README do design atualizado, caso visual `vitrine-avisos` e e2e `movimento-e-retorno`.
 
-Verificação: rodada 3 OK (estado `c31bb61b907e9d0e28262cdf5c773444fa241086`), a última; a árvore atual difere dela só neste arquivo. A rodada 1 e a 2 ficam registradas acima.
+Verificação: rodada 4 OK (estado `f3e412266eced507c62b8f54bfab526cd1ef698f`), a última; a árvore atual difere dela só neste arquivo. As rodadas 1 a 3 ficam registradas acima.
 Regressão local da verificação: `npm run lint`, `typecheck`, `build`, `npm test` (3208 testes) e e2e do spec da tela passaram. A base `dev` não avançou desde a verificação, então não houve merge nem nova regressão.
 Decisões: D3 (barra por tempo fixo de 400 ms) aceita; a `role=status` não é fixa na região de avisos, para não quebrar os testes que buscam `status`/`alert` únicos.
 Limitações: sem tela de Toast no canvas, a comparação com o canvas não se aplica; o visual das referências `vitrine-*` e `vitrine-avisos-*` é conferido no job `visual` do CI. Sem `limiteCanvas`. Os avisos ainda não são disparados por telas reais (chega com #775 a #778). Achado de sugestão: aviso dentro de janela modal (Radix) pode ficar `aria-hidden`, a avaliar em #775 a #778.
+
+### Correção da entrega (4)
+- CI do PR #779 (head `5da78095`, run 46093086884) vermelho no visual (2/2) e no `ci-gate`: 8 casos `cobranca-{cancelar,registrar}` e `cobranca-painel 390 escuro`. Correção já verificada na rodada 4 (barra `RouteProgress` escondida no print; hover do botão de abertura de janela regerado nas 8 referências), sem código de produto novo.
+- Entrega: commit com a árvore da rodada 4 (inclui as 8 referências e `frontend/visual/telas.visual.ts`), push e novo CI do PR. O visual do CI por caso vai no comentário de merge.
 
 ### Correção da entrega
 - CI do PR #779 vermelho (e2e e visual 2/2). Causa: a barra `RouteProgress` (400 ms, `role="progressbar"` solto) aparecia após redirecionamentos de rota durante o axe (regra `region`, impacto moderado) e dentro dos prints (780 px de diferença a 390 px). CI pegou o que o local não pegou: axe e visual com a barra visível logo após navegar.
@@ -145,3 +149,26 @@ Instáveis: nenhum nesta rodada.
 Achados:
 - sugestão, código, `playwright.config.ts` — `reducedMotion: "reduce"` global em todos os e2e e no visual faz o CI não exercitar as animações reais (o bloco de reduzir movimento fica coberto, as transições não); aceitável (D4), mas vale um caso e2e sem a preferência se a #775 a #778 dependerem de animação.
 - sugestão, código, `RouteProgress.tsx` — barra por tempo fixo de 400 ms (D3), como antes.
+
+### Correção da entrega (3)
+- CI do PR #779 (run 46093086884) ainda vermelho no visual: 8 casos (`cobranca-cancelar` e `cobranca-registrar`, 1440 e 390, claro e escuro) e `cobranca-painel 390 escuro`. Reproduzido local no container (`npm run test:visual:docker -- -g "cobranca-(cancelar|painel|registrar)"` → 8 falharam, painel passou). Imagens de diferença abertas.
+  - `cobranca-painel 390 escuro`: a barra `RouteProgress` (linha vermelha no topo) entrou no print; a espera por `detached` passava antes de a barra aparecer. Correção: `visual/telas.visual.ts` esconde a região da barra (`visibility: hidden`) em vez de esperar ela sumir.
+  - `cobranca-cancelar/registrar`: só muda o botão que abriu a janela (o de baixo do painel): a referência o mostrava com a cor de passar o mouse (hover preso), e agora, com as transições instantâneas do reduzir movimento e a janela com fade, o hover solta sob a cobertura da janela e o botão sai na cor normal. É o estado correto (o mouse não está sobre o botão, a cobertura está) e determinístico; não é mudança visual de produto. Desvio aceito (decisão recomendada): as 8 referências foram regeradas só desses casos.
+- Referências visuais regeradas: `frontend/visual/referencias/cobranca-{cancelar,registrar}-{1440,390}-{claro,escuro}.png` (8).
+- Prova: `npm run test:visual:docker -- -g "cobranca" --workers=2` (sem `--update-snapshots`) → 56 passaram; `npm run lint` e `npm run typecheck` limpos.
+- CI pegou o que o local não pegou: visual dos casos `cobranca-*` (a verificação não roda o visual local) .
+
+### Rodada 4 — OK — 2026-11-27, estado f3e412266eced507c62b8f54bfab526cd1ef698f
+
+Mudou desde a rodada 3 (estado `c31bb61b`): só `frontend/visual/telas.visual.ts` (barra escondida por `visibility: hidden` em vez de esperar `detached`), 8 referências `cobranca-{cancelar,registrar}-*` e este arquivo. Nenhum código de produto nem teste unitário mudou; CA1 a CA7 e CA9 mantidos da rodada 3.
+
+| Critério | Status | Evidência |
+|---|---|---|
+| CA1 a CA7, CA9 | PASSOU | mantido da rodada 3; `npm test` 284 arquivos, 3208 testes passaram |
+| CA8 | PASSOU (visual no CI do PR) | e2e `comprovantes`, `portal-barra` e `movimento-e-retorno` (6) passaram; visual: no CI do PR (`cobranca-*`, `cobranca-painel` e suíte inteira). A região escondida no print é o mesmo marco `role="region"` com nome `Carregando a tela` do `RouteProgress` |
+
+Comandos: `npm run lint`, `typecheck`, `build` ok; `npm test` 3208 passaram; `npm run e2e -- movimento-e-retorno comprovantes portal-barra` 6 passaram.
+Instáveis: nenhum nesta rodada.
+Achados:
+- sugestão, código, `visual/referencias/cobranca-{cancelar,registrar}-*.png` — 8 referências regeradas por efeito do item (hover do botão que abre a janela deixou de ficar preso); a diferença em bytes é pequena (cerca de 0,1% a 2,5%), coerente com a explicação, mas as imagens não foram abertas lado a lado nesta rodada; o job `visual` do CI é a prova.
+- sugestão, código, `playwright.config.ts` e `RouteProgress.tsx` — como na rodada 3 (reduzir movimento global; barra de 400 ms fixos).
